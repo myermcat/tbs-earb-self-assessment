@@ -1,0 +1,183 @@
+import type { Assessment, Rubric } from './types';
+import { allQuestionScores, type Result } from './scoring';
+
+/**
+ * The anomaly detector. This is the part that replaces reading a deck:
+ * the assessor's new job is auditing the places where the claimed score and the
+ * evidence do not agree, not re-reading every answer.
+ */
+
+export type FlagSeverity = 'high' | 'medium' | 'low' | 'info';
+
+export interface Flag {
+  id: string;
+  questionId?: string;
+  severity: FlagSeverity;
+  title: string;
+  detail: string;
+  challenge?: string;   // a question the assessor can ask in the room
+}
+
+const HIGH_CLASS = new Set<string>(['Protected B', 'Protected C', 'Classified']);
+
+export function flags(rubric: Rubric, a: Assessment, r: Result): Flag[] {
+  const out: Flag[] = [];
+  const all = allQuestionScores(r);
+
+  for (const qs of all) {
+    const q = qs.question;
+    const ans = a.answers[q.id];
+    if (!ans) continue;
+    const ev = ans.evidence ?? [];
+    const just = (ans.justification ?? '').trim();
+
+    if (qs.answered && (qs.raw as number) >= 8 && ev.length === 0) {
+      out.push({
+        id: 'high-score-no-evidence',
+        questionId: q.id,
+        severity: 'high',
+        title: 'High score, nothing cited',
+        detail: `Scored ${qs.raw} out of 10 with no evidence referenced.`,
+        challenge: `You scored ${qs.raw} on "${q.text}" and cited nothing. What would you show us?`,
+      });
+    }
+
+    if (qs.answered && (qs.raw as number) <= 2 && ev.length > 0) {
+      out.push({
+        id: 'low-score-with-evidence',
+        questionId: q.id,
+        severity: 'medium',
+        title: 'Low score, but evidence was provided',
+        detail: `Scored ${qs.raw} out of 10 yet referenced ${ev.length} item(s). Either the score is too harsh or the evidence does not support the question.`,
+        challenge: `Why did this score a ${qs.raw} when you gave us ${ev[0].title}?`,
+      });
+    }
+
+    if (qs.answered && (qs.raw as number) === 10 && just.length < 40) {
+      out.push({
+        id: 'perfect-thin-justification',
+        questionId: q.id,
+        severity: 'medium',
+        title: 'Full marks, thin explanation',
+        detail: 'A 10 out of 10 with fewer than 40 characters of justification.',
+        challenge: `You gave yourself full marks on "${q.text}". Walk us through how it is reviewed and used.`,
+      });
+    }
+
+    if (!qs.na && !qs.answered) {
+      out.push({
+        id: 'unanswered',
+        questionId: q.id,
+        severity: 'low',
+        title: 'Not answered',
+        detail: 'Left blank and not marked as not applicable.',
+      });
+    }
+
+    if (qs.answered && (qs.raw as number) >= 8 && ev.length > 0 && ev.every((e) => !e.attachment)) {
+      out.push({
+        id: 'evidence-not-attached',
+        questionId: q.id,
+        severity: 'low',
+        title: 'High score, evidence pointed at but not attached',
+        detail: ev.map((e) => `"${e.title || 'untitled'}" at ${e.location || 'no location given'}`).join('; '),
+        challenge: `You scored ${qs.raw} here and pointed us at ${ev[0].title || 'something'} without attaching it. Can we see it?`,
+      });
+    }
+
+    if (ans.picklist === 'other') {
+      out.push({
+        id: 'picklist-other',
+        questionId: q.id,
+        severity: 'info',
+        title: 'Answered "other"',
+        detail: `"${ans.picklistOther ?? 'no description given'}". Worth checking whether the list is missing a common option.`,
+      });
+    }
+
+    for (const e of ev) {
+      if (HIGH_CLASS.has(e.classification)) {
+        out.push({
+          id: 'evidence-classified',
+          questionId: q.id,
+          severity: 'info',
+          title: `Evidence marked ${e.classification}`,
+          detail: e.attachment
+            ? `"${e.title}" is attached and marked ${e.classification}. Handle this file accordingly.`
+            : `"${e.title}" is held at ${e.classification} and was pointed at rather than attached: ${e.location || 'no location given'}.`,
+        });
+      }
+    }
+  }
+
+  // Whole-assessment patterns.
+  const answeredScores = all.filter((q) => q.answered).map((q) => q.raw as number);
+
+  if (answeredScores.length >= 5) {
+    const counts = new Map<number, number>();
+    for (const s of answeredScores) counts.set(s, (counts.get(s) ?? 0) + 1);
+    const [topValue, topCount] = [...counts.entries()].sort((a, b) => b[1] - a[1])[0];
+    if (topCount / answeredScores.length >= 0.7) {
+      out.push({
+        id: 'flat-scoring',
+        severity: 'medium',
+        title: 'Scores barely vary',
+        detail: `${topCount} of ${answeredScores.length} answers are all ${topValue}. This reads as box-ticking rather than assessment.`,
+        challenge: 'Which of these areas is genuinely your weakest, and why did it score the same as your strongest?',
+      });
+    }
+  }
+
+  if (r.overall !== null && r.overall >= 9) {
+    out.push({
+      id: 'self-score-outlier',
+      severity: 'high',
+      title: 'Very high self-score',
+      detail: `Overall ${r.overall.toFixed(1)} out of 10. Include this one in the audit sample regardless of routing.`,
+    });
+  }
+
+  const naCount = all.filter((q) => q.na).length;
+  if (all.length > 0 && naCount / all.length > 0.25) {
+    out.push({
+      id: 'na-heavy',
+      severity: 'medium',
+      title: 'Heavy use of not applicable',
+      detail: `${naCount} of ${all.length} questions marked not applicable.`,
+      challenge: 'Talk us through why so much of the rubric does not apply to this initiative.',
+    });
+  }
+
+  if (r.completeness < 0.8) {
+    out.push({
+      id: 'incomplete',
+      severity: 'high',
+      title: 'Incomplete submission',
+      detail: `${r.answered} of ${r.scoreable} scoreable questions answered (${Math.round(r.completeness * 100)}%).`,
+    });
+  }
+
+  // Stage sanity: confident about cost while still in discovery.
+  const stage = a.initiative.lifecycleStage;
+  if (stage === 'discovery' || stage === 'alpha') {
+    for (const qs of all) {
+      if (qs.expectation === 'low-ok' && qs.answered && (qs.raw as number) >= 9) {
+        out.push({
+          id: 'stage-mismatch',
+          questionId: qs.question.id,
+          severity: 'low',
+          title: 'Unusually confident for this stage',
+          detail: `Scored ${qs.raw} on something most initiatives cannot know at ${stage}. If it is real it is worth showcasing; if not, it is worth challenging.`,
+          challenge: `You are at ${stage} and scored ${qs.raw} here. How do you already know that?`,
+        });
+      }
+    }
+  }
+
+  const order: Record<FlagSeverity, number> = { high: 0, medium: 1, low: 2, info: 3 };
+  return out.sort((a, b) => order[a.severity] - order[b.severity]);
+}
+
+export function challenges(fs: Flag[]): Flag[] {
+  return fs.filter((f) => !!f.challenge);
+}
