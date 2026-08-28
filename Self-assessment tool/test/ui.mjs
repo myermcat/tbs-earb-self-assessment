@@ -197,7 +197,7 @@ ok('four domain bars rendered', qa('.bar-row').length === 4, String(qa('.bar-row
 ok('backlog section present', view().includes('weakest five'));
 ok('assessor questions previewed to the submitter', view().includes('What an assessor will probably ask'));
 ok('the no-evidence 9 is flagged', view().includes('High score, nothing cited'));
-ok('Protected B evidence is called out', view().includes('Protected B'));
+ok('the file marking reaches the results page', view().includes('PROTECTED B'));
 {
   const rows = qa('table.detail tbody tr').length;
   const expected = TOTAL + 4 + 20;   // questions + domain rows + section rows
@@ -217,6 +217,7 @@ ok('saved file carries the attachment itself', (() => {
   return !!ev && ev.attachment.name === 'current-state.pdf' && atob(ev.attachment.data).startsWith('%PDF');
 })());
 ok('saved file records its marking', savedJson.initiative.classification === 'Protected B');
+ok('the favicon is inline, so the built file needs no second request', html.includes('rel="icon" href="data:image/svg+xml'));
 
 byText('button', 'Save a CSV row').click();
 const csv = await text(saved[1]);
@@ -247,11 +248,22 @@ ok("assessor sees the submitter's own words",
 ok('assessor is told where a justification is missing', view().includes('No justification given'));
 ok('assessor sees the evidence reference and its classification',
    view().includes('Current-state architecture diagram') && view().includes('Protected B'));
-ok('audit is grouped by Dan\'s sections', qa('.section-head').length === 20, String(qa('.section-head').length));
-ok('per-question audit controls exist for every question', qa('.audit-controls').length === TOTAL,
-   String(qa('.audit-controls').length));
-ok('a challenge question is drafted for the assessor', view().includes('Ask: "'));
-ok('the triage list shows the marking', view().includes('Protected B'));
+// Anomalies first: only the flagged questions are on the page until the assessor asks for
+// the rest. This is the whole point of the reviewer side.
+{
+  const flaggedRows = qa('.audit-row.flagged').length;
+  const allRows = qa('.audit-row').length;
+  ok('flagged questions are surfaced on their own', flaggedRows > 0, String(flaggedRows));
+  ok('the flagged set is a small fraction of 176', flaggedRows < 20, String(flaggedRows));
+  ok('everything else is present but folded away', allRows === TOTAL, `${allRows} vs ${TOTAL}`);
+  ok('the fold says how many are behind it', view().includes('nothing flagged'));
+  ok('a KPI row summarises the submission', qa('.kpi').length === 5, String(qa('.kpi').length));
+}
+ok('a challenge question is drafted for the assessor, with no AI and no key involved',
+   qa('.challenge').length > 0 && qa('.challenge')[0].textContent.includes('?'),
+   qa('.challenge')[0]?.textContent?.slice(0, 70));
+ok('the marking is shown as handling information, not as an anomaly',
+   view().includes('Marked Protected B') && !view().includes('Evidence marked Protected B'));
 {
   const openBtn = qa('.ev-list button').find((b) => b.textContent === 'Open');
   ok('assessor can open the attached evidence in place', !!openBtn);
@@ -260,21 +272,28 @@ ok('the triage list shows the marking', view().includes('Protected B'));
      opened.length === 1 && String(opened[0]).startsWith('blob:'), String(opened[0]));
 }
 
-const nameField = q('.card input[type=text]');
+const nameField = q('input.reviewer-name');
 nameField.value = 'Allison';
 fire(nameField, 'input');
-const firstAudit = q('.audit-controls input[type=number]');
-firstAudit.value = '4';
-fire(firstAudit, 'input');
+
+// Re-score one specific question so the delta is checkable.
+const targetQid = rubric.domains[0].sections[0].questions[0].id;
+const targetRow = q(`.audit-row[data-qid="${targetQid}"]`);
+ok('every question is addressable by its rubric id', !!targetRow, targetQid);
+const targetInput = targetRow.querySelector('.audit-controls input[type=number]');
+targetInput.value = '4';
+fire(targetInput, 'input');
+fire(targetInput, 'change');
+ok('changing a score marks that line as changed',
+   !!q(`.audit-row.changed[data-qid="${targetQid}"]`));
+ok('the change is summarised for the assessor', view().includes('What you changed'));
+ok('the delta is shown with direction', view().includes('They said 7, you scored 4'));
 byText('button', 'Save the audited file').click();
 const audited = JSON.parse(await text(saved[saved.length - 1]));
 ok('audited file records the reviewer', audited.audit.reviewer === 'Allison', String(audited.audit?.reviewer));
-{
-  const firstId = rubric.domains[0].sections[0].questions[0].id;
-  ok('audited file keeps the self-score alongside the audited one',
-     audited.answers[firstId].score === 7 && audited.audit.perQuestion[firstId].auditedScore === 4,
-     `${audited.answers[firstId].score} / ${audited.audit.perQuestion[firstId].auditedScore}`);
-}
+ok('audited file keeps the self-score alongside the audited one',
+   audited.answers[targetQid].score === 7 && audited.audit.perQuestion[targetQid].auditedScore === 4,
+   `${audited.answers[targetQid].score} / ${audited.audit.perQuestion[targetQid].auditedScore}`);
 
 console.log(fails === 0 ? '\nall UI checks passed' : `\n${fails} FAILED`);
 process.exit(fails === 0 ? 0 : 1);

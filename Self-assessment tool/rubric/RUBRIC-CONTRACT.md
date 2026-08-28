@@ -70,6 +70,27 @@ keeping them at 100 makes the numbers readable.
 - `stageExpectation` only needs the stages that differ from `expected`.
 - `nextSteps` are shown to low scorers as their backlog. Write them as actions, not advice.
 
+## Ids are generated, never typed
+
+Question ids come out of `tools/import-rubric.mjs`, built from the domain and the sheet's own
+`Q` number. Nothing in the app lets anyone rename one, and nobody should hand-edit the rubric
+JSON to do it either - ids become column names in every CSV export, so a repointed id
+silently breaks comparison with everything already exported.
+
+`rubric/rubric-ids.lock.json` records what each id meant. The importer compares against it on
+every run and refuses to let an id quietly point at a different question:
+
+```
+- Question TE-Q7 now means something different.
+      was: "Is there a clear inventory of all infrastructure components, including"
+      now: "Something completely different about hats"
+      Ids are column names in every CSV already exported. Add a new question rather than
+      repointing this id, or delete rubric/rubric-ids.lock.json deliberately.
+```
+
+New ids are reported and allowed. Disappeared ids are noted. The warning also reaches the
+user - import warnings are shown on the home page rather than buried in a build log.
+
 ## Adding or changing questions later
 
 Expected, and the reason the rubric is a separate file.
@@ -80,4 +101,5 @@ Expected, and the reason the rubric is a separate file.
 - **Changing a weight or a band** - safe, but old scores were computed under the old numbers.
   The app recalculates on load and warns when an assessment's rubric version differs.
 - **Removing a question** - the old answer is carried in the file but ignored. Nothing breaks.
-- **Renaming an id** - avoid. It orphans the old answer and breaks CSV comparison.
+- **Renaming an id** - not possible through the app, and caught by the lock file if attempted
+  by hand. See above.

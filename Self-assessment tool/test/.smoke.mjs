@@ -21,6 +21,7 @@ function score(rubric2, a) {
         if (!na) scoreable++;
         if (isAnswered) answered++;
         const mult = rubric2.stageMultipliers[questionExpectation(question, stage)] ?? 1;
+        const qShare = section.questions.length ? question.weight / section.questions.reduce((t, x) => t + x.weight, 0) : 0;
         return {
           question,
           domainId: domain.id,
@@ -29,7 +30,8 @@ function score(rubric2, a) {
           na,
           answered: isAnswered,
           effectiveWeight: isAnswered ? question.weight * mult : 0,
-          expectation: effectiveExpectation(question, section, stage)
+          expectation: effectiveExpectation(question, section, stage),
+          share: domain.weight / 100 * (section.weight / 100) * qShare
         };
       });
       const wsum = questions.reduce((s, q) => s + q.effectiveWeight, 0);
@@ -90,10 +92,20 @@ function nextAnchor(rubric2, q, current) {
 }
 
 // src/flags.ts
-var HIGH_CLASS = /* @__PURE__ */ new Set(["Protected B", "Protected C", "Classified"]);
+var AGGREGATE_AT = 4;
+var AGGREGATABLE = {
+  "high-score-no-evidence": (n) => `${n} high scores with nothing cited`,
+  "low-score-with-evidence": (n) => `${n} low scores where evidence was provided anyway`,
+  "perfect-thin-justification": (n) => `${n} full marks with barely a sentence behind them`,
+  "evidence-not-attached": (n) => `${n} high scores where evidence was pointed at, not attached`,
+  "stage-mismatch": (n) => `${n} answers unusually confident for this lifecycle stage`,
+  unanswered: (n) => `${n} questions left unanswered`,
+  "picklist-other": (n) => `${n} answers of "other"`
+};
 function flags(rubric2, a, r) {
   const out = [];
   const all = allQuestionScores(r);
+  const push = (f, share) => out.push(share === void 0 ? f : { ...f, share });
   for (const qs of all) {
     const q = qs.question;
     const ans = a.answers[q.id];
@@ -101,7 +113,8 @@ function flags(rubric2, a, r) {
     const ev = ans.evidence ?? [];
     const just = (ans.justification ?? "").trim();
     if (qs.answered && qs.raw >= 8 && ev.length === 0) {
-      out.push({
+      push({
+        share: qs.share,
         id: "high-score-no-evidence",
         questionId: q.id,
         severity: "high",
@@ -111,7 +124,8 @@ function flags(rubric2, a, r) {
       });
     }
     if (qs.answered && qs.raw <= 2 && ev.length > 0) {
-      out.push({
+      push({
+        share: qs.share,
         id: "low-score-with-evidence",
         questionId: q.id,
         severity: "medium",
@@ -121,7 +135,8 @@ function flags(rubric2, a, r) {
       });
     }
     if (qs.answered && qs.raw === 10 && just.length < 40) {
-      out.push({
+      push({
+        share: qs.share,
         id: "perfect-thin-justification",
         questionId: q.id,
         severity: "medium",
@@ -131,7 +146,8 @@ function flags(rubric2, a, r) {
       });
     }
     if (!qs.na && !qs.answered) {
-      out.push({
+      push({
+        share: qs.share,
         id: "unanswered",
         questionId: q.id,
         severity: "low",
@@ -140,7 +156,8 @@ function flags(rubric2, a, r) {
       });
     }
     if (qs.answered && qs.raw >= 8 && ev.length > 0 && ev.every((e) => !e.attachment)) {
-      out.push({
+      push({
+        share: qs.share,
         id: "evidence-not-attached",
         questionId: q.id,
         severity: "low",
@@ -150,24 +167,14 @@ function flags(rubric2, a, r) {
       });
     }
     if (ans.picklist === "other") {
-      out.push({
+      push({
+        share: qs.share,
         id: "picklist-other",
         questionId: q.id,
         severity: "info",
         title: 'Answered "other"',
         detail: `"${ans.picklistOther ?? "no description given"}". Worth checking whether the list is missing a common option.`
       });
-    }
-    for (const e of ev) {
-      if (HIGH_CLASS.has(e.classification)) {
-        out.push({
-          id: "evidence-classified",
-          questionId: q.id,
-          severity: "info",
-          title: `Evidence marked ${e.classification}`,
-          detail: e.attachment ? `"${e.title}" is attached and marked ${e.classification}. Handle this file accordingly.` : `"${e.title}" is held at ${e.classification} and was pointed at rather than attached: ${e.location || "no location given"}.`
-        });
-      }
     }
   }
   const answeredScores = all.filter((q) => q.answered).map((q) => q.raw);
@@ -215,7 +222,8 @@ function flags(rubric2, a, r) {
   if (stage === "discovery" || stage === "alpha") {
     for (const qs of all) {
       if (qs.expectation === "low-ok" && qs.answered && qs.raw >= 9) {
-        out.push({
+        push({
+          share: qs.share,
           id: "stage-mismatch",
           questionId: qs.question.id,
           severity: "low",
@@ -226,8 +234,55 @@ function flags(rubric2, a, r) {
       }
     }
   }
+  return rank(collapse(out, r));
+}
+function collapse(flags2, r) {
+  const shareOf = new Map(allQuestionScores(r).map((qs) => [qs.question.id, qs]));
+  const groups = /* @__PURE__ */ new Map();
+  const kept = [];
+  for (const f of flags2) {
+    if (f.questionId && AGGREGATABLE[f.id]) {
+      groups.set(f.id, [...groups.get(f.id) ?? [], f]);
+    } else {
+      kept.push(f);
+    }
+  }
+  for (const [id, group] of groups) {
+    if (group.length < AGGREGATE_AT) {
+      kept.push(...group);
+      continue;
+    }
+    const titleFor = AGGREGATABLE[id];
+    const sorted = [...group].sort(
+      (a, b) => (shareOf.get(b.questionId)?.share ?? 0) - (shareOf.get(a.questionId)?.share ?? 0)
+    );
+    const top = sorted.slice(0, 5);
+    const named = top.map((f) => {
+      const qs = shareOf.get(f.questionId);
+      return `${f.questionId} (${Math.round((qs?.share ?? 0) * 1e3) / 10}% of the score)`;
+    }).join(", ");
+    kept.push({
+      id: `${id}-many`,
+      // An aggregate is as severe as the findings inside it.
+      severity: group[0].severity,
+      title: titleFor(group.length),
+      detail: `Heaviest first: ${named}${group.length > top.length ? `, and ${group.length - top.length} more` : ""}.`,
+      challenge: top[0]?.challenge,
+      questionIds: sorted.map((f) => f.questionId)
+    });
+  }
+  return kept;
+}
+function rank(flags2) {
   const order = { high: 0, medium: 1, low: 2, info: 3 };
-  return out.sort((a2, b) => order[a2.severity] - order[b.severity]);
+  return flags2.sort((a, b) => {
+    const bySeverity = order[a.severity] - order[b.severity];
+    if (bySeverity !== 0) return bySeverity;
+    const aWhole = a.questionId || a.questionIds ? 1 : 0;
+    const bWhole = b.questionId || b.questionIds ? 1 : 0;
+    if (aWhole !== bWhole) return aWhole - bWhole;
+    return (b.share ?? 0) - (a.share ?? 0);
+  });
 }
 
 // src/csv.ts
@@ -1908,7 +1963,19 @@ ok("1 -> Critical Risk", mat(1) === "Critical Risk", String(mat(1)));
   };
   const fs = flags(rubric, a, score(rubric, a));
   ok("low score with evidence is caught", fs.some((f) => f.id === "low-score-with-evidence"));
-  ok("Protected B evidence is called out", fs.some((f) => f.id === "evidence-classified"));
+  ok("Protected B evidence is NOT treated as an anomaly", !fs.some((f) => f.id === "evidence-classified"));
+}
+{
+  const a = fill(blank("beta"), 5);
+  a.answers[qid("avoid unnecessary duplication with existing GC capabilities")] = {
+    score: 9,
+    evidence: [{ title: "Reuse assessment", kind: "document", location: "the team drive", classification: "Unclassified" }],
+    justification: "we checked"
+  };
+  ok(
+    "a high score with evidence pointed at but not attached is caught",
+    flags(rubric, a, score(rubric, a)).some((f) => f.id === "evidence-not-attached")
+  );
 }
 {
   const a = fill(blank("beta"), 7);

@@ -1,5 +1,5 @@
 import type { Assessment, Rubric } from './types';
-import { el, clear, tone } from './dom';
+import { el, clear, tone, bar } from './dom';
 import { nextAnchor, score, strongest, weakest } from './scoring';
 import { flags } from './flags';
 import { csvHeader, csvRow, toCsv } from './csv';
@@ -55,7 +55,7 @@ export function renderResults(root: HTMLElement, rubric: Rubric, a: Assessment, 
     bars.appendChild(el('div', { class: 'bar-row' }, [
       el('div', { class: 'bar-label' }, [d.domain.label, el('span', { class: 'muted small' }, [` ${d.weight}% of the total`])]),
       el('div', { class: 'bar-track' }, [
-        el('div', { class: `bar-fill ${tone(d.score)}`, style: `width:${((d.score ?? 0) / 10) * 100}%` }),
+        el('div', { class: `bar-fill ${bar(d.score)}`, style: `width:${((d.score ?? 0) / 10) * 100}%` }),
       ]),
       el('div', { class: `bar-num ${tone(d.score)}` }, [d.score === null ? '--' : d.score.toFixed(1)]),
     ]));
@@ -102,12 +102,13 @@ export function renderResults(root: HTMLElement, rubric: Rubric, a: Assessment, 
     ]);
     for (const f of fs.slice(0, 12)) {
       box.appendChild(el('div', { class: `flag sev-${f.severity}` }, [
-        el('div', {}, [
+        el('div', { class: 'flag-title' }, [
+          el('span', { class: 'sev-dot' }),
           el('strong', {}, [f.title]),
-          f.questionId ? el('span', { class: 'muted small' }, [` (${f.questionId})`]) : null,
+          f.questionId ? el('span', { class: 'qid' }, [f.questionId]) : null,
         ]),
         el('div', { class: 'small' }, [f.detail]),
-        f.challenge ? el('div', { class: 'small challenge' }, ['"', f.challenge, '"']) : null,
+        f.challenge ? el('div', { class: 'small challenge' }, [f.challenge]) : null,
       ]));
     }
     root.appendChild(box);
@@ -143,7 +144,10 @@ export function renderResults(root: HTMLElement, rubric: Rubric, a: Assessment, 
   }
   table.appendChild(tb);
   root.appendChild(el('section', { class: 'card' }, [
-    el('details', {}, [el('summary', {}, ['Every question and score']), table]),
+    el('details', {}, [
+      el('summary', {}, ['Every question and score']),
+      el('div', { class: 'table-wrap' }, [table]),
+    ]),
   ]));
 
   const problems = markingProblems(a);

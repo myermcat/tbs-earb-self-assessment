@@ -141,7 +141,21 @@ ok('1 -> Critical Risk', mat(1) === 'Critical Risk', String(mat(1)));
   };
   const fs = flags(rubric, a, score(rubric, a));
   ok('low score with evidence is caught', fs.some((f) => f.id === 'low-score-with-evidence'));
-  ok('Protected B evidence is called out', fs.some((f) => f.id === 'evidence-classified'));
+  // Protected B is ordinary in government. Flagging it would train assessors to skim the
+  // anomaly list, so it is handling information on the header, not a finding.
+  ok('Protected B evidence is NOT treated as an anomaly', !fs.some((f) => f.id === 'evidence-classified'));
+}
+{
+  // A high score whose evidence was only pointed at, not attached - now that attaching is
+  // possible, a pointer behind a strong claim is worth asking about.
+  const a = fill(blank('beta'), 5);
+  a.answers[qid('avoid unnecessary duplication with existing GC capabilities')] = {
+    score: 9,
+    evidence: [{ title: 'Reuse assessment', kind: 'document', location: 'the team drive', classification: 'Unclassified' }],
+    justification: 'we checked',
+  };
+  ok('a high score with evidence pointed at but not attached is caught',
+     flags(rubric, a, score(rubric, a)).some((f) => f.id === 'evidence-not-attached'));
 }
 {
   const a = fill(blank('beta'), 7);

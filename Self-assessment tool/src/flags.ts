@@ -15,14 +15,38 @@ export interface Flag {
   severity: FlagSeverity;
   title: string;
   detail: string;
-  challenge?: string;   // a question the assessor can ask in the room
+  challenge?: string;      // a question the assessor can ask in the room. Templated, not generated.
+  share?: number;          // how much of the score this question carries, for ranking
+  questionIds?: string[];  // set on an aggregated flag
 }
 
-const HIGH_CLASS = new Set<string>(['Protected B', 'Protected C', 'Classified']);
+/**
+ * Some findings are individually interesting; others arrive in bulk. Seventy separate
+ * "high score, nothing cited" cards is not a worklist, it is wallpaper - so the bulk kinds
+ * collapse into one card once there are more than a few, naming the count and the heaviest
+ * examples. The rare kinds stay per-question, because each one is its own story.
+ */
+const AGGREGATE_AT = 4;
+
+/**
+ * Every per-question kind can arrive in bulk, so all of them collapse at the same threshold
+ * and rarity decides rather than a guess about which kinds are common. Below the threshold
+ * each one keeps its own card, because three of anything is still readable.
+ */
+const AGGREGATABLE: Record<string, (n: number) => string> = {
+  'high-score-no-evidence':    (n) => `${n} high scores with nothing cited`,
+  'low-score-with-evidence':   (n) => `${n} low scores where evidence was provided anyway`,
+  'perfect-thin-justification': (n) => `${n} full marks with barely a sentence behind them`,
+  'evidence-not-attached':     (n) => `${n} high scores where evidence was pointed at, not attached`,
+  'stage-mismatch':            (n) => `${n} answers unusually confident for this lifecycle stage`,
+  unanswered:                  (n) => `${n} questions left unanswered`,
+  'picklist-other':            (n) => `${n} answers of "other"`,
+};
 
 export function flags(rubric: Rubric, a: Assessment, r: Result): Flag[] {
   const out: Flag[] = [];
   const all = allQuestionScores(r);
+  const push = (f: Flag, share?: number) => out.push(share === undefined ? f : { ...f, share });
 
   for (const qs of all) {
     const q = qs.question;
@@ -32,7 +56,8 @@ export function flags(rubric: Rubric, a: Assessment, r: Result): Flag[] {
     const just = (ans.justification ?? '').trim();
 
     if (qs.answered && (qs.raw as number) >= 8 && ev.length === 0) {
-      out.push({
+      push({
+        share: qs.share,
         id: 'high-score-no-evidence',
         questionId: q.id,
         severity: 'high',
@@ -43,7 +68,8 @@ export function flags(rubric: Rubric, a: Assessment, r: Result): Flag[] {
     }
 
     if (qs.answered && (qs.raw as number) <= 2 && ev.length > 0) {
-      out.push({
+      push({
+        share: qs.share,
         id: 'low-score-with-evidence',
         questionId: q.id,
         severity: 'medium',
@@ -54,7 +80,8 @@ export function flags(rubric: Rubric, a: Assessment, r: Result): Flag[] {
     }
 
     if (qs.answered && (qs.raw as number) === 10 && just.length < 40) {
-      out.push({
+      push({
+        share: qs.share,
         id: 'perfect-thin-justification',
         questionId: q.id,
         severity: 'medium',
@@ -65,7 +92,8 @@ export function flags(rubric: Rubric, a: Assessment, r: Result): Flag[] {
     }
 
     if (!qs.na && !qs.answered) {
-      out.push({
+      push({
+        share: qs.share,
         id: 'unanswered',
         questionId: q.id,
         severity: 'low',
@@ -75,7 +103,8 @@ export function flags(rubric: Rubric, a: Assessment, r: Result): Flag[] {
     }
 
     if (qs.answered && (qs.raw as number) >= 8 && ev.length > 0 && ev.every((e) => !e.attachment)) {
-      out.push({
+      push({
+        share: qs.share,
         id: 'evidence-not-attached',
         questionId: q.id,
         severity: 'low',
@@ -86,7 +115,8 @@ export function flags(rubric: Rubric, a: Assessment, r: Result): Flag[] {
     }
 
     if (ans.picklist === 'other') {
-      out.push({
+      push({
+        share: qs.share,
         id: 'picklist-other',
         questionId: q.id,
         severity: 'info',
@@ -95,19 +125,10 @@ export function flags(rubric: Rubric, a: Assessment, r: Result): Flag[] {
       });
     }
 
-    for (const e of ev) {
-      if (HIGH_CLASS.has(e.classification)) {
-        out.push({
-          id: 'evidence-classified',
-          questionId: q.id,
-          severity: 'info',
-          title: `Evidence marked ${e.classification}`,
-          detail: e.attachment
-            ? `"${e.title}" is attached and marked ${e.classification}. Handle this file accordingly.`
-            : `"${e.title}" is held at ${e.classification} and was pointed at rather than attached: ${e.location || 'no location given'}.`,
-        });
-      }
-    }
+    // Deliberately not flagged: evidence marked Protected B or above. That is ordinary in
+    // government, and calling it an anomaly trains people to ignore the anomaly list. The
+    // marking is handling information, so it shows on the submission header and beside each
+    // evidence item instead.
   }
 
   // Whole-assessment patterns.
@@ -162,7 +183,8 @@ export function flags(rubric: Rubric, a: Assessment, r: Result): Flag[] {
   if (stage === 'discovery' || stage === 'alpha') {
     for (const qs of all) {
       if (qs.expectation === 'low-ok' && qs.answered && (qs.raw as number) >= 9) {
-        out.push({
+        push({
+          share: qs.share,
           id: 'stage-mismatch',
           questionId: qs.question.id,
           severity: 'low',
@@ -174,8 +196,63 @@ export function flags(rubric: Rubric, a: Assessment, r: Result): Flag[] {
     }
   }
 
+  return rank(collapse(out, r));
+}
+
+/** Collapse the bulk kinds into one card each, keeping the heaviest examples. */
+function collapse(flags: Flag[], r: Result): Flag[] {
+  const shareOf = new Map(allQuestionScores(r).map((qs) => [qs.question.id, qs]));
+  const groups = new Map<string, Flag[]>();
+  const kept: Flag[] = [];
+
+  for (const f of flags) {
+    if (f.questionId && AGGREGATABLE[f.id]) {
+      groups.set(f.id, [...(groups.get(f.id) ?? []), f]);
+    } else {
+      kept.push(f);
+    }
+  }
+
+  for (const [id, group] of groups) {
+    if (group.length < AGGREGATE_AT) { kept.push(...group); continue; }
+
+    const titleFor = AGGREGATABLE[id];
+    const sorted = [...group].sort(
+      (a, b) => (shareOf.get(b.questionId!)?.share ?? 0) - (shareOf.get(a.questionId!)?.share ?? 0),
+    );
+    const top = sorted.slice(0, 5);
+    const named = top
+      .map((f) => {
+        const qs = shareOf.get(f.questionId!);
+        return `${f.questionId} (${Math.round((qs?.share ?? 0) * 1000) / 10}% of the score)`;
+      })
+      .join(', ');
+
+    kept.push({
+      id: `${id}-many`,
+      // An aggregate is as severe as the findings inside it.
+      severity: group[0].severity,
+      title: titleFor(group.length),
+      detail: `Heaviest first: ${named}${group.length > top.length ? `, and ${group.length - top.length} more` : ''}.`,
+      challenge: top[0]?.challenge,
+      questionIds: sorted.map((f) => f.questionId!),
+    });
+  }
+
+  return kept;
+}
+
+/** Severity first, then how much of the score the question actually carries. */
+function rank(flags: Flag[]): Flag[] {
   const order: Record<FlagSeverity, number> = { high: 0, medium: 1, low: 2, info: 3 };
-  return out.sort((a, b) => order[a.severity] - order[b.severity]);
+  return flags.sort((a, b) => {
+    const bySeverity = order[a.severity] - order[b.severity];
+    if (bySeverity !== 0) return bySeverity;
+    const aWhole = a.questionId || a.questionIds ? 1 : 0;
+    const bWhole = b.questionId || b.questionIds ? 1 : 0;
+    if (aWhole !== bWhole) return aWhole - bWhole;          // whole-assessment findings first
+    return (b.share ?? 0) - (a.share ?? 0);
+  });
 }
 
 export function challenges(fs: Flag[]): Flag[] {

@@ -184,6 +184,37 @@ const rubric = {
   domains,
 };
 
+/**
+ * Question ids are generated from the sheet, never typed by hand, and they become CSV column
+ * names - so an id that changes meaning silently breaks comparison with every export made
+ * before it. This lock file records what each id meant; the check below refuses to let one
+ * quietly point at a different question. New ids are fine, and disappearing ones are noted.
+ */
+const LOCK = 'rubric/rubric-ids.lock.json';
+const gist = (t) => t.replace(/\s+/g, ' ').trim().slice(0, 70);
+const current = {};
+for (const d of domains) for (const sec of d.sections) for (const q of sec.questions) current[q.id] = gist(q.text);
+
+let previous = null;
+try { previous = JSON.parse(await readFile(LOCK, 'utf8')); } catch { /* first run */ }
+
+if (previous) {
+  for (const [id, was] of Object.entries(previous)) {
+    if (!(id in current)) { warnings.push(`Question ${id} has disappeared. Old exports have a ${id} column with no question behind it.`); continue; }
+    if (current[id] !== was) {
+      warnings.push(
+        `Question ${id} now means something different.\n      was: "${was}"\n      now: "${current[id]}"\n      ` +
+        `Ids are column names in every CSV already exported. Add a new question rather than repointing this id, ` +
+        `or delete ${LOCK} deliberately if the change is intended.`,
+      );
+    }
+  }
+  const added = Object.keys(current).filter((id) => !(id in previous));
+  if (added.length) console.log(`  ${added.length} new question id(s): ${added.slice(0, 6).join(', ')}${added.length > 6 ? '...' : ''}`);
+}
+
+rubric.importWarnings = warnings;
+await writeFile(LOCK, JSON.stringify(current, null, 2) + '\n');
 await writeFile(OUT, JSON.stringify(rubric, null, 2) + '\n');
 
 const nq = domains.reduce((s, d) => s + d.sections.reduce((t, x) => t + x.questions.length, 0), 0);
