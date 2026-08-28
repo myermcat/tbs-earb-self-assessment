@@ -38,8 +38,13 @@ const GEAR =
 function paint() {
   clear(app);
   app.className = mode === 'home' ? 'app-home' : '';
-  app.appendChild(header());
-  if (mode === 'submit' || mode === 'results') app.appendChild(banner());
+
+  // Header and marking travel together in one sticky block. Two separately sticky elements
+  // pinned to the top overlap as soon as the page scrolls.
+  const chrome = el('div', { class: 'chrome' }, [header()]);
+  if (mode === 'submit' || mode === 'results') chrome.appendChild(banner());
+  app.appendChild(chrome);
+
   const body = el('main', { class: `body ${mode === 'home' ? 'body-home' : ''}` });
   app.appendChild(body);
 
@@ -49,7 +54,9 @@ function paint() {
   else if (mode === 'settings') renderSettings(body);
   else renderReview(body, rubric);
 
-  if (mode === 'submit' || mode === 'results') app.appendChild(banner());
+  // A printed assessment carries its marking at the foot of the page as well as the head.
+  // On screen the sticky one above is enough.
+  if (mode === 'submit' || mode === 'results') app.appendChild(banner('print-only'));
   app.appendChild(footer());
 }
 
@@ -92,9 +99,15 @@ function footer(): HTMLElement {
   ]);
 }
 
-function banner(): HTMLElement {
+function banner(extra = ''): HTMLElement {
   const mark = bannerFor(assessment);
-  return el('div', { class: `marking-banner ${mark === 'UNMARKED' ? 'unmarked' : ''}` }, [mark]);
+  const unmarked = mark === 'UNMARKED';
+  return el('div', {
+    class: `marking-banner ${unmarked ? 'unmarked' : ''} ${extra}`,
+    role: unmarked ? 'alert' : undefined,
+  }, [
+    unmarked ? 'Unmarked. Set a classification before saving.' : mark,
+  ]);
 }
 
 /* ------------------------------------------------------------------------------------------
@@ -114,7 +127,7 @@ function renderHome(root: HTMLElement) {
       el('h1', {}, ['Assess your own architecture']),
       el('p', { class: 'lead' }, [
         'You answer questions about the work you already run, score yourself against a published scale, ',
-        'and point to evidence you already have. Nothing needs making for us.',
+        'and point to evidence you already have. Nothing new has to be written for it.',
       ]),
       el('div', { class: 'hero-actions' }, [
         el('button', { class: 'primary big', onclick: () => go('submit') }, [

@@ -207,7 +207,7 @@ function flags(rubric2, a, r) {
       severity: "medium",
       title: "Heavy use of not applicable",
       detail: `${naCount} of ${all.length} questions marked not applicable.`,
-      challenge: "Talk us through why so much of the rubric does not apply to this initiative."
+      challenge: "Talk the board through why so much of the rubric does not apply to this initiative."
     });
   }
   if (r.completeness < 0.8) {
