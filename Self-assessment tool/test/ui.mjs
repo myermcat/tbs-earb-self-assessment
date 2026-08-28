@@ -91,6 +91,9 @@ fire(inputs[1], 'change');   // the gate refreshes on blur, not on every keystro
 // Dan's rule: the moment there is content in the file, it has to be marked before saving.
 ok('typing content blocks saving until the file is marked', q('.footer-actions .ghost').disabled === true);
 ok('the gate says why', view().includes('Mark this assessment before saving'));
+ok('an unmarked file says so in the banner, and announces it',
+   q('.chrome .marking-banner').classList.contains('unmarked') &&
+   q('.chrome .marking-banner').getAttribute('role') === 'alert');
 
 const maturity = qa('.stage-card input[type=radio]').find((r) => r.value === 'maturity');
 maturity.checked = true;
@@ -102,8 +105,13 @@ ok('five markings offered', qa('.marking-chip').length === 5, String(qa('.markin
 const pbChip = qa('.marking-chip input').find((r) => r.value === 'Protected B');
 pbChip.checked = true;
 fire(pbChip, 'change');
-ok('banner shows the marking top and bottom', qa('.marking-banner').length === 2 &&
-   q('.marking-banner').textContent.trim() === 'PROTECTED B', q('.marking-banner')?.textContent);
+// One banner on screen, sticky with the header. The second copy exists for print only.
+ok('one marking banner on screen, plus a print-only copy',
+   qa('.marking-banner').length === 2 && qa('.marking-banner.print-only').length === 1,
+   String(qa('.marking-banner').length));
+ok('the on-screen banner is inside the sticky header block', !!q('.chrome .marking-banner'));
+ok('it shows the marking once set',
+   q('.chrome .marking-banner').textContent.trim() === 'PROTECTED B', q('.chrome .marking-banner')?.textContent);
 ok('saving is allowed once marked', q('.footer-actions .ghost').disabled === false);
 
 // ---- answer every question, domain by domain -------------------------------------------
@@ -214,6 +222,8 @@ ok('backlog section present', view().includes('weakest five'));
 ok('assessor questions previewed to the submitter', view().includes('What an assessor will probably ask'));
 ok('the no-evidence 9 is flagged', view().includes('High score, nothing cited'));
 ok('the file marking reaches the results page', view().includes('PROTECTED B'));
+ok('the copy does not appeal to an unnamed "us"',
+   !view().includes('for us.') && !view().includes('Talk us through'));
 {
   const rows = qa('table.detail tbody tr').length;
   const expected = TOTAL + 4 + 20;   // questions + domain rows + section rows

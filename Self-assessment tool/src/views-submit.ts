@@ -361,7 +361,7 @@ function evidenceEditor(a: Assessment, q: Question, list: EvidenceRef[], changed
     box.appendChild(el('div', { class: 'ev-head' }, [
       el('strong', {}, ['Evidence']),
       el('span', { class: 'muted small' }, [
-        q.evidencePrompt ? q.evidencePrompt : 'Whatever you already have. Nothing needs making for us.',
+        q.evidencePrompt ? q.evidencePrompt : 'Whatever your team already holds. A cost model, a diagram, a report.',
       ]),
     ]));
 

@@ -107,8 +107,10 @@ li { margin-bottom: .22rem; }
 
 /* ---------- shell ------------------------------------------------------------------------ */
 
+/* Header and marking banner as one sticky block, so neither can cover the other. */
+.chrome { position: sticky; top: 0; z-index: 30; }
+
 .topbar {
-  position: sticky; top: 0; z-index: 30;
   display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap;
   padding: .55rem 1.25rem;
   background: var(--surface);
@@ -379,9 +381,31 @@ select.needs-marking { border-color: var(--bad); background: var(--bad-bg); }
 
 .marking-banner {
   text-align: center; font-weight: 800; letter-spacing: .14em; font-size: .7rem;
-  padding: .22rem; background: var(--ink); color: var(--bg); text-transform: uppercase;
+  padding: .26rem; background: var(--ink); color: var(--bg); text-transform: uppercase;
+  border-bottom: 1px solid var(--line);
 }
-.marking-banner.unmarked { background: var(--bad); color: #fff; }
+
+/**
+ * Unmarked is a dark plate with a red glow, so it reads as a warning light. Flat red on a
+ * full-width strip was loud enough to be tuned out.
+ */
+.marking-banner.unmarked {
+  background: #1b0e0e;
+  color: #ff9d92;
+  border-bottom: 1px solid rgba(255, 90, 70, .55);
+  box-shadow: 0 0 22px rgba(200, 40, 30, .55), inset 0 0 26px rgba(190, 35, 25, .30);
+  text-shadow: 0 0 10px rgba(255, 110, 90, .75);
+  animation: marking-pulse 2.6s ease-in-out infinite;
+}
+@keyframes marking-pulse {
+  0%, 100% { box-shadow: 0 0 16px rgba(200, 40, 30, .40), inset 0 0 20px rgba(190, 35, 25, .22); }
+  50%      { box-shadow: 0 0 30px rgba(220, 50, 40, .72), inset 0 0 32px rgba(200, 40, 30, .38); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .marking-banner.unmarked { animation: none; }
+}
+
+.marking-banner.print-only { display: none; }
 .marking-row { display: flex; gap: .35rem; flex-wrap: wrap; margin-bottom: .45rem; }
 .marking-chip {
   display: inline-flex; align-items: center; gap: .35rem; cursor: pointer;
