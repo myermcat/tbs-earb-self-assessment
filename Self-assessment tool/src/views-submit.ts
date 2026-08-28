@@ -393,7 +393,7 @@ function evidenceEditor(a: Assessment, q: Question, list: EvidenceRef[], changed
                 try {
                   const att = await readAttachment(f);
                   if (totalAttachedBytes(a.answers) + att.size > TOTAL_LIMIT) {
-                    alert(`That would take this file past ${humanSize(TOTAL_LIMIT)}. Point at this one instead of attaching it.`);
+                    alert(`That would take this file past ${humanSize(TOTAL_LIMIT)}. Record where this one lives without attaching it.`);
                     return;
                   }
                   ev.attachment = att;

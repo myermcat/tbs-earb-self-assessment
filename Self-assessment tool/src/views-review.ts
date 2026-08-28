@@ -367,19 +367,19 @@ function auditRow(
       ? el('ul', { class: 'ev-list small' }, ev.map((e) =>
           el('li', {}, [
             el('b', {}, [e.title || e.attachment?.name || 'untitled']),
-            ` — ${e.kind}, ${e.classification || 'unmarked'}`,
+            `. ${e.kind}, ${e.classification || 'unmarked'}`,
             e.attachment
               ? el('span', {}, [
-                  ` — ${humanSize(e.attachment.size)} `,
+                  `, ${humanSize(e.attachment.size)}. `,
                   el('button', { class: 'ghost small', onclick: () => openAttachment(e.attachment!) }, ['Open']),
                 ])
               : el('span', {}, [
-                  ' — not attached, pointed at: ',
+                  '. Not attached. Recorded as living at: ',
                   /^https?:\/\//.test(e.location)
                     ? el('a', { href: e.location, target: '_blank', rel: 'noreferrer' }, [e.location])
                     : el('i', {}, [e.location || 'no location given']),
                 ]),
-            e.note ? ` — ${e.note}` : '',
+            e.note ? `. ${e.note}` : '',
           ]),
         ))
       : el('p', { class: 'muted small' }, ['No evidence referenced.']),
@@ -400,7 +400,7 @@ function auditRow(
       el('select', {
         onchange: (e: Event) => { entry.verdict = (e.target as HTMLSelectElement).value as AuditEntry['verdict']; },
       }, [
-        el('option', { value: '', selected: entry.verdict === '' }, ['— verdict —']),
+        el('option', { value: '', selected: entry.verdict === '' }, ['Choose a verdict']),
         el('option', { value: 'agree', selected: entry.verdict === 'agree' }, ['Agree with them']),
         el('option', { value: 'adjust', selected: entry.verdict === 'adjust' }, ['Adjusted']),
         el('option', { value: 'insufficient', selected: entry.verdict === 'insufficient' }, ['Not enough evidence']),

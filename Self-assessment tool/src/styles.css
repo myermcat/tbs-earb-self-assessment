@@ -199,6 +199,61 @@ textarea { resize: vertical; }
   transition: width .2s ease; }
 .step.complete .step-bar i { background: var(--good); }
 
+/* ---------- home ------------------------------------------------------------------------ */
+
+.body-home { max-width: 900px; }
+
+.hero {
+  display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2rem; align-items: center;
+  background: var(--surface); border: 1px solid var(--line); border-radius: 16px;
+  padding: 2.4rem 2.1rem; margin: 1.4rem 0 1rem; box-shadow: var(--shadow-lg);
+  position: relative; overflow: hidden;
+}
+.hero::before {
+  content: ''; position: absolute; inset: 0 auto 0 0; width: 4px;
+  background: linear-gradient(180deg, var(--s2), var(--s5), var(--s7), var(--s9), var(--s10));
+}
+.eyebrow { font-size: .74rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase;
+  color: var(--ink-3); margin-bottom: .5rem; }
+.hero h1 { font-size: 2.15rem; letter-spacing: -.022em; margin-bottom: .6rem; }
+.hero .lead { font-size: 1.06rem; color: var(--ink-2); max-width: 44ch; margin-bottom: 1.3rem; }
+.hero-actions { display: flex; gap: .55rem; flex-wrap: wrap; align-items: center; }
+button.big, .filelabel.big { font-size: .95rem; padding: .6rem 1.3rem; border-radius: 9px; }
+
+/* The maturity ladder from the favicon, at rest. Decorative only. */
+.hero-art { display: flex; align-items: flex-end; gap: .4rem; height: 118px; }
+.hero-art .rung { width: 16px; border-radius: 5px; display: block; }
+.hero-art .r1 { height: 26%;  background: var(--s2); opacity: .55; }
+.hero-art .r2 { height: 44%;  background: var(--s4); opacity: .65; }
+.hero-art .r3 { height: 62%;  background: var(--s6); opacity: .75; }
+.hero-art .r4 { height: 82%;  background: var(--s8); opacity: .85; }
+.hero-art .r5 { height: 100%; background: var(--s10); }
+
+.note { background: transparent; border: 0; padding: .2rem .3rem 1rem; }
+.note h2 { font-size: .78rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase;
+  color: var(--ink-3); margin-bottom: .5rem; }
+.note ul { list-style: none; padding: 0; margin: 0; display: grid; gap: .45rem; }
+.note li { font-size: .89rem; color: var(--ink-2); padding-left: .9rem; position: relative; }
+.note li::before { content: ''; position: absolute; left: 0; top: .58em; width: 4px; height: 4px;
+  border-radius: 999px; background: var(--line-2); }
+.note li b { color: var(--ink); font-weight: 600; }
+
+button.linkish { background: none; border: 0; padding: 0; color: var(--accent);
+  font-size: inherit; font-weight: inherit; text-decoration: underline;
+  text-underline-offset: 2px; }
+button.linkish:hover { background: none; border: 0; filter: brightness(1.15); }
+
+dl.kv { display: grid; grid-template-columns: auto 1fr; gap: .2rem .9rem; margin: 0 0 .7rem;
+  font-size: .89rem; }
+dl.kv dt { color: var(--ink-3); font-weight: 600; }
+dl.kv dd { margin: 0; }
+
+@media (max-width: 700px) {
+  .hero { grid-template-columns: 1fr; padding: 1.6rem 1.3rem; gap: 1.2rem; }
+  .hero h1 { font-size: 1.75rem; }
+  .hero-art { height: 76px; }
+}
+
 code.mono { background: var(--surface-2); border: 1px solid var(--line);
   border-radius: 4px; padding: .02rem .3rem; }
 

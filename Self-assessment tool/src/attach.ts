@@ -30,7 +30,7 @@ function toBase64(buf: ArrayBuffer): string {
 export async function readAttachment(file: File): Promise<Attachment> {
   if (file.size > PER_FILE_LIMIT) {
     throw new Error(
-      `${file.name} is ${humanSize(file.size)}. The limit for one attachment is ${humanSize(PER_FILE_LIMIT)} - point at it instead of attaching it.`,
+      `${file.name} is ${humanSize(file.size)}. The limit for one attachment is ${humanSize(PER_FILE_LIMIT)}. Attach a smaller version, or record where this one lives.`,
     );
   }
   return {

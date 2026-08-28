@@ -55,7 +55,7 @@ export function markingProblems(a: Assessment): MarkingProblem[] {
         out.push({
           kind: 'evidence-above-file',
           questionId: qid,
-          message: `${qid}: "${named}" is ${e.classification}, which is higher than this file's ${fileMark} marking. Either raise the file's marking or point at the artefact instead of attaching it.`,
+          message: `${qid}: "${named}" is ${e.classification}, which is higher than this file's ${fileMark} marking. Raise the file's marking, or record where the artefact lives without attaching it.`,
         });
       }
     }
