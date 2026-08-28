@@ -1,4 +1,23 @@
-# Turning on GitHub Pages
+# Publishing
+
+## The live preview
+
+**https://myermcat.github.io/tbs-earb-self-assessment-preview/**
+
+Served from a **second, public repository** that holds only the built HTML file. To update it:
+
+```bash
+bash deploy/publish-preview.sh
+```
+
+Two repositories on purpose. This one is private and its history holds Dan's draft framework
+deck and the GC data ecosystem position paper. The questions themselves were cleared for
+publication; those documents were not. Keeping the built page in its own repository means
+publishing the tool never publishes the source material.
+
+---
+
+# Turning on GitHub Pages from this repository
 
 `github-pages-workflow.yml` publishes `Self-assessment tool/dist/index.html` to GitHub Pages.
 It is kept here rather than in `.github/workflows/` for two reasons: it is not meant to run

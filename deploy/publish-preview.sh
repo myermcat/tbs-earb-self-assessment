@@ -1,0 +1,35 @@
+#!/usr/bin/env bash
+# Publishes the built page to the public preview site.
+#
+#   https://myermcat.github.io/tbs-earb-self-assessment-preview/
+#
+# Two repositories on purpose. This one is private and its history holds Dan's draft framework
+# deck and the GC data position paper. The preview repository is public and holds only the
+# built HTML file, so publishing the tool never publishes the source material.
+#
+#   bash deploy/publish-preview.sh
+set -euo pipefail
+
+REPO="myermcat/tbs-earb-self-assessment-preview"
+HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+WORK="$(mktemp -d)"
+trap 'rm -rf "$WORK"' EXIT
+
+echo "Building..."
+( cd "$HERE/Self-assessment tool" && npm run --silent build )
+
+echo "Cloning $REPO..."
+git clone --quiet --depth 1 "https://github.com/$REPO.git" "$WORK/site"
+
+cp "$HERE/Self-assessment tool/dist/index.html" "$WORK/site/docs/index.html"
+
+cd "$WORK/site"
+if git diff --quiet; then
+  echo "Already up to date. Nothing to publish."
+  exit 0
+fi
+
+git add docs/index.html
+git commit --quiet -m "Preview build $(date -u '+%Y-%m-%d %H:%M UTC')"
+git push --quiet
+echo "Published. GitHub Pages takes a minute or two to pick it up."
