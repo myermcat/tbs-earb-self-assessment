@@ -454,10 +454,14 @@ hr.q-split { border: 0; border-top: 1px solid var(--line); margin: 1.2rem 0 .9re
 .ov-progress { display: flex; align-items: center; gap: .6rem; flex-wrap: wrap;
   padding-bottom: .7rem; border-bottom: 1px solid var(--line); margin-bottom: 1rem; }
 .ov-progress .linkish { margin-left: auto; }
-.ov-dots { display: flex; gap: .25rem; }
-.ov-dot { width: 7px; height: 7px; border-radius: 999px; background: var(--line-2); }
+/* The gap has to clear the halo on the current dot, or the ring reaches into its neighbour.
+   Halo is 3px each side, so the gap is 9px. */
+.ov-dots { display: flex; gap: .55rem; align-items: center; }
+.ov-dot { width: 7px; height: 7px; border-radius: 999px; background: var(--line-2);
+  flex: 0 0 auto; }
 .ov-dot.filled { background: var(--good); }
-.ov-dot.on { box-shadow: 0 0 0 2px var(--accent-soft), 0 0 0 3px var(--accent); }
+.ov-dot.on { background: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+.ov-dot.filled.on { background: var(--good); box-shadow: 0 0 0 3px var(--good-bg); }
 .ov-block { flex: 1 1 auto; }
 .ov-block h2 { font-size: 1.2rem; margin-bottom: .35rem; }
 .ov-block h3 { margin-bottom: .3rem; }
