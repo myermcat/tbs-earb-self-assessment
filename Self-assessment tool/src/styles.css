@@ -349,7 +349,9 @@ details[open] > .section-summary::before { transform: rotate(90deg); }
 .ladder b { font-family: var(--mono); text-align: right; }
 
 /* the 0-10 selector, in Dan's colours */
-.score-row { display: flex; gap: .2rem; flex-wrap: wrap; align-items: center; margin: .5rem 0 .35rem; }
+.score-line { display: flex; gap: .5rem; flex-wrap: wrap; align-items: center; margin: .5rem 0 .35rem; }
+.score-row { display: flex; gap: .2rem; flex-wrap: wrap; align-items: center; }
+.score-btn[aria-disabled='true'] { opacity: .3; }
 .score-btn {
   width: 2.05rem; padding: .3rem 0; text-align: center; border-radius: 7px;
   font-family: var(--mono); font-size: .82rem; font-weight: 600;
@@ -365,7 +367,7 @@ details[open] > .section-summary::before { transform: rotate(90deg); }
 .score-btn.on.v10 { background: var(--s10); }
 .score-btn:disabled { opacity: .3; }
 .na { font-size: .83rem; color: var(--ink-2); display: inline-flex; align-items: center; gap: .3rem;
-  margin-left: .45rem; cursor: pointer; }
+  cursor: pointer; }
 .na input { width: auto; }
 .chosen { font-size: .84rem; color: var(--ink-2); margin: 0 0 .5rem; padding-left: .1rem; }
 .chosen b { color: var(--ink); }

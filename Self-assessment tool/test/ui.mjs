@@ -242,6 +242,85 @@ ok('all four domain tabs read complete', qa('.stepper .step.complete:not(:first-
   ok('restored to fully answered', footerCount().includes(`${TOTAL} of ${TOTAL}`), footerCount());
 }
 
+// ---- the score row is one keyboard control, not eleven ----------------------------------
+//
+// Eleven buttons per question across 176 questions is 1,936 tab stops. As a radio group it is
+// one stop per question, moved with the arrow keys, which is the difference between a keyboard
+// interface and a wall.
+{
+  const qb = qa('.question')[0];
+  const row = qb.querySelector('.score-row');
+  const btns = [...row.querySelectorAll('.score-btn')];
+  const key = (k) => row.dispatchEvent(new window.KeyboardEvent('keydown', { key: k, bubbles: true }));
+
+  ok('the score row is a radio group', row.getAttribute('role') === 'radiogroup');
+  ok('and it is named by its own question',
+     !!document.getElementById(row.getAttribute('aria-labelledby')),
+     row.getAttribute('aria-labelledby'));
+  ok('each score is a radio', btns.every((b) => b.getAttribute('role') === 'radio'));
+  ok('the rung name is in the accessible name, not just the digit',
+     btns[7].getAttribute('aria-label') === '7, Scalable & Secure', btns[7].getAttribute('aria-label'));
+  ok('exactly one tab stop among the eleven',
+     btns.filter((b) => b.getAttribute('tabindex') === '0').length === 1,
+     String(btns.filter((b) => b.getAttribute('tabindex') === '0').length));
+
+  btns[5].click();
+  const after = [...qa('.question')[0].querySelectorAll('.score-btn')];
+  ok('choosing a score marks it checked', after[5].getAttribute('aria-checked') === 'true');
+  ok('and the others are unchecked', after.filter((b) => b.getAttribute('aria-checked') === 'true').length === 1);
+  ok('the tab stop follows the chosen score', after[5].getAttribute('tabindex') === '0');
+
+  key('ArrowRight');
+  ok('right arrow moves to the next score',
+     qa('.question')[0].querySelectorAll('.score-btn')[6].getAttribute('aria-checked') === 'true');
+  key('ArrowLeft'); key('ArrowLeft');
+  ok('left arrow moves back',
+     qa('.question')[0].querySelectorAll('.score-btn')[4].getAttribute('aria-checked') === 'true');
+  key('Home');
+  ok('Home selects zero',
+     qa('.question')[0].querySelectorAll('.score-btn')[0].getAttribute('aria-checked') === 'true');
+  key('End');
+  ok('End selects ten',
+     qa('.question')[0].querySelectorAll('.score-btn')[10].getAttribute('aria-checked') === 'true');
+  key('ArrowRight');
+  ok('and it does not run past ten',
+     qa('.question')[0].querySelectorAll('.score-btn')[10].getAttribute('aria-checked') === 'true');
+
+  // Not applicable is a different question, so it stays outside the group and keeps its stop.
+  const naInput = qa('.question')[0].querySelector('.na input');
+  naInput.checked = true;
+  fire(naInput, 'change');
+  const disabled = [...qa('.question')[0].querySelectorAll('.score-btn')];
+  ok('not applicable disables the scores for a screen reader too',
+     disabled.every((b) => b.getAttribute('aria-disabled') === 'true'));
+  ok('and takes their tab stop away',
+     disabled.every((b) => b.getAttribute('tabindex') === '-1'));
+  ok('the checkbox itself stays reachable', !naInput.disabled);
+
+  naInput.checked = false;
+  fire(naInput, 'change');
+  [...qa('.question')[0].querySelectorAll('.score-btn')].find((b) => b.textContent === '7').click();
+  ok('restored to 7', qa('.question')[0].querySelectorAll('.score-btn')[7].getAttribute('aria-checked') === 'true');
+}
+
+// ---- no readout is announced twice -------------------------------------------------------
+{
+  const pills = qa('.pill[aria-hidden="true"]');
+  ok('score pills are hidden from screen readers, since an sr-only twin carries the number',
+     pills.length > 0, String(pills.length));
+  ok('and the twin says what the number means',
+     qa('.sr-only').some((n) => /out of 10|not scored yet/.test(n.textContent)));
+  ok('every nav has an accessible name',
+     qa('nav').every((n) => !!n.getAttribute('aria-label')),
+     qa('nav').map((n) => n.getAttribute('aria-label')).join('|'));
+  // aria-hidden="" hides nothing. The el() helper renders boolean true as an empty attribute,
+  // which is right for `hidden` and wrong for ARIA, and the difference is invisible.
+  ok('no ARIA attribute was rendered as an empty string',
+     qa('[aria-hidden], [aria-checked], [aria-disabled], [aria-current], [aria-expanded]')
+       .every((n) => [...n.attributes].every((at) => !at.name.startsWith('aria-') || at.value !== '')),
+     'an aria-* attribute is present with an empty value');
+}
+
 // ---- the ladder is Dan's, and it is visible --------------------------------------------
 {
   const first = qa('.question')[0];

@@ -17,7 +17,10 @@ export function el<K extends keyof HTMLElementTagNameMap>(
     } else if (k === 'html') {
       node.innerHTML = String(v);
     } else if (v === true) {
-      node.setAttribute(k, '');
+      // An HTML boolean attribute is true by presence, so `hidden` and `disabled` want an
+      // empty value. ARIA is the opposite: aria-hidden="" hides nothing, it has to be the
+      // literal string. Getting this wrong is silent, which is the worst kind of wrong.
+      node.setAttribute(k, k.startsWith('aria-') ? 'true' : '');
     } else {
       node.setAttribute(k, String(v));
     }

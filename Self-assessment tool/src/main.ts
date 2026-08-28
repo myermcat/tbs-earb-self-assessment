@@ -76,7 +76,7 @@ function header(): HTMLElement {
       el('strong', {}, [rubric.title]),
     ]),
     el('div', { class: 'topbar-right' }, [
-      el('nav', { class: 'path' }, [
+      el('nav', { class: 'path', 'aria-label': 'Where you are' }, [
         tab('Start', 'home'), chev(),
         tab('Fill it in', 'submit'), chev(),
         tab('Review submissions', 'review'),
