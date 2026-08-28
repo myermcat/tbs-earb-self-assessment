@@ -48,17 +48,19 @@ const view = () => document.getElementById('app').textContent;
 
 // ---- home ------------------------------------------------------------------------------
 ok('app mounted', !!q('#app .topbar'));
-ok('header names the rubric version', q('.brand').textContent.includes('1.0-dan'));
-ok('draft status is shown, not hidden', view().includes('draft'));
-ok('the import warning about the Business weight gap is surfaced to the user',
-   view().includes('80%'));
+ok('the header carries only the name, no version clutter', !q('.brand').textContent.includes('1.0-dan'));
+ok('the rubric version is available in the footer', q('.sitefoot').textContent.includes('1.0-dan'));
+ok('draft status is reachable from the footer', !!byText('button', 'How that works'));
 ok('the question count is stated up front', view().includes(String(TOTAL)));
-// The tool is meant to be hosted with the data staying local, so the page has to state that
-// plainly and say how to verify it - not ask to be trusted.
-ok('the page says where it was loaded from', view().includes('Where your answers go'));
-ok('and names the rule that stops it transmitting', view().includes("connect-src 'none'"));
-ok('and says the answers live only in this browser and the saved file',
-   view().includes('live in two places'));
+
+// Settings holds the rubric detail and the data-handling note.
+byText('.tab', 'Settings').click();
+ok('settings shows the rubric version', view().includes('1.0-dan'));
+ok('settings surfaces the import warning about the Business weight gap', view().includes('80%'));
+ok('settings says where the page was loaded from', view().includes('Where your answers go'));
+ok('settings names the rule that stops it transmitting', view().includes("connect-src 'none'"));
+ok('settings offers a different question set', !!byText('.filelabel', 'Load a question set'));
+byText('.tab', 'Home').click();
 ok('no network call is even possible (CSP)', html.includes("connect-src 'none'"));
 // Without an explicit color-scheme, native buttons and inputs follow the OS setting while
 // the page follows the media query, and a light page renders dark controls.

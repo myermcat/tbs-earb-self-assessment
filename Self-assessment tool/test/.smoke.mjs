@@ -187,7 +187,7 @@ function flags(rubric2, a, r) {
         id: "flat-scoring",
         severity: "medium",
         title: "Scores barely vary",
-        detail: `${topCount} of ${answeredScores.length} answers are all ${topValue}. This reads as box-ticking rather than assessment.`,
+        detail: `${topCount} of ${answeredScores.length} answers are all ${topValue}. This reads as box-ticking.`,
         challenge: "Which of these areas is genuinely your weakest, and why did it score the same as your strongest?"
       });
     }
