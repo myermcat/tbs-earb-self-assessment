@@ -8,6 +8,15 @@ import { canSave, highestEvidenceMarking, markingProblems } from './marking';
 const KINDS: EvidenceRef['kind'][] = ['document', 'diagram', 'dashboard', 'system', 'report', 'other'];
 
 /**
+ * Rubric ids reach the DOM as element ids and aria references, and they are written by whoever
+ * maintains the question set. Four sections already share the id "defining-the-current-state",
+ * one per domain, so anything built from a section id has to be namespaced by its domain as
+ * well as sanitised.
+ */
+export const cssId = (...parts: string[]): string =>
+  parts.join('--').replace(/[^A-Za-z0-9_-]/g, '_');
+
+/**
  * 176 questions is far too many for one page, so the questionnaire is paged: an overview,
  * then one page per architecture domain, with each of Dan's weighted sections collapsible
  * and carrying its own running average.
@@ -97,7 +106,7 @@ export function renderSubmit(
  * screen reader reads "Business Architecture" and then "5.2 out of 10" as separate things.
  */
 function domainHead(ds: Result['domains'][number], r: Result, domainId: string): HTMLElement {
-  const pill = el('span', { class: 'pill' });
+  const pill = el('span', { class: 'pill', 'aria-hidden': true });
   const srPill = el('span', { class: 'sr-only' });
   const counts = el('p', { class: 'muted small' });
 
@@ -240,7 +249,7 @@ function sectionBlock(
   const body = el('div', {});
   for (const qs of ss.questions) body.appendChild(questionBlock(rubric, a, qs.question, refresh));
 
-  const pill = el('span', { class: 'pill small' });
+  const pill = el('span', { class: 'pill small', 'aria-hidden': true });
   const srPill = el('span', { class: 'sr-only' });
   const count = el('span', { class: 'muted small' });
   const details = el('details', { open: ss.answered < ss.total });
@@ -373,9 +382,10 @@ function questionBlock(rubric: Rubric, a: Assessment, q: Question, refresh: () =
     ]);
   })();
 
+  const textId = `q-${cssId(q.id)}-text`;
   wrap.appendChild(el('div', { class: 'q-head' }, [
     el('span', { class: 'qid' }, [q.id]),
-    el('span', { class: 'q-text' }, [q.text]),
+    el('span', { class: 'q-text', id: textId }, [q.text]),
     expBadge,
   ]));
   if (q.help) wrap.appendChild(el('p', { class: 'muted small' }, [q.help]));
@@ -395,33 +405,78 @@ function questionBlock(rubric: Rubric, a: Assessment, q: Question, refresh: () =
   ]);
   wrap.appendChild(ladderBox);
 
-  // Score buttons 0-10.
-  const scoreRow = el('div', { class: 'score-row' });
+  /**
+   * The eleven scores are one choice, so they are one radio group and take one tab stop
+   * between them, moved with the arrow keys. As eleven separate buttons they were 1,936 tab
+   * stops across the assessment, which is not a keyboard interface anybody could use.
+   *
+   * Not applicable is a different question ("does this apply?"), so it stays a checkbox
+   * outside the group. When it is ticked the scores go aria-disabled and give up their tab
+   * stop, leaving the checkbox as the way back.
+   */
+  const scoreRow = el('div', {
+    class: 'score-row', role: 'radiogroup', 'aria-labelledby': textId,
+  });
+  const naBox = el('input', {
+    type: 'checkbox',
+    onchange: (e: Event) => {
+      ans.na = (e.target as HTMLInputElement).checked;
+      if (ans.na) ans.score = null;
+      autosave(a); paintScores(); paintChosen(); refresh();
+    },
+  }) as HTMLInputElement;
+
+  const choose = (v: number | null) => {
+    ans.score = v;
+    ans.na = false;
+    autosave(a);
+    paintScores();
+    paintChosen();
+    refresh();
+  };
+
   const paintScores = () => {
     clear(scoreRow);
-    for (let v = rubric.scale.min; v <= rubric.scale.max; v++) {
+    const values: number[] = [];
+    for (let v = rubric.scale.min; v <= rubric.scale.max; v++) values.push(v);
+
+    // One tab stop: the chosen score, or the first score when nothing is chosen yet.
+    const focusIndex = ans.score === null ? 0 : values.indexOf(ans.score);
+
+    values.forEach((v, i) => {
+      const rung = ladder.find((x) => x.value === v);
       scoreRow.appendChild(
         el('button', {
           class: `score-btn v${v} ${ans.score === v ? 'on' : ''}`,
+          role: 'radio',
+          'aria-checked': ans.score === v ? 'true' : 'false',
+          'aria-label': rung?.name ? `${v}, ${rung.name}` : String(v),
+          'aria-disabled': ans.na ? 'true' : 'false',
+          tabindex: ans.na || i !== focusIndex ? -1 : 0,
           disabled: !!ans.na,
-          onclick: () => { ans.score = ans.score === v ? null : v; ans.na = false; autosave(a); paintScores(); paintChosen(); refresh(); },
+          onclick: () => choose(ans.score === v ? null : v),
         }, [String(v)]),
       );
-    }
-    scoreRow.appendChild(
-      el('label', { class: 'na' }, [
-        el('input', {
-          type: 'checkbox', checked: !!ans.na,
-          onchange: (e: Event) => {
-            ans.na = (e.target as HTMLInputElement).checked;
-            if (ans.na) ans.score = null;
-            autosave(a); paintScores(); paintChosen(); refresh();
-          },
-        }),
-        'Not applicable',
-      ]),
-    );
+    });
+
+    naBox.checked = !!ans.na;
   };
+
+  scoreRow.addEventListener('keydown', (e) => {
+    const ev = e as KeyboardEvent;
+    const span = rubric.scale.max - rubric.scale.min;
+    const cur = ans.score === null ? rubric.scale.min : ans.score;
+    let next: number | null = null;
+    if (ev.key === 'ArrowRight' || ev.key === 'ArrowDown') next = Math.min(rubric.scale.max, cur + 1);
+    else if (ev.key === 'ArrowLeft' || ev.key === 'ArrowUp') next = Math.max(rubric.scale.min, cur - 1);
+    else if (ev.key === 'Home') next = rubric.scale.min;
+    else if (ev.key === 'End') next = rubric.scale.min + span;
+    if (next === null || ans.na) return;
+    ev.preventDefault();
+    choose(next);
+    const btn = scoreRow.children[next - rubric.scale.min] as HTMLElement | undefined;
+    btn?.focus();
+  });
   const chosen = el('div', { class: 'chosen muted small' });
 
   /**
@@ -449,7 +504,10 @@ function questionBlock(rubric: Rubric, a: Assessment, q: Question, refresh: () =
     }
   };
   paintScores();
-  wrap.appendChild(scoreRow);
+  wrap.appendChild(el('div', { class: 'score-line' }, [
+    scoreRow,
+    el('label', { class: 'na' }, [naBox, 'Not applicable']),
+  ]));
   paintChosen();
   wrap.appendChild(chosen);
   wrap.appendChild(printScore);
