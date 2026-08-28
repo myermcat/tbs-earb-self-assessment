@@ -43,11 +43,15 @@ export function clear(node: HTMLElement): HTMLElement {
   return node;
 }
 
-/** Score to a colour band. Red / amber / green, matching the way the board already reads scores. */
+/**
+ * Dan's Assessment Scale sheet gives a colour to every one of the eleven scores, so the app
+ * uses his ramp rather than inventing a three-colour one. `tone` colours text and borders,
+ * `bar` fills a track.
+ */
 export function tone(v: number | null): string {
-  if (v === null) return 'none';
-  if (v >= 8) return 'green';
-  if (v >= 6) return 'lime';
-  if (v >= 3) return 'amber';
-  return 'red';
+  return v === null ? 'tnone' : `t${Math.max(0, Math.min(10, Math.round(v)))}`;
+}
+
+export function bar(v: number | null): string {
+  return v === null ? 'bnone' : `b${Math.max(0, Math.min(10, Math.round(v)))}`;
 }

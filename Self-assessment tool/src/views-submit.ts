@@ -68,7 +68,10 @@ function stepper(rubric: Rubric, a: Assessment, r: ReturnType<typeof score>, rep
       onclick: () => { page = target; repaint(); window.scrollTo({ top: 0 }); },
     }, [
       el('span', { class: 'step-label' }, [label]),
-      total > 0 ? el('span', { class: 'step-count' }, [`${done}/${total}`]) : null,
+      total > 0 ? el('span', { class: 'step-count' }, [`${done} of ${total}`]) : null,
+      total > 0
+        ? el('span', { class: 'step-bar' }, [el('i', { style: `width:${Math.round((done / total) * 100)}%` })])
+        : null,
     ]);
 
   return el('nav', { class: 'stepper' }, [
@@ -274,7 +277,7 @@ function questionBlock(rubric: Rubric, a: Assessment, q: Question, changed: () =
     for (let v = rubric.scale.min; v <= rubric.scale.max; v++) {
       scoreRow.appendChild(
         el('button', {
-          class: `score-btn ${ans.score === v ? 'on' : ''}`,
+          class: `score-btn v${v} ${ans.score === v ? 'on' : ''}`,
           disabled: !!ans.na,
           onclick: () => { ans.score = ans.score === v ? null : v; ans.na = false; autosave(a); paintScores(); paintChosen(); changed(); },
         }, [String(v)]),
@@ -299,7 +302,12 @@ function questionBlock(rubric: Rubric, a: Assessment, q: Question, changed: () =
     clear(chosen);
     if (ans.na || ans.score === null) return;
     const rung = ladder.slice().reverse().find((x) => x.value <= (ans.score as number));
-    if (rung) chosen.appendChild(el('span', {}, [rung.name ? `${rung.value} - ${rung.name}. ${rung.label}` : rung.label]));
+    if (rung) {
+      chosen.appendChild(el('span', {}, [
+        rung.name ? el('b', {}, [`${rung.value} - ${rung.name}. `]) : '',
+        rung.label,
+      ]));
+    }
   };
   paintScores();
   wrap.appendChild(scoreRow);

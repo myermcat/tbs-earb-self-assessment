@@ -72,6 +72,41 @@ A page with no network cannot send email, and should not pretend to. Two layers:
   That service never needs to touch the evidence: it works from whoever receives the
   submissions. It is a second component, not a change to this one.
 
+## The assessor's page, reworked 2026-08-28
+
+Mariia: *"let the auditor look first at the anomalies, at only what's needed to review, and
+then only if they want at the rest... as close as possible to pure thinking and
+instrumentation, not doing what they don't need."*
+
+So the page is now ordered as the work goes:
+
+1. **A KPI row** - must-asks, questions flagged, completeness, files attached, and how many
+   scores the assessor has changed.
+2. **"Audit these"** - the anomalies, each with the scoring controls inside the card, so
+   nothing has to be looked up elsewhere. On a realistic submission this is single digits out
+   of 176.
+3. **"What you changed"** - the gap between claim and audited score. This is the calibration
+   record, and it is what stage 3's AI audit will be measured against.
+4. **"Everything else"** - present, complete, and folded away.
+
+**Flag aggregation, and why.** The first version produced 67 cards on a filled-in
+assessment, which is wallpaper rather than a worklist. Every per-question finding now
+collapses into one card once there are four or more of a kind - *"70 high scores with nothing
+cited"*, with the heaviest examples named by their share of the score and the rest behind a
+fold. Rarity decides which findings keep their own card, rather than a guess about which kinds
+are common. Findings are ranked by severity, then by how much of the total score the question
+actually carries.
+
+**No AI, no key.** The challenge questions are templates filled from the flag type and the
+question's own wording. That is why they work offline on a locked-down laptop. An LLM could
+write better ones, and the framework's Protected B authorized LLM is the sanctioned way to do
+it later - but that belongs in stage 3, alongside the AI audit, not in the offline instrument.
+
+**Protected B is not an anomaly.** Dropped, after Mariia asked why it would be a weird case.
+It is ordinary in government, and flagging the ordinary trains people to skim the list. The
+marking is handling information: it sits on the submission header, in the triage table, and
+beside each evidence item.
+
 ## Things to decide with Dan
 
 - Band thresholds. And whether a hall pass gets audited anyway - recommend yes, sampled.

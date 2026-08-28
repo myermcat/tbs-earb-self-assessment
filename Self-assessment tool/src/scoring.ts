@@ -9,6 +9,8 @@ export interface QuestionScore {
   answered: boolean;
   effectiveWeight: number;
   expectation: 'low-ok' | 'expected' | 'critical';
+  /** This question's share of the whole score, 0..1. Used to rank what is worth an assessor's time. */
+  share: number;
 }
 
 export interface SectionScore {
@@ -82,6 +84,7 @@ export function score(rubric: Rubric, a: Assessment): Result {
         if (!na) scoreable++;
         if (isAnswered) answered++;
         const mult = rubric.stageMultipliers[questionExpectation(question, stage)] ?? 1;
+        const qShare = section.questions.length ? question.weight / section.questions.reduce((t, x) => t + x.weight, 0) : 0;
         return {
           question,
           domainId: domain.id,
@@ -91,6 +94,7 @@ export function score(rubric: Rubric, a: Assessment): Result {
           answered: isAnswered,
           effectiveWeight: isAnswered ? question.weight * mult : 0,
           expectation: effectiveExpectation(question, section, stage),
+          share: (domain.weight / 100) * (section.weight / 100) * qShare,
         };
       });
 

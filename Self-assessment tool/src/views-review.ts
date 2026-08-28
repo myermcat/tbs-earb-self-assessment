@@ -1,6 +1,6 @@
 import type { Assessment, AuditEntry, Rubric } from './types';
 import { el, clear, tone } from './dom';
-import { score, strongest, weakest, type Result } from './scoring';
+import { allQuestionScores, score, type QuestionScore, type Result } from './scoring';
 import { flags, type Flag } from './flags';
 import { csvHeader, csvRow, toCsv } from './csv';
 import { download, readJsonFiles, slug } from './storage';
@@ -104,10 +104,10 @@ function paintList(rubric: Rubric, root: HTMLElement) {
 
   root.appendChild(el('section', { class: 'card' }, [
     el('h2', {}, [`${loaded.length} submission${loaded.length === 1 ? '' : 's'}, weakest first`]),
-    el('p', { class: 'muted' }, [
+    el('p', { class: 'muted small' }, [
       'Sorted so the ones that need you are at the top. The middle of the list is where you spend the least time.',
     ]),
-    table,
+    el('div', { class: 'table-wrap' }, [table]),
     el('div', { class: 'actions' }, [
       el('button', { class: 'ghost', onclick: () => exportAllCsv(rubric) }, ['Export all as CSV']),
       el('button', { class: 'ghost', onclick: () => { loaded = []; renderReview(root, rubric); } }, ['Clear']),
@@ -115,13 +115,34 @@ function paintList(rubric: Rubric, root: HTMLElement) {
   ]));
 }
 
+/**
+ * The assessor's page, ordered the way the work actually goes: the anomalies first, with the
+ * scoring controls sitting inside each one so nothing has to be looked up, and the remaining
+ * questions folded away until somebody wants them. Reading 176 answers is the job this is
+ * meant to abolish.
+ */
 function openDetail(rubric: Rubric, root: HTMLElement, l: Loaded) {
   clear(root);
   const { a, r, fs } = l;
   const audit = (a.audit ??= { reviewer: '', reviewedAt: new Date().toISOString(), perQuestion: {}, overallNote: '' });
+  const byQuestion = new Map<string, Flag[]>();
+  for (const f of fs) {
+    if (!f.questionId) continue;
+    byQuestion.set(f.questionId, [...(byQuestion.get(f.questionId) ?? []), f]);
+  }
+  /** Questions reachable through an aggregated card, so they are not also listed below. */
+  const inAggregate = new Set(fs.flatMap((f) => f.questionIds ?? []));
+  const questionOf = new Map(allQuestionScores(r).map((qs) => [qs.question.id, qs]));
+  const repaint = () => openDetail(rubric, root, l);
 
-  root.appendChild(el('section', { class: 'card actions' }, [
+  const changed = Object.entries(audit.perQuestion).filter(
+    ([qid, e]) => typeof e.auditedScore === 'number' && e.auditedScore !== (a.answers[qid]?.score ?? null),
+  );
+  const attachments = Object.values(a.answers).reduce((n, x) => n + (x.evidence ?? []).filter((e) => e.attachment).length, 0);
+
+  root.appendChild(el('section', { class: 'card tight actions' }, [
     el('button', { class: 'ghost', onclick: () => renderReview(root, rubric) }, ['Back to the list']),
+    el('span', { class: 'muted small' }, [l.file]),
   ]));
 
   root.appendChild(el('section', { class: 'card headline' }, [
@@ -131,132 +152,144 @@ function openDetail(rubric: Rubric, root: HTMLElement, l: Loaded) {
     ]),
     el('div', { class: 'headline-text' }, [
       el('h1', {}, [a.initiative.name || l.file]),
-      el('p', { class: 'muted' }, [
+      el('p', { class: 'muted small' }, [
         [a.initiative.department, a.initiative.contact,
-         rubric.lifecycleStages.find((s) => s.id === a.initiative.lifecycleStage)?.label]
-          .filter(Boolean).join(' - '),
+         rubric.lifecycleStages.find((x) => x.id === a.initiative.lifecycleStage)?.label]
+          .filter(Boolean).join('  ·  '),
       ]),
       el('div', { class: `marking-inline ${a.initiative.classification ? '' : 'unmarked'}` }, [
         a.initiative.classification ? `Marked ${a.initiative.classification}` : 'This submission is unmarked',
       ]),
-      a.initiative.summary ? el('p', {}, [a.initiative.summary]) : null,
-      r.band ? el('div', { class: `band ${r.band.tone}` }, [el('strong', {}, [r.band.label]), el('div', {}, [r.band.routing])]) : null,
+      a.initiative.summary ? el('p', { class: 'small' }, [a.initiative.summary]) : null,
+      r.maturity ? el('div', { class: 'maturity' }, [
+        el('strong', {}, [r.maturity.label]), el('div', { class: 'small' }, [r.maturity.detail]),
+      ]) : null,
+      r.band ? el('div', { class: `band ${r.band.tone}` }, [
+        el('strong', {}, [r.band.label]), el('div', { class: 'small' }, [r.band.routing]),
+      ]) : null,
     ]),
   ]));
 
-  // Flags first. This is the whole point of the page.
+  root.appendChild(el('section', { class: 'card' }, [
+    el('div', { class: 'kpi-row' }, [
+      kpi(String(fs.filter((f) => f.severity === 'high').length), 'must ask'),
+      kpi(String(byQuestion.size + inAggregate.size), 'questions flagged'),
+      kpi(`${Math.round(r.completeness * 100)}%`, 'complete'),
+      kpi(String(attachments), 'files attached'),
+      kpi(String(changed.length), 'you changed'),
+    ]),
+  ]));
+
+  // ---- 1. the anomalies, with the controls in place ------------------------------------
   const flagBox = el('section', { class: 'card' }, [
     el('h2', {}, ['Audit these']),
-    el('p', { class: 'muted' }, ['Ranked. Everything else in this submission is probably fine.']),
+    el('p', { class: 'muted small' }, [
+        `${byQuestion.size + inAggregate.size} of ${r.scoreable} questions need a look. Score them here; the rest is below if you want it.`,
+    ]),
   ]);
-  if (!fs.length) flagBox.appendChild(el('p', {}, ['Nothing anomalous. Spot-check and move on.']));
-  for (const f of fs) {
+
+  for (const f of fs.filter((x) => !x.questionId)) {
+    if (!f.questionIds?.length) { flagBox.appendChild(flagCard(f)); continue; }
+    // An aggregated finding: one card, with its questions behind a fold so the assessor
+    // opens them only if the count alone is not enough to act on.
+    const rows = el('div', {});
+    for (const qid of f.questionIds) {
+      const qs = questionOf.get(qid);
+      if (qs) rows.appendChild(auditRow(rubric, a, qs, audit, [], repaint, true));
+    }
     flagBox.appendChild(el('div', { class: `flag sev-${f.severity}` }, [
-      el('div', {}, [
-        el('strong', {}, [f.title]),
-        f.questionId ? el('span', { class: 'muted small' }, [` (${f.questionId})`]) : null,
-      ]),
+      el('div', { class: 'flag-title' }, [el('span', { class: 'sev-dot' }), el('strong', {}, [f.title])]),
       el('div', { class: 'small' }, [f.detail]),
-      f.challenge ? el('div', { class: 'small challenge' }, ['Ask: "', f.challenge, '"']) : null,
+      f.challenge ? el('div', { class: 'small challenge' }, [f.challenge]) : null,
+      el('details', {}, [
+        el('summary', { class: 'small' }, [`Score these ${f.questionIds.length}`]),
+        rows,
+      ]),
     ]));
+  }
+
+  if (!byQuestion.size && !inAggregate.size) {
+    flagBox.appendChild(el('p', {}, ['Nothing anomalous. Spot-check and move on.']));
+  }
+  for (const [qid, qflags] of byQuestion) {
+    const qs = questionOf.get(qid);
+    if (!qs) continue;
+    flagBox.appendChild(auditRow(rubric, a, qs, audit, qflags, repaint, true));
   }
   root.appendChild(flagBox);
 
-  root.appendChild(el('section', { class: 'card two-col' }, [
-    el('div', {}, [
-      el('h3', {}, ['Weakest']),
-      el('ul', { class: 'steps' }, weakest(r, 3).map((q) =>
-        el('li', {}, [el('b', {}, [`${q.raw}/10 `]), q.question.text]))),
-    ]),
-    el('div', {}, [
-      el('h3', {}, ['Strongest']),
-      el('ul', { class: 'steps' }, strongest(r, 3).map((q) =>
-        el('li', {}, [el('b', {}, [`${q.raw}/10 `]), q.question.text]))),
-    ]),
-  ]));
-
-  // Per-question audit.
-  const auditSec = el('section', { class: 'card' }, [
-    el('h2', {}, ['Question by question']),
-    el('p', { class: 'muted' }, [
-      'Change a score only where you disagree. What you leave alone is recorded as agreement, and the gap between self-score and your score is the calibration data.',
-    ]),
-    el('label', { class: 'field' }, [
-      el('span', {}, ['Your name']),
-      el('input', {
-        type: 'text', value: audit.reviewer,
-        oninput: (e: Event) => { audit.reviewer = (e.target as HTMLInputElement).value; },
-      }),
-    ]),
-  ]);
-
-  for (const d of r.domains) {
-    auditSec.appendChild(el('h3', {}, [d.domain.label, el('span', { class: `pill small ${tone(d.score)}` }, [d.score === null ? '--' : d.score.toFixed(1)])]));
-    for (const sec of d.sections) {
-    auditSec.appendChild(el('h4', { class: 'section-head' }, [
-      sec.section.label,
-      el('span', { class: 'muted small' }, [` ${sec.weight}% of this domain`]),
-      el('span', { class: `pill small ${tone(sec.score)}` }, [sec.score === null ? '--' : sec.score.toFixed(1)]),
-    ]));
-    for (const qs of sec.questions) {
-      const ans = a.answers[qs.question.id];
-      const entry: AuditEntry = (audit.perQuestion[qs.question.id] ??= { auditedScore: null, verdict: '', note: '' });
-      const ev = ans?.evidence ?? [];
-      auditSec.appendChild(el('div', { class: 'audit-row' }, [
+  // ---- 2. what the assessor changed ----------------------------------------------------
+  if (changed.length) {
+    const box = el('section', { class: 'card' }, [
+      el('h2', {}, ['What you changed']),
+      el('p', { class: 'muted small' }, [
+        'The gap between what they claimed and what you scored. This is the calibration record.',
+      ]),
+    ]);
+    for (const [qid, entry] of changed) {
+      const qs = questionOf.get(qid);
+      const self = a.answers[qid]?.score ?? null;
+      const delta = (entry.auditedScore as number) - (self ?? 0);
+      box.appendChild(el('div', { class: 'audit-row changed' }, [
         el('div', { class: 'q-head' }, [
-          el('span', { class: `pill small ${tone(qs.raw)}` }, [qs.na ? 'n/a' : qs.raw === null ? '--' : String(qs.raw)]),
-          el('span', { class: 'qid' }, [qs.question.id]),
-          el('span', { class: 'q-text' }, [qs.question.text]),
+          el('span', { class: 'qid' }, [qid]),
+          el('span', { class: 'q-text' }, [qs?.question.text ?? qid]),
         ]),
-        ans?.justification ? el('p', { class: 'said small' }, ['They said: ', ans.justification]) : el('p', { class: 'muted small' }, ['No justification given.']),
-        ev.length
-          ? el('ul', { class: 'ev-list small' }, ev.map((e) =>
-              el('li', {}, [
-                el('b', {}, [e.title || e.attachment?.name || 'untitled']),
-                ` - ${e.kind}, ${e.classification || 'unmarked'}`,
-                e.attachment
-                  ? el('span', {}, [
-                      ` - ${humanSize(e.attachment.size)} `,
-                      el('button', { class: 'ghost small', onclick: () => openAttachment(e.attachment!) }, ['Open']),
-                    ])
-                  : el('span', {}, [
-                      ' - not attached, pointed at: ',
-                      /^https?:\/\//.test(e.location)
-                        ? el('a', { href: e.location, target: '_blank', rel: 'noreferrer' }, [e.location])
-                        : el('i', {}, [e.location || 'no location given']),
-                    ]),
-                e.note ? ` - ${e.note}` : '',
-              ]),
-            ))
-          : el('p', { class: 'muted small' }, ['No evidence referenced.']),
-        el('div', { class: 'audit-controls' }, [
-          el('label', {}, ['Your score ', el('input', {
-            type: 'number', min: 0, max: 10, value: entry.auditedScore ?? '',
-            oninput: (e: Event) => {
-              const v = (e.target as HTMLInputElement).value;
-              entry.auditedScore = v === '' ? null : Number(v);
-            },
-          })]),
-          el('select', {
-            onchange: (e: Event) => { entry.verdict = (e.target as HTMLSelectElement).value as AuditEntry['verdict']; },
-          }, [
-            el('option', { value: '', selected: entry.verdict === '' }, ['- verdict -']),
-            el('option', { value: 'agree', selected: entry.verdict === 'agree' }, ['Agree with them']),
-            el('option', { value: 'adjust', selected: entry.verdict === 'adjust' }, ['Adjusted']),
-            el('option', { value: 'insufficient', selected: entry.verdict === 'insufficient' }, ['Not enough evidence']),
-          ]),
-          el('input', {
-            type: 'text', placeholder: 'Note', value: entry.note ?? '',
-            oninput: (e: Event) => { entry.note = (e.target as HTMLInputElement).value; },
-          }),
+        el('div', { class: 'small' }, [
+          `They said ${self ?? '--'}, you scored ${entry.auditedScore} `,
+          el('span', { class: `delta ${delta > 0 ? 'up' : 'down'}` }, [`${delta > 0 ? '+' : ''}${delta}`]),
+          entry.verdict ? ` · ${entry.verdict}` : '',
+          entry.note ? ` · ${entry.note}` : '',
         ]),
       ]));
     }
-    }
+    root.appendChild(box);
   }
-  root.appendChild(auditSec);
 
+  // ---- 3. everything else, folded away -------------------------------------------------
+  const restBox = el('section', { class: 'card' });
+  const rest = el('div', {});
+  let restCount = 0;
+  for (const d of r.domains) {
+    const domainRows: HTMLElement[] = [];
+    for (const sec of d.sections) {
+      const rows = sec.questions.filter((qs) => !byQuestion.has(qs.question.id) && !inAggregate.has(qs.question.id));
+      if (!rows.length) continue;
+      domainRows.push(el('h4', { class: 'section-head' }, [
+        sec.section.label,
+        el('span', { class: 'muted small' }, [`${sec.weight}% of this domain`]),
+        el('span', { class: `pill small ${tone(sec.score)}` }, [sec.score === null ? '--' : sec.score.toFixed(1)]),
+      ]));
+      for (const qs of rows) {
+        domainRows.push(auditRow(rubric, a, qs, audit, [], repaint, false));
+        restCount++;
+      }
+    }
+    if (!domainRows.length) continue;
+    rest.appendChild(el('h3', {}, [
+      d.domain.label,
+      el('span', { class: `pill small ${tone(d.score)}` }, [d.score === null ? '--' : d.score.toFixed(1)]),
+    ]));
+    for (const n of domainRows) rest.appendChild(n);
+  }
+  restBox.appendChild(el('details', {}, [
+    el('summary', { class: 'section-summary' }, [
+      el('span', { class: 'section-title' }, [`Everything else`]),
+      el('span', { class: 'muted small' }, [`${restCount} questions with nothing flagged`]),
+    ]),
+    rest,
+  ]));
+  root.appendChild(restBox);
+
+  // ---- 4. sign off ---------------------------------------------------------------------
   root.appendChild(el('section', { class: 'card' }, [
+    el('label', { class: 'field' }, [
+      el('span', {}, ['Your name']),
+      el('input', {
+        type: 'text', class: 'reviewer-name', value: audit.reviewer,
+        oninput: (e: Event) => { audit.reviewer = (e.target as HTMLInputElement).value; },
+      }),
+    ]),
     el('label', { class: 'field' }, [
       el('span', {}, ['Overall note for the board']),
       el('textarea', {
@@ -272,6 +305,112 @@ function openDetail(rubric: Rubric, root: HTMLElement, l: Loaded) {
       el('button', { class: 'ghost', onclick: () => window.print() }, ['Print the one-pager']),
     ]),
   ]));
+}
+
+function kpi(value: string, label: string): HTMLElement {
+  return el('div', { class: 'kpi' }, [
+    el('span', { class: 'kpi-num' }, [value]),
+    el('span', { class: 'kpi-label' }, [label]),
+  ]);
+}
+
+function flagCard(f: Flag): HTMLElement {
+  return el('div', { class: `flag sev-${f.severity}` }, [
+    el('div', { class: 'flag-title' }, [el('span', { class: 'sev-dot' }), el('strong', {}, [f.title])]),
+    el('div', { class: 'small' }, [f.detail]),
+    f.challenge ? el('div', { class: 'small challenge' }, [f.challenge]) : null,
+  ]);
+}
+
+/** One question, with its flags, its evidence, and the controls to re-score it. */
+function auditRow(
+  rubric: Rubric,
+  a: Assessment,
+  qs: QuestionScore,
+  audit: NonNullable<Assessment['audit']>,
+  qflags: Flag[],
+  repaint: () => void,
+  flagged: boolean,
+): HTMLElement {
+  const q = qs.question;
+  const ans = a.answers[q.id];
+  const entry: AuditEntry = (audit.perQuestion[q.id] ??= { auditedScore: null, verdict: '', note: '' });
+  const ev = ans?.evidence ?? [];
+  const wasChanged = typeof entry.auditedScore === 'number' && entry.auditedScore !== (ans?.score ?? null);
+
+  return el('div', {
+    class: `audit-row ${flagged ? 'flagged' : ''} ${wasChanged ? 'changed' : ''}`,
+    'data-qid': q.id,
+  }, [
+    el('div', { class: 'q-head' }, [
+      el('span', { class: `pill small ${tone(qs.raw)}` }, [qs.na ? 'n/a' : qs.raw === null ? '--' : String(qs.raw)]),
+      el('span', { class: 'qid' }, [q.id]),
+      el('span', { class: 'q-text' }, [q.text]),
+      wasChanged
+        ? el('span', { class: `delta ${(entry.auditedScore as number) > (ans?.score ?? 0) ? 'up' : 'down'}` }, [
+            `you: ${entry.auditedScore}`,
+          ])
+        : null,
+    ]),
+
+    ...qflags.map((f) => el('div', { class: `flag sev-${f.severity}` }, [
+      el('div', { class: 'flag-title' }, [el('span', { class: 'sev-dot' }), el('strong', {}, [f.title])]),
+      el('div', { class: 'small' }, [f.detail]),
+      f.challenge ? el('div', { class: 'small challenge' }, [f.challenge]) : null,
+    ])),
+
+    ans?.justification
+      ? el('p', { class: 'said small' }, ['They said: ', ans.justification])
+      : el('p', { class: 'muted small' }, ['No justification given.']),
+
+    ev.length
+      ? el('ul', { class: 'ev-list small' }, ev.map((e) =>
+          el('li', {}, [
+            el('b', {}, [e.title || e.attachment?.name || 'untitled']),
+            ` — ${e.kind}, ${e.classification || 'unmarked'}`,
+            e.attachment
+              ? el('span', {}, [
+                  ` — ${humanSize(e.attachment.size)} `,
+                  el('button', { class: 'ghost small', onclick: () => openAttachment(e.attachment!) }, ['Open']),
+                ])
+              : el('span', {}, [
+                  ' — not attached, pointed at: ',
+                  /^https?:\/\//.test(e.location)
+                    ? el('a', { href: e.location, target: '_blank', rel: 'noreferrer' }, [e.location])
+                    : el('i', {}, [e.location || 'no location given']),
+                ]),
+            e.note ? ` — ${e.note}` : '',
+          ]),
+        ))
+      : el('p', { class: 'muted small' }, ['No evidence referenced.']),
+
+    el('div', { class: 'audit-controls' }, [
+      el('label', {}, ['Your score ', el('input', {
+        type: 'number', min: 0, max: 10, value: entry.auditedScore ?? '',
+        onchange: (e: Event) => {
+          const v = (e.target as HTMLInputElement).value;
+          entry.auditedScore = v === '' ? null : Number(v);
+          repaint();
+        },
+        oninput: (e: Event) => {
+          const v = (e.target as HTMLInputElement).value;
+          entry.auditedScore = v === '' ? null : Number(v);
+        },
+      })]),
+      el('select', {
+        onchange: (e: Event) => { entry.verdict = (e.target as HTMLSelectElement).value as AuditEntry['verdict']; },
+      }, [
+        el('option', { value: '', selected: entry.verdict === '' }, ['— verdict —']),
+        el('option', { value: 'agree', selected: entry.verdict === 'agree' }, ['Agree with them']),
+        el('option', { value: 'adjust', selected: entry.verdict === 'adjust' }, ['Adjusted']),
+        el('option', { value: 'insufficient', selected: entry.verdict === 'insufficient' }, ['Not enough evidence']),
+      ]),
+      el('input', {
+        type: 'text', placeholder: 'Note', value: entry.note ?? '',
+        oninput: (e: Event) => { entry.note = (e.target as HTMLInputElement).value; },
+      }),
+    ]),
+  ]);
 }
 
 function exportAllCsv(rubric: Rubric) {

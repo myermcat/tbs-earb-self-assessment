@@ -52,6 +52,7 @@ function header(): HTMLElement {
     el('button', { class: `tab ${mode === m ? 'on' : ''}`, onclick: () => go(m) }, [label]);
   return el('header', { class: 'topbar' }, [
     el('div', { class: 'brand', onclick: () => go('home') }, [
+      el('span', { class: 'brand-mark' }, ['EA']),
       el('strong', {}, [rubric.title]),
       el('span', { class: 'ver' }, [`rubric ${rubric.version}`]),
       rubric.status !== 'approved' ? el('span', { class: 'badge badge-warn' }, [rubric.status]) : null,

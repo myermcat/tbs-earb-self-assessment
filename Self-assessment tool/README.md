@@ -88,6 +88,16 @@ page has a **Load a rubric file** control so he can drop his own in and see it i
 Every assessment records the rubric version it was answered against, so a two-year-old
 submission stays interpretable after the questions change.
 
+## Design
+
+One stylesheet, `src/styles.css`, inlined at build time. No web fonts and no CDN - the page
+has to work with the network cable out, so the system font stack and an inline SVG favicon
+are the whole of it. Light and dark both supported through `prefers-color-scheme`.
+
+The score colours are **Dan's own**, from the Assessment Scale sheet: eleven of them, black
+through to purple, used on the selector, the pills and the domain bars rather than a
+three-colour red-amber-green of our invention.
+
 ## Scoring
 
 - Each question is scored 0-10 against a ladder of anchored descriptors. The ladder is
