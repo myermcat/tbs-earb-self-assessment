@@ -25,7 +25,9 @@ export interface Question {
 export interface Section {
   id: string;
   label: string;
-  weight: number;                                      // percent of its domain
+  weight: number;                                      // percent of its domain, as written
+  /** The same weight as a share of the weights actually present, so a domain adds up to 100. */
+  shareOfDomain?: number;
   description?: string;
   stageExpectation?: Record<string, StageExpectation>; // applies to every question in the section
   questions: Question[];
@@ -77,9 +79,19 @@ export interface Rubric {
   domains: Domain[];
 }
 
-/** GC markings, lowest to highest. Order matters: it drives the save gate. */
+/**
+ * Government of Canada security categories, lowest to highest. Order matters: it drives the
+ * save gate, which refuses a file marked lower than something inside it.
+ *
+ * Two families. Protected covers information whose compromise harms a person, a company or
+ * the government but not the national interest. Confidential, Secret and Top Secret are the
+ * classified levels, where the injury is to the national interest. "Classified" is the name
+ * of that family, never a marking on its own, which is what this list had before.
+ */
 export const CLASSIFICATIONS = [
-  'Unclassified', 'Protected A', 'Protected B', 'Protected C', 'Classified',
+  'Unclassified',
+  'Protected A', 'Protected B', 'Protected C',
+  'Confidential', 'Secret', 'Top Secret',
 ] as const;
 export type Classification = (typeof CLASSIFICATIONS)[number];
 

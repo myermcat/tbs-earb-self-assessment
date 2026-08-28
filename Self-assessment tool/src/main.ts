@@ -1,7 +1,7 @@
 import type { Assessment, Rubric } from './types';
 import { el, clear } from './dom';
 import { validate } from './rubric';
-import { renderSubmit, setRepaint, takeSubmitTabs } from './views-submit';
+import { goToFirstGap, renderSubmit, setRepaint, takeSubmitTabs } from './views-submit';
 import { renderResults } from './views-results';
 import { renderReview } from './views-review';
 import { APP_VERSION, blankAssessment, clearDraft, loadDraft, readJsonFiles } from './storage';
@@ -172,12 +172,22 @@ function footer(): HTMLElement {
 function banner(extra = ''): HTMLElement {
   const mark = bannerFor(assessment);
   const unmarked = mark === 'UNMARKED';
-  return el('div', {
-    class: `marking-banner ${unmarked ? 'unmarked' : ''} ${extra}`,
-    role: unmarked ? 'alert' : undefined,
-  }, [
-    unmarked ? 'Unmarked. Set a classification before saving.' : mark,
-  ]);
+  if (!unmarked || extra) {
+    return el('div', { class: `marking-banner ${unmarked ? 'unmarked' : ''} ${extra}` }, [
+      unmarked ? 'Unmarked' : mark,
+    ]);
+  }
+  // An unmarked banner is the one thing on the page that needs doing, so it is the control
+  // for doing it. Saying "go and find the setting" is the failure, not the wording of it.
+  return el('button', {
+    class: 'marking-banner unmarked',
+    onclick: () => {
+      go('submit');
+      const heading = document.getElementById('marking-control');
+      if (heading && typeof heading.scrollIntoView === 'function') heading.scrollIntoView({ block: 'center' });
+      heading?.focus?.();
+    },
+  }, ['Unmarked. Set the classification']);
 }
 
 /* ------------------------------------------------------------------------------------------
@@ -185,6 +195,44 @@ function banner(extra = ''): HTMLElement {
    The rubric controls and the data-handling detail belong in Settings; somebody arriving
    here wants to know what this is and how to start.
    ------------------------------------------------------------------------------------------ */
+
+/**
+ * What "Continue" is continuing, said plainly. Somebody arriving at a half-finished assessment
+ * should not have to guess whether their work survived, where it went, or whether they need
+ * the file they saved last week.
+ *
+ * Starting over is deliberately quiet. A department fills one of these in once; the button
+ * that throws the work away should not be the brightest thing on the page.
+ */
+function draftNote(draft: Assessment, total: number): HTMLElement {
+  const answered = Object.keys(draft.answers).filter((k) => typeof draft.answers[k].score === 'number').length;
+  const saved = (() => {
+    const t = Date.parse(draft.meta?.updatedAt ?? '');
+    return Number.isFinite(t) ? new Date(t).toLocaleString() : 'a moment ago';
+  })();
+
+  return el('div', { class: 'draft-note' }, [
+    el('p', { class: 'small' }, [
+      el('b', {}, [`${answered} of ${total} answered. `]),
+      `Kept by this browser on this machine, last changed ${saved}. `,
+      'Nothing was uploaded, and you do not need the file you saved to carry on.',
+    ]),
+    el('p', { class: 'tiny dim' }, [
+      el('button', {
+        class: 'linkish',
+        onclick: () => {
+          if (!confirm(
+            `Discard ${answered} answered question${answered === 1 ? '' : 's'} and start again?\n\n` +
+            'This cannot be undone. If you want to keep them, cancel, continue, and save a file first.',
+          )) return;
+          clearDraft();
+          assessment = blankAssessment(rubric);
+          go('submit');
+        },
+      }, ['Discard this and start again']),
+    ]),
+  ]);
+}
 
 function renderHome(root: HTMLElement) {
   const draft = loadDraft();
@@ -200,8 +248,12 @@ function renderHome(root: HTMLElement) {
         'and point to evidence you already have. Nothing new has to be written for it.',
       ]),
       el('div', { class: 'hero-actions' }, [
-        el('button', { class: 'primary big', onclick: () => go('submit') }, [
-          started ? 'Carry on' : 'Fill it in',
+        el('button', {
+          class: 'primary big',
+          // Continuing means going to the first thing left blank, not back to the top.
+          onclick: () => { if (started) goToFirstGap(rubric, assessment); go('submit'); },
+        }, [
+          started ? 'Continue' : 'Fill it in',
           el('span', { class: 'arrow', 'aria-hidden': true }, ['\u2192']),
         ]),
         el('span', { class: 'or' }, ['or']),
@@ -220,21 +272,7 @@ function renderHome(root: HTMLElement) {
           }),
         ]),
       ]),
-      started
-        ? el('p', { class: 'tiny dim' }, [
-            `${Object.keys(draft!.answers).length} of ${total} answered so far. `,
-            el('button', {
-              class: 'linkish',
-              onclick: () => {
-                if (confirm('Start a new blank assessment? The draft kept by this browser will be discarded.')) {
-                  clearDraft();
-                  assessment = blankAssessment(rubric);
-                  go('submit');
-                }
-              },
-            }, ['Start a new one']),
-          ])
-        : null,
+      started ? draftNote(draft!, total) : null,
     ]),
     el('div', { class: 'hero-art', 'aria-hidden': true }, [
       el('span', { class: 'rung r1' }), el('span', { class: 'rung r2' }),

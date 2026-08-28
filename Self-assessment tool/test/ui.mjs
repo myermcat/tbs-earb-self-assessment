@@ -87,8 +87,9 @@ ok('no network call is even possible (CSP)', html.includes("connect-src 'none'")
 ok('color-scheme is declared for both themes',
    /:root\s*\{[^}]*color-scheme:\s*light/.test(html) && /prefers-color-scheme:\s*dark[^}]*\{[^}]*color-scheme:\s*dark/s.test(html));
 // The sticky footer floats over cards that would otherwise look identical to it.
-ok('the sticky footer is visually separated from the content it covers',
-   /\.sticky-footer\s*\{[^}]*border-top:\s*2px solid var\(--accent\)/s.test(html) &&
+ok('the sticky footer is pinned to the edge and reads as chrome, not as a floating card',
+   /\.sticky-footer\s*\{[^}]*bottom:\s*0/s.test(html) &&
+   /\.sticky-footer\s*\{[^}]*border-top:\s*1px solid var\(--line-2\)/s.test(html) &&
    !/\.sticky-footer\s*\{[^}]*backdrop-filter/s.test(html));
 
 // ---- overview --------------------------------------------------------------------------
@@ -97,9 +98,15 @@ ok('overview page rendered', view().includes('About the initiative'));
 ok('no questions on the overview page', qa('.question').length === 0);
 ok('seven lifecycle stages offered', qa('.stage-card').length === 7, String(qa('.stage-card').length));
 ok('stepper has overview plus four domains', qa('.stepper .step').length === 5, String(qa('.stepper .step').length));
-ok('a stage must be picked before scoring', view().includes('Pick a lifecycle stage'));
+ok('a stage must be picked before scoring', view().includes('Pick one before you start scoring'));
+// Create, Live and Sunset are three different situations; they used to render as one list.
+ok('the lifecycle phases are visually grouped', qa('.phase-group').length === 3,
+   String(qa('.phase-group').length));
+ok('and each group is named', qa('.phase-head h4').map((h) => h.textContent).join('|') === 'Create|Live|Sunset',
+   qa('.phase-head h4').map((h) => h.textContent).join('|'));
 
-ok('a blank assessment has nothing to mark, so saving is allowed', q('.footer-actions .ghost').disabled === false);
+ok('a blank assessment has nothing to mark, so saving is allowed',
+   byText('.footer-actions button', 'Save to a file').disabled === false);
 
 const inputs = qa('.card input[type=text]');
 inputs[0].value = 'Nexus agentic AI infrastructure';
@@ -109,27 +116,34 @@ fire(inputs[1], 'input');
 fire(inputs[1], 'change');   // the gate refreshes on blur, not on every keystroke
 
 // Dan's rule: the moment there is content in the file, it has to be marked before saving.
-ok('typing content blocks saving until the file is marked', q('.footer-actions .ghost').disabled === true);
-ok('the gate says why', view().includes('Mark this assessment before saving'));
-ok('an unmarked file says so in the banner, and announces it',
-   q('.chrome .marking-banner').classList.contains('unmarked') &&
-   q('.chrome .marking-banner').getAttribute('role') === 'alert');
+ok('typing content blocks saving until the file is marked',
+   byText('.footer-actions button', 'Save to a file').disabled === true);
+ok('the gate says what to do, briefly', view().includes('Mark this file to save it'));
+// Obvious beats explained: the banner that says the file is unmarked is the control that
+// marks it, so nobody is told to go and find a setting.
+{
+  const b = q('.chrome .marking-banner');
+  ok('an unmarked file says so in the banner', b.classList.contains('unmarked'));
+  ok('and the banner is itself the way to fix it', b.tagName === 'BUTTON', b.tagName);
+  b.click();
+  ok('clicking it lands on the marking control', !!document.getElementById('marking-control'));
+}
 
 const maturity = qa('.stage-card input[type=radio]').find((r) => r.value === 'maturity');
 maturity.checked = true;
 fire(maturity, 'change');
-ok('the stage warning clears once a stage is picked', !view().includes('Pick a lifecycle stage'));
+ok('the stage warning clears once a stage is picked', !view().includes('Pick one before you start scoring'));
 
 // Mark the file. Dan asked for this to be a hard gate, and being told to mark it without
 // being given the control is how a gate turns into a notice people read past. The control is
 // in the gate message itself.
-ok('five markings offered on the overview', qa('.marking-chip').length === 5,
+// The real Government of Canada scheme: Protected A to C, then the classified levels.
+// "Classified" is the name of that family, never a marking on its own.
+const MARKINGS = 'Unclassified|Protected A|Protected B|Protected C|Confidential|Secret|Top Secret';
+ok('every GC marking is offered on the overview', qa('.marking-chip').length === 7,
    String(qa('.marking-chip').length));
-ok('and the same five are offered inside the gate that demands them',
-   qa('.gate-marks .mark-btn').length === 5, String(qa('.gate-marks .mark-btn').length));
-ok('the gate names the markings, so there is nothing to go and find',
-   qa('.gate-marks .mark-btn').map((b) => b.textContent).join('|') ===
-     'Unclassified|Protected A|Protected B|Protected C|Classified',
+ok('and the same list is offered inside the gate that demands one',
+   qa('.gate-marks .mark-btn').map((b) => b.textContent).join('|') === MARKINGS,
    qa('.gate-marks .mark-btn').map((b) => b.textContent).join('|'));
 
 // Mark it from the gate, which is the path a reader who is stuck would actually take.
@@ -144,7 +158,8 @@ ok('one marking banner on screen, plus a print-only copy',
 ok('the on-screen banner is inside the sticky header block', !!q('.chrome .marking-banner'));
 ok('it shows the marking once set',
    q('.chrome .marking-banner').textContent.trim() === 'PROTECTED B', q('.chrome .marking-banner')?.textContent);
-ok('saving is allowed once marked', q('.footer-actions .ghost').disabled === false);
+ok('saving is allowed once marked',
+   byText('.footer-actions button', 'Save to a file').disabled === false);
 
 // ---- one weighted section per page, twenty-one stops in all -----------------------------
 //
@@ -169,7 +184,7 @@ for (const { d, sec } of SECTIONS) {
   ok(`${sec.label}: only its own ${sec.questions.length} questions are on the page`,
      qa('.question').length === sec.questions.length, String(qa('.question').length));
   ok(`${sec.label}: the page says what it is worth`,
-     view().includes(`${sec.weight}% of ${d.label}`));
+     view().includes(`${sec.shareOfDomain ?? sec.weight}% of ${d.label}`));
   ok(`${sec.label}: the rail marks it as the page you are on`,
      !!q('.toc-sec.on') && q('.toc-sec.on').textContent.includes(sec.label));
 
@@ -408,7 +423,7 @@ just.value = 'Diagram is current as of March and owned by the platform team.';
 fire(just, 'input');
 
 ok('a new evidence row starts unmarked and blocks saving',
-   q('.footer-actions .ghost').disabled === true && view().includes('mark'));
+   byText('.footer-actions button', 'Save to a file').disabled === true && view().includes('mark'));
 
 const evTitle = hosting.querySelector('.ev-row input[type=text]');
 evTitle.value = 'Current-state architecture diagram, March 2026';
@@ -432,18 +447,21 @@ const evClass = [...hosting2.querySelectorAll('.ev-row select')][1];
 evClass.value = 'Protected B';
 fire(evClass, 'change');
 ok('evidence marking can be set', evClass.value === 'Protected B');
-ok('saving is unblocked once the evidence is marked', q('.footer-actions .ghost').disabled === false);
+ok('saving is unblocked once the evidence is marked',
+   byText('.footer-actions button', 'Save to a file').disabled === false);
 
 // Evidence above the file's own marking must be refused, not silently allowed through.
 {
   const sel = [...qa('.question').find((n) => n.textContent.includes('hosting environment')).querySelectorAll('.ev-row select')][1];
-  sel.value = 'Classified';
+  sel.value = 'Secret';
   fire(sel, 'change');
-  ok('evidence above the file marking blocks saving', q('.footer-actions .ghost').disabled === true);
+  ok('evidence above the file marking blocks saving',
+     byText('.footer-actions button', 'Save to a file').disabled === true);
   ok('and says which way to resolve it', view().includes('higher than this file'));
   sel.value = 'Protected B';
   fire(sel, 'change');
-  ok('and unblocks when brought back down', q('.footer-actions .ghost').disabled === false);
+  ok('and unblocks when brought back down',
+     byText('.footer-actions button', 'Save to a file').disabled === false);
 }
 ok('draft is autosaved to this browser', !!window.localStorage.getItem('gc-arch-assessment:draft'));
 
