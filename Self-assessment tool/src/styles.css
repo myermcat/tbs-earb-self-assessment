@@ -162,7 +162,7 @@ li { margin-bottom: .22rem; }
 .side-badge { font-size: .68rem; font-weight: 700; letter-spacing: .09em; text-transform: uppercase;
   color: var(--accent); border: 1px solid var(--accent-line); background: var(--accent-soft);
   border-radius: 999px; padding: .05rem .45rem; }
-.crossover { margin: .1rem .3rem .6rem; }
+.crossover { margin: .1rem .3rem .5rem; }
 
 .icon-btn { display: grid; place-items: center; width: 33px; height: 33px; padding: 0;
   border-radius: 9px; color: var(--ink-2); border: 1px solid var(--line); background: var(--surface); }
@@ -262,9 +262,9 @@ textarea { resize: vertical; }
 .body-home { max-width: 900px; }
 
 .hero {
-  display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2.4rem; align-items: center;
+  display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2rem; align-items: center;
   background: var(--surface); border: 1px solid var(--line); border-radius: 18px;
-  padding: 3rem 2.6rem; margin: 0 0 1.1rem; box-shadow: var(--shadow-lg);
+  padding: 2rem 2.2rem; margin: 0 0 .85rem; box-shadow: var(--shadow-lg);
   position: relative; overflow: hidden;
 }
 .hero::before {
@@ -273,24 +273,24 @@ textarea { resize: vertical; }
 }
 .eyebrow { font-size: .74rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase;
   color: var(--ink-3); margin-bottom: .5rem; }
-.hero h1 { font-size: 2.75rem; letter-spacing: -.028em; margin-bottom: .75rem; }
-.hero .lead { font-size: 1.15rem; line-height: 1.5; color: var(--ink-2); max-width: 46ch;
-  margin-bottom: 1.6rem; }
+.hero h1 { font-size: 2.6rem; letter-spacing: -.028em; margin-bottom: .55rem; }
+.hero .lead { font-size: 1.1rem; line-height: 1.45; color: var(--ink-2); max-width: 46ch;
+  margin-bottom: 1.15rem; }
 .hero-actions { display: flex; gap: .6rem; flex-wrap: wrap; align-items: baseline; }
 button.big { font-size: .98rem; padding: .62rem 1.4rem; border-radius: 9px;
   display: inline-flex; align-items: center; gap: .5rem; }
 button.big .arrow { font-size: 1.05rem; transition: transform .15s ease; }
 button.big:hover .arrow { transform: translateX(3px); }
 .or { color: var(--ink-3); font-size: .88rem; }
-.draft-note { margin-top: 1.1rem; padding-top: .8rem; border-top: 1px solid var(--line); }
+.draft-note { margin-top: .85rem; padding-top: .65rem; border-top: 1px solid var(--line); }
 .draft-note p { margin-bottom: .25rem; }
 .draft-note .tiny .linkish { color: var(--ink-3); text-decoration-color: var(--line-2); }
 .draft-note .tiny .linkish:hover { color: var(--bad); }
 .filelabel-plain { background: none; border: 0; padding: 0; font-size: .88rem; cursor: pointer; }
 
 /* The maturity ladder from the favicon, at rest. Decorative only. */
-.hero-art { display: flex; align-items: flex-end; gap: .5rem; height: 160px; }
-.hero-art .rung { width: 20px; border-radius: 6px; display: block; }
+.hero-art { display: flex; align-items: flex-end; gap: .45rem; height: 128px; }
+.hero-art .rung { width: 17px; border-radius: 5px; display: block; }
 .hero-art .r1 { height: 26%;  background: var(--s2); opacity: .55; }
 .hero-art .r2 { height: 44%;  background: var(--s4); opacity: .65; }
 .hero-art .r3 { height: 62%;  background: var(--s6); opacity: .75; }
@@ -300,8 +300,9 @@ button.big:hover .arrow { transform: translateX(3px); }
 .note { background: transparent; border: 0; padding: .2rem .3rem 0; }
 .note h2 { font-size: .72rem; font-weight: 700; letter-spacing: .11em; text-transform: uppercase;
   color: var(--ink-3); margin-bottom: .45rem; }
-.note ul { list-style: none; padding: 0; margin: 0; display: grid; gap: .45rem; }
-.note li { font-size: .84rem; color: var(--ink-3); padding-left: .9rem; position: relative; }
+.note ul { list-style: none; padding: 0; margin: 0; display: grid; gap: .35rem; }
+.note li { font-size: .82rem; line-height: 1.45; color: var(--ink-3); padding-left: .9rem;
+  position: relative; }
 .note li::before { content: ''; position: absolute; left: 0; top: .58em; width: 4px; height: 4px;
   border-radius: 999px; background: var(--line-2); }
 .note li b { color: var(--ink-2); font-weight: 600; }
@@ -439,14 +440,14 @@ a.faint-link:hover { color: var(--accent); }
 .app-results { height: 100dvh; display: flex; flex-direction: column; overflow: hidden; }
 .body-results {
   flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior-y: contain;
-  scroll-snap-type: y proximity; scroll-behavior: smooth;
+  scroll-snap-type: y mandatory; scroll-behavior: smooth;
   margin: 0 auto; padding: 0 1.15rem 3rem;
   scrollbar-width: none;                 /* the dots on the right are the scrollbar */
 }
 .body-results::-webkit-scrollbar { display: none; }
 .body-results > section {
-  scroll-snap-align: start; scroll-margin-top: 1rem;
-  padding: 1.1rem 0; margin: 0; border: 0; box-shadow: none; background: none;
+  scroll-snap-align: start; scroll-snap-stop: always; scroll-margin-top: 1rem;
+  padding: 1.4rem 0 1.8rem; margin: 0; border: 0; box-shadow: none; background: none;
 }
 /* Each part carries its own card, so the snap target and the card are not the same box. */
 

@@ -41,6 +41,12 @@ export function renderResults(root: HTMLElement, rubric: Rubric, a: Assessment, 
         ? el('div', { class: `band ${r.band.tone}` }, [
             el('strong', {}, [r.band.label]),
             el('div', {}, [r.band.routing]),
+            r.band.source === 'interpolated'
+              ? el('div', { class: 'tiny dim' }, [
+                  'This threshold is provisional. It was filled in to bridge two numbers TBS named, ',
+                  'and has not been confirmed.',
+                ])
+              : null,
           ])
         : el('div', { class: 'band neutral' }, [
             el('strong', {}, ['No routing suggestion yet']),

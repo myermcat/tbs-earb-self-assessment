@@ -47,6 +47,8 @@ export interface Band {
   label: string;
   routing: string;
   tone: 'good' | 'neutral' | 'bad';
+  /** 'interpolated' where the threshold was filled in by us and not named by Dan. */
+  source?: 'interpolated';
 }
 
 export interface MaturityBand { min: number; label: string; detail: string }

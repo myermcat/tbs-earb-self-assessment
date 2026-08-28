@@ -192,6 +192,18 @@ function flags(rubric2, a, r) {
       });
     }
   }
+  if (r.overall !== null && r.band) {
+    const margin = r.overall - r.band.min;
+    if (r.band.min > 0 && margin < 0.35) {
+      out.push({
+        id: "just-above-the-line",
+        severity: "medium",
+        title: `Just above the ${r.band.label.toLowerCase()} line`,
+        detail: `${r.overall.toFixed(2)} against a threshold of ${r.band.min}. A margin this thin is one answer wide, so the routing rests on a single score.`,
+        challenge: "Which single answer would you least like us to check?"
+      });
+    }
+  }
   if (r.overall !== null && r.overall >= 9) {
     out.push({
       id: "self-score-outlier",
@@ -524,7 +536,8 @@ var rubric_v1_dan_default = {
       min: 3,
       label: "Routine",
       routing: "Suggested: no board time. Assessor spot-check only.",
-      tone: "neutral"
+      tone: "neutral",
+      source: "interpolated"
     },
     {
       id: "attend",
@@ -534,7 +547,7 @@ var rubric_v1_dan_default = {
       tone: "bad"
     }
   ],
-  bandsNote: "ROUTING, not maturity. These are Dan's spoken numbers from 2026-08-26 (60% hall pass, 8.5 showcase, ~2 come and explain) and are NOT in his workbook or signed off by anyone. Maturity labels above are his.",
+  bandsNote: 'ROUTING, not maturity, and provisional. Dan named three numbers out loud on 2026-08-26: above roughly 60% is an automatic hall pass, around 8.5 is worth showcasing, and around 2 out of 10 means come and explain. He also said the 4, 5, 6 middle is not worth board time. The 3.0 line between "come and explain" and "no board time" is OURS, interpolated to bridge the 2 he named and the 4 he named. He has not seen it. None of these are signed off. The maturity labels above are his.',
   stageMultipliers: {
     "low-ok": 0.25,
     expected: 1,
@@ -1997,6 +2010,27 @@ ok("1 -> Critical Risk", mat(1) === "Critical Risk", String(mat(1)));
   ok("one answer of 9 scores 9", Math.abs(r.overall - 9) < 1e-9, `got ${r.overall}`);
   ok("completeness reflects the gap", r.completeness < 0.02, String(r.completeness));
   ok("incompleteness is flagged", flags(rubric, a, r).some((f) => f.id === "incomplete"));
+}
+{
+  const a = fill(blank("beta"), 6);
+  const r = score(rubric, a);
+  ok(
+    "a score exactly on the hall-pass line is flagged as thin",
+    flags(rubric, a, r).some((f) => f.id === "just-above-the-line"),
+    `overall ${r.overall}`
+  );
+  const clear = fill(blank("beta"), 8);
+  ok("a comfortable score is not", !flags(rubric, clear, score(rubric, clear)).some((f) => f.id === "just-above-the-line"));
+}
+{
+  const interpolated = rubric.bands.filter((b) => b.source === "interpolated");
+  ok(
+    "exactly one threshold is marked as ours",
+    interpolated.length === 1,
+    interpolated.map((b) => b.label).join(",")
+  );
+  ok("and it is the one Dan never named", interpolated[0]?.min === 3, String(interpolated[0]?.min));
+  ok("the note says which numbers were his", (rubric.bandsNote ?? "").includes("is OURS"));
 }
 {
   const a = blank("beta");
