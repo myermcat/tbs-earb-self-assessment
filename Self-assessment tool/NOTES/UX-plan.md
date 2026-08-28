@@ -38,7 +38,9 @@ so the justification textareas print empty. The fix is to mirror the value into 
 **5. Fixed. `nav.path` had no accessible name**, so a screen reader announces "navigation, navigation"
 once the second nav is added.
 
-**6. Four sections share the id `defining-the-current-state`,** still live, `cssId()` is ready. one per domain. Any DOM id,
+**6. Four sections share the id `defining-the-current-state`,** one per domain. `cssId()`
+namespaces by domain and sanitises. Nothing currently builds a DOM id from a section id, since
+the rail navigates by closure rather than by anchor, so the collision has no live consequence. one per domain. Any DOM id,
 anchor, `aria-controls` or storage key built from a section id will collide. Namespace every
 one as `${domain.id}--${section.id}` and sanitise with `replace(/[^A-Za-z0-9_-]/g, '_')`.
 
@@ -136,7 +138,7 @@ manager and two assessors, is not worth it. The header split gives the whole ben
 
 ## Build order
 
-Steps 1 to 4 are done and pushed. Steps 5 to 8 are not started.
+Steps 1 to 8 are done and pushed. Step 9 is folded into the others as each was built.
 
 1. **Done. Narrow the repaint.** Alone, with `npm test` green before and after. Everything else
    depends on it.
@@ -147,12 +149,19 @@ Steps 1 to 4 are done and pushed. Steps 5 to 8 are not started.
 4. **Done. The `side` split** in `main.ts`. Submitter path is Start, Fill it in, My results.
    Assessor path is Submissions, behind a badge, with a crossover offered once on the start
    page and a way back in the header.
-5. **21 stops**, the sticky domain tab strip and the section rail, in `views-submit.ts`.
-6. **The question card**, the gutter number, the status edge, the evidence tint inversion.
-7. **The two progress bars** and the completion animation, with `prefers-reduced-motion`.
-8. **The marking chips in the gate.**
-9. **Tests**: a stale-readout test that asserts every readout agrees after a score change and
-   after an n/a toggle. The n/a case moves the denominator and is the one most likely to rot.
+5. **Done. 21 stops**, one weighted section per page, with the domain tabs inside the sticky
+   chrome and a section rail that never scrolls away. The tabs are one scrolling row: a
+   wrapping grid took 270px of a 900px viewport at a narrow width.
+6. **Done. The question card**, its status edge in the score's own colour, and the tint
+   inversion. The answering sits on tinted ground and the evidence on the card's own, which is
+   the way round it should have been.
+7. **Done. Two progress bars** in the pinned footer, section and whole, with the completion
+   flash on the section bar and `prefers-reduced-motion` respected.
+8. **Done. The marking chips are in the gate**, so being told to mark the file and being able
+   to are the same click.
+9. **Done, as each step was built.** The stale-readout test asserts every readout agrees after
+   a score change and after a not-applicable toggle, plus a churn budget, plus `npm run
+   measure` for the real numbers.
 
 ## Deliberately not building
 

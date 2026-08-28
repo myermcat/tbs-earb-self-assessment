@@ -42,10 +42,11 @@ const evCls = [...g('.ev-row select')][1]; evCls.value = 'Protected B'; fire(evC
 const third = g('.question')[2];
 const na = third.querySelector('.na input'); na.checked = true; fire(na, 'change');
 
-// Fold a section, the way a reader would, then run the print handler.
-const folded = g('.card.section > details')[1];
+// Fold the scale on a question, the way a reader would, then run the print handler. Sections
+// are one per page now, so the disclosures that survive a print are the per-question ones.
+const folded = g('.ladder-box')[1];
 folded.open = false;
-const foldedTitle = folded.querySelector('.section-title').textContent;
+const foldedTitle = folded.querySelector('summary').textContent;
 
 window.dispatchEvent(new window.Event('beforeprint'));
 
@@ -60,11 +61,12 @@ ok('an unanswered question prints as unanswered', printed.includes('Not answered
 ok('a not-applicable question says so', printed.includes('Not applicable'));
 ok('the typed reasoning prints', printed.some((t) => t.includes('owned by the platform team')));
 ok('the evidence prints with its marking', printed.some((t) => t.includes('Current-state architecture pack') && t.includes('Protected B')));
-ok('a folded section is opened for print', folded.open === true);
-ok('and its title is still in the document', document.body.textContent.includes(foldedTitle));
+ok('a folded disclosure is opened for print', folded.open === true);
+ok('and its contents are reachable', document.body.textContent.includes(foldedTitle));
 
 window.dispatchEvent(new window.Event('afterprint'));
 ok('the fold is restored afterwards', folded.open === false);
+ok('the section title is on the printed page', document.body.textContent.includes('Defining the Current State'));
 
 console.log(fails === 0
   ? `\nall print checks passed (${printed.length} print-only blocks on this page)`

@@ -48,6 +48,24 @@ const view = () => document.getElementById('app').textContent;
 /** Mirrors shortLabel() in views-submit.ts, which trims a domain name down to a tab label. */
 const shortName = (s) => s.replace(/\s*&\s*\w+/, '').replace(/\s*Architecture$/, '');
 
+/**
+ * With one section per page, a question exists only on its own section's page. This walks to
+ * whichever section holds the question whose text contains `needle`, and returns its node.
+ */
+function gotoQuestion(needle) {
+  for (const d of rubric.domains) {
+    for (const sec of d.sections) {
+      if (!sec.questions.some((x) => x.text.includes(needle))) continue;
+      const tab = qa('.stepper .step').find((t) => t.textContent.includes(shortName(d.label)));
+      if (tab && !tab.className.includes('on')) tab.click();
+      const row = qa('.toc-sec').find((n) => n.textContent.includes(sec.label));
+      row.click();
+      return qa('.question').find((n) => n.textContent.includes(needle));
+    }
+  }
+  return undefined;
+}
+
 // ---- home ------------------------------------------------------------------------------
 ok('app mounted', !!q('#app .topbar'));
 ok('the header carries only the name, no version clutter', !q('.brand').textContent.includes('1.0-dan'));
@@ -102,11 +120,23 @@ maturity.checked = true;
 fire(maturity, 'change');
 ok('the stage warning clears once a stage is picked', !view().includes('Pick a lifecycle stage'));
 
-// Mark the file. Dan asked for this to be a hard gate, not a reminder.
-ok('five markings offered', qa('.marking-chip').length === 5, String(qa('.marking-chip').length));
-const pbChip = qa('.marking-chip input').find((r) => r.value === 'Protected B');
-pbChip.checked = true;
-fire(pbChip, 'change');
+// Mark the file. Dan asked for this to be a hard gate, and being told to mark it without
+// being given the control is how a gate turns into a notice people read past. The control is
+// in the gate message itself.
+ok('five markings offered on the overview', qa('.marking-chip').length === 5,
+   String(qa('.marking-chip').length));
+ok('and the same five are offered inside the gate that demands them',
+   qa('.gate-marks .mark-btn').length === 5, String(qa('.gate-marks .mark-btn').length));
+ok('the gate names the markings, so there is nothing to go and find',
+   qa('.gate-marks .mark-btn').map((b) => b.textContent).join('|') ===
+     'Unclassified|Protected A|Protected B|Protected C|Classified',
+   qa('.gate-marks .mark-btn').map((b) => b.textContent).join('|'));
+
+// Mark it from the gate, which is the path a reader who is stuck would actually take.
+byText('.gate-marks .mark-btn', 'Protected B').click();
+ok('marking from the gate clears the gate', !q('.gate'));
+ok('and the overview chip agrees',
+   qa('.marking-chip input').find((r) => r.value === 'Protected B').checked === true);
 // One banner on screen, sticky with the header. The second copy exists for print only.
 ok('one marking banner on screen, plus a print-only copy',
    qa('.marking-banner').length === 2 && qa('.marking-banner.print-only').length === 1,
@@ -116,26 +146,55 @@ ok('it shows the marking once set',
    q('.chrome .marking-banner').textContent.trim() === 'PROTECTED B', q('.chrome .marking-banner')?.textContent);
 ok('saving is allowed once marked', q('.footer-actions .ghost').disabled === false);
 
-// ---- answer every question, domain by domain -------------------------------------------
-let seen = 0;
-for (const d of rubric.domains) {
-  const step = qa('.stepper .step').find((s) => s.textContent.includes(d.label.split(' ')[0]));
-  ok(`stepper has a tab for ${d.label}`, !!step);
-  step.click();
+// ---- one weighted section per page, twenty-one stops in all -----------------------------
+//
+// A section holds between three and fourteen questions, which is a page that can be finished.
+// The rail carries both levels of the rubric and never scrolls away, so the sections she could
+// not find are permanently on screen.
+const SECTIONS = rubric.domains.flatMap((d) => d.sections.map((sec) => ({ d, sec })));
+ok('twenty weighted sections, plus the overview, is twenty-one stops', SECTIONS.length === 20,
+   String(SECTIONS.length));
 
-  const expectedQs = d.sections.reduce((n, s) => n + s.questions.length, 0);
-  ok(`${d.label}: ${expectedQs} questions rendered`, qa('.question').length === expectedQs,
-     String(qa('.question').length));
-  ok(`${d.label}: ${d.sections.length} sections rendered`, qa('.card.section').length === d.sections.length,
-     String(qa('.card.section').length));
-  ok(`${d.label}: section weights shown`, view().includes(`${d.sections[0].weight}% of this domain`));
+let seen = 0;
+for (const { d, sec } of SECTIONS) {
+  // Reach the section through its domain tab and then its rail row, the way a reader does.
+  const tab = qa('.stepper .step').find((t) => t.textContent.includes(shortName(d.label)));
+  ok(`the domain tab for ${d.label} is present`, !!tab);
+  if (!tab.className.includes('on')) tab.click();
+
+  const row = qa('.toc-sec').find((n) => n.textContent.includes(sec.label));
+  ok(`the rail lists ${sec.label}`, !!row, sec.label);
+  row.click();
+
+  ok(`${sec.label}: only its own ${sec.questions.length} questions are on the page`,
+     qa('.question').length === sec.questions.length, String(qa('.question').length));
+  ok(`${sec.label}: the page says what it is worth`,
+     view().includes(`${sec.weight}% of ${d.label}`));
+  ok(`${sec.label}: the rail marks it as the page you are on`,
+     !!q('.toc-sec.on') && q('.toc-sec.on').textContent.includes(sec.label));
 
   for (const qb of qa('.question')) {
     [...qb.querySelectorAll('.score-btn')].find((b) => b.textContent === '7').click();
   }
-  seen += expectedQs;
+  seen += sec.questions.length;
 }
 ok(`all ${TOTAL} questions were reachable and answerable`, seen === TOTAL, String(seen));
+// Two bars, because one answer in 176 moves a single bar by half a percent.
+{
+  const bars = qa('.progress-row .pbar');
+  ok('two progress bars, one for the page and one for the whole', bars.length === 2, String(bars.length));
+  ok('the section bar counts this page', bars[0].textContent.startsWith('This section'), bars[0].textContent);
+  ok('the whole-assessment bar counts everything',
+     bars[1].textContent === `Whole assessment ${TOTAL} of ${TOTAL}`, bars[1].textContent);
+  ok('both bars are full once everything is answered',
+     bars.every((b) => b.querySelector('.progress-shell i').style.width === '100%'),
+     bars.map((b) => b.querySelector('.progress-shell i').style.width).join(' '));
+  ok('a finished section is marked done on its bar', !!q('.progress-shell i.done'));
+}
+
+ok('the rail shows every section of the current domain as done',
+   qa('.toc-sec.done').length === rubric.domains[rubric.domains.length - 1].sections.length,
+   String(qa('.toc-sec.done').length));
 ok('footer shows 7.0 once everything is a 7', q('.footer-score .pill').textContent.trim() === '7.0',
    q('.footer-score .pill').textContent);
 ok("footer shows Dan's maturity label for 7.0", q('.footer-score .muted').textContent.includes('Advanced'),
@@ -158,14 +217,13 @@ ok('all four domain tabs read complete', qa('.stepper .step.complete:not(:first-
   const footerText = () => q('.footer-score .muted').textContent;
   /** Only the count. The maturity label beside it is expected to move when a score changes. */
   const footerCount = () => (footerText().match(/\d+ of \d+ answered/) ?? [''])[0];
-  const sectionCounts = () => qa('.card.section .section-summary .muted.small')
-    .map((n) => n.textContent).filter((t) => /^\d+\/\d+$/.test(t));
+  const railCounts = () => qa('.toc-sec .toc-count').map((n) => n.textContent);
 
   // Stamp identity onto live nodes. If the page is rebuilt these become detached.
   const probeQuestion = qa('.question')[0];
-  const probeSection = qa('.card.section details')[0];
+  const probeLadder = probeQuestion.querySelector('.ladder-box');
   const probeTextarea = probeQuestion.querySelector('textarea');
-  probeSection.open = true;                       // the reader opens a section
+  probeLadder.open = true;                        // the reader opens the scale on a question
   probeTextarea.value = 'typed by the reader';
   fire(probeTextarea, 'input');
   probeTextarea.focus();
@@ -197,7 +255,7 @@ ok('all four domain tabs read complete', qa('.stepper .step.complete:not(:first-
 
   ok('the page is not rebuilt: the same question node is still in the document',
      document.contains(probeQuestion));
-  ok('a section the reader opened stays open', probeSection.open === true);
+  ok('a disclosure the reader opened stays open', probeLadder.open === true);
   ok('typed text is not thrown away', probeTextarea.value === 'typed by the reader');
   ok('focus survives a score click on another question', document.activeElement === probeTextarea);
   ok('changing an answered question to a different score does not move the count',
@@ -210,11 +268,11 @@ ok('all four domain tabs read complete', qa('.stepper .step.complete:not(:first-
   ok('the domain tab still counts every answer in its domain',
      tabOf(currentDomain).textContent.includes(`${domainTotal} of ${domainTotal}`),
      tabOf(currentDomain).textContent);
-  ok('every section on the page reads fully answered',
-     sectionCounts().every((t) => { const [a2, b2] = t.split('/'); return a2 === b2; }),
-     sectionCounts().join(' '));
-  ok('the domain heading agrees with its tab',
-     view().includes(`${domainTotal} of ${domainTotal} answered`));
+  ok('every section in the rail reads fully answered',
+     railCounts().every((t) => { const [a2, b2] = t.split('/'); return a2 === b2; }),
+     railCounts().join(' '));
+  ok('the section heading agrees with the rail',
+     view().includes('answered on this page'));
 
   // Not applicable is the case that moves the denominator, so it is the one most likely to rot.
   const naQ = qa('.question')[2];
@@ -227,10 +285,10 @@ ok('all four domain tabs read complete', qa('.stepper .step.complete:not(:first-
   ok('n/a drops it from the domain tab denominator too',
      tabOf(currentDomain).textContent.includes(`${domainTotal - 1} of ${domainTotal - 1}`),
      tabOf(currentDomain).textContent);
-  ok('n/a drops it from its section denominator too',
-     sectionCounts().every((t) => { const [a2, b2] = t.split('/'); return a2 === b2; }),
-     sectionCounts().join(' '));
-  ok('the page still was not rebuilt', document.contains(probeQuestion) && probeSection.open === true);
+  ok('n/a drops it from its rail denominator too',
+     railCounts().every((t) => { const [a2, b2] = t.split('/'); return a2 === b2; }),
+     railCounts().join(' '));
+  ok('the page still was not rebuilt', document.contains(probeQuestion) && probeLadder.open === true);
 
   // Put it back, so the rest of the run sees a fully answered assessment.
   naBox.checked = false;
@@ -330,11 +388,11 @@ ok('all four domain tabs read complete', qa('.stepper .step.complete:not(:first-
 }
 
 // ---- a high score with nothing behind it, an n/a, and one evidence reference ------------
-const infra = qa('.question').find((n) => n.textContent.includes('clear inventory of all infrastructure'));
-ok('found the infrastructure inventory question on the technology page', !!infra);
+const infra = gotoQuestion('clear inventory of all infrastructure');
+ok('the infrastructure inventory question is reachable through the rail', !!infra);
 [...infra.querySelectorAll('.score-btn')].find((b) => b.textContent === '9').click();
 
-const tra = qa('.question').find((n) => n.textContent.includes('Threat and Risk Assessment'));
+const tra = gotoQuestion('Threat and Risk Assessment');
 const naBox = tra.querySelector('.na input');
 naBox.checked = true;
 fire(naBox, 'change');
@@ -342,7 +400,7 @@ ok("n/a disables that question's buttons", [...tra.querySelectorAll('.score-btn'
 ok('n/a drops it from the denominator', q('.footer-score .muted').textContent.includes(`of ${TOTAL - 1}`),
    q('.footer-score .muted').textContent);
 
-const hosting = qa('.question').find((n) => n.textContent.includes("hosting environment"));
+const hosting = gotoQuestion('hosting environment');
 [...hosting.querySelectorAll('button')].find((b) => b.textContent === 'Add evidence').click();
 ok('an evidence row appears', hosting.querySelectorAll('.ev-item').length === 1);
 const just = hosting.querySelector('textarea');
