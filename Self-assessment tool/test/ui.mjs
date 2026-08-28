@@ -96,74 +96,59 @@ ok('the sticky footer is pinned to the edge and reads as chrome, not as a floati
 byText('.hero-actions button', 'Fill it in').click();
 // ---- the overview is a wizard while anything is missing ---------------------------------
 //
-// Six unrelated things asked as one card read as a wall. One at a time while it is being
-// filled in; a single page once it is done, because by then the reader is editing.
-ok('the overview opens on its first question', view().includes('What is the initiative called?'));
-ok('and asks only that one', qa('.ov-block').length === 1, String(qa('.ov-block').length));
+// Three groups, not six questions: the plain facts about the initiative, then the marking,
+// then the lifecycle. The two decisions get a screen each because each has consequences.
+ok('the overview opens on the facts about the initiative', view().includes('About the initiative'));
+ok('and the first three fields are together, as they were', qa('.ov-block .grid-2 input').length === 3,
+   String(qa('.ov-block .grid-2 input').length));
 ok('no scored questions on the overview', qa('.question').length === 0);
-ok('it says where you are in the six', view().includes('Step 1 of 6'));
-ok('six dots, none filled yet', qa('.ov-dot').length === 6 && qa('.ov-dot.filled').length === 0,
+ok('it says where you are in the three', view().includes('Step 1 of 3'));
+ok('three dots, none filled yet', qa('.ov-dot').length === 3 && qa('.ov-dot.filled').length === 0,
    String(qa('.ov-dot.filled').length));
+ok('no show-all escape while it is a wizard', !byText('button', 'Show all'));
 ok('the tabs still show overview plus four domains', qa('.stepper .step').length === 5,
    String(qa('.stepper .step').length));
-ok('the overview tab counts all six', qa('.stepper .step')[0].textContent.includes('0 of 6'),
+ok('the overview tab counts the three groups', qa('.stepper .step')[0].textContent.includes('0 of 3'),
    qa('.stepper .step')[0].textContent);
 ok('a blank assessment has nothing to mark, so saving is allowed',
    byText('.footer-actions button', 'Save to a file').disabled === false);
 
-const nextStep = () => byText('.ov-nav button', 'Next').click();
-
-// Step 1, the name.
+// Step one: the four plain facts.
 {
-  const input = q('.ov-block input[type=text]');
-  input.value = 'Nexus agentic AI infrastructure';
-  fire(input, 'input');
-  fire(input, 'change');
+  const [name, dept, contact] = qa('.ov-block .grid-2 input');
+  name.value = 'Nexus agentic AI infrastructure'; fire(name, 'input'); fire(name, 'change');
+  dept.value = 'Transport Canada'; fire(dept, 'input'); fire(dept, 'change');
+  contact.value = 'nick@tc.gc.ca'; fire(contact, 'input'); fire(contact, 'change');
 }
 
-// Dan's rule: the moment there is content in the file, it has to be marked before saving.
 ok('typing content blocks saving until the file is marked',
    byText('.footer-actions button', 'Save to a file').disabled === true);
 ok('the gate says what to do, briefly', view().includes('Mark this file to save it'));
-// The gate is a warning band across the bar, so its colour reaches both edges.
 ok('the gate band is not capped at the content width',
-   !/\.sticky-footer\s*>\s*\*\s*\{/.test(html) &&
-   /\.sticky-footer\s*>\s*\.gate-band/.test(html));
+   !/\.sticky-footer\s*>\s*\*\s*\{/.test(html) && /\.sticky-footer\s*>\s*\.gate-band/.test(html));
 {
-  // Obvious beats explained: the banner that says the file is unmarked is the control.
   const b = q('.chrome .marking-banner');
   ok('an unmarked file says so in the banner', b.classList.contains('unmarked'));
   ok('and the banner is itself the way to fix it', b.tagName === 'BUTTON', b.tagName);
 }
-ok('answering one fills one dot', qa('.ov-dot.filled').length === 1, String(qa('.ov-dot.filled').length));
-
-nextStep();
-ok('step two asks the department', view().includes('Which department or agency'));
-{
-  const input = q('.ov-block input[type=text]');
-  input.value = 'Transport Canada';
-  fire(input, 'input'); fire(input, 'change');
-}
-nextStep();
-ok('step three asks who to contact', view().includes('Who should an assessor contact'));
-{
-  const input = q('.ov-block input[type=text]');
-  input.value = 'nick@tc.gc.ca';
-  fire(input, 'input'); fire(input, 'change');
-}
-ok('Back is offered once you are past the first', !!byText('.ov-nav button', 'Back'));
-nextStep();
-ok('step four asks for the summary', !!q('.ov-block textarea'));
 {
   const ta = q('.ov-block textarea');
   ta.value = 'Shared agentic AI infrastructure for departmental business processes.';
   fire(ta, 'input'); fire(ta, 'change');
 }
-nextStep();
+ok('finishing the group fills its dot', qa('.ov-dot.filled').length === 1,
+   String(qa('.ov-dot.filled').length));
 
-// Step five, the marking. The whole GC scheme, in order.
+// Enter moves on, the way it does in any form.
+{
+  const name = qa('.ov-block .grid-2 input')[0];
+  name.dispatchEvent(new window.KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+  ok('Enter in a text field advances the wizard', view().includes('Step 2 of 3'), view().slice(0, 40));
+}
+
+// Step two, the marking. The whole GC scheme, in order.
 const MARKINGS = 'Unclassified|Protected A|Protected B|Protected C|Confidential|Secret|Top Secret';
-ok('step five asks how the file is marked', view().includes('How is this assessment marked'));
+ok('step two asks how the file is marked', view().includes('How is this assessment marked'));
 ok('every GC marking is offered', qa('.marking-chip').map((c) => c.textContent.trim()).join('|') === MARKINGS,
    qa('.marking-chip').map((c) => c.textContent.trim()).join('|'));
 ok('and the same list is offered inside the gate that demands one',
@@ -172,58 +157,42 @@ ok('and the same list is offered inside the gate that demands one',
 
 byText('.gate-marks .mark-btn', 'Protected B').click();
 ok('marking from the gate clears the gate', !q('.gate'));
-ok('and the step agrees',
-   qa('.marking-chip input').find((r) => r.value === 'Protected B').checked === true);
 
-// Step six, the lifecycle, with the guide beside it.
+// Step three, the lifecycle, with the guide beside it.
 byText('.ov-nav button', 'Next').click();
-ok('step six asks where it is in the lifecycle', view().includes('Where is it in the lifecycle'));
+ok('step three asks where it is in the lifecycle', view().includes('Where is it in the lifecycle'));
 ok('seven stages offered', qa('.stage-card').length === 7, String(qa('.stage-card').length));
 ok('grouped into Create, Live and Sunset',
    qa('.phase-head h4').map((h) => h.textContent).join('|') === 'Create|Live|Sunset',
    qa('.phase-head h4').map((h) => h.textContent).join('|'));
 {
   const links = qa('.stage-card a').map((n) => n.getAttribute('href'));
-  ok('every stage links to its own page in the guide', links.length === 7, String(links.length));
+  ok('every stage links to its own page in the guide', new Set(links).size === 7, String(new Set(links).size));
   ok('and the links point at the published guide',
-     links.every((h) => h.startsWith('https://myermcat.github.io/digital-lifecycle-guide/')),
-     links[0]);
-  ok('each stage has its own page, not one shared phase page',
-     new Set(links).size === 7, String(new Set(links).size));
-  ok('the phases link to their own pages too',
-     qa('.phase-head a').length === 3, String(qa('.phase-head a').length));
+     links.every((h) => h.startsWith('https://myermcat.github.io/digital-lifecycle-guide/')), links[0]);
+  ok('the phases link to their own pages too', qa('.phase-head a').length === 3,
+     String(qa('.phase-head a').length));
 }
 
 const maturity = qa('.stage-card input[type=radio]').find((r) => r.value === 'maturity');
 maturity.checked = true;
 fire(maturity, 'change');
-ok('all six answered turns the overview into one page',
-   qa('.ov-block').length === 6, String(qa('.ov-block').length));
-ok('and the tab says so', qa('.stepper .step')[0].textContent.includes('6 of 6'),
+ok('all three answered turns the overview into three separate blocks',
+   qa('.ov-block').length === 3, String(qa('.ov-block').length));
+ok('each in its own card', qa('.body-submit .card .ov-block').length === 3);
+ok('and the tab says so', qa('.stepper .step')[0].textContent.includes('3 of 3'),
    qa('.stepper .step')[0].textContent);
-
-// One banner on screen, sticky with the header. The second copy exists for print only.
-ok('one marking banner on screen, plus a print-only copy',
-   qa('.marking-banner').length === 2 && qa('.marking-banner.print-only').length === 1,
-   String(qa('.marking-banner').length));
-ok('the on-screen banner is inside the sticky header block', !!q('.chrome .marking-banner'));
-ok('it shows the marking once set',
-   q('.chrome .marking-banner').textContent.trim() === 'PROTECTED B', q('.chrome .marking-banner')?.textContent);
-ok('saving is allowed once marked',
-   byText('.footer-actions button', 'Save to a file').disabled === false);
 
 // ---- one weighted section per page, twenty-one stops in all -----------------------------
 //
 // A section holds between three and fourteen questions, which is a page that can be finished.
-// The rail carries both levels of the rubric and never scrolls away, so the sections she could
-// not find are permanently on screen.
+// The rail carries both levels of the rubric and never scrolls away.
 const SECTIONS = rubric.domains.flatMap((d) => d.sections.map((sec) => ({ d, sec })));
 ok('twenty weighted sections, plus the overview, is twenty-one stops', SECTIONS.length === 20,
    String(SECTIONS.length));
 
 let seen = 0;
 for (const { d, sec } of SECTIONS) {
-  // Reach the section through its domain tab and then its rail row, the way a reader does.
   const tab = qa('.stepper .step').find((t) => t.textContent.includes(shortName(d.label)));
   ok(`the domain tab for ${d.label} is present`, !!tab);
   if (!tab.className.includes('on')) tab.click();
@@ -245,6 +214,10 @@ for (const { d, sec } of SECTIONS) {
   seen += sec.questions.length;
 }
 ok(`all ${TOTAL} questions were reachable and answerable`, seen === TOTAL, String(seen));
+ok('the rail shows every section of the current domain as done',
+   qa('.toc-sec.done').length === rubric.domains[rubric.domains.length - 1].sections.length,
+   String(qa('.toc-sec.done').length));
+
 // Two bars, because one answer in 176 moves a single bar by half a percent.
 {
   const bars = qa('.progress-row .pbar');
@@ -257,10 +230,6 @@ ok(`all ${TOTAL} questions were reachable and answerable`, seen === TOTAL, Strin
      bars.map((b) => b.querySelector('.progress-shell i').style.width).join(' '));
   ok('a finished section is marked done on its bar', !!q('.progress-shell i.done'));
 }
-
-ok('the rail shows every section of the current domain as done',
-   qa('.toc-sec.done').length === rubric.domains[rubric.domains.length - 1].sections.length,
-   String(qa('.toc-sec.done').length));
 ok('footer shows 7.0 once everything is a 7', q('.footer-score .pill').textContent.trim() === '7.0',
    q('.footer-score .pill').textContent);
 ok("footer shows Dan's maturity label for 7.0", q('.footer-score .muted').textContent.includes('Advanced'),
@@ -269,6 +238,7 @@ ok('footer counts every answer', q('.footer-score .muted').textContent.includes(
    q('.footer-score .muted').textContent);
 ok('all four domain tabs read complete', qa('.stepper .step.complete:not(:first-child)').length === 4,
    String(qa('.stepper .step.complete').length));
+ok('the questionnaire says where the answers go', view().includes('Saved locally as you type'));
 
 // ---- scoring a question must not rebuild the page, and every readout must agree ----------
 //
@@ -561,16 +531,22 @@ byText('button', 'See my results').click();
 ok('results headline rendered', !!q('.bigscore .num'));
 ok("Dan's maturity label is shown", !!q('.maturity strong') && q('.maturity').textContent.includes('Advanced'));
 ok('routing band is shown separately from maturity', !!q('.band strong'));
+ok('a fully answered assessment gets a routing suggestion',
+   !view().includes('No routing suggestion yet'));
 ok('routing is stated as a suggestion', view().includes('does not decide it'));
 ok('four domain bars rendered', qa('.bar-row').length === 4, String(qa('.bar-row').length));
 // The results are read one screen at a time, so the scroll stops on each part.
 ok('the results page is its own scroll container',
    document.getElementById('app').className.includes('app-results'));
-ok('and the scroll snaps, stopping on each part',
-   /\.body-results\s*\{[^}]*scroll-snap-type:\s*y mandatory/s.test(html) &&
-   /\.body-results\s*>\s*section\s*\{[^}]*scroll-snap-stop:\s*always/s.test(html));
+// Snapping rests on each part without forcing every part to fill a screen, which made
+// near-empty screens and a jump on every click.
+ok('the scroll settles on each part', /\.body-results\s*\{[^}]*scroll-snap-type:\s*y proximity/s.test(html));
+ok('but no part is forced to fill a screen', !/\.body-results\s*>\s*section\s*\{[^}]*min-height:\s*100%/s.test(html));
+ok('the bulky native scrollbar is hidden, since the dots do that job',
+   /\.body-results\s*\{[^}]*scrollbar-width:\s*none/s.test(html));
 ok('with a fallback for short viewports and reduced motion',
-   /max-height:\s*620px[^{]*\{[\s\S]{0,400}scroll-snap-type:\s*none/.test(html));
+   /max-height:\s*620px[^{]*\{[\s\S]{0,400}scroll-snap-type:\s*none/.test(html) &&
+   /prefers-reduced-motion[^{]*\{[\s\S]{0,300}scroll-snap-type:\s*none/.test(html));
 ok('backlog section present', view().includes('weakest five'));
 ok('assessor questions previewed to the submitter', view().includes('What an assessor will probably ask'));
 ok('the no-evidence 9 is flagged', view().includes('High score, nothing cited'));

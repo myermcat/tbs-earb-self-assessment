@@ -128,6 +128,18 @@ ok('1 -> Critical Risk', mat(1) === 'Critical Risk', String(mat(1)));
   ok('incompleteness is flagged', flags(rubric, a, r).some((f) => f.id === 'incomplete'));
 }
 
+// A partly answered assessment says it is incomplete once, and does not then list every
+// unanswered question underneath that.
+{
+  const a = blank('beta');
+  for (const q of allQ.slice(0, 20)) a.answers[q.id] = { score: 6, evidence: [], justification: 'because' };
+  const fs = flags(rubric, a, score(rubric, a));
+  ok('an incomplete submission is flagged', fs.some((f) => f.id === 'incomplete'));
+  ok('and its unanswered questions are not also listed one by one',
+     !fs.some((f) => f.id === 'unanswered-many' || f.id === 'unanswered'),
+     fs.map((f) => f.id).join(','));
+}
+
 // The flags Dan described by name.
 {
   const a = fill(blank('beta'), 5);

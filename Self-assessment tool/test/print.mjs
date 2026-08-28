@@ -22,19 +22,20 @@ const g = (s) => [...document.querySelectorAll(s)];
 const fire = (n, t) => n.dispatchEvent(new window.Event(t, { bubbles: true }));
 await new Promise((r) => setTimeout(r, 60));
 
-// Walk the overview wizard: six steps, one at a time.
+// Walk the overview wizard: three groups, one screen each.
 g('.hero-actions button')[0].click();
-const next = () => g('.ov-nav button').find((b) => b.textContent.includes('Next')).click();
-const fill = (v) => {
-  const f = document.querySelector('.ov-block input[type=text], .ov-block textarea');
-  f.value = v; fire(f, 'input'); fire(f, 'change');
-};
-fill('Print check'); next();
-fill('Transport Canada'); next();
-fill('nick@tc.gc.ca'); next();
-fill('A solution for checking what prints.'); next();
-g('.marking-chip input').find((r) => r.value === 'Protected B').checked = true;
-fire(g('.marking-chip input').find((r) => r.value === 'Protected B'), 'change');
+const next = () => g('.ov-nav button').find((b) => b.textContent.includes('Next') || b.textContent.includes('Done')).click();
+{
+  const [name, dept, contact] = g('.ov-block .grid-2 input');
+  for (const [f, v] of [[name, 'Print check'], [dept, 'Transport Canada'], [contact, 'nick@tc.gc.ca']]) {
+    f.value = v; fire(f, 'input'); fire(f, 'change');
+  }
+  const ta = document.querySelector('.ov-block textarea');
+  ta.value = 'A solution for checking what prints.'; fire(ta, 'input'); fire(ta, 'change');
+}
+next();
+const pb = g('.marking-chip input').find((r) => r.value === 'Protected B');
+pb.checked = true; fire(pb, 'change');
 next();
 const st = g('.stage-card input').find((r) => r.value === 'maturity'); st.checked = true; fire(st, 'change');
 g('.stepper .step').find((t) => t.textContent.includes('Technology')).click();

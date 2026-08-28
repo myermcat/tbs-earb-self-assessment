@@ -78,13 +78,26 @@ build once he says which questions are out of scope at which stage.
 
 ---
 
-## 6. The routing thresholds
+## 6. The routing thresholds, and what happens either side of 3.0
 
 **Today:** 8.5 showcase, 6.0 hall pass, 3.0 routine, below that attend. These are the numbers
 he said out loud on 26 August. They are in no document and nobody has signed them off.
 
+**The problem with 3.0.** A 2.9 is told to come to the board and explain itself. A 3.1 is told
+no board time is needed. Those two initiatives are the same initiative, and the second reads as
+a pass. Dan's reasoning was that the middle of the range is not worth board time, which is
+sound for a 5; it is harder to defend for a 3.5, where the architecture is by his own scale
+between Emergent and Defined.
+
+**Worth asking him:** should the bottom band reach further up, to 4 or 5? Or should the middle
+band say something other than "no board time", such as a written response with no appearance?
+
 **Also his call:** whether a hall pass is audited anyway. Recommend a random sample from the
 first day, which is also how the calibration data for the AI audit accumulates.
+
+**Already changed, and not his call:** the tool no longer offers any routing suggestion until
+most of the assessment is answered. A suggestion calculated from a fifth of the questions is a
+guess wearing a suggestion's clothes.
 
 ---
 
