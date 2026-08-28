@@ -198,11 +198,15 @@ const rubric = {
   bands: [
     { id: 'showcase', min: 8.5, label: 'Showcase',             routing: 'No board slot needed. TBS may ask to showcase this work.', tone: 'good' },
     { id: 'hallpass', min: 6.0, label: 'Hall pass',            routing: 'Suggested: no GC EARB appearance required. Subject to audit sample.', tone: 'good' },
-    { id: 'routine',  min: 3.0, label: 'Routine',              routing: 'Suggested: no board time. Assessor spot-check only.', tone: 'neutral' },
+    { id: 'routine',  min: 3.0, label: 'Routine',              routing: 'Suggested: no board time. Assessor spot-check only.', tone: 'neutral', source: 'interpolated' },
     { id: 'attend',   min: 0.0, label: 'Bring it to the board', routing: 'Suggested: attend GC EARB. Come and tell us why, and what the plan is.', tone: 'bad' },
   ],
   bandsNote:
-    'ROUTING, not maturity. These are Dan\'s spoken numbers from 2026-08-26 (60% hall pass, 8.5 showcase, ~2 come and explain) and are NOT in his workbook or signed off by anyone. Maturity labels above are his.',
+    'ROUTING, not maturity, and provisional. Dan named three numbers out loud on 2026-08-26: above ' +
+    'roughly 60% is an automatic hall pass, around 8.5 is worth showcasing, and around 2 out of 10 means ' +
+    'come and explain. He also said the 4, 5, 6 middle is not worth board time. The 3.0 line between ' +
+    '"come and explain" and "no board time" is OURS, interpolated to bridge the 2 he named and the 4 he ' +
+    'named. He has not seen it. None of these are signed off. The maturity labels above are his.',
 
   stageMultipliers: { 'low-ok': 0.25, expected: 1, critical: 1.5 },
   stageMultipliersNote:

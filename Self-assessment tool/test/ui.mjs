@@ -533,6 +533,7 @@ ok("Dan's maturity label is shown", !!q('.maturity strong') && q('.maturity').te
 ok('routing band is shown separately from maturity', !!q('.band strong'));
 ok('a fully answered assessment gets a routing suggestion',
    !view().includes('No routing suggestion yet'));
+
 ok('routing is stated as a suggestion', view().includes('does not decide it'));
 ok('four domain bars rendered', qa('.bar-row').length === 4, String(qa('.bar-row').length));
 // The results are read one screen at a time, so the scroll stops on each part.
@@ -540,8 +541,10 @@ ok('the results page is its own scroll container',
    document.getElementById('app').className.includes('app-results'));
 // Snapping rests on each part without forcing every part to fill a screen, which made
 // near-empty screens and a jump on every click.
-ok('the scroll settles on each part', /\.body-results\s*\{[^}]*scroll-snap-type:\s*y proximity/s.test(html));
-ok('but no part is forced to fill a screen', !/\.body-results\s*>\s*section\s*\{[^}]*min-height:\s*100%/s.test(html));
+ok('the scroll stops on each part', /\.body-results\s*\{[^}]*scroll-snap-type:\s*y mandatory/s.test(html) &&
+   /\.body-results\s*>\s*section\s*\{[^}]*scroll-snap-stop:\s*always/s.test(html));
+ok('but no part is forced to fill a screen, which is what made empty ones',
+   !/\.body-results\s*>\s*section\s*\{[^}]*min-height:\s*100%/s.test(html));
 ok('the bulky native scrollbar is hidden, since the dots do that job',
    /\.body-results\s*\{[^}]*scrollbar-width:\s*none/s.test(html));
 ok('with a fallback for short viewports and reduced motion',

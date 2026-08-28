@@ -149,6 +149,26 @@ export function flags(rubric: Rubric, a: Assessment, r: Result): Flag[] {
     }
   }
 
+  /**
+   * A routing threshold on a self-scored number can be cleared by moving one answer from a 6
+   * to an 8, and nobody has to lie to themselves very hard to do it. A score resting just
+   * above a line that decides whether the board sees you at all is worth a second look, which
+   * is the cheapest possible defence and needs no policy.
+   */
+  if (r.overall !== null && r.band) {
+    const margin = r.overall - r.band.min;
+    if (r.band.min > 0 && margin < 0.35) {
+      out.push({
+        id: 'just-above-the-line',
+        severity: 'medium',
+        title: `Just above the ${r.band.label.toLowerCase()} line`,
+        detail: `${r.overall.toFixed(2)} against a threshold of ${r.band.min}. ` +
+          'A margin this thin is one answer wide, so the routing rests on a single score.',
+        challenge: 'Which single answer would you least like us to check?',
+      });
+    }
+  }
+
   if (r.overall !== null && r.overall >= 9) {
     out.push({
       id: 'self-score-outlier',

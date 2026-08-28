@@ -128,6 +128,27 @@ ok('1 -> Critical Risk', mat(1) === 'Critical Risk', String(mat(1)));
   ok('incompleteness is flagged', flags(rubric, a, r).some((f) => f.id === 'incomplete'));
 }
 
+// A threshold on a self-scored number is one answer wide, so a score resting on it is flagged.
+{
+  const a = fill(blank('beta'), 6);
+  const r = score(rubric, a);
+  ok('a score exactly on the hall-pass line is flagged as thin',
+     flags(rubric, a, r).some((f) => f.id === 'just-above-the-line'),
+     `overall ${r.overall}`);
+  const clear = fill(blank('beta'), 8);
+  ok('a comfortable score is not', !flags(rubric, clear, score(rubric, clear)).some((f) => f.id === 'just-above-the-line'));
+}
+
+// Dan named 60%, 8.5 and about 2. The line between "come and explain" and "no board time" is
+// ours, and the rubric says so rather than passing it off as his.
+{
+  const interpolated = rubric.bands.filter((b) => b.source === 'interpolated');
+  ok('exactly one threshold is marked as ours', interpolated.length === 1,
+     interpolated.map((b) => b.label).join(','));
+  ok('and it is the one Dan never named', interpolated[0]?.min === 3.0, String(interpolated[0]?.min));
+  ok('the note says which numbers were his', (rubric.bandsNote ?? '').includes('is OURS'));
+}
+
 // A partly answered assessment says it is incomplete once, and does not then list every
 // unanswered question underneath that.
 {
