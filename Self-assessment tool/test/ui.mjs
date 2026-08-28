@@ -54,6 +54,14 @@ ok('the import warning about the Business weight gap is surfaced to the user',
    view().includes('80%'));
 ok('the question count is stated up front', view().includes(String(TOTAL)));
 ok('no network call is even possible (CSP)', html.includes("connect-src 'none'"));
+// Without an explicit color-scheme, native buttons and inputs follow the OS setting while
+// the page follows the media query, and a light page renders dark controls.
+ok('color-scheme is declared for both themes',
+   /:root\s*\{[^}]*color-scheme:\s*light/.test(html) && /prefers-color-scheme:\s*dark[^}]*\{[^}]*color-scheme:\s*dark/s.test(html));
+// The sticky footer floats over cards that would otherwise look identical to it.
+ok('the sticky footer is visually separated from the content it covers',
+   /\.sticky-footer\s*\{[^}]*border-top:\s*2px solid var\(--accent\)/s.test(html) &&
+   !/\.sticky-footer\s*\{[^}]*backdrop-filter/s.test(html));
 
 // ---- overview --------------------------------------------------------------------------
 byText('button', 'Start').click();
