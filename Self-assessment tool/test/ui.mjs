@@ -54,13 +54,13 @@ ok('draft status is reachable from the footer', !!byText('button', 'How that wor
 ok('the question count is stated up front', view().includes(String(TOTAL)));
 
 // Settings holds the rubric detail and the data-handling note.
-byText('.tab', 'Settings').click();
+q('.icon-btn[aria-label="Settings"]').click();
 ok('settings shows the rubric version', view().includes('1.0-dan'));
 ok('settings surfaces the import warning about the Business weight gap', view().includes('80%'));
 ok('settings says where the page was loaded from', view().includes('Where your answers go'));
 ok('settings names the rule that stops it transmitting', view().includes("connect-src 'none'"));
 ok('settings offers a different question set', !!byText('.filelabel', 'Load a question set'));
-byText('.tab', 'Home').click();
+byText('.tab', 'Start').click();
 ok('no network call is even possible (CSP)', html.includes("connect-src 'none'"));
 // Without an explicit color-scheme, native buttons and inputs follow the OS setting while
 // the page follows the media query, and a light page renders dark controls.
@@ -72,7 +72,7 @@ ok('the sticky footer is visually separated from the content it covers',
    !/\.sticky-footer\s*\{[^}]*backdrop-filter/s.test(html));
 
 // ---- overview --------------------------------------------------------------------------
-byText('button', 'Start').click();
+byText('.hero-actions button', 'Fill it in').click();
 ok('overview page rendered', view().includes('About the initiative'));
 ok('no questions on the overview page', qa('.question').length === 0);
 ok('seven lifecycle stages offered', qa('.stage-card').length === 7, String(qa('.stage-card').length));

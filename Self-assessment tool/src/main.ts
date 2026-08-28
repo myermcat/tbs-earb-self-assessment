@@ -30,8 +30,14 @@ function go(next: Mode) {
   window.scrollTo({ top: 0 });
 }
 
+const GEAR =
+  '<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" ' +
+  'stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+  '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6 1.65 1.65 0 0 0 10 3.09V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9c.14.35.42.63.77.77H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>';
+
 function paint() {
   clear(app);
+  app.className = mode === 'home' ? 'app-home' : '';
   app.appendChild(header());
   if (mode === 'submit' || mode === 'results') app.appendChild(banner());
   const body = el('main', { class: `body ${mode === 'home' ? 'body-home' : ''}` });
@@ -47,19 +53,33 @@ function paint() {
   app.appendChild(footer());
 }
 
+/**
+ * The three tabs are one path through the work, so they render as a path: start, fill it in,
+ * have it reviewed. Settings is not a step on that path, so it takes the usual place and the
+ * usual icon at the far right.
+ */
 function header(): HTMLElement {
   const tab = (label: string, m: Mode) =>
     el('button', { class: `tab ${mode === m ? 'on' : ''}`, onclick: () => go(m) }, [label]);
+  const chev = () => el('span', { class: 'chev', 'aria-hidden': true }, ['\u203A']);
+
   return el('header', { class: 'topbar' }, [
     el('div', { class: 'brand', onclick: () => go('home') }, [
       el('span', { class: 'brand-mark' }, ['EA']),
       el('strong', {}, [rubric.title]),
     ]),
-    el('nav', {}, [
-      tab('Home', 'home'),
-      tab('Fill it in', 'submit'),
-      tab('Review submissions', 'review'),
-      tab('Settings', 'settings'),
+    el('div', { class: 'topbar-right' }, [
+      el('nav', { class: 'path' }, [
+        tab('Start', 'home'), chev(),
+        tab('Fill it in', 'submit'), chev(),
+        tab('Review submissions', 'review'),
+      ]),
+      el('button', {
+        class: `icon-btn ${mode === 'settings' ? 'on' : ''}`,
+        title: 'Settings', 'aria-label': 'Settings',
+        html: GEAR,
+        onclick: () => go('settings'),
+      }),
     ]),
   ]);
 }
@@ -98,10 +118,12 @@ function renderHome(root: HTMLElement) {
       ]),
       el('div', { class: 'hero-actions' }, [
         el('button', { class: 'primary big', onclick: () => go('submit') }, [
-          started ? 'Carry on' : 'Start',
+          started ? 'Carry on' : 'Fill it in',
+          el('span', { class: 'arrow', 'aria-hidden': true }, ['\u2192']),
         ]),
-        el('label', { class: 'filelabel big' }, [
-          'Open a saved assessment',
+        el('span', { class: 'or' }, ['or']),
+        el('label', { class: 'linkish filelabel-plain' }, [
+          'open a saved assessment',
           el('input', {
             type: 'file', accept: '.json', hidden: true,
             onchange: async (e: Event) => {
@@ -117,7 +139,7 @@ function renderHome(root: HTMLElement) {
       ]),
       started
         ? el('p', { class: 'tiny dim' }, [
-            `You have ${Object.keys(draft!.answers).length} of ${total} answered. `,
+            `${Object.keys(draft!.answers).length} of ${total} answered so far. `,
             el('button', {
               class: 'linkish',
               onclick: () => {
@@ -127,7 +149,7 @@ function renderHome(root: HTMLElement) {
                   go('submit');
                 }
               },
-            }, ['Start a new one instead']),
+            }, ['Start a new one']),
           ])
         : null,
     ]),
