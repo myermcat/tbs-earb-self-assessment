@@ -45,6 +45,8 @@ const fire = (node, type) => node.dispatchEvent(new window.Event(type, { bubbles
  * than rendered output. Always assert against the app root instead.
  */
 const view = () => document.getElementById('app').textContent;
+/** Mirrors shortLabel() in views-submit.ts, which trims a domain name down to a tab label. */
+const shortName = (s) => s.replace(/\s*&\s*\w+/, '').replace(/\s*Architecture$/, '');
 
 // ---- home ------------------------------------------------------------------------------
 ok('app mounted', !!q('#app .topbar'));
@@ -142,6 +144,103 @@ ok('footer counts every answer', q('.footer-score .muted').textContent.includes(
    q('.footer-score .muted').textContent);
 ok('all four domain tabs read complete', qa('.stepper .step.complete:not(:first-child)').length === 4,
    String(qa('.stepper .step.complete').length));
+
+// ---- scoring a question must not rebuild the page, and every readout must agree ----------
+//
+// The page used to be rebuilt on every score click. That closed sections the reader had
+// opened, threw away focus, and made any completion animation impossible. These checks are
+// the guard: node identity survives a click, and no readout is allowed to go stale.
+{
+  const currentDomain = rubric.domains[rubric.domains.length - 1];   // Technology, the page we are on
+  const domainTotal = currentDomain.sections.reduce((n, x) => n + x.questions.length, 0);
+
+  const tabOf = (d) => qa('.stepper .step').find((t) => t.textContent.includes(shortName(d.label)));
+  const footerText = () => q('.footer-score .muted').textContent;
+  /** Only the count. The maturity label beside it is expected to move when a score changes. */
+  const footerCount = () => (footerText().match(/\d+ of \d+ answered/) ?? [''])[0];
+  const sectionCounts = () => qa('.card.section .section-summary .muted.small')
+    .map((n) => n.textContent).filter((t) => /^\d+\/\d+$/.test(t));
+
+  // Stamp identity onto live nodes. If the page is rebuilt these become detached.
+  const probeQuestion = qa('.question')[0];
+  const probeSection = qa('.card.section details')[0];
+  const probeTextarea = probeQuestion.querySelector('textarea');
+  probeSection.open = true;                       // the reader opens a section
+  probeTextarea.value = 'typed by the reader';
+  fire(probeTextarea, 'input');
+  probeTextarea.focus();
+
+  // Change an already-answered question to a different score, counting what it touches.
+  const target = qa('.question')[1];
+  const before = footerCount();
+  const app = document.getElementById('app');
+  const pageSize = app.querySelectorAll('*').length;
+
+  // Read the records synchronously. The observer callback is a microtask, so anything that
+  // counts inside it is still zero at the next line.
+  const obs = new window.MutationObserver(() => {});
+  obs.observe(app, { childList: true, subtree: true, attributes: true });
+
+  [...target.querySelectorAll('.score-btn')].find((b) => b.textContent === '3').click();
+
+  const churn = obs.takeRecords().reduce(
+    (n, rec) => n + rec.addedNodes.length + rec.removedNodes.length + (rec.type === 'attributes' ? 1 : 0),
+    0,
+  );
+  obs.disconnect();
+
+  // A budget, not a target. A full rebuild of this page is about 8,000 mutations; the readout
+  // registry brings one click to roughly 100. Anything over 400 means something started
+  // rebuilding a whole subtree again.
+  ok(`one score click touches ~${churn} of ${pageSize} elements, under budget`,
+     churn > 0 && churn < 400, `${churn} mutations on a ${pageSize}-element page`);
+
+  ok('the page is not rebuilt: the same question node is still in the document',
+     document.contains(probeQuestion));
+  ok('a section the reader opened stays open', probeSection.open === true);
+  ok('typed text is not thrown away', probeTextarea.value === 'typed by the reader');
+  ok('focus survives a score click on another question', document.activeElement === probeTextarea);
+  ok('changing an answered question to a different score does not move the count',
+     footerCount() === before, `${before} -> ${footerCount()}`);
+  ok('but the score itself does move',
+     footerText().includes('Baseline Ready'), footerText());
+
+  // Readouts must agree with each other after the change.
+  ok('the footer still counts every answer', footerCount().includes(`${TOTAL} of ${TOTAL}`), footerCount());
+  ok('the domain tab still counts every answer in its domain',
+     tabOf(currentDomain).textContent.includes(`${domainTotal} of ${domainTotal}`),
+     tabOf(currentDomain).textContent);
+  ok('every section on the page reads fully answered',
+     sectionCounts().every((t) => { const [a2, b2] = t.split('/'); return a2 === b2; }),
+     sectionCounts().join(' '));
+  ok('the domain heading agrees with its tab',
+     view().includes(`${domainTotal} of ${domainTotal} answered`));
+
+  // Not applicable is the case that moves the denominator, so it is the one most likely to rot.
+  const naQ = qa('.question')[2];
+  const naBox = naQ.querySelector('.na input');
+  naBox.checked = true;
+  fire(naBox, 'change');
+
+  ok('n/a drops the question from the footer denominator',
+     footerCount().includes(`${TOTAL - 1} of ${TOTAL - 1}`), footerCount());
+  ok('n/a drops it from the domain tab denominator too',
+     tabOf(currentDomain).textContent.includes(`${domainTotal - 1} of ${domainTotal - 1}`),
+     tabOf(currentDomain).textContent);
+  ok('n/a drops it from its section denominator too',
+     sectionCounts().every((t) => { const [a2, b2] = t.split('/'); return a2 === b2; }),
+     sectionCounts().join(' '));
+  ok('the page still was not rebuilt', document.contains(probeQuestion) && probeSection.open === true);
+
+  // Put it back, so the rest of the run sees a fully answered assessment.
+  naBox.checked = false;
+  fire(naBox, 'change');
+  [...naQ.querySelectorAll('.score-btn')].find((b) => b.textContent === '7').click();
+  [...target.querySelectorAll('.score-btn')].find((b) => b.textContent === '7').click();
+  probeTextarea.value = '';
+  fire(probeTextarea, 'input');
+  ok('restored to fully answered', footerCount().includes(`${TOTAL} of ${TOTAL}`), footerCount());
+}
 
 // ---- the ladder is Dan's, and it is visible --------------------------------------------
 {
