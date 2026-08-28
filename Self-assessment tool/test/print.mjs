@@ -1,0 +1,72 @@
+/**
+ * What survives into a printed page.
+ *
+ * Three separate defects made a printed assessment near-useless, and all three are the same
+ * mistake: a form control shows its state on screen and prints its markup. The eleven score
+ * buttons printed as nothing, so no answer appeared at all. The justification textarea printed
+ * empty. And a folded section printed as a heading-less blank, because hiding the <summary>
+ * hid the title and `details { display: block }` does not open a closed <details> in Blink or
+ * WebKit.
+ *
+ * Everything answerable is therefore mirrored into a .print-only element, and every section is
+ * opened before the print dialog and closed again after. These checks hold that in place.
+ */
+import { readFile } from 'node:fs/promises';
+import { JSDOM } from 'jsdom';
+
+const html = await readFile('dist/index.html', 'utf8');
+const dom = new JSDOM(html, { runScripts: 'dangerously', url: 'http://localhost/', pretendToBeVisual: true });
+const { window } = dom, { document } = window;
+window.scrollTo = () => {}; window.alert = () => {}; window.confirm = () => true;
+const g = (s) => [...document.querySelectorAll(s)];
+const fire = (n, t) => n.dispatchEvent(new window.Event(t, { bubbles: true }));
+await new Promise((r) => setTimeout(r, 60));
+
+g('.hero-actions button')[0].click();
+const inp = g('.card input[type=text]')[0];
+inp.value = 'Print check'; fire(inp, 'input'); fire(inp, 'change');
+const pb = g('.marking-chip input').find((r) => r.value === 'Protected B'); pb.checked = true; fire(pb, 'change');
+const st = g('.stage-card input').find((r) => r.value === 'maturity'); st.checked = true; fire(st, 'change');
+g('.stepper .step').find((t) => t.textContent.includes('Technology')).click();
+
+const first = g('.question')[0];
+[...first.querySelectorAll('.score-btn')].find((b) => b.textContent === '7').click();
+const ta = first.querySelector('textarea');
+ta.value = 'Reviewed quarterly and owned by the platform team.'; fire(ta, 'input');
+[...first.querySelectorAll('button')].find((b) => b.textContent === 'Add evidence').click();
+const evRow = g('.ev-row input[type=text]')[0];
+evRow.value = 'Current-state architecture pack'; fire(evRow, 'input');
+const evCls = [...g('.ev-row select')][1]; evCls.value = 'Protected B'; fire(evCls, 'change');
+
+// Second question left deliberately unanswered, third marked not applicable.
+const third = g('.question')[2];
+const na = third.querySelector('.na input'); na.checked = true; fire(na, 'change');
+
+// Fold a section, the way a reader would, then run the print handler.
+const folded = g('.card.section > details')[1];
+folded.open = false;
+const foldedTitle = folded.querySelector('.section-title').textContent;
+
+window.dispatchEvent(new window.Event('beforeprint'));
+
+const printed = [...g('.print-only')].map((n) => n.textContent.trim()).filter(Boolean);
+let fails = 0;
+const ok = (name, cond, extra = '') => {
+  if (!cond) { fails++; console.log(`  FAIL  ${name} ${extra}`); } else console.log(`  ok    ${name}`);
+};
+
+ok('the score prints as words', printed.some((t) => t === 'Score 7 of 10 - Scalable & Secure'), printed.find((t) => t.startsWith('Score')) ?? 'none');
+ok('an unanswered question prints as unanswered', printed.includes('Not answered'));
+ok('a not-applicable question says so', printed.includes('Not applicable'));
+ok('the typed reasoning prints', printed.some((t) => t.includes('owned by the platform team')));
+ok('the evidence prints with its marking', printed.some((t) => t.includes('Current-state architecture pack') && t.includes('Protected B')));
+ok('a folded section is opened for print', folded.open === true);
+ok('and its title is still in the document', document.body.textContent.includes(foldedTitle));
+
+window.dispatchEvent(new window.Event('afterprint'));
+ok('the fold is restored afterwards', folded.open === false);
+
+console.log(fails === 0
+  ? `\nall print checks passed (${printed.length} print-only blocks on this page)`
+  : `\n${fails} FAILED`);
+process.exit(fails === 0 ? 0 : 1);

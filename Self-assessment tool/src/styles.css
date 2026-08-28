@@ -74,6 +74,10 @@
 
 * { box-sizing: border-box; }
 
+/* Content that exists only on paper: answers, reasoning and evidence that live in form
+   controls on screen, and form controls do not print their values. */
+.print-only { display: none; }
+
 /* Visible to a screen reader, not on screen. Used to carry "out of 10" beside a score pill. */
 .sr-only {
   position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
@@ -560,11 +564,26 @@ td.num { text-align: right; font-family: var(--mono); font-variant-numeric: tabu
 
 @media print {
   .topbar, .sticky-footer, .actions, .sitefoot, .stepper, button, .filelabel { display: none !important; }
+  input, select, textarea, .score-row, .chosen, .evidence .ev-item, .ev-head, .note-secure { display: none !important; }
+  .print-only { display: block; }
+  ul.print-only { display: block; padding-left: 1.1rem; }
+  .print-answer { font-weight: 700; margin: .2rem 0; }
+  .print-said { margin: .1rem 0 .2rem; }
+  .print-evidence { margin: .1rem 0 .3rem; font-size: 10pt; }
+  .field > span { font-weight: 600; }
+  .field:has(textarea) > span, .field:has(input) > span, .field:has(select) > span { display: none; }
   body { background: #fff; color: #000; font-size: 11pt; }
-  .card { border: 0; box-shadow: none; padding: 0 0 .7rem; margin: 0 0 .7rem; page-break-inside: avoid; }
+
+  /* A section holding 14 questions can never honour break-inside: avoid, so the rule moves
+     down onto the question, which is a size a page can actually keep together. */
+  .card { border: 0; box-shadow: none; padding: 0 0 .7rem; margin: 0 0 .7rem; break-inside: auto; }
+  .question { break-inside: avoid; }
   .marking-banner { position: static; background: none !important; color: #000 !important;
     border-bottom: 2px solid #000; }
-  details { display: block; } details > summary { display: none; }
+  /* Sections are forced open by openEverythingForPrint() before the dialog, because CSS
+     cannot reveal a closed <details>. The summary stays visible: it carries the title. */
+  .section-summary::before { display: none; }
+  .section-summary { break-after: avoid; }
   .body { max-width: none; margin: 0; padding: 0; }
   a { color: #000; }
 }

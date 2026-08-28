@@ -284,6 +284,26 @@ function provenancePanel(): HTMLElement {
   ]);
 }
 
+/**
+ * A folded section printed as nothing at all: hiding the <summary> hid the title, and
+ * `details { display: block }` does not reveal a closed <details> in Blink or WebKit. So every
+ * section is opened before the print dialog and put back afterwards, which is the only thing
+ * that actually works.
+ */
+function openEverythingForPrint(): void {
+  if (typeof window.addEventListener !== 'function') return;
+  let reclose: HTMLDetailsElement[] = [];
+  window.addEventListener('beforeprint', () => {
+    reclose = [...document.querySelectorAll('details')].filter((d) => !(d as HTMLDetailsElement).open) as HTMLDetailsElement[];
+    for (const d of reclose) d.open = true;
+  });
+  window.addEventListener('afterprint', () => {
+    for (const d of reclose) d.open = false;
+    reclose = [];
+  });
+}
+
+openEverythingForPrint();
 setRepaint(() => paint());
 
 const check = validate(rubric);

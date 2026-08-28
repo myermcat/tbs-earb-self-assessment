@@ -423,10 +423,24 @@ function questionBlock(rubric: Rubric, a: Assessment, q: Question, refresh: () =
     );
   };
   const chosen = el('div', { class: 'chosen muted small' });
+
+  /**
+   * A printed page shows a button's markup, never which one is pressed, so the eleven score
+   * buttons print as nothing at all. This carries the answer in words instead, and states an
+   * absence rather than leaving a blank: an unanswered question should look unanswered on
+   * paper.
+   */
+  const printScore = el('p', { class: 'print-only print-answer' });
+
   const paintChosen = () => {
     clear(chosen);
+    const rung = ans.score === null ? null : ladder.slice().reverse().find((x) => x.value <= (ans.score as number));
+    printScore.textContent = ans.na
+      ? 'Not applicable'
+      : ans.score === null
+        ? 'Not answered'
+        : `Score ${ans.score} of 10${rung?.name ? ` - ${rung.name}` : ''}`;
     if (ans.na || ans.score === null) return;
-    const rung = ladder.slice().reverse().find((x) => x.value <= (ans.score as number));
     if (rung) {
       chosen.appendChild(el('span', {}, [
         rung.name ? el('b', {}, [`${rung.value} - ${rung.name}. `]) : '',
@@ -438,6 +452,7 @@ function questionBlock(rubric: Rubric, a: Assessment, q: Question, refresh: () =
   wrap.appendChild(scoreRow);
   paintChosen();
   wrap.appendChild(chosen);
+  wrap.appendChild(printScore);
 
   if (q.picklist) {
     const sel = el('select', {
@@ -466,13 +481,27 @@ function questionBlock(rubric: Rubric, a: Assessment, q: Question, refresh: () =
     ]));
   }
 
+  // A textarea prints its initial markup, not what was typed into it, so the text is mirrored
+  // into an element that does print.
+  const printJust = el('p', { class: 'print-only print-said' });
+  const mirrorJust = () => {
+    const t = (ans.justification ?? '').trim();
+    printJust.textContent = t ? `Their reasoning: ${t}` : '';
+  };
+  mirrorJust();
+
   wrap.appendChild(el('label', { class: 'field' }, [
     el('span', {}, ['Why that score, in your words']),
     el('textarea', {
       rows: 2, placeholder: 'One or two sentences is plenty.',
-      oninput: (e: Event) => { ans.justification = (e.target as HTMLTextAreaElement).value; autosave(a); },
+      oninput: (e: Event) => {
+        ans.justification = (e.target as HTMLTextAreaElement).value;
+        autosave(a);
+        mirrorJust();
+      },
     }, [ans.justification ?? '']),
   ]));
+  wrap.appendChild(printJust);
 
   wrap.appendChild(evidenceEditor(a, q, ans.evidence ??= [], refresh));
   return wrap;
@@ -556,6 +585,18 @@ function evidenceEditor(a: Assessment, q: Question, list: EvidenceRef[], refresh
           : null,
       ]));
     });
+
+    // Same reason as the justification: the evidence fields are inputs, so they print empty.
+    if (list.length) {
+      box.appendChild(el('ul', { class: 'print-only print-evidence' }, list.map((ev) =>
+        el('li', {}, [
+          ev.title || ev.attachment?.name || 'untitled',
+          `. ${ev.kind}, ${ev.classification || 'unmarked'}`,
+          ev.attachment ? `, attached (${humanSize(ev.attachment.size)})` : `, at ${ev.location || 'no location given'}`,
+          ev.note ? `. ${ev.note}` : '',
+        ]),
+      )));
+    }
 
     const attached = totalAttachedBytes(a.answers);
     box.appendChild(el('div', { class: 'actions' }, [
