@@ -151,14 +151,24 @@ for (const d of DOMAINS) {
 }
 
 // ---- lifecycle stages, our addition ----------------------------------------------------
+/**
+ * Each stage points at its own page in the Digital Lifecycle Guide. Paths verified against the
+ * live site: every one returns 200.
+ */
 const lifecycleStages = [
-  { id: 'discovery',     label: 'Create - Discovery',   dlgPage: 'Create phase', blurb: 'Understanding the problem. There may be no current solution to describe yet.' },
-  { id: 'alpha',         label: 'Create - Alpha',       dlgPage: 'Create phase', blurb: 'Testing whether an approach can work, with real users.' },
-  { id: 'beta',          label: 'Create - Beta',        dlgPage: 'Create phase', blurb: 'Building the real thing in public, at growing scale.' },
-  { id: 'stabilization', label: 'Live - Stabilization', dlgPage: 'Live phase',   blurb: 'In service, settling down. Costs and operations should be known.' },
-  { id: 'growth',        label: 'Live - Growth',        dlgPage: 'Live phase',   blurb: 'In service, scaling up.' },
-  { id: 'maturity',      label: 'Live - Maturity',      dlgPage: 'Live phase',   blurb: 'In service, steady state. Everything should be documented and measured.' },
-  { id: 'sunset',        label: 'Sunset',               dlgPage: 'Sunset phase', blurb: 'Replacing or retiring. Dependencies and data disposition matter most.' },
+  { id: 'discovery',     label: 'Discovery',     phase: 'Create', dlgPath: 'create-discovery',    blurb: 'Understanding the problem. There may be no current solution to describe yet.' },
+  { id: 'alpha',         label: 'Alpha',         phase: 'Create', dlgPath: 'create-alpha',        blurb: 'Testing whether an approach can work, with real users.' },
+  { id: 'beta',          label: 'Beta',          phase: 'Create', dlgPath: 'create-beta',         blurb: 'Building the real thing in public, at growing scale.' },
+  { id: 'stabilization', label: 'Stabilization', phase: 'Live',   dlgPath: 'live-stabilization',  blurb: 'In service, settling down. Costs and operations should be known.' },
+  { id: 'growth',        label: 'Growth',        phase: 'Live',   dlgPath: 'live-growth',         blurb: 'In service, scaling up.' },
+  { id: 'maturity',      label: 'Maturity',      phase: 'Live',   dlgPath: 'live-maturity',       blurb: 'In service, steady state. Everything should be documented and measured.' },
+  { id: 'sunset',        label: 'Sunset',        phase: 'Sunset', dlgPath: 'sunset',              blurb: 'Replacing or retiring. Dependencies and data disposition matter most.' },
+];
+
+const phases = [
+  { name: 'Create', dlgPath: 'create', blurb: 'Being built, and not in service yet.' },
+  { name: 'Live',   dlgPath: 'live',   blurb: 'In service, with real users.' },
+  { name: 'Sunset', dlgPath: 'sunset', blurb: 'Being replaced or retired.' },
 ];
 
 const rubric = {
@@ -170,8 +180,8 @@ const rubric = {
   title: 'GC Enterprise Architecture self-assessment',
   provenance:
     'Imported by tools/import-rubric.mjs from Dan\'s GC_EA_Assessment_Tool workbook (6 sheets) in "EARB target state knowledge base". Questions, section names, section weights, domain weights and the 0-10 ladder are all his. Added by us and marked as such: lifecycle stages, the stage rule on "Defining the Current State" sections, and the routing bands.',
-  dlgBaseUrl: '',
-  dlgBaseUrlNote: 'Set once the Digital Lifecycle Guide is live on GCXchange. Empty means stage links render as plain text.',
+  dlgBaseUrl: 'https://myermcat.github.io/digital-lifecycle-guide',
+  dlgBaseUrlNote: 'The guide, on GitHub Pages for now. Each stage points at its own page there.',
   importWarnings: warnings,
 
   scale: { min: 0, max: 10, anchors },
@@ -199,6 +209,7 @@ const rubric = {
     'Our addition. Lifecycle stage is not captured in the current process at all - Dan named it as the key missing field. Only "Defining the Current State" sections carry a rule so far.',
 
   lifecycleStages,
+  phases,
   domains,
 };
 

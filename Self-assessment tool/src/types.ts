@@ -54,9 +54,13 @@ export interface MaturityBand { min: number; label: string; detail: string }
 export interface LifecycleStage {
   id: string;
   label: string;
-  dlgPage?: string;
+  phase?: string;
+  /** Path to this stage's own page in the Digital Lifecycle Guide, under `dlgBaseUrl`. */
+  dlgPath?: string;
   blurb?: string;
 }
+
+export interface Phase { name: string; dlgPath?: string; blurb?: string }
 
 export interface Rubric {
   fileType: 'gc-arch-rubric';
@@ -76,6 +80,7 @@ export interface Rubric {
   stageMultipliers: Record<StageExpectation, number>;
   stageMultipliersNote?: string;
   lifecycleStages: LifecycleStage[];
+  phases?: Phase[];
   domains: Domain[];
 }
 

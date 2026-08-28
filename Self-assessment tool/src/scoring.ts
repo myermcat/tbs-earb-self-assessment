@@ -81,8 +81,12 @@ export function score(rubric: Rubric, a: Assessment): Result {
         const ans = a.answers[question.id];
         const na = !!ans?.na;
         const isAnswered = !na && typeof ans?.score === 'number';
-        if (!na) scoreable++;
-        if (isAnswered) answered++;
+        // Progress counts a question as dealt with once it has a score OR has been marked not
+        // applicable, because deciding it does not apply IS answering it. Showing 7 of 8 after
+        // marking one n/a, when there are nine questions, reads as a question going missing.
+        // The score is a separate matter: an n/a question still leaves the weighting entirely.
+        scoreable++;
+        if (isAnswered || na) answered++;
         const mult = rubric.stageMultipliers[questionExpectation(question, stage)] ?? 1;
         const qShare = section.questions.length ? question.weight / section.questions.reduce((t, x) => t + x.weight, 0) : 0;
         return {
@@ -106,8 +110,8 @@ export function score(rubric: Rubric, a: Assessment): Result {
         weight: section.weight,
         effectiveWeight: section.weight * (rubric.stageMultipliers[expectation] ?? 1),
         expectation,
-        answered: questions.filter((q) => q.answered).length,
-        total: questions.filter((q) => !q.na).length,
+        answered: questions.filter((q) => q.answered || q.na).length,
+        total: questions.length,
         questions,
       };
     });

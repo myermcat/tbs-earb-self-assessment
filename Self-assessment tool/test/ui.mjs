@@ -94,63 +94,110 @@ ok('the sticky footer is pinned to the edge and reads as chrome, not as a floati
 
 // ---- overview --------------------------------------------------------------------------
 byText('.hero-actions button', 'Fill it in').click();
-ok('overview page rendered', view().includes('About the initiative'));
-ok('no questions on the overview page', qa('.question').length === 0);
-ok('seven lifecycle stages offered', qa('.stage-card').length === 7, String(qa('.stage-card').length));
-ok('stepper has overview plus four domains', qa('.stepper .step').length === 5, String(qa('.stepper .step').length));
-ok('a stage must be picked before scoring', view().includes('Pick one before you start scoring'));
-// Create, Live and Sunset are three different situations; they used to render as one list.
-ok('the lifecycle phases are visually grouped', qa('.phase-group').length === 3,
-   String(qa('.phase-group').length));
-ok('and each group is named', qa('.phase-head h4').map((h) => h.textContent).join('|') === 'Create|Live|Sunset',
-   qa('.phase-head h4').map((h) => h.textContent).join('|'));
-
+// ---- the overview is a wizard while anything is missing ---------------------------------
+//
+// Six unrelated things asked as one card read as a wall. One at a time while it is being
+// filled in; a single page once it is done, because by then the reader is editing.
+ok('the overview opens on its first question', view().includes('What is the initiative called?'));
+ok('and asks only that one', qa('.ov-block').length === 1, String(qa('.ov-block').length));
+ok('no scored questions on the overview', qa('.question').length === 0);
+ok('it says where you are in the six', view().includes('Step 1 of 6'));
+ok('six dots, none filled yet', qa('.ov-dot').length === 6 && qa('.ov-dot.filled').length === 0,
+   String(qa('.ov-dot.filled').length));
+ok('the tabs still show overview plus four domains', qa('.stepper .step').length === 5,
+   String(qa('.stepper .step').length));
+ok('the overview tab counts all six', qa('.stepper .step')[0].textContent.includes('0 of 6'),
+   qa('.stepper .step')[0].textContent);
 ok('a blank assessment has nothing to mark, so saving is allowed',
    byText('.footer-actions button', 'Save to a file').disabled === false);
 
-const inputs = qa('.card input[type=text]');
-inputs[0].value = 'Nexus agentic AI infrastructure';
-fire(inputs[0], 'input');
-inputs[1].value = 'Transport Canada';
-fire(inputs[1], 'input');
-fire(inputs[1], 'change');   // the gate refreshes on blur, not on every keystroke
+const nextStep = () => byText('.ov-nav button', 'Next').click();
+
+// Step 1, the name.
+{
+  const input = q('.ov-block input[type=text]');
+  input.value = 'Nexus agentic AI infrastructure';
+  fire(input, 'input');
+  fire(input, 'change');
+}
 
 // Dan's rule: the moment there is content in the file, it has to be marked before saving.
 ok('typing content blocks saving until the file is marked',
    byText('.footer-actions button', 'Save to a file').disabled === true);
 ok('the gate says what to do, briefly', view().includes('Mark this file to save it'));
-// Obvious beats explained: the banner that says the file is unmarked is the control that
-// marks it, so nobody is told to go and find a setting.
 {
+  // Obvious beats explained: the banner that says the file is unmarked is the control.
   const b = q('.chrome .marking-banner');
   ok('an unmarked file says so in the banner', b.classList.contains('unmarked'));
   ok('and the banner is itself the way to fix it', b.tagName === 'BUTTON', b.tagName);
-  b.click();
-  ok('clicking it lands on the marking control', !!document.getElementById('marking-control'));
+}
+ok('answering one fills one dot', qa('.ov-dot.filled').length === 1, String(qa('.ov-dot.filled').length));
+
+nextStep();
+ok('step two asks the department', view().includes('Which department or agency'));
+{
+  const input = q('.ov-block input[type=text]');
+  input.value = 'Transport Canada';
+  fire(input, 'input'); fire(input, 'change');
+}
+nextStep();
+ok('step three asks who to contact', view().includes('Who should an assessor contact'));
+{
+  const input = q('.ov-block input[type=text]');
+  input.value = 'nick@tc.gc.ca';
+  fire(input, 'input'); fire(input, 'change');
+}
+ok('Back is offered once you are past the first', !!byText('.ov-nav button', 'Back'));
+nextStep();
+ok('step four asks for the summary', !!q('.ov-block textarea'));
+{
+  const ta = q('.ov-block textarea');
+  ta.value = 'Shared agentic AI infrastructure for departmental business processes.';
+  fire(ta, 'input'); fire(ta, 'change');
+}
+nextStep();
+
+// Step five, the marking. The whole GC scheme, in order.
+const MARKINGS = 'Unclassified|Protected A|Protected B|Protected C|Confidential|Secret|Top Secret';
+ok('step five asks how the file is marked', view().includes('How is this assessment marked'));
+ok('every GC marking is offered', qa('.marking-chip').map((c) => c.textContent.trim()).join('|') === MARKINGS,
+   qa('.marking-chip').map((c) => c.textContent.trim()).join('|'));
+ok('and the same list is offered inside the gate that demands one',
+   qa('.gate-marks .mark-btn').map((b) => b.textContent).join('|') === MARKINGS,
+   qa('.gate-marks .mark-btn').map((b) => b.textContent).join('|'));
+
+byText('.gate-marks .mark-btn', 'Protected B').click();
+ok('marking from the gate clears the gate', !q('.gate'));
+ok('and the step agrees',
+   qa('.marking-chip input').find((r) => r.value === 'Protected B').checked === true);
+
+// Step six, the lifecycle, with the guide beside it.
+byText('.ov-nav button', 'Next').click();
+ok('step six asks where it is in the lifecycle', view().includes('Where is it in the lifecycle'));
+ok('seven stages offered', qa('.stage-card').length === 7, String(qa('.stage-card').length));
+ok('grouped into Create, Live and Sunset',
+   qa('.phase-head h4').map((h) => h.textContent).join('|') === 'Create|Live|Sunset',
+   qa('.phase-head h4').map((h) => h.textContent).join('|'));
+{
+  const links = qa('.stage-card a').map((n) => n.getAttribute('href'));
+  ok('every stage links to its own page in the guide', links.length === 7, String(links.length));
+  ok('and the links point at the published guide',
+     links.every((h) => h.startsWith('https://myermcat.github.io/digital-lifecycle-guide/')),
+     links[0]);
+  ok('each stage has its own page, not one shared phase page',
+     new Set(links).size === 7, String(new Set(links).size));
+  ok('the phases link to their own pages too',
+     qa('.phase-head a').length === 3, String(qa('.phase-head a').length));
 }
 
 const maturity = qa('.stage-card input[type=radio]').find((r) => r.value === 'maturity');
 maturity.checked = true;
 fire(maturity, 'change');
-ok('the stage warning clears once a stage is picked', !view().includes('Pick one before you start scoring'));
+ok('all six answered turns the overview into one page',
+   qa('.ov-block').length === 6, String(qa('.ov-block').length));
+ok('and the tab says so', qa('.stepper .step')[0].textContent.includes('6 of 6'),
+   qa('.stepper .step')[0].textContent);
 
-// Mark the file. Dan asked for this to be a hard gate, and being told to mark it without
-// being given the control is how a gate turns into a notice people read past. The control is
-// in the gate message itself.
-// The real Government of Canada scheme: Protected A to C, then the classified levels.
-// "Classified" is the name of that family, never a marking on its own.
-const MARKINGS = 'Unclassified|Protected A|Protected B|Protected C|Confidential|Secret|Top Secret';
-ok('every GC marking is offered on the overview', qa('.marking-chip').length === 7,
-   String(qa('.marking-chip').length));
-ok('and the same list is offered inside the gate that demands one',
-   qa('.gate-marks .mark-btn').map((b) => b.textContent).join('|') === MARKINGS,
-   qa('.gate-marks .mark-btn').map((b) => b.textContent).join('|'));
-
-// Mark it from the gate, which is the path a reader who is stuck would actually take.
-byText('.gate-marks .mark-btn', 'Protected B').click();
-ok('marking from the gate clears the gate', !q('.gate'));
-ok('and the overview chip agrees',
-   qa('.marking-chip input').find((r) => r.value === 'Protected B').checked === true);
 // One banner on screen, sticky with the header. The second copy exists for print only.
 ok('one marking banner on screen, plus a print-only copy',
    qa('.marking-banner').length === 2 && qa('.marking-banner.print-only').length === 1,
@@ -295,12 +342,14 @@ ok('all four domain tabs read complete', qa('.stepper .step.complete:not(:first-
   naBox.checked = true;
   fire(naBox, 'change');
 
-  ok('n/a drops the question from the footer denominator',
-     footerCount().includes(`${TOTAL - 1} of ${TOTAL - 1}`), footerCount());
-  ok('n/a drops it from the domain tab denominator too',
-     tabOf(currentDomain).textContent.includes(`${domainTotal - 1} of ${domainTotal - 1}`),
+  // Marking a question not applicable is a decision, so it counts as dealt with. Shrinking the
+  // denominator instead made a question look like it had gone missing.
+  ok('n/a keeps the footer denominator whole',
+     footerCount().includes(`${TOTAL} of ${TOTAL}`), footerCount());
+  ok('n/a keeps the domain tab denominator whole',
+     tabOf(currentDomain).textContent.includes(`${domainTotal} of ${domainTotal}`),
      tabOf(currentDomain).textContent);
-  ok('n/a drops it from its rail denominator too',
+  ok('n/a keeps every rail count whole',
      railCounts().every((t) => { const [a2, b2] = t.split('/'); return a2 === b2; }),
      railCounts().join(' '));
   ok('the page still was not rebuilt', document.contains(probeQuestion) && probeLadder.open === true);
@@ -313,6 +362,43 @@ ok('all four domain tabs read complete', qa('.stepper .step.complete:not(:first-
   probeTextarea.value = '';
   fire(probeTextarea, 'input');
   ok('restored to fully answered', footerCount().includes(`${TOTAL} of ${TOTAL}`), footerCount());
+}
+
+// ---- the score is the answer; everything else folds away --------------------------------
+{
+  // Anchor on the first page of Business, so leaving and returning lands on the same question.
+  byText('.stepper .step', 'Business').click();
+  const box = qa('.question')[0].querySelector('.q-extras-box');
+  ok('reasoning and evidence are folded by default', !!box && box.open === false);
+  ok('the score itself is not folded', !!qa('.question')[0].querySelector('.score-row'));
+  ok('the fold says what is behind it',
+     box.querySelector('summary').textContent.includes('Add reasoning or evidence'));
+
+  // Anything already written must never hide behind a closed fold.
+  box.open = true;
+  const ta = box.querySelector('textarea');
+  ta.value = 'Owned by the platform team.';
+  fire(ta, 'input');
+
+  byText('.stepper .step', 'Data').click();
+  byText('.stepper .step', 'Business').click();
+  const reopened = qa('.question')[0].querySelector('.q-extras-box');
+  ok('a question with reasoning in it comes back open', reopened.open === true);
+  ok('and one without stays folded',
+     qa('.question')[1].querySelector('.q-extras-box').open === false);
+
+  const ta2 = reopened.querySelector('textarea');
+  ta2.value = '';
+  fire(ta2, 'input');
+}
+
+// ---- the browser Back button walks the stops --------------------------------------------
+{
+  const before = qa('.toc-sec.on')[0]?.textContent ?? '';
+  byText('.stepper .step', 'Technology').click();
+  const after = qa('.toc-sec.on')[0]?.textContent ?? '';
+  ok('moving between domains changes the page', before !== after, `${before} -> ${after}`);
+  ok('and it left a history entry', (window.location.hash || '').length > 1, window.location.hash);
 }
 
 // ---- the score row is one keyboard control, not eleven ----------------------------------
@@ -412,7 +498,8 @@ const naBox = tra.querySelector('.na input');
 naBox.checked = true;
 fire(naBox, 'change');
 ok("n/a disables that question's buttons", [...tra.querySelectorAll('.score-btn')].every((b) => b.disabled));
-ok('n/a drops it from the denominator', q('.footer-score .muted').textContent.includes(`of ${TOTAL - 1}`),
+ok('n/a counts as dealt with, so the denominator stays whole',
+   q('.footer-score .muted').textContent.includes(`of ${TOTAL}`),
    q('.footer-score .muted').textContent);
 
 const hosting = gotoQuestion('hosting environment');

@@ -3,7 +3,7 @@ import { el, clear, tone } from './dom';
 import { score, type Result, type SectionScore } from './scoring';
 import { autosave, download, slug } from './storage';
 import { humanSize, openAttachment, readAttachment, totalAttachedBytes, TOTAL_LIMIT, TOTAL_WARN } from './attach';
-import { canSave, highestEvidenceMarking, markingProblems } from './marking';
+import { canSave, markingProblems } from './marking';
 
 const KINDS: EvidenceRef['kind'][] = ['document', 'diagram', 'dashboard', 'system', 'report', 'other'];
 
@@ -58,6 +58,7 @@ export function firstGap(rubric: Rubric, a: Assessment): { key: string; question
     for (const sec of d.sections) {
       for (const q of sec.questions) {
         const ans = a.answers[q.id];
+        // Not applicable counts as dealt with, so it is not a gap.
         if (!ans?.na && typeof ans?.score !== 'number') {
           return { key: `${d.id}/${sec.id}`, questionId: q.id };
         }
@@ -66,6 +67,23 @@ export function firstGap(rubric: Rubric, a: Assessment): { key: string; question
   }
   return null;
 }
+
+/**
+ * History, so the browser's Back button walks back through the stops.
+ *
+ * Wrapped because pushState throws a SecurityError on a file:// page in some browsers, and
+ * the tool has to work from a file. When it throws, navigation still works; only Back does not.
+ */
+function pushStop(key: string): void {
+  try {
+    window.history.pushState({ stop: key }, '', `#${key}`);
+  } catch {
+    /* file:// without history support. Navigation is unaffected. */
+  }
+}
+
+export function currentStopKey(): string { return page; }
+export function setStopKey(key: string): void { page = key; }
 
 /** Set by the shell when the reader asks to be taken to the next gap. */
 let scrollToQuestion: string | null = null;
@@ -123,9 +141,15 @@ export function renderSubmit(
   readouts = [];
   const r = score(rubric, a);
 
-  /** Move to another page of the questionnaire. This one does rebuild, by definition. */
+  /**
+   * Move to another page of the questionnaire. This one does rebuild, by definition.
+   *
+   * It also pushes a history entry, because a 21-page form that swallows the browser's Back
+   * button is a form people get lost in. popstate is wired once, in the shell.
+   */
   const navigate = (target: string) => {
     page = target;
+    pushStop(target);
     repaintApp();
     window.scrollTo({ top: 0 });
   };
@@ -169,7 +193,9 @@ export function renderSubmit(
     }
   }
 
-  sheet.appendChild(pager(list, here, navigate, onDone));
+  if (!(here.domainId === null && !overviewShowAll)) {
+    sheet.appendChild(pager(list, here, navigate, onDone));
+  }
   root.appendChild(footerBar(rubric, a, r, onDone, here, navigate));
 
   if (scrollToQuestion) {
@@ -367,7 +393,7 @@ function pager(list: Stop[], here: Stop, navigate: (t: string) => void, onDone: 
   const i = list.findIndex((x) => x.key === here.key);
   const prev = i > 0 ? list[i - 1] : null;
   const next = i < list.length - 1 ? list[i + 1] : null;
-  return el('section', { class: 'card actions pager' }, [
+  return el('nav', { class: 'actions pager', 'aria-label': 'Move between sections' }, [
     prev
       ? el('button', { class: 'ghost', onclick: () => navigate(prev.key) }, [`Back: ${prev.label}`])
       : null,
@@ -519,6 +545,33 @@ function saveFile(a: Assessment) {
   download(`${slug(a.initiative.name)}-self-assessment.json`, JSON.stringify(a, null, 2));
 }
 
+/**
+ * The overview asks six unrelated things, and as one long card it read as a wall. It is a
+ * wizard while anything is missing: one question on screen, with the guide beside the one that
+ * needs it. Once all six are answered it becomes a single page again, because by then the
+ * reader is editing rather than filling in, and editing wants everything at once.
+ */
+let overviewStep = 0;
+let overviewShowAll = false;
+
+interface OverviewStep {
+  key: string;
+  title: string;
+  help?: string;
+  filled: () => boolean;
+  build: () => HTMLElement;
+}
+
+export function resetOverviewToFirstGap(rubric: Rubric, a: Assessment): void {
+  overviewShowAll = false;
+  const filled = [
+    a.initiative.name.trim(), a.initiative.department.trim(), a.initiative.contact.trim(),
+    a.initiative.summary.trim(), a.initiative.classification, a.initiative.lifecycleStage,
+  ];
+  const gap = filled.findIndex((x) => !x);
+  overviewStep = gap === -1 ? 0 : gap;
+}
+
 function aboutSection(
   rubric: Rubric,
   a: Assessment,
@@ -529,23 +582,158 @@ function aboutSection(
     (a.initiative as Record<string, string>)[k] = (e.target as HTMLInputElement).value;
     autosave(a);
   };
-  // Repainting on every keystroke would pull focus out of the field, so the marking gate
-  // refreshes when the field is left rather than as it is typed in.
   const settled = () => refresh();
 
-  const stageWrap = el('div', { class: 'stage-grid' });
-  for (const st of rubric.lifecycleStages) {
-    const id = `stage-${st.id}`;
-    const link =
-      rubric.dlgBaseUrl && st.dlgPage
-        ? el('a', {
-            href: `${rubric.dlgBaseUrl.replace(/\/$/, '')}/${encodeURIComponent(st.dlgPage)}`,
-            target: '_blank', rel: 'noreferrer', class: 'dlg-link',
-          }, [`${st.dlgPage} in the Digital Lifecycle Guide`])
-        : el('span', { class: 'dlg-link muted' }, [st.dlgPage ? `${st.dlgPage} - Digital Lifecycle Guide` : '']);
+  const text = (k: 'name' | 'department' | 'contact', placeholder: string) =>
+    el('input', {
+      type: 'text', value: a.initiative[k], placeholder,
+      oninput: set(k), onchange: settled,
+    });
 
-    stageWrap.appendChild(
-      el('label', { class: 'stage-card', for: id }, [
+  const steps: OverviewStep[] = [
+    {
+      key: 'name',
+      title: 'What is the initiative called?',
+      filled: () => !!a.initiative.name.trim(),
+      build: () => text('name', 'The name people in your department would recognise'),
+    },
+    {
+      key: 'department',
+      title: 'Which department or agency runs it?',
+      filled: () => !!a.initiative.department.trim(),
+      build: () => text('department', 'Transport Canada, for example'),
+    },
+    {
+      key: 'contact',
+      title: 'Who should an assessor contact about it?',
+      help: 'A name, or a team inbox. Somebody who can answer a question about a score.',
+      filled: () => !!a.initiative.contact.trim(),
+      build: () => text('contact', 'Name or team inbox'),
+    },
+    {
+      key: 'summary',
+      title: 'In two or three sentences, what is it?',
+      help: 'Enough that somebody who has never heard of it knows what it does and who for.',
+      filled: () => !!a.initiative.summary.trim(),
+      build: () => el('textarea', {
+        rows: 4, placeholder: 'What it does, and who it is for.',
+        oninput: set('summary'), onchange: settled,
+      }, [a.initiative.summary]),
+    },
+    {
+      key: 'marking',
+      title: 'How is this assessment marked?',
+      help: 'Mark the file as a whole, at the highest marking of anything you put in it: your own words, and anything you attach. Scores are not marked, because a number is not sensitive.',
+      filled: () => !!a.initiative.classification,
+      build: () => markingChoices(a, rebuild),
+    },
+    {
+      key: 'stage',
+      title: 'Where is it in the lifecycle?',
+      help: 'This changes what is expected of you. A discovery team has no current solution to document; a live service does.',
+      filled: () => !!a.initiative.lifecycleStage,
+      build: () => stagePicker(rubric, a, rebuild),
+    },
+  ];
+
+  if (overviewShowAll || steps.every((x) => x.filled())) {
+    return el('section', { class: 'card' }, [
+      el('div', { class: 'head-row' }, [
+        el('h2', {}, ['About the initiative']),
+        el('span', { class: 'muted small' }, ['Six things an assessor needs before a score means anything.']),
+      ]),
+      ...steps.flatMap((st, i) => [
+        i === 0 ? null : el('hr', { class: 'q-split' }),
+        el('div', { class: 'ov-block', id: st.key === 'marking' ? 'marking-control' : undefined, tabindex: st.key === 'marking' ? -1 : undefined }, [
+          el('h3', {}, [st.title]),
+          st.help ? el('p', { class: 'muted small' }, [st.help]) : null,
+          st.build(),
+        ]),
+      ]),
+    ]);
+  }
+
+  overviewStep = Math.max(0, Math.min(overviewStep, steps.length - 1));
+  const st = steps[overviewStep];
+  const done = steps.filter((x) => x.filled()).length;
+
+  return el('section', { class: 'card ov-wizard' }, [
+    el('div', { class: 'ov-progress' }, [
+      el('span', { class: 'muted tiny' }, [`Step ${overviewStep + 1} of ${steps.length}`]),
+      el('div', { class: 'ov-dots' }, steps.map((x, i) =>
+        el('span', {
+          class: `ov-dot ${x.filled() ? 'filled' : ''} ${i === overviewStep ? 'on' : ''}`,
+          'aria-hidden': true,
+        }),
+      )),
+      el('button', { class: 'linkish tiny', onclick: () => { overviewShowAll = true; repaintApp(); } }, [
+        'Show all six at once',
+      ]),
+    ]),
+    el('div', {
+      class: 'ov-block',
+      id: st.key === 'marking' ? 'marking-control' : undefined,
+      tabindex: st.key === 'marking' ? -1 : undefined,
+    }, [
+      el('h2', {}, [st.title]),
+      st.help ? el('p', { class: 'muted small' }, [st.help]) : null,
+      st.build(),
+    ]),
+    el('div', { class: 'actions ov-nav' }, [
+      overviewStep > 0
+        ? el('button', { class: 'ghost', onclick: () => { overviewStep--; repaintApp(); } }, ['Back'])
+        : el('span', {}),
+      el('button', {
+        class: 'primary',
+        onclick: () => {
+          if (overviewStep < steps.length - 1) { overviewStep++; repaintApp(); }
+          else { overviewShowAll = true; repaintApp(); }
+        },
+      }, [
+        overviewStep < steps.length - 1 ? 'Next' : 'Done',
+        el('span', { class: 'arrow', 'aria-hidden': true }, ['\u2192']),
+      ]),
+    ]),
+    done < steps.length
+      ? el('p', { class: 'tiny dim' }, [`${done} of ${steps.length} answered so far.`])
+      : null,
+  ]);
+}
+
+function markingChoices(a: Assessment, rebuild: () => void): HTMLElement {
+  return el('div', { class: 'marking-row' }, CLASSIFICATIONS.map((c) =>
+    el('label', { class: `marking-chip ${a.initiative.classification === c ? 'on' : ''}` }, [
+      el('input', {
+        type: 'radio', name: 'filemark', value: c,
+        checked: a.initiative.classification === c,
+        onchange: () => { a.initiative.classification = c; autosave(a); rebuild(); },
+      }),
+      c,
+    ]),
+  ));
+}
+
+/** The stages, grouped by phase, each pointing at its own page in the guide. */
+function stagePicker(rubric: Rubric, a: Assessment, rebuild: () => void): HTMLElement {
+  const base = (rubric.dlgBaseUrl ?? '').replace(/\/$/, '');
+  const link = (path: string | undefined, label: string) =>
+    base && path
+      ? el('a', { href: `${base}/${path}`, target: '_blank', rel: 'noreferrer', class: 'faint-link tiny' }, [label])
+      : null;
+
+  const groups = rubric.phases?.length
+    ? rubric.phases
+    : [{ name: 'Lifecycle', dlgPath: undefined, blurb: undefined }];
+
+  const wrap = el('div', { class: 'phase-groups' });
+  for (const ph of groups) {
+    const mine = rubric.lifecycleStages.filter((st) => (st.phase ?? ph.name) === ph.name);
+    if (!mine.length) continue;
+
+    const grid = el('div', { class: 'stage-grid' });
+    for (const st of mine) {
+      const id = `stage-${st.id}`;
+      grid.appendChild(el('label', { class: 'stage-card', for: id }, [
         el('input', {
           type: 'radio', name: 'stage', id, value: st.id,
           checked: a.initiative.lifecycleStage === st.id,
@@ -554,89 +742,21 @@ function aboutSection(
         el('div', {}, [
           el('strong', {}, [st.label]),
           st.blurb ? el('div', { class: 'muted small' }, [st.blurb]) : null,
-          link,
+          link(st.dlgPath, 'Read about this stage'),
         ]),
-      ]),
-    );
-  }
-
-  const phases: { name: string; blurb: string; ids: string[] }[] = [
-    { name: 'Create', blurb: 'Being built, and not in service yet.', ids: ['discovery', 'alpha', 'beta'] },
-    { name: 'Live', blurb: 'In service, with real users.', ids: ['stabilization', 'growth', 'maturity'] },
-    { name: 'Sunset', blurb: 'Being replaced or retired.', ids: ['sunset'] },
-  ];
-
-  const stageGroups = el('div', { class: 'phase-groups' });
-  for (const ph of phases) {
-    const grid = el('div', { class: 'stage-grid' });
-    for (const st of rubric.lifecycleStages) {
-      if (!ph.ids.includes(st.id)) continue;
-      const card = stageWrap.querySelector(`#stage-${st.id}`)?.closest('.stage-card');
-      if (card) grid.appendChild(card);
+      ]));
     }
-    if (!grid.children.length) continue;
-    stageGroups.appendChild(el('div', { class: `phase-group phase-${ph.name.toLowerCase()}` }, [
+
+    wrap.appendChild(el('div', { class: `phase-group phase-${ph.name.toLowerCase()}` }, [
       el('div', { class: 'phase-head' }, [
         el('h4', {}, [ph.name]),
-        el('span', { class: 'muted tiny' }, [ph.blurb]),
+        ph.blurb ? el('span', { class: 'muted tiny' }, [ph.blurb]) : null,
+        link(ph.dlgPath, `The ${ph.name} phase`),
       ]),
       grid,
     ]));
   }
-
-  return el('section', { class: 'card' }, [
-    el('h2', {}, ['About the initiative']),
-    el('p', { class: 'muted small' }, [
-      'Six things an assessor needs before a score means anything. None of them are scored.',
-    ]),
-    el('div', { class: 'grid-2' }, [
-      field('Initiative name', el('input', { type: 'text', value: a.initiative.name, oninput: set('name'), onchange: settled })),
-      field('Department or agency', el('input', { type: 'text', value: a.initiative.department, oninput: set('department'), onchange: settled })),
-      field('Who to contact about this', el('input', { type: 'text', value: a.initiative.contact, oninput: set('contact'), onchange: settled })),
-    ]),
-    field('In two or three sentences, what is it?', el('textarea', { rows: 3, oninput: set('summary'), onchange: settled }, [a.initiative.summary])),
-    el('hr', { class: 'q-split' }),
-    el('h3', { id: 'marking-control', tabindex: -1 }, ['How is this assessment marked?']),
-    el('p', { class: 'muted' }, [
-      'Mark the file as a whole, at the highest marking of anything you put in it - your own words, and anything you attach. ',
-      'Individual scores are not marked; a number is not sensitive. You cannot save until this is set.',
-    ]),
-    (() => {
-      const top = highestEvidenceMarking(a);
-      return el('div', {}, [
-        el('div', { class: 'marking-row' }, CLASSIFICATIONS.map((c) =>
-          el('label', { class: `marking-chip ${a.initiative.classification === c ? 'on' : ''}` }, [
-            el('input', {
-              type: 'radio', name: 'filemark', value: c,
-              checked: a.initiative.classification === c,
-              onchange: () => { a.initiative.classification = c; autosave(a); rebuild(); },
-            }),
-            c,
-          ]))),
-        top
-          ? el('p', { class: 'small muted' }, [`The highest marking on your attached evidence so far is ${top}.`])
-          : null,
-      ]);
-    })(),
-    el('hr', { class: 'q-split' }),
-    el('h3', {}, ['Where is it in the lifecycle?']),
-    el('p', { class: 'muted small' }, [
-      'This changes what is expected of you. A discovery team has no current solution to document; a live service does. ',
-      rubric.dlgBaseUrl
-        ? el('a', { href: rubric.dlgBaseUrl, target: '_blank', rel: 'noreferrer', class: 'faint-link' }, [
-            'The Digital Lifecycle Guide explains the phases',
-          ])
-        : null,
-    ]),
-    a.initiative.lifecycleStage
-      ? null
-      : el('p', { class: 'small warn-text' }, ['Pick one before you start scoring.']),
-    stageGroups,
-  ]);
-}
-
-function field(label: string, control: HTMLElement): HTMLElement {
-  return el('label', { class: 'field' }, [el('span', {}, [label]), control]);
+  return wrap;
 }
 
 function questionBlock(rubric: Rubric, a: Assessment, q: Question, refresh: () => void): HTMLElement {
@@ -832,7 +952,8 @@ function questionBlock(rubric: Rubric, a: Assessment, q: Question, refresh: () =
   };
   mirrorJust();
 
-  answerBox.appendChild(el('label', { class: 'field' }, [
+  const extras = el('div', { class: 'q-extras' });
+  extras.appendChild(el('label', { class: 'field' }, [
     el('span', {}, ['Why that score, in your words']),
     el('textarea', {
       rows: 2, placeholder: 'One or two sentences is plenty.',
@@ -843,9 +964,35 @@ function questionBlock(rubric: Rubric, a: Assessment, q: Question, refresh: () =
       },
     }, [ans.justification ?? '']),
   ]));
-  answerBox.appendChild(printJust);
+  extras.appendChild(printJust);
+  extras.appendChild(evidenceEditor(a, q, ans.evidence ??= [], refresh));
 
-  wrap.appendChild(evidenceEditor(a, q, ans.evidence ??= [], refresh));
+  /**
+   * A score is the answer. Reasoning and evidence are optional, and 176 questions each showing
+   * a textarea and an evidence editor is most of the page given over to fields most questions
+   * will not use. They fold, and open on their own wherever there is already something inside,
+   * so nothing a person wrote can hide behind a closed disclosure.
+   */
+  const hasExtras = !!(ans.justification ?? '').trim() || (ans.evidence ?? []).length > 0;
+  const extrasBox = el('details', { class: 'q-extras-box', open: hasExtras }, [
+    el('summary', { class: 'q-extras-summary' }, [
+      el('span', {}, ['Add reasoning or evidence']),
+      (() => {
+        const badge = el('span', { class: 'q-extras-count' });
+        const paintBadge = () => {
+          const n = (ans.evidence ?? []).length;
+          const words = (ans.justification ?? '').trim() ? 1 : 0;
+          badge.textContent = n + words === 0 ? '' : `${words ? 'reasoning' : ''}${words && n ? ', ' : ''}${n ? `${n} file${n === 1 ? '' : 's'}` : ''}`;
+        };
+        paintBadge();
+        extras.addEventListener('input', paintBadge);
+        extras.addEventListener('click', () => setTimeout(paintBadge, 0));
+        return badge;
+      })(),
+    ]),
+    extras,
+  ]);
+  wrap.appendChild(extrasBox);
   return wrap;
 }
 

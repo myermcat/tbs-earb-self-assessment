@@ -51,15 +51,19 @@ whether to believe it.
 
 ---
 
-## 4. Should the evidence editor be open or folded by default?
+## 4. Does folding the evidence away reduce how much of it arrives?
 
-**Today:** open on every question, so 176 questions each show an evidence block whether or not
-anybody will use it.
+**Decided for now, and worth watching.** Reasoning and evidence fold behind "Add reasoning or
+evidence" on every question, and open on their own wherever something is already written, so
+nothing anybody wrote can hide behind a closed fold. The score is the only thing always on
+screen, because the score is the answer.
 
-**The tension, unresolved:** folding it keeps the page short and makes evidence feel optional,
-which may reduce how much arrives. Leaving it open is a standing invitation, and 176 standing
-invitations is a lot of page. Nobody in this project knows which way real submitters go, and
-the 700+ past assessments would say.
+**The open risk:** a fold makes evidence feel optional, and it is exactly the thing Dan most
+wants to arrive. The alternative is 176 questions each showing a textarea and a file control,
+which is most of the page given to fields most questions will not use.
+
+**What would settle it:** how much evidence actually arrives in the first dozen real
+submissions. If it is thin, unfold it for high scores, where the claim is strongest.
 
 ---
 
