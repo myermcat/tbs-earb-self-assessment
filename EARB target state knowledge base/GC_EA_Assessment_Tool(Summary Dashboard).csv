@@ -1,0 +1,17 @@
+GC Enterprise Architecture Assessment  ·  Summary Dashboard,,,
+Scores below are automatically calculated from the four architecture worksheets. Enter scores on each tab to populate this dashboard.,,,
+Architecture Domain,Score (0–10),Maturity Level,GC EA Weight
+Business Architecture,,Awaiting input,25% of overall GC EA score
+Data & Information Architecture,,Awaiting input,25% of overall GC EA score
+Application & Virtual Architecture,,Awaiting input,25% of overall GC EA score
+Technology & Physical Architecture,,Awaiting input,25% of overall GC EA score
+,,,
+,,,
+OVERALL GC EA MATURITY SCORE,,Awaiting input,
+,,,
+Score Reference Guide,,,
+Score 0–2  —  Critical Risk,Immediate intervention required. Core capabilities absent or severely compromised.,,
+Score 3–4  —  Developing,Foundational elements exist but architecture is immature and at risk under stress.,,
+Score 5–6  —  Baseline Ready,Core capabilities present and stable. Meets minimum GC EA expectations.,,
+Score 7–8  —  Advanced,"Hardened, scalable, and modular. Demonstrably high-quality architecture.",,
+Score 9–10  —  Leading Practice,"Predictive, self-optimizing, fully aligned with business strategy.",,

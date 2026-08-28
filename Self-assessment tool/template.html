@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!--
+  The security story is this line. default-src 'none' plus connect-src 'none' means the page
+  cannot fetch, XHR, open a websocket, load an image from a host, or submit a form anywhere.
+  Everything it needs is inlined below. It works with the network cable pulled out.
+-->
+<meta http-equiv="Content-Security-Policy"
+      content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data:; connect-src 'none'; form-action 'none'; base-uri 'none'">
+<title>__TITLE__</title>
+<style>__CSS__</style>
+</head>
+<body>
+<div id="app">Loading. If this message stays, JavaScript is blocked in this browser.</div>
+<script>__JS__</script>
+</body>
+</html>
