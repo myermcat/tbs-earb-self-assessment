@@ -35,6 +35,18 @@ So: no backend, no build step at the user's end, no dependency at runtime. The p
 `default-src 'none'; connect-src 'none'`, which means it *cannot* fetch, XHR, open a socket
 or submit a form anywhere, even if someone later added code that tried. Verified by a test.
 
+## Marking and evidence
+
+The file carries one classification marking; every attachment carries its own. **Saving is
+refused** until the file is marked, until every attachment is marked, and unless the file's
+marking is at least as high as everything inside it. Scores themselves are not marked - a
+number is not sensitive, the text and the files are. The marking appears as a banner at the
+top and bottom of the page and on anything printed.
+
+Evidence can be **attached** (held in the file as base64, opened by the assessor in place -
+15 MB per file, 50 MB total) or **pointed at** (a path, a URL, a system name), for anything
+that cannot travel. A high score backed only by a pointer raises a flag for the assessor.
+
 ## Where the data lives
 
 There is no database. Persistence is two separate things:
@@ -44,9 +56,8 @@ There is no database. Persistence is two separate things:
 2. **Save to a file** - the `.json` the submitter keeps and sends on, through whatever
    channel they already use. Reopening that file restores everything.
 
-Evidence is stored **by reference, never by content**: title, kind, where it lives,
-classification marking, note. The artefact stays with the submitter. A test asserts that
-the saved file has no field capable of holding a document body.
+Attachments ride inside that same file, so there is one artefact to send and the assessor
+does not have to email anybody to see the evidence.
 
 ## What is in here
 
@@ -111,6 +122,14 @@ The tool always words this as a suggestion and says TBS confirms routing.
 - Does his scale have per-question ladders, or one shared ladder? The app supports both.
 - How should the file reach TBS - email, GCdocs, SharePoint, a GitHub issue?
 - Second storage path: GitHub for now, as agreed. What is the non-Microsoft fallback later?
+
+## Publishing
+
+`.github/workflows/pages.yml` will publish `dist/index.html` to GitHub Pages, and is
+**deliberately not enabled**. This repo holds Dan's DRAFT framework and the 176 questions;
+GitHub Pages on a free account only serves public repositories, so turning it on would make
+that content public. Keep the repo private and hand people the single HTML file until Dan
+says the content can be published.
 
 ## Status
 
