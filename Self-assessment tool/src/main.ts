@@ -401,6 +401,14 @@ function provenancePanel(): HTMLElement {
         'A draft kept by this browser on this machine, and the file you choose to save.',
       ]),
       el('li', {}, [
+        el('b', {}, ['Reloading does not lose anything. ']),
+        'Every browser keeps a small private store on disk for each site it visits. This page ',
+        'writes the whole assessment there as you type, and reads it back when you return, so ',
+        'closing the tab or restarting the machine is safe. That store belongs to one browser ',
+        'on one machine, so it does not follow you to another, and clearing your browsing data ',
+        'clears it. The file you save is the copy that travels.',
+      ]),
+      el('li', {}, [
         el('b', {}, ['Work at your own classification. ']),
         'Open your own material beside this page. Attaching a file copies it into the assessment you save, and nowhere else.',
       ]),

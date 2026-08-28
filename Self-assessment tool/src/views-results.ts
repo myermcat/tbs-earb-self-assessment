@@ -35,12 +35,20 @@ export function renderResults(root: HTMLElement, rubric: Rubric, a: Assessment, 
             el('div', { class: 'small' }, [r.maturity.detail]),
           ])
         : null,
-      r.band
+      // A routing suggestion calculated from a fifth of the questions is not a suggestion, it
+      // is a guess wearing one. It appears once most of the assessment is answered.
+      r.band && r.completeness >= 0.8
         ? el('div', { class: `band ${r.band.tone}` }, [
             el('strong', {}, [r.band.label]),
             el('div', {}, [r.band.routing]),
           ])
-        : null,
+        : el('div', { class: 'band neutral' }, [
+            el('strong', {}, ['No routing suggestion yet']),
+            el('div', {}, [
+              `Answer most of the assessment first. At ${Math.round(r.completeness * 100)}% there is `,
+              'not enough of it to say whether this needs a board slot.',
+            ]),
+          ]),
       el('p', { class: 'muted small' }, [
         'This is a suggestion produced from your own scores. TBS confirms routing; a self-assessment does not decide it.',
       ]),
@@ -209,7 +217,7 @@ function addSnapHint(root: HTMLElement): void {
     const dots = sections.map((sec, i) =>
       el('button', {
         class: 'snap-dot', 'aria-label': `Part ${i + 1} of ${sections.length}`,
-        onclick: () => (sec as HTMLElement).scrollIntoView({ block: 'center' }),
+        onclick: () => (sec as HTMLElement).scrollIntoView({ block: 'start', behavior: 'smooth' }),
       }),
     );
     for (const d of dots) hint.appendChild(d);
@@ -221,7 +229,7 @@ function addSnapHint(root: HTMLElement): void {
         const i = sections.indexOf(e.target);
         dots.forEach((d, j) => d.classList.toggle('on', j === i));
       }
-    }, { root, threshold: 0.6 });
+    }, { root, rootMargin: '-20% 0px -60% 0px', threshold: 0 });
     for (const sec of sections) io.observe(sec);
   });
 }

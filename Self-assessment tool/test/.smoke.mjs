@@ -215,7 +215,7 @@ function flags(rubric2, a, r) {
       id: "incomplete",
       severity: "high",
       title: "Incomplete submission",
-      detail: `${r.answered} of ${r.scoreable} scoreable questions answered (${Math.round(r.completeness * 100)}%).`
+      detail: `${r.answered} of ${r.scoreable} questions answered (${Math.round(r.completeness * 100)}%). Every score below is calculated from that fraction.`
     });
   }
   const stage = a.initiative.lifecycleStage;
@@ -234,7 +234,9 @@ function flags(rubric2, a, r) {
       }
     }
   }
-  return rank(collapse(out, r));
+  const collapsed = collapse(out, r);
+  const alreadyIncomplete = collapsed.some((f) => f.id === "incomplete");
+  return rank(collapsed.filter((f) => !(alreadyIncomplete && f.id === "unanswered-many")));
 }
 function collapse(flags2, r) {
   const shareOf = new Map(allQuestionScores(r).map((qs) => [qs.question.id, qs]));
@@ -1995,6 +1997,17 @@ ok("1 -> Critical Risk", mat(1) === "Critical Risk", String(mat(1)));
   ok("one answer of 9 scores 9", Math.abs(r.overall - 9) < 1e-9, `got ${r.overall}`);
   ok("completeness reflects the gap", r.completeness < 0.02, String(r.completeness));
   ok("incompleteness is flagged", flags(rubric, a, r).some((f) => f.id === "incomplete"));
+}
+{
+  const a = blank("beta");
+  for (const q of allQ.slice(0, 20)) a.answers[q.id] = { score: 6, evidence: [], justification: "because" };
+  const fs = flags(rubric, a, score(rubric, a));
+  ok("an incomplete submission is flagged", fs.some((f) => f.id === "incomplete"));
+  ok(
+    "and its unanswered questions are not also listed one by one",
+    !fs.some((f) => f.id === "unanswered-many" || f.id === "unanswered"),
+    fs.map((f) => f.id).join(",")
+  );
 }
 {
   const a = fill(blank("beta"), 5);

@@ -174,7 +174,8 @@ export function flags(rubric: Rubric, a: Assessment, r: Result): Flag[] {
       id: 'incomplete',
       severity: 'high',
       title: 'Incomplete submission',
-      detail: `${r.answered} of ${r.scoreable} scoreable questions answered (${Math.round(r.completeness * 100)}%).`,
+      detail: `${r.answered} of ${r.scoreable} questions answered (${Math.round(r.completeness * 100)}%). ` +
+        'Every score below is calculated from that fraction.',
     });
   }
 
@@ -196,7 +197,12 @@ export function flags(rubric: Rubric, a: Assessment, r: Result): Flag[] {
     }
   }
 
-  return rank(collapse(out, r));
+  const collapsed = collapse(out, r);
+
+  // A submission that is already flagged as incomplete does not also need its 147 unanswered
+  // questions listed heaviest first. One fact, said once.
+  const alreadyIncomplete = collapsed.some((f) => f.id === 'incomplete');
+  return rank(collapsed.filter((f) => !(alreadyIncomplete && f.id === 'unanswered-many')));
 }
 
 /** Collapse the bulk kinds into one card each, keeping the heaviest examples. */

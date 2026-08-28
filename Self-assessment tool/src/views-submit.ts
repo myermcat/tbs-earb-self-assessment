@@ -182,7 +182,7 @@ export function renderSubmit(
   rail.appendChild(sectionRail(rubric, a, r, here, navigate, list));
 
   if (here.domainId === null) {
-    sheet.appendChild(aboutSection(rubric, a, refresh, repaintApp));
+    sheet.appendChild(aboutSection(rubric, a, refresh, repaintApp, r));
   } else {
     const ds = r.domains.find((d) => d.domain.id === here.domainId);
     const ss = ds?.sections.find((x) => x.section.id === here.sectionId);
@@ -193,7 +193,7 @@ export function renderSubmit(
     }
   }
 
-  if (!(here.domainId === null && !overviewShowAll)) {
+  if (!(here.domainId === null && overviewIsWizard(a))) {
     sheet.appendChild(pager(list, here, navigate, onDone));
   }
   root.appendChild(footerBar(rubric, a, r, onDone, here, navigate));
@@ -373,15 +373,13 @@ function stepper(
  * scored; they are what an assessor needs to know before reading a score.
  */
 export function overviewProgress(a: Assessment): [number, number] {
-  const fields = [
-    a.initiative.name.trim(),
-    a.initiative.department.trim(),
-    a.initiative.contact.trim(),
-    a.initiative.summary.trim(),
-    a.initiative.lifecycleStage,
-    a.initiative.classification,
+  const groups = [
+    !!(a.initiative.name.trim() && a.initiative.department.trim()
+      && a.initiative.contact.trim() && a.initiative.summary.trim()),
+    !!a.initiative.classification,
+    !!a.initiative.lifecycleStage,
   ];
-  return [fields.filter(Boolean).length, fields.length];
+  return [groups.filter(Boolean).length, groups.length];
 }
 
 /** "Application & Virtual Architecture" is too long for a tab. */
@@ -495,7 +493,11 @@ function footerBar(
       el('div', { class: 'pbar' }, [allLabel, el('div', { class: 'progress-shell' }, [allBar])]),
     ]),
     el('div', { class: 'footer-inner' }, [
-      el('div', { class: 'footer-score' }, [pill, readout]),
+      el('div', { class: 'footer-score' }, [
+        pill,
+        readout,
+        el('span', { class: 'saved-note tiny dim' }, ['Saved locally as you type']),
+      ]),
       el('div', { class: 'footer-actions' }, [
         (() => {
           const jump = el('button', { class: 'ghost', onclick: () => {
@@ -554,7 +556,24 @@ function saveFile(a: Assessment) {
  * reader is editing rather than filling in, and editing wants everything at once.
  */
 let overviewStep = 0;
-let overviewShowAll = false;
+
+/** True while the overview still has a group to fill, which is when it is a wizard. */
+function overviewIsWizard(a: Assessment): boolean {
+  const [done, total] = overviewProgress(a);
+  return done < total;
+}
+
+/** Coming back should land on the first group still empty. */
+export function resetOverviewToFirstGap(_rubric: Rubric, a: Assessment): void {
+  const filled = [
+    !!(a.initiative.name.trim() && a.initiative.department.trim()
+      && a.initiative.contact.trim() && a.initiative.summary.trim()),
+    !!a.initiative.classification,
+    !!a.initiative.lifecycleStage,
+  ];
+  const gap = filled.findIndex((x) => !x);
+  overviewStep = gap === -1 ? 0 : gap;
+}
 
 interface OverviewStep {
   key: string;
@@ -564,21 +583,12 @@ interface OverviewStep {
   build: () => HTMLElement;
 }
 
-export function resetOverviewToFirstGap(rubric: Rubric, a: Assessment): void {
-  overviewShowAll = false;
-  const filled = [
-    a.initiative.name.trim(), a.initiative.department.trim(), a.initiative.contact.trim(),
-    a.initiative.summary.trim(), a.initiative.classification, a.initiative.lifecycleStage,
-  ];
-  const gap = filled.findIndex((x) => !x);
-  overviewStep = gap === -1 ? 0 : gap;
-}
-
 function aboutSection(
   rubric: Rubric,
   a: Assessment,
   refresh: () => void,
   rebuild: () => void,
+  r: Result,
 ): HTMLElement {
   const set = (k: keyof Assessment['initiative']) => (e: Event) => {
     (a.initiative as Record<string, string>)[k] = (e.target as HTMLInputElement).value;
@@ -586,41 +596,38 @@ function aboutSection(
   };
   const settled = () => refresh();
 
+  const field = (label: string, control: HTMLElement) =>
+    el('label', { class: 'field' }, [el('span', {}, [label]), control]);
+
   const text = (k: 'name' | 'department' | 'contact', placeholder: string) =>
     el('input', {
       type: 'text', value: a.initiative[k], placeholder,
       oninput: set(k), onchange: settled,
     });
 
+  /**
+   * Three things, not six. The first is the set of plain facts about the initiative, which
+   * belong together and always did; the other two are decisions, and each is a screen of its
+   * own because each has consequences the reader should meet on its own.
+   */
   const steps: OverviewStep[] = [
     {
-      key: 'name',
-      title: 'What is the initiative called?',
-      filled: () => !!a.initiative.name.trim(),
-      build: () => text('name', 'The name people in your department would recognise'),
-    },
-    {
-      key: 'department',
-      title: 'Which department or agency runs it?',
-      filled: () => !!a.initiative.department.trim(),
-      build: () => text('department', 'Transport Canada, for example'),
-    },
-    {
-      key: 'contact',
-      title: 'Who should an assessor contact about it?',
-      help: 'A name, or a team inbox. Somebody who can answer a question about a score.',
-      filled: () => !!a.initiative.contact.trim(),
-      build: () => text('contact', 'Name or team inbox'),
-    },
-    {
-      key: 'summary',
-      title: 'In two or three sentences, what is it?',
-      help: 'Enough that somebody who has never heard of it knows what it does and who for.',
-      filled: () => !!a.initiative.summary.trim(),
-      build: () => el('textarea', {
-        rows: 4, placeholder: 'What it does, and who it is for.',
-        oninput: set('summary'), onchange: settled,
-      }, [a.initiative.summary]),
+      key: 'details',
+      title: 'About the initiative',
+      help: 'What an assessor needs before a score means anything. None of it is scored.',
+      filled: () => !!(a.initiative.name.trim() && a.initiative.department.trim()
+        && a.initiative.contact.trim() && a.initiative.summary.trim()),
+      build: () => el('div', {}, [
+        el('div', { class: 'grid-2' }, [
+          field('Initiative name', text('name', 'The name people would recognise')),
+          field('Department or agency', text('department', 'Transport Canada, for example')),
+          field('Who to contact about this', text('contact', 'Name or team inbox')),
+        ]),
+        field('In two or three sentences, what is it?', el('textarea', {
+          rows: 3, placeholder: 'What it does, and who it is for.',
+          oninput: set('summary'), onchange: settled,
+        }, [a.initiative.summary])),
+      ]),
     },
     {
       key: 'marking',
@@ -638,68 +645,71 @@ function aboutSection(
     },
   ];
 
-  if (overviewShowAll || steps.every((x) => x.filled())) {
-    return el('section', { class: 'card' }, [
-      el('div', { class: 'head-row' }, [
-        el('h2', {}, ['About the initiative']),
-        el('span', { class: 'muted small' }, ['Six things an assessor needs before a score means anything.']),
-      ]),
-      ...steps.flatMap((st, i) => [
-        i === 0 ? null : el('hr', { class: 'q-split' }),
-        el('div', { class: 'ov-block', id: st.key === 'marking' ? 'marking-control' : undefined, tabindex: st.key === 'marking' ? -1 : undefined }, [
-          el('h3', {}, [st.title]),
-          st.help ? el('p', { class: 'muted small' }, [st.help]) : null,
-          st.build(),
-        ]),
-      ]),
-    ]);
-  }
-
-  overviewStep = Math.max(0, Math.min(overviewStep, steps.length - 1));
-  const st = steps[overviewStep];
-  const done = steps.filter((x) => x.filled()).length;
-
-  return el('section', { class: 'card ov-wizard' }, [
-    el('div', { class: 'ov-progress' }, [
-      el('span', { class: 'muted tiny' }, [`Step ${overviewStep + 1} of ${steps.length}`]),
-      el('div', { class: 'ov-dots' }, steps.map((x, i) =>
-        el('span', {
-          class: `ov-dot ${x.filled() ? 'filled' : ''} ${i === overviewStep ? 'on' : ''}`,
-          'aria-hidden': true,
-        }),
-      )),
-      el('button', { class: 'linkish tiny', onclick: () => { overviewShowAll = true; repaintApp(); } }, [
-        'Show all six at once',
-      ]),
-    ]),
+  const block = (st: OverviewStep, heading: 'h2' | 'h3') =>
     el('div', {
       class: 'ov-block',
       id: st.key === 'marking' ? 'marking-control' : undefined,
       tabindex: st.key === 'marking' ? -1 : undefined,
     }, [
-      el('h2', {}, [st.title]),
+      el(heading, {}, [st.title]),
       st.help ? el('p', { class: 'muted small' }, [st.help]) : null,
       st.build(),
+    ]);
+
+  // Everything answered: three blocks on one page, separated, because by now the reader is
+  // editing and editing wants all of it visible.
+  if (steps.every((x) => x.filled())) {
+    return el('div', {}, steps.flatMap((st, i) => [
+      i === 0 ? null : el('hr', { class: 'q-split' }),
+      el('section', { class: 'card' }, [block(st, 'h2')]),
+    ]));
+  }
+
+  overviewStep = Math.max(0, Math.min(overviewStep, steps.length - 1));
+  const st = steps[overviewStep];
+  const advance = () => {
+    const wasLastGap = steps.filter((x) => !x.filled()).length === 1 && st.filled();
+    if (overviewStep < steps.length - 1) { overviewStep++; repaintApp(); return; }
+    if (wasLastGap || steps.every((x) => x.filled())) confetti('section');
+    repaintApp();
+  };
+
+  // The dots track what is filled as it is filled, so they update on the cheap refresh rather
+  // than waiting for a repaint.
+  const dots = steps.map(() => el('span', { class: 'ov-dot', 'aria-hidden': true }));
+  register(() => {
+    steps.forEach((x, i) => {
+      dots[i].className = `ov-dot ${x.filled() ? 'filled' : ''} ${i === overviewStep ? 'on' : ''}`;
+    });
+  }, r);
+
+  const card = el('section', { class: 'card ov-wizard' }, [
+    el('div', { class: 'ov-progress' }, [
+      el('span', { class: 'muted tiny' }, [`Step ${overviewStep + 1} of ${steps.length}`]),
+      el('div', { class: 'ov-dots' }, dots),
     ]),
+    block(st, 'h2'),
     el('div', { class: 'actions ov-nav' }, [
       overviewStep > 0
         ? el('button', { class: 'ghost', onclick: () => { overviewStep--; repaintApp(); } }, ['Back'])
         : el('span', {}),
-      el('button', {
-        class: 'primary',
-        onclick: () => {
-          if (overviewStep < steps.length - 1) { overviewStep++; repaintApp(); }
-          else { overviewShowAll = true; repaintApp(); }
-        },
-      }, [
+      el('button', { class: 'primary', onclick: advance }, [
         overviewStep < steps.length - 1 ? 'Next' : 'Done',
         el('span', { class: 'arrow', 'aria-hidden': true }, ['\u2192']),
       ]),
     ]),
-    done < steps.length
-      ? el('p', { class: 'tiny dim' }, [`${done} of ${steps.length} answered so far.`])
-      : null,
   ]);
+
+  // Enter moves on, the way it does in every form. Not in the textarea, where it is a newline.
+  card.addEventListener('keydown', (e) => {
+    const ev = e as KeyboardEvent;
+    if (ev.key !== 'Enter') return;
+    if ((ev.target as HTMLElement)?.tagName === 'TEXTAREA') return;
+    ev.preventDefault();
+    advance();
+  });
+
+  return card;
 }
 
 function markingChoices(a: Assessment, rebuild: () => void): HTMLElement {
@@ -708,7 +718,12 @@ function markingChoices(a: Assessment, rebuild: () => void): HTMLElement {
       el('input', {
         type: 'radio', name: 'filemark', value: c,
         checked: a.initiative.classification === c,
-        onchange: () => { a.initiative.classification = c; autosave(a); rebuild(); },
+        onchange: () => {
+          a.initiative.classification = c;
+          autosave(a);
+          if (!overviewIsWizard(a)) confetti('section');
+          rebuild();
+        },
       }),
       c,
     ]),
@@ -739,7 +754,12 @@ function stagePicker(rubric: Rubric, a: Assessment, rebuild: () => void): HTMLEl
         el('input', {
           type: 'radio', name: 'stage', id, value: st.id,
           checked: a.initiative.lifecycleStage === st.id,
-          onchange: () => { a.initiative.lifecycleStage = st.id; autosave(a); rebuild(); },
+          onchange: () => {
+            a.initiative.lifecycleStage = st.id;
+            autosave(a);
+            if (!overviewIsWizard(a)) confetti('section');
+            rebuild();
+          },
         }),
         el('div', {}, [
           el('strong', {}, [st.label]),

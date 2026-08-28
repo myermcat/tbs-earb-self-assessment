@@ -43,7 +43,7 @@
   --info:      #2a4b8d;
 
   /* One ground for the frame, a different one for the page between it. */
-  --chrome-bg: #eef1f5;
+  --chrome-bg: #e7ebf1;
 
   --radius:    10px;
   --radius-sm: 6px;
@@ -70,7 +70,7 @@
     --good: #5fbf82; --good-bg: #14251b;
     --warn: #e0a34a; --warn-bg: #2a2113;
     --bad:  #f08279; --bad-bg:  #2b1614;
-    --chrome-bg: #0b0d11;
+    --chrome-bg: #05070a;
     --shadow:    0 1px 2px rgba(0, 0, 0, .4);
     --shadow-lg: 0 6px 18px rgba(0, 0, 0, .45);
   }
@@ -92,8 +92,13 @@
 .head-row { display: flex; align-items: baseline; gap: .55rem; flex-wrap: wrap; }
 
 html { -webkit-text-size-adjust: 100%; }
-/* Wide content scrolls inside its own container; the page itself never does. */
-html, body { overflow-x: hidden; max-width: 100%; }
+/**
+ * Wide content scrolls inside its own container; the page itself never does.
+ *
+ * `clip` and not `hidden`: `overflow-x: hidden` makes body a scroll container, which silently
+ * kills `position: sticky` on everything inside it. That is how the header stopped sticking.
+ */
+html, body { overflow-x: clip; max-width: 100%; }
 
 body {
   margin: 0;
@@ -240,14 +245,18 @@ textarea { resize: vertical; }
  * a fixed-height column and the content centres inside it. A short or narrow viewport cannot
  * hold it, so scrolling comes back there.
  */
-.app-home { height: 100dvh; display: flex; flex-direction: column; overflow: hidden; }
-.app-home .body { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column;
-  justify-content: center; overflow: hidden; margin: 0 auto; padding: 1rem 1.15rem; }
+/**
+ * One screen when it fits, and a scroll when it does not. `height` plus `overflow: hidden`
+ * clipped the hero on shorter windows, cutting the primary button in half, which is worse
+ * than a scrollbar by any measure.
+ */
+.app-home { min-height: 100dvh; display: flex; flex-direction: column; }
+.app-home .body { flex: 1 1 auto; display: flex; flex-direction: column;
+  justify-content: center; margin: 0 auto; padding: 1.2rem 1.15rem; }
 .app-home .sitefoot { flex: 0 0 auto; padding: .5rem 1rem 1rem; }
 
-@media (max-width: 760px), (max-height: 640px) {
-  .app-home { height: auto; overflow: visible; }
-  .app-home .body { overflow: visible; justify-content: flex-start; padding: 1rem 1.15rem 3rem; }
+@media (max-width: 760px), (max-height: 760px) {
+  .app-home .body { justify-content: flex-start; padding: 1rem 1.15rem 3rem; }
 }
 
 .body-home { max-width: 900px; }
@@ -430,28 +439,32 @@ a.faint-link:hover { color: var(--accent); }
 .app-results { height: 100dvh; display: flex; flex-direction: column; overflow: hidden; }
 .body-results {
   flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior-y: contain;
-  scroll-snap-type: y mandatory; margin: 0 auto; padding: 0 1.15rem;
+  scroll-snap-type: y proximity; scroll-behavior: smooth;
+  margin: 0 auto; padding: 0 1.15rem 3rem;
+  scrollbar-width: none;                 /* the dots on the right are the scrollbar */
 }
+.body-results::-webkit-scrollbar { display: none; }
 .body-results > section {
-  scroll-snap-align: center; scroll-snap-stop: always;
-  min-height: 100%; display: flex; flex-direction: column; justify-content: center;
-  padding: 1.4rem 0; margin: 0; border: 0; box-shadow: none; background: none;
+  scroll-snap-align: start; scroll-margin-top: 1rem;
+  padding: 1.1rem 0; margin: 0; border: 0; box-shadow: none; background: none;
 }
 /* Each part carries its own card, so the snap target and the card are not the same box. */
-.body-results > section > * { flex: 0 0 auto; }
-.body-results > section.headline { display: flex; }
+
 
 .snap-hint { position: fixed; right: 1rem; bottom: 1.2rem; z-index: 20;
   display: flex; flex-direction: column; gap: .3rem; }
-.snap-dot { width: 7px; height: 7px; border-radius: 999px; background: var(--line-2);
-  border: 0; padding: 0; }
-.snap-dot.on { background: var(--accent); transform: scale(1.35); }
+.snap-dot { width: 8px; height: 8px; border-radius: 999px; background: var(--line-2);
+  border: 0; padding: 0; transition: background .15s, transform .15s; }
+.snap-dot:hover { background: var(--ink-3); }
+.snap-dot.on { background: var(--accent); transform: scale(1.4); }
 
-@media (max-height: 620px), (prefers-reduced-motion: reduce) {
+@media (max-height: 620px) {
   .app-results { height: auto; overflow: visible; }
   .body-results { overflow: visible; scroll-snap-type: none; }
-  .body-results > section { min-height: auto; }
   .snap-hint { display: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .body-results { scroll-behavior: auto; scroll-snap-type: none; }
 }
 
 /* ---------- questions ------------------------------------------------------------------- */
@@ -568,8 +581,9 @@ select.needs-marking { border-color: var(--bad); background: var(--bad-bg); }
 .marking-banner {
   display: block; width: 100%; border: 0; border-radius: 0;
   text-align: center; font-weight: 800; letter-spacing: .14em; font-size: .7rem;
-  padding: .26rem; background: var(--ink); color: var(--bg); text-transform: uppercase;
-  border-bottom: 1px solid var(--line);
+  padding: .3rem; text-transform: uppercase;
+  background: #14161b; color: #e8eaee;
+  border-bottom: 1px solid #2b303a;
 }
 button.marking-banner { cursor: pointer; }
 button.marking-banner:hover { filter: brightness(1.25); background: #2a1414; }
@@ -635,7 +649,9 @@ button.marking-banner:hover { filter: brightness(1.25); background: #2a1414; }
 .footer-inner { display: flex; justify-content: space-between; align-items: center; gap: 1rem;
   flex-wrap: wrap; padding: .5rem 0 .6rem; }
 .sticky-footer .pill { background: var(--surface); }
-.footer-score { display: flex; align-items: center; gap: .6rem; }
+.footer-score { display: flex; align-items: center; gap: .6rem; flex-wrap: wrap; }
+.saved-note { border-left: 1px solid var(--line-2); padding-left: .6rem; }
+@media (max-width: 720px) { .saved-note { display: none; } }
 .footer-actions { display: flex; gap: .45rem; }
 .progress-row { display: grid; grid-template-columns: minmax(0, 14rem) minmax(0, 1fr);
   gap: .5rem 1rem; padding: .5rem 0 0; }
