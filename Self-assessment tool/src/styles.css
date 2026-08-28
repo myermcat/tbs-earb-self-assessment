@@ -253,9 +253,9 @@ textarea { resize: vertical; }
 .body-home { max-width: 900px; }
 
 .hero {
-  display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2rem; align-items: center;
-  background: var(--surface); border: 1px solid var(--line); border-radius: 16px;
-  padding: 2.2rem 2.1rem; margin: 0 0 .9rem; box-shadow: var(--shadow-lg);
+  display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2.4rem; align-items: center;
+  background: var(--surface); border: 1px solid var(--line); border-radius: 18px;
+  padding: 3rem 2.6rem; margin: 0 0 1.1rem; box-shadow: var(--shadow-lg);
   position: relative; overflow: hidden;
 }
 .hero::before {
@@ -264,8 +264,9 @@ textarea { resize: vertical; }
 }
 .eyebrow { font-size: .74rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase;
   color: var(--ink-3); margin-bottom: .5rem; }
-.hero h1 { font-size: 2.15rem; letter-spacing: -.022em; margin-bottom: .6rem; }
-.hero .lead { font-size: 1.06rem; color: var(--ink-2); max-width: 44ch; margin-bottom: 1.3rem; }
+.hero h1 { font-size: 2.75rem; letter-spacing: -.028em; margin-bottom: .75rem; }
+.hero .lead { font-size: 1.15rem; line-height: 1.5; color: var(--ink-2); max-width: 46ch;
+  margin-bottom: 1.6rem; }
 .hero-actions { display: flex; gap: .6rem; flex-wrap: wrap; align-items: baseline; }
 button.big { font-size: .98rem; padding: .62rem 1.4rem; border-radius: 9px;
   display: inline-flex; align-items: center; gap: .5rem; }
@@ -279,8 +280,8 @@ button.big:hover .arrow { transform: translateX(3px); }
 .filelabel-plain { background: none; border: 0; padding: 0; font-size: .88rem; cursor: pointer; }
 
 /* The maturity ladder from the favicon, at rest. Decorative only. */
-.hero-art { display: flex; align-items: flex-end; gap: .4rem; height: 118px; }
-.hero-art .rung { width: 16px; border-radius: 5px; display: block; }
+.hero-art { display: flex; align-items: flex-end; gap: .5rem; height: 160px; }
+.hero-art .rung { width: 20px; border-radius: 6px; display: block; }
 .hero-art .r1 { height: 26%;  background: var(--s2); opacity: .55; }
 .hero-art .r2 { height: 44%;  background: var(--s4); opacity: .65; }
 .hero-art .r3 { height: 62%;  background: var(--s6); opacity: .75; }
@@ -288,13 +289,13 @@ button.big:hover .arrow { transform: translateX(3px); }
 .hero-art .r5 { height: 100%; background: var(--s10); }
 
 .note { background: transparent; border: 0; padding: .2rem .3rem 0; }
-.note h2 { font-size: .78rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase;
-  color: var(--ink-3); margin-bottom: .5rem; }
+.note h2 { font-size: .72rem; font-weight: 700; letter-spacing: .11em; text-transform: uppercase;
+  color: var(--ink-3); margin-bottom: .45rem; }
 .note ul { list-style: none; padding: 0; margin: 0; display: grid; gap: .45rem; }
-.note li { font-size: .89rem; color: var(--ink-2); padding-left: .9rem; position: relative; }
+.note li { font-size: .84rem; color: var(--ink-3); padding-left: .9rem; position: relative; }
 .note li::before { content: ''; position: absolute; left: 0; top: .58em; width: 4px; height: 4px;
   border-radius: 999px; background: var(--line-2); }
-.note li b { color: var(--ink); font-weight: 600; }
+.note li b { color: var(--ink-2); font-weight: 600; }
 
 button.linkish { background: none; border: 0; padding: 0; color: var(--accent);
   font-size: inherit; font-weight: inherit; text-decoration: underline;
@@ -416,6 +417,42 @@ hr.q-split { border: 0; border-top: 1px solid var(--line); margin: 1.2rem 0 .9re
 .phase-head h4 { font-size: .9rem; }
 a.faint-link { color: var(--ink-3); text-decoration-color: var(--line-2); }
 a.faint-link:hover { color: var(--accent); }
+
+/* ---------- results, one screen at a time ------------------------------------------------ */
+
+/**
+ * The results read as a report, so they are paged like one: the scroll stops on each part
+ * instead of running past it. scroll-snap-stop: always is what makes it stop rather than
+ * merely prefer to.
+ *
+ * The body becomes its own scroll container, so the header stays put without being sticky.
+ */
+.app-results { height: 100dvh; display: flex; flex-direction: column; overflow: hidden; }
+.body-results {
+  flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior-y: contain;
+  scroll-snap-type: y mandatory; margin: 0 auto; padding: 0 1.15rem;
+}
+.body-results > section {
+  scroll-snap-align: center; scroll-snap-stop: always;
+  min-height: 100%; display: flex; flex-direction: column; justify-content: center;
+  padding: 1.4rem 0; margin: 0; border: 0; box-shadow: none; background: none;
+}
+/* Each part carries its own card, so the snap target and the card are not the same box. */
+.body-results > section > * { flex: 0 0 auto; }
+.body-results > section.headline { display: flex; }
+
+.snap-hint { position: fixed; right: 1rem; bottom: 1.2rem; z-index: 20;
+  display: flex; flex-direction: column; gap: .3rem; }
+.snap-dot { width: 7px; height: 7px; border-radius: 999px; background: var(--line-2);
+  border: 0; padding: 0; }
+.snap-dot.on { background: var(--accent); transform: scale(1.35); }
+
+@media (max-height: 620px), (prefers-reduced-motion: reduce) {
+  .app-results { height: auto; overflow: visible; }
+  .body-results { overflow: visible; scroll-snap-type: none; }
+  .body-results > section { min-height: auto; }
+  .snap-hint { display: none; }
+}
 
 /* ---------- questions ------------------------------------------------------------------- */
 
@@ -587,7 +624,11 @@ button.marking-banner:hover { filter: brightness(1.25); background: #2a1414; }
   padding: 0 1.15rem;
   box-shadow: 0 -10px 24px -14px rgba(16, 24, 40, .35);
 }
-.sticky-footer > * { max-width: 1200px; margin-inline: auto; }
+.sticky-footer > .progress-row,
+.sticky-footer > .footer-inner { max-width: 1200px; margin-inline: auto; }
+/* The gate is a band across the whole bar. Capping it at the content width left the colour
+   stopping short of both edges, which read as a mistake. */
+.sticky-footer > .gate-band { margin: 0 -1.15rem; }
 @media (prefers-color-scheme: dark) {
   .sticky-footer { box-shadow: 0 -14px 30px -14px rgba(0, 0, 0, .8); }
 }
@@ -617,8 +658,10 @@ button.marking-banner:hover { filter: brightness(1.25); background: #2a1414; }
   .progress-shell i.celebrate { animation: none; }
 }
 
-.gate { background: var(--warn-bg); border-bottom: 1px solid color-mix(in srgb, var(--warn) 40%, transparent);
-  color: var(--warn); padding: .4rem 0; font-size: .84rem;
+.gate-band { background: var(--warn-bg);
+  border-bottom: 1px solid color-mix(in srgb, var(--warn) 40%, transparent); }
+.gate { max-width: 1200px; margin-inline: auto; color: var(--warn);
+  padding: .4rem 1.15rem; font-size: .84rem;
   display: flex; align-items: center; justify-content: space-between; gap: .8rem; flex-wrap: wrap; }
 .gate-marks { display: flex; gap: .25rem; flex-wrap: wrap; }
 .mark-btn { font-size: .76rem; padding: .16rem .5rem; border-radius: 999px;
@@ -753,7 +796,10 @@ td.num { text-align: right; font-family: var(--mono); font-variant-numeric: tabu
 /* ---------- print ----------------------------------------------------------------------- */
 
 @media print {
-  .topbar, .sticky-footer, .actions, .sitefoot, .stepper, button, .filelabel { display: none !important; }
+  .topbar, .sticky-footer, .actions, .sitefoot, .stepper, button, .filelabel, .snap-hint { display: none !important; }
+  .app-results { height: auto; overflow: visible; }
+  .body-results { overflow: visible; scroll-snap-type: none; }
+  .body-results > section { min-height: auto; display: block; }
   input, select, textarea, .score-row, .chosen, .evidence .ev-item, .ev-head, .note-secure { display: none !important; }
   .print-only { display: block; }
   ul.print-only { display: block; padding-left: 1.1rem; }
