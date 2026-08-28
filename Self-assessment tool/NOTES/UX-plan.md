@@ -15,34 +15,34 @@ the full text of all nine. Read it before implementing; the summaries below are 
 These are confirmed against the source, not opinions. Two of them mean a claim already made
 to Mariia was wrong.
 
-**1. Printing loses every score.** `src/styles.css:553` hides `button` with
+**1. Fixed. Printing lost every score.** `src/styles.css:553` hides `button` with
 `display: none !important` in print. The score selector IS eleven buttons, so a printed
 assessment shows the questions and nothing that was answered. The fix has two halves: narrow
 the rule to `button:not(.sec-toggle)`, and write the chosen value into a `data-print`
 attribute that prints via `content: attr(data-print)`.
 
-**2. Printing loses collapsed sections entirely.** `src/styles.css:558` has
+**2. Fixed. Printing lost collapsed sections entirely.** `src/styles.css:558` has
 `details { display: block } details > summary { display: none }`. Hiding the summary hides the
 section title and its score, and `display: block` on a `<details>` does **not** reveal a closed
 one in Blink or WebKit. So a section left folded prints as a heading-less blank. Delete that
 line as a print mechanism and either force sections open before print or drop `<details>` on
 the submit side.
 
-**3. Typed values do not print.** Form controls print their initial markup, not what was typed,
+**3. Fixed. Typed values did not print.** Form controls print their initial markup, not what was typed,
 so the justification textareas print empty. The fix is to mirror the value into a print-only
 `<p>` on `input`, gated by a `.has-content` class.
 
-**4. A screen reader reads "Business Architecture 5.2".** The score pill is inside the domain
+**4. Fixed. A screen reader read "Business Architecture 5.2".** The score pill is inside the domain
 `<h2>` and the section `<h3>`. Move it out into a sibling with an `.sr-only` "out of 10".
 
-**5. `nav.path` has no accessible name**, so a screen reader announces "navigation, navigation"
+**5. Fixed. `nav.path` had no accessible name**, so a screen reader announces "navigation, navigation"
 once the second nav is added.
 
-**6. Four sections share the id `defining-the-current-state`,** one per domain. Any DOM id,
+**6. Four sections share the id `defining-the-current-state`,** still live, `cssId()` is ready. one per domain. Any DOM id,
 anchor, `aria-controls` or storage key built from a section id will collide. Namespace every
 one as `${domain.id}--${section.id}` and sanitise with `replace(/[^A-Za-z0-9_-]/g, '_')`.
 
-**7. Every score click rebuilds the whole page.** `repaintApp()` runs `paint()`, which clears
+**7. Fixed. Every score click rebuilt the whole page.** `repaintApp()` runs `paint()`, which clears
 `#app` and rebuilds it, measured at about 4,049 nodes on the Business Architecture page. All
 four proposals independently identified this as the blocker: sticky headers, user-controlled
 collapse state, surviving input focus and any completion animation are impossible until a score
@@ -136,11 +136,17 @@ manager and two assessors, is not worth it. The header split gives the whole ben
 
 ## Build order
 
-1. **Narrow the repaint.** Alone, with `npm test` green before and after. Everything else
+Steps 1 to 4 are done and pushed. Steps 5 to 8 are not started.
+
+1. **Done. Narrow the repaint.** Alone, with `npm test` green before and after. Everything else
    depends on it.
-2. **Print fixes.** Defects 1, 2 and 3 above. Cheap, and they fix a claim already made.
-3. **Accessibility fixes.** Defects 4, 5 and 6. Also cheap.
-4. **The `side` split** in `main.ts`, and the two paths.
+2. **Done. Print fixes.** Defects 1, 2 and 3 above. `test/print.mjs` holds them.
+3. **Done. Accessibility fixes.** Defects 4 and 5, plus the score row became a radio group
+   with one tab stop and arrow keys, down from 1,936 tab stops. `cssId()` added for defect 6,
+   ready for the section ids that step 5 introduces.
+4. **Done. The `side` split** in `main.ts`. Submitter path is Start, Fill it in, My results.
+   Assessor path is Submissions, behind a badge, with a crossover offered once on the start
+   page and a way back in the header.
 5. **21 stops**, the sticky domain tab strip and the section rail, in `views-submit.ts`.
 6. **The question card**, the gutter number, the status edge, the evidence tint inversion.
 7. **The two progress bars** and the completion animation, with `prefers-reduced-motion`.
@@ -160,6 +166,13 @@ unstated omission reads as an oversight.
 - **No second build for the assessor.**
 - **No tamper detection on the saved file.** Settled earlier: a submitter can set any score in
   the form, so a hash catches nothing.
+
+## One more defect, found while fixing the others
+
+`el()` renders a boolean `true` as an empty attribute. That is right for `hidden` and
+`disabled` and wrong for ARIA, because `aria-hidden=""` hides nothing. Every decorative element
+in the header and the hero was affected and nothing showed it. Fixed in the helper, with a test
+asserting no `aria-*` attribute is ever rendered empty.
 
 ## Environment guards, confirmed by probing jsdom 29.1.1
 

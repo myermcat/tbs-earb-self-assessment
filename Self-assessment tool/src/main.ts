@@ -10,9 +10,39 @@ import BUILTIN from '../rubric/rubric.v1-dan.json';
 
 type Mode = 'home' | 'submit' | 'results' | 'review' | 'settings';
 
+/**
+ * Two jobs live in this file, and they belong to different people. A department fills an
+ * assessment in; a handful of assessors at TBS read many of them. Mixing both into one path
+ * asks every submitter to walk past a door that is not theirs.
+ *
+ * They are separated by a side, not by a second build. One HTML file that behaves as two
+ * things costs nothing to publish; two builds double the publishing story for a tool that is
+ * one file, serving one manager and two assessors.
+ */
+type Side = 'submit' | 'assess';
+
+const SIDE_KEY = 'gc-arch-assessment:side';
+const SIDE_OF: Record<Mode, Side | null> = {
+  home: 'submit', submit: 'submit', results: 'submit',
+  review: 'assess',
+  settings: null,             // settings belongs to whoever is looking at it
+};
+
+function bootSide(): Side {
+  // A bookmarked #assessor wins, so an assessor can pin the door they use.
+  try {
+    if (window.location.hash === '#assessor') return 'assess';
+    if (localStorage.getItem(SIDE_KEY) === 'assess') return 'assess';
+  } catch {
+    /* private window, or storage disabled. The submitter side is the right default. */
+  }
+  return 'submit';
+}
+
 let rubric: Rubric = BUILTIN as unknown as Rubric;
 let assessment: Assessment = loadDraft() ?? blankAssessment(rubric);
-let mode: Mode = 'home';
+let side: Side = bootSide();
+let mode: Mode = side === 'assess' ? 'review' : 'home';
 
 const app = document.getElementById('app')!;
 
@@ -26,8 +56,22 @@ function questionCount(r: Rubric): number {
 
 function go(next: Mode) {
   mode = next;
+  const owner = SIDE_OF[next];
+  if (owner && owner !== side) setSide(owner, false);
   paint();
   window.scrollTo({ top: 0 });
+}
+
+/** Cross between the two sides, and remember which one, so a return visit opens the same door. */
+function setSide(next: Side, move = true) {
+  side = next;
+  try {
+    localStorage.setItem(SIDE_KEY, next);
+    window.location.hash = next === 'assess' ? '#assessor' : '';
+  } catch {
+    /* storage or history unavailable. The side still holds for this visit. */
+  }
+  if (move) go(next === 'assess' ? 'review' : 'home');
 }
 
 const GEAR =
@@ -71,16 +115,22 @@ function header(): HTMLElement {
   const chev = () => el('span', { class: 'chev', 'aria-hidden': true }, ['\u203A']);
 
   return el('header', { class: 'topbar' }, [
-    el('div', { class: 'brand', onclick: () => go('home') }, [
+    el('div', { class: 'brand', onclick: () => go(side === 'assess' ? 'review' : 'home') }, [
       el('span', { class: 'brand-mark' }, ['EA']),
       el('strong', {}, [rubric.title]),
+      side === 'assess' ? el('span', { class: 'side-badge' }, ['Assessor']) : null,
     ]),
     el('div', { class: 'topbar-right' }, [
-      el('nav', { class: 'path', 'aria-label': 'Where you are' }, [
-        tab('Start', 'home'), chev(),
-        tab('Fill it in', 'submit'), chev(),
-        tab('Review submissions', 'review'),
-      ]),
+      side === 'assess'
+        ? el('nav', { class: 'path', 'aria-label': 'Where you are' }, [tab('Submissions', 'review')])
+        : el('nav', { class: 'path', 'aria-label': 'Where you are' }, [
+            tab('Start', 'home'), chev(),
+            tab('Fill it in', 'submit'), chev(),
+            tab('My results', 'results'),
+          ]),
+      side === 'assess'
+        ? el('button', { class: 'linkish small', onclick: () => setSide('submit') }, ['Leave assessor view'])
+        : null,
       el('button', {
         class: `icon-btn ${mode === 'settings' ? 'on' : ''}`,
         title: 'Settings', 'aria-label': 'Settings',
@@ -171,6 +221,11 @@ function renderHome(root: HTMLElement) {
       el('span', { class: 'rung r3' }), el('span', { class: 'rung r4' }),
       el('span', { class: 'rung r5' }),
     ]),
+  ]));
+
+  root.appendChild(el('p', { class: 'crossover tiny dim' }, [
+    'Reviewing submissions for TBS? ',
+    el('button', { class: 'linkish', onclick: () => setSide('assess') }, ['Open the assessor view']),
   ]));
 
   root.appendChild(el('section', { class: 'note' }, [
