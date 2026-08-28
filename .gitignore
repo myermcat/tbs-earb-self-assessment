@@ -1,3 +1,6 @@
 node_modules/
 .DS_Store
 test/.smoke.mjs
+
+# Internal source documents stay off GitHub. They live in this folder locally only.
+EARB target state knowledge base/*.pdf
