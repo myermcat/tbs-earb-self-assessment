@@ -17,11 +17,36 @@ export const cssId = (...parts: string[]): string =>
   parts.join('--').replace(/[^A-Za-z0-9_-]/g, '_');
 
 /**
- * 176 questions is far too many for one page, so the questionnaire is paged: an overview,
- * then one page per architecture domain, with each of Dan's weighted sections collapsible
- * and carrying its own running average.
+ * 176 questions in one scroll reads as a single undifferentiated sheet, however the questions
+ * inside it are styled. So the questionnaire is one weighted section per page: 21 stops, the
+ * overview plus Dan's twenty sections, each holding between three and fourteen questions.
+ *
+ * A page that can be finished is the thing that makes the parts feel like parts.
  */
-let page: 'about' | string = 'about';
+let page = 'about';
+
+interface Stop {
+  key: string;
+  label: string;
+  domainId: string | null;
+  sectionId: string | null;
+}
+
+function stops(rubric: Rubric): Stop[] {
+  const out: Stop[] = [{ key: 'about', label: 'Overview', domainId: null, sectionId: null }];
+  for (const d of rubric.domains) {
+    for (const sec of d.sections) {
+      out.push({ key: `${d.id}/${sec.id}`, label: sec.label, domainId: d.id, sectionId: sec.id });
+    }
+  }
+  return out;
+}
+
+const stopOf = (list: Stop[], key: string): Stop => list.find((x) => x.key === key) ?? list[0];
+
+/** The first stop of a domain, which is where its tab leads. */
+const firstStopIn = (list: Stop[], domainId: string): string =>
+  list.find((x) => x.domainId === domainId)?.key ?? 'about';
 
 /**
  * Repainting only this view leaves the shell stale - most visibly the classification banner,
@@ -45,6 +70,19 @@ export function setRepaint(fn: () => void): void { repaintApp = fn; }
 type Readout = (r: Result) => void;
 let readouts: Readout[] = [];
 const register = (fn: Readout, r: Result) => { fn(r); readouts.push(fn); };
+
+/**
+ * The domain tabs belong in the shell's sticky block, beside the header and the marking
+ * banner. Two separately pinned strips leave a seam that page content shows through, and the
+ * seam moves as the header wraps. They are built here, because they register readouts, and
+ * handed to the shell to place.
+ */
+let tabsNode: HTMLElement | null = null;
+export function takeSubmitTabs(): HTMLElement | null {
+  const n = tabsNode;
+  tabsNode = null;
+  return n;
+}
 
 export function renderSubmit(
   root: HTMLElement,
@@ -78,12 +116,22 @@ export function renderSubmit(
     for (const fn of readouts) fn(next);
   };
 
-  root.appendChild(stepper(rubric, a, r, navigate));
+  const list = stops(rubric);
+  const here = stopOf(list, page);
+  page = here.key;
 
-  if (page === 'about') {
-    root.appendChild(aboutSection(rubric, a, refresh, repaintApp));
+  tabsNode = stepper(rubric, a, r, navigate, list);
+
+  const rail = el('aside', { class: 'rail' });
+  const sheet = el('div', { class: 'sheet' });
+  root.appendChild(el('div', { class: 'form-layout' }, [rail, sheet]));
+
+  rail.appendChild(sectionRail(rubric, a, r, here, navigate, list));
+
+  if (here.domainId === null) {
+    sheet.appendChild(aboutSection(rubric, a, refresh, repaintApp));
     if (!a.initiative.lifecycleStage) {
-      root.appendChild(el('section', { class: 'card warn' }, [
+      sheet.appendChild(el('section', { class: 'card warn' }, [
         el('strong', {}, ['Pick a lifecycle stage before you start scoring']),
         el('p', { class: 'small' }, [
           'It changes what is expected of you. Current-state questions count for less if there is nothing built yet.',
@@ -91,45 +139,135 @@ export function renderSubmit(
       ]));
     }
   } else {
-    const ds = r.domains.find((d) => d.domain.id === page);
-    if (!ds) { page = 'about'; repaintApp(); return; }
-    root.appendChild(domainHead(ds, r, page));
-    for (const ss of ds.sections) root.appendChild(sectionBlock(rubric, a, ss, refresh, r));
+    const ds = r.domains.find((d) => d.domain.id === here.domainId);
+    const ss = ds?.sections.find((x) => x.section.id === here.sectionId);
+    if (!ds || !ss) { page = 'about'; repaintApp(); return; }
+    sheet.appendChild(sectionHead(ds, ss, r, here));
+    for (const qs of ss.questions) {
+      sheet.appendChild(questionBlock(rubric, a, qs.question, refresh));
+    }
   }
 
-  root.appendChild(pager(rubric, navigate, onDone));
-  root.appendChild(footerBar(a, r, onDone));
+  sheet.appendChild(pager(list, here, navigate, onDone));
+  root.appendChild(footerBar(a, r, onDone, here));
 }
 
 /**
- * The domain heading. The score pill is a sibling of the heading text and not inside it, so a
- * screen reader reads "Business Architecture" and then "5.2 out of 10" as separate things.
+ * The heading of the one section on this page. It carries the section's weight inside its
+ * domain and its own running average, so a reader knows what this page is worth without
+ * leaving it.
  */
-function domainHead(ds: Result['domains'][number], r: Result, domainId: string): HTMLElement {
+function sectionHead(
+  ds: Result['domains'][number],
+  ss: SectionScore,
+  r: Result,
+  here: Stop,
+): HTMLElement {
   const pill = el('span', { class: 'pill', 'aria-hidden': true });
   const srPill = el('span', { class: 'sr-only' });
   const counts = el('p', { class: 'muted small' });
 
   const apply = (rr: Result) => {
-    const d = rr.domains.find((x) => x.domain.id === domainId);
-    if (!d) return;
-    pill.className = `pill ${tone(d.score)}`;
-    pill.textContent = d.score === null ? '--' : d.score.toFixed(1);
-    srPill.textContent = d.score === null ? 'not scored yet' : `${d.score.toFixed(1)} out of 10`;
-    counts.textContent = `${d.domain.weight}% of the overall score. ${d.answered} of ${d.total} answered.`;
+    const d = rr.domains.find((x) => x.domain.id === here.domainId);
+    const cur = d?.sections.find((x) => x.section.id === here.sectionId);
+    if (!cur || !d) return;
+    pill.className = `pill ${tone(cur.score)}`;
+    pill.textContent = cur.score === null ? '--' : cur.score.toFixed(1);
+    srPill.textContent = cur.score === null ? 'not scored yet' : `${cur.score.toFixed(1)} out of 10`;
+    counts.textContent =
+      `${cur.weight}% of ${d.domain.label}, which is ${d.domain.weight}% of the total. ` +
+      `${cur.answered} of ${cur.total} answered on this page.`;
   };
 
-  const node = el('section', { class: 'card' }, [
+  const stageNote = (() => {
+    const exp = ss.expectation;
+    if (exp === 'expected') return null;
+    return el('span', { class: `badge ${exp === 'critical' ? 'badge-warn' : 'badge-soft'}` }, [
+      exp === 'critical' ? 'Counts more at your stage' : 'Counts less at your stage',
+    ]);
+  })();
+
+  const node = el('section', { class: 'card section-head-card' }, [
+    el('p', { class: 'eyebrow' }, [ds.domain.label]),
     el('div', { class: 'head-row' }, [
-      el('h2', {}, [ds.domain.label]),
+      el('h2', {}, [ss.section.label]),
       pill,
       srPill,
+      stageNote,
     ]),
-    ds.domain.description ? el('p', { class: 'muted' }, [ds.domain.description]) : null,
     counts,
   ]);
   register(apply, r);
   return node;
+}
+
+/**
+ * The rail. Both levels of the rubric, permanently on screen and costing no vertical space:
+ * which section of which domain this page is, and how far through each one is.
+ */
+function sectionRail(
+  rubric: Rubric,
+  a: Assessment,
+  r: Result,
+  here: Stop,
+  navigate: (t: string) => void,
+  list: Stop[],
+): HTMLElement {
+  const nav = el('nav', { class: 'toc', 'aria-label': 'Sections of this assessment' });
+
+  const overview = el('button', {
+    class: `toc-row toc-overview ${here.key === 'about' ? 'on' : ''}`,
+    onclick: () => navigate('about'),
+  }, [el('span', { class: 'toc-label' }, ['Overview'])]);
+  nav.appendChild(overview);
+
+  for (const d of rubric.domains) {
+    const open = d.id === here.domainId;
+    nav.appendChild(el('div', { class: 'toc-domain' }, [
+      el('button', {
+        class: `toc-row toc-dom ${open ? 'open' : ''}`,
+        onclick: () => navigate(firstStopIn(list, d.id)),
+      }, [
+        el('span', { class: 'toc-label' }, [shortLabel(d.label)]),
+        (() => {
+          const c = el('span', { class: 'toc-count' });
+          register((rr) => {
+            const ds = rr.domains.find((x) => x.domain.id === d.id);
+            c.textContent = `${ds?.answered ?? 0}/${ds?.total ?? 0}`;
+          }, r);
+          return c;
+        })(),
+      ]),
+      ...(open
+        ? d.sections.map((sec) => {
+            const key = `${d.id}/${sec.id}`;
+            const count = el('span', { class: 'toc-count' });
+            const fill = el('i');
+            const row = el('button', {
+              class: `toc-row toc-sec ${here.key === key ? 'on' : ''}`,
+              'aria-current': here.key === key ? 'page' : 'false',
+              onclick: () => navigate(key),
+            }, [
+              el('span', { class: 'toc-label' }, [sec.label]),
+              count,
+              el('span', { class: 'toc-bar' }, [fill]),
+            ]);
+            register((rr) => {
+              const cur = rr.domains
+                .find((x) => x.domain.id === d.id)?.sections
+                .find((x) => x.section.id === sec.id);
+              const done = cur?.answered ?? 0;
+              const total = cur?.total ?? 0;
+              count.textContent = `${done}/${total}`;
+              fill.style.width = total > 0 ? `${Math.round((done / total) * 100)}%` : '0%';
+              row.classList.toggle('done', total > 0 && done === total);
+            }, r);
+            return row;
+          })
+        : []),
+    ]));
+  }
+  return nav;
 }
 
 function stepper(
@@ -137,8 +275,9 @@ function stepper(
   a: Assessment,
   r: Result,
   navigate: (target: string) => void,
+  list: Stop[],
 ): HTMLElement {
-  const step = (label: string, target: string, count: (rr: Result) => [number, number]) => {
+  const step = (label: string, target: string, owns: (s: Stop) => boolean, count: (rr: Result) => [number, number]) => {
     const countEl = el('span', { class: 'step-count' });
     const fill = el('i');
     const btn = el('button', {
@@ -152,8 +291,9 @@ function stepper(
     const apply = (rr: Result) => {
       const [done, total] = count(rr);
       const complete = total > 0 && done === total;
-      btn.className = `step ${page === target ? 'on' : ''} ${complete ? 'complete' : ''}`;
-      btn.setAttribute('aria-current', page === target ? 'page' : 'false');
+      const on = owns(stopOf(list, page));
+      btn.className = `step ${on ? 'on' : ''} ${complete ? 'complete' : ''}`;
+      btn.setAttribute('aria-current', on ? 'page' : 'false');
       countEl.textContent = `${done} of ${total}`;
       fill.style.width = total > 0 ? `${Math.round((done / total) * 100)}%` : '0%';
     };
@@ -162,9 +302,9 @@ function stepper(
   };
 
   return el('nav', { class: 'stepper', 'aria-label': 'Parts of the assessment' }, [
-    step('Overview', 'about', () => [a.initiative.lifecycleStage ? 1 : 0, 1]),
+    step('Overview', 'about', (st) => st.domainId === null, () => [a.initiative.lifecycleStage ? 1 : 0, 1]),
     ...rubric.domains.map((d) =>
-      step(shortLabel(d.label), d.id, (rr) => {
+      step(shortLabel(d.label), firstStopIn(list, d.id), (st) => st.domainId === d.id, (rr) => {
         const ds = rr.domains.find((x) => x.domain.id === d.id);
         return [ds?.answered ?? 0, ds?.total ?? 0];
       }),
@@ -177,34 +317,64 @@ function shortLabel(s: string): string {
   return s.replace(/\s*&\s*\w+/, '').replace(/\s*Architecture$/, '');
 }
 
-function pager(rubric: Rubric, navigate: (t: string) => void, onDone: () => void): HTMLElement {
-  const order = ['about', ...rubric.domains.map((d) => d.id)];
-  const i = order.indexOf(page);
-  return el('section', { class: 'card actions' }, [
-    i > 0 ? el('button', { class: 'ghost', onclick: () => navigate(order[i - 1]) }, ['Back']) : null,
-    i < order.length - 1
-      ? el('button', { class: 'primary', onclick: () => navigate(order[i + 1]) }, ['Next'])
+function pager(list: Stop[], here: Stop, navigate: (t: string) => void, onDone: () => void): HTMLElement {
+  const i = list.findIndex((x) => x.key === here.key);
+  const prev = i > 0 ? list[i - 1] : null;
+  const next = i < list.length - 1 ? list[i + 1] : null;
+  return el('section', { class: 'card actions pager' }, [
+    prev
+      ? el('button', { class: 'ghost', onclick: () => navigate(prev.key) }, [`Back: ${prev.label}`])
+      : null,
+    next
+      ? el('button', { class: 'primary', onclick: () => navigate(next.key) }, [
+          `Next: ${next.label}`,
+          el('span', { class: 'arrow', 'aria-hidden': true }, ['\u2192']),
+        ])
       : el('button', { class: 'primary', onclick: onDone }, ['See my results']),
   ]);
 }
 
-function footerBar(a: Assessment, r: Result, onDone: () => void): HTMLElement {
+function footerBar(a: Assessment, r: Result, onDone: () => void, here: Stop): HTMLElement {
   const gate = el('div', {});
-  const pill = el('span', { class: 'pill' });
+  const pill = el('span', { class: 'pill', 'aria-hidden': true });
   const readout = el('span', { class: 'muted small' });
   const save = el('button', { class: 'ghost', onclick: () => saveFile(a) }, ['Save to a file']);
+
+  /**
+   * Two bars. One answer in 176 moves the whole-assessment bar by half a percent, which is
+   * invisible; the median section holds nine questions, so a section bar moves about eleven
+   * percent per answer. The one that can show progress is the one worth animating.
+   */
+  const secBar = el('i');
+  const secLabel = el('span', { class: 'pbar-label' });
+  const allBar = el('i');
+  const allLabel = el('span', { class: 'pbar-label' });
+  let sectionWasComplete = false;
 
   const apply = (rr: Result) => {
     const problems = markingProblems(a);
     clear(gate);
     if (problems.length) {
+      const needsFileMark = problems.some((x) => x.kind === 'no-file-marking');
       gate.appendChild(el('div', { class: 'gate small' }, [
-        el('strong', {}, [
-          problems.length === 1
-            ? 'One thing before you can save: '
-            : `${problems.length} things before you can save: `,
+        el('div', {}, [
+          el('strong', {}, [
+            problems.length === 1
+              ? 'One thing before you can save: '
+              : `${problems.length} things before you can save: `,
+          ]),
+          problems[0].message,
         ]),
-        problems[0].message,
+        // Telling somebody to mark the file and making them go and find the control is how a
+        // gate turns into a notice people learn to read past. The control is here.
+        needsFileMark
+          ? el('div', { class: 'gate-marks' }, CLASSIFICATIONS.map((c) =>
+              el('button', {
+                class: 'mark-btn',
+                onclick: () => { a.initiative.classification = c; autosave(a); repaintApp(); },
+              }, [c]),
+            ))
+          : null,
       ]));
     }
     pill.className = `pill ${tone(rr.overall)}`;
@@ -215,10 +385,36 @@ function footerBar(a: Assessment, r: Result, onDone: () => void): HTMLElement {
     save.title = problems.length
       ? problems.map((p) => p.message).join('\n')
       : 'Save a copy you can reopen later';
+
+    const cur = here.domainId
+      ? rr.domains.find((x) => x.domain.id === here.domainId)?.sections.find((x) => x.section.id === here.sectionId)
+      : undefined;
+    const done = cur?.answered ?? 0;
+    const total = cur?.total ?? 0;
+    secLabel.textContent = cur ? `This section ${done} of ${total}` : 'Overview';
+    secBar.style.width = total > 0 ? `${Math.round((done / total) * 100)}%` : '0%';
+
+    allLabel.textContent = `Whole assessment ${rr.answered} of ${rr.scoreable}`;
+    allBar.style.width = rr.scoreable > 0 ? `${Math.round((rr.answered / rr.scoreable) * 100)}%` : '0%';
+
+    // The reward for finishing a section, on an element that is pinned, so it is seen however
+    // far down the page the reader is.
+    const nowComplete = total > 0 && done === total;
+    if (nowComplete && !sectionWasComplete) {
+      secBar.classList.remove('celebrate');
+      void secBar.offsetWidth;                     // restart the animation
+      secBar.classList.add('celebrate');
+    }
+    sectionWasComplete = nowComplete;
+    secBar.classList.toggle('done', nowComplete);
   };
 
   const node = el('div', { class: 'sticky-footer' }, [
     gate,
+    el('div', { class: 'progress-row' }, [
+      el('div', { class: 'pbar' }, [secLabel, el('div', { class: 'progress-shell' }, [secBar])]),
+      el('div', { class: 'pbar' }, [allLabel, el('div', { class: 'progress-shell' }, [allBar])]),
+    ]),
     el('div', { class: 'footer-inner' }, [
       el('div', { class: 'footer-score' }, [pill, readout]),
       el('div', { class: 'footer-actions' }, [
@@ -227,56 +423,6 @@ function footerBar(a: Assessment, r: Result, onDone: () => void): HTMLElement {
       ]),
     ]),
   ]);
-  register(apply, r);
-  return node;
-}
-
-function sectionBlock(
-  rubric: Rubric,
-  a: Assessment,
-  ss: SectionScore,
-  refresh: () => void,
-  r: Result,
-): HTMLElement {
-  const stageNote = (() => {
-    const exp = ss.section.stageExpectation?.[a.initiative.lifecycleStage];
-    if (!exp || exp === 'expected') return null;
-    return el('span', { class: `badge ${exp === 'critical' ? 'badge-warn' : 'badge-soft'}` }, [
-      exp === 'critical' ? 'Counts more at your stage' : 'Counts less at your stage',
-    ]);
-  })();
-
-  const body = el('div', {});
-  for (const qs of ss.questions) body.appendChild(questionBlock(rubric, a, qs.question, refresh));
-
-  const pill = el('span', { class: 'pill small', 'aria-hidden': true });
-  const srPill = el('span', { class: 'sr-only' });
-  const count = el('span', { class: 'muted small' });
-  const details = el('details', { open: ss.answered < ss.total });
-
-  const apply = (rr: Result) => {
-    const found = rr.domains
-      .flatMap((d) => d.sections)
-      .find((x) => x.section.id === ss.section.id && x.questions[0]?.domainId === ss.questions[0]?.domainId);
-    const cur = found ?? ss;
-    pill.className = `pill small ${tone(cur.score)}`;
-    pill.textContent = cur.score === null ? '--' : cur.score.toFixed(1);
-    srPill.textContent = cur.score === null ? 'not scored yet' : `${cur.score.toFixed(1)} out of 10`;
-    count.textContent = `${cur.answered}/${cur.total}`;
-    details.classList.toggle('done', cur.total > 0 && cur.answered === cur.total);
-  };
-
-  details.appendChild(el('summary', { class: 'section-summary' }, [
-    pill,
-    srPill,
-    el('span', { class: 'section-title' }, [ss.section.label]),
-    el('span', { class: 'muted small' }, [`${ss.weight}% of this domain`]),
-    count,
-    stageNote,
-  ]));
-  details.appendChild(body);
-
-  const node = el('section', { class: 'card section' }, [details]);
   register(apply, r);
   return node;
 }
@@ -489,6 +635,10 @@ function questionBlock(rubric: Rubric, a: Assessment, q: Question, refresh: () =
 
   const paintChosen = () => {
     clear(chosen);
+    wrap.classList.toggle('answered', ans.score !== null && !ans.na);
+    wrap.classList.toggle('na', !!ans.na);
+    if (ans.score !== null && !ans.na) wrap.style.setProperty('--edge', `var(--s${ans.score})`);
+    else wrap.style.removeProperty('--edge');
     const rung = ans.score === null ? null : ladder.slice().reverse().find((x) => x.value <= (ans.score as number));
     printScore.textContent = ans.na
       ? 'Not applicable'
@@ -503,14 +653,22 @@ function questionBlock(rubric: Rubric, a: Assessment, q: Question, refresh: () =
       ]));
     }
   };
+  /**
+   * The answering apparatus goes on its own tinted ground, so the question reads as the
+   * question and the answering reads as the answering. The evidence was the only tinted block
+   * before, which made the evidence look like the separated thing.
+   */
+  const answerBox = el('div', { class: 'q-ans' });
+  wrap.appendChild(answerBox);
+
   paintScores();
-  wrap.appendChild(el('div', { class: 'score-line' }, [
+  answerBox.appendChild(el('div', { class: 'score-line' }, [
     scoreRow,
     el('label', { class: 'na' }, [naBox, 'Not applicable']),
   ]));
   paintChosen();
-  wrap.appendChild(chosen);
-  wrap.appendChild(printScore);
+  answerBox.appendChild(chosen);
+  answerBox.appendChild(printScore);
 
   if (q.picklist) {
     const sel = el('select', {
@@ -531,7 +689,7 @@ function questionBlock(rubric: Rubric, a: Assessment, q: Question, refresh: () =
       }
     };
     paintOther();
-    wrap.appendChild(el('div', { class: 'field' }, [
+    answerBox.appendChild(el('div', { class: 'field' }, [
       el('span', {}, ['Which of these describes yours?']),
       sel,
       q.picklistNote ? el('div', { class: 'muted small warn-text' }, [q.picklistNote]) : null,
@@ -548,7 +706,7 @@ function questionBlock(rubric: Rubric, a: Assessment, q: Question, refresh: () =
   };
   mirrorJust();
 
-  wrap.appendChild(el('label', { class: 'field' }, [
+  answerBox.appendChild(el('label', { class: 'field' }, [
     el('span', {}, ['Why that score, in your words']),
     el('textarea', {
       rows: 2, placeholder: 'One or two sentences is plenty.',
@@ -559,7 +717,7 @@ function questionBlock(rubric: Rubric, a: Assessment, q: Question, refresh: () =
       },
     }, [ans.justification ?? '']),
   ]));
-  wrap.appendChild(printJust);
+  answerBox.appendChild(printJust);
 
   wrap.appendChild(evidenceEditor(a, q, ans.evidence ??= [], refresh));
   return wrap;

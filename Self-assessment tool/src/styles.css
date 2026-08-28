@@ -319,6 +319,60 @@ code.mono { background: var(--surface-2); border: 1px solid var(--line);
 .stage-card strong { font-size: .9rem; }
 .dlg-link { display: inline-block; font-size: .78rem; margin-top: .25rem; }
 
+/* ---------- the questionnaire: rail beside the sheet ------------------------------------ */
+
+.body-submit { max-width: 1200px; }
+.form-layout { display: grid; grid-template-columns: 14.5rem minmax(0, 1fr); gap: 1.1rem;
+  align-items: start; }
+.sheet { min-width: 0; }
+
+/* The domain tabs live inside the sticky chrome, so the level she compared to Excel sheet
+   tabs is on screen for the whole scroll rather than the first screenful. Compact, because
+   they are paying for that out of the vertical budget. */
+/* One row, always. A wrapping grid took 270px of an 900px viewport at a narrow width, which
+   is a quarter of the screen spent on knowing where you are. */
+.chrome .stepper { display: flex; gap: .3rem; overflow-x: auto; scrollbar-width: none;
+  background: var(--surface); border-bottom: 1px solid var(--line);
+  padding: .35rem 1.15rem; margin: 0; }
+.chrome .stepper::-webkit-scrollbar { display: none; }
+.chrome .step { flex: 0 0 auto; min-width: 0; padding: .22rem .6rem .28rem; gap: .1rem;
+  box-shadow: none; background: var(--surface-2); }
+.chrome .step-label { font-size: .8rem; white-space: nowrap; }
+.chrome .step-count { font-size: .68rem; }
+.chrome .step-bar { height: 2px; }
+
+.rail { position: sticky; top: calc(var(--chrome-h, 3.2rem) + .6rem); }
+.toc { display: flex; flex-direction: column; gap: .1rem; }
+.toc-row { display: grid; grid-template-columns: 1fr auto; gap: .3rem .5rem; align-items: baseline;
+  width: 100%; text-align: left; background: none; border: 0; border-radius: 7px;
+  padding: .3rem .5rem; font-size: .82rem; color: var(--ink-2); }
+.toc-row:hover { background: var(--surface-2); border: 0; }
+.toc-label { overflow: hidden; text-overflow: ellipsis; }
+.toc-count { font-family: var(--mono); font-size: .7rem; color: var(--ink-3); }
+.toc-dom { font-weight: 650; color: var(--ink); font-size: .86rem; margin-top: .35rem; }
+.toc-dom.open { color: var(--accent); }
+.toc-sec { padding-left: .9rem; }
+.toc-sec .toc-bar { grid-column: 1 / -1; height: 2px; border-radius: 999px;
+  background: var(--surface-2); overflow: hidden; }
+.toc-sec .toc-bar i { display: block; height: 100%; background: var(--accent);
+  transition: width .3s ease; }
+.toc-row.on { background: var(--accent-soft); color: var(--ink); font-weight: 600;
+  box-shadow: inset 2px 0 0 var(--accent); }
+.toc-row.done .toc-count { color: var(--good); }
+.toc-row.done .toc-bar i { background: var(--good); }
+
+.section-head-card .eyebrow { margin-bottom: .3rem; }
+.pager { justify-content: space-between; }
+
+@media (max-width: 860px) {
+  .form-layout { grid-template-columns: 1fr; }
+  .rail { position: static; }
+  .toc { flex-direction: row; overflow-x: auto; gap: .3rem; padding-bottom: .3rem; }
+  .toc-domain { display: contents; }
+  .toc-sec .toc-bar { display: none; }
+  .toc-row { white-space: nowrap; }
+}
+
 /* ---------- questions ------------------------------------------------------------------- */
 
 .card.section { padding: .35rem .75rem; }
@@ -335,8 +389,20 @@ code.mono { background: var(--surface-2); border: 1px solid var(--line);
 details[open] > .section-summary::before { transform: rotate(90deg); }
 .section-title { font-weight: 650; flex: 1 1 13rem; font-size: .95rem; }
 
-.question { border-top: 1px solid var(--line); padding: .85rem 0 .5rem; }
-.question:first-of-type { border-top: 0; }
+.question {
+  position: relative;
+  background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius);
+  padding: .85rem 1rem .7rem 1.15rem; margin-bottom: .6rem; box-shadow: var(--shadow);
+  break-inside: avoid;
+}
+/* A status edge in the score's own colour, so a page of questions shows its shape at a glance. */
+.question::before {
+  content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 3px;
+  border-radius: var(--radius) 0 0 var(--radius);
+  background: var(--edge, var(--line-2));
+}
+.question.answered::before { background: var(--edge, var(--accent)); }
+.question.na { opacity: .72; }
 .q-head { display: flex; gap: .5rem; align-items: baseline; flex-wrap: wrap; margin-bottom: .2rem; }
 .qid { font-family: var(--mono); font-size: .7rem; color: var(--ink-3);
   border: 1px solid var(--line); border-radius: 4px; padding: .05rem .3rem; flex: 0 0 auto; }
@@ -379,8 +445,15 @@ details[open] > .section-summary::before { transform: rotate(90deg); }
 
 /* ---------- evidence -------------------------------------------------------------------- */
 
-.evidence { background: var(--surface-2); border: 1px solid var(--line); border-radius: var(--radius-sm);
-  padding: .55rem .65rem; margin: .5rem 0 .2rem; }
+/* The evidence used to be the only tinted block inside a question, which made the evidence
+   read as the separated thing and the question read as background. The tint moved to the
+   answering, and the evidence sits on the card's own ground with a border. */
+.evidence { background: var(--surface); border: 1px dashed var(--line-2);
+  border-radius: var(--radius-sm); padding: .55rem .65rem; margin: .5rem 0 .2rem; }
+.q-ans { background: var(--surface-2); border: 1px solid var(--line);
+  border-radius: var(--radius-sm); padding: .55rem .7rem .3rem; margin: .5rem 0 .3rem; }
+.q-ans .field { margin-bottom: .5rem; }
+.q-ans .chosen { margin-bottom: .5rem; }
 .ev-head { display: flex; gap: .5rem; flex-wrap: wrap; align-items: baseline; margin-bottom: .3rem; }
 .ev-head strong { font-size: .85rem; }
 .ev-item { border-top: 1px dashed var(--line-2); padding: .45rem 0; }
@@ -466,8 +539,35 @@ select.needs-marking { border-color: var(--bad); background: var(--bad-bg); }
 .sticky-footer .pill { background: var(--surface); }
 .footer-score { display: flex; align-items: center; gap: .6rem; }
 .footer-actions { display: flex; gap: .45rem; }
+.progress-row { display: grid; grid-template-columns: minmax(0, 14rem) minmax(0, 1fr);
+  gap: .5rem 1rem; padding: .45rem .8rem 0; }
+.pbar { display: grid; gap: .2rem; }
+.pbar-label { font-size: .72rem; color: var(--ink-3); font-weight: 600;
+  font-variant-numeric: tabular-nums; }
+.progress-shell { height: 5px; border-radius: 999px; background: var(--surface-2);
+  box-shadow: inset 0 0 0 1px var(--line); overflow: hidden; }
+.progress-shell i { display: block; height: 100%; border-radius: 999px; background: var(--accent);
+  transition: width .3s cubic-bezier(.4, 0, .2, 1); }
+.progress-shell i.done { background: var(--good); }
+.progress-shell i.celebrate { animation: section-done 1s ease-out; }
+@keyframes section-done {
+  0%   { box-shadow: 0 0 0 0 rgba(31, 107, 60, .0); filter: brightness(1); }
+  25%  { box-shadow: 0 0 14px 3px rgba(31, 107, 60, .75); filter: brightness(1.5); }
+  100% { box-shadow: 0 0 0 0 rgba(31, 107, 60, .0); filter: brightness(1); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .progress-shell i { transition: none; }
+  .progress-shell i.celebrate { animation: none; }
+}
+
 .gate { background: var(--warn-bg); border-bottom: 1px solid color-mix(in srgb, var(--warn) 40%, transparent);
-  color: var(--warn); padding: .35rem .8rem; font-size: .84rem; }
+  color: var(--warn); padding: .4rem .8rem; font-size: .84rem;
+  display: flex; align-items: center; justify-content: space-between; gap: .8rem; flex-wrap: wrap; }
+.gate-marks { display: flex; gap: .25rem; flex-wrap: wrap; }
+.mark-btn { font-size: .76rem; padding: .16rem .5rem; border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--warn) 45%, var(--line)); background: var(--surface);
+  color: var(--ink); }
+.mark-btn:hover { border-color: var(--accent); background: var(--accent-soft); }
 
 /* ---------- scores ---------------------------------------------------------------------- */
 

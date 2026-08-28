@@ -1,7 +1,7 @@
 import type { Assessment, Rubric } from './types';
 import { el, clear } from './dom';
 import { validate } from './rubric';
-import { renderSubmit, setRepaint } from './views-submit';
+import { renderSubmit, setRepaint, takeSubmitTabs } from './views-submit';
 import { renderResults } from './views-results';
 import { renderReview } from './views-review';
 import { APP_VERSION, blankAssessment, clearDraft, loadDraft, readJsonFiles } from './storage';
@@ -83,14 +83,11 @@ function paint() {
   clear(app);
   app.className = mode === 'home' ? 'app-home' : '';
 
-  // Header and marking travel together in one sticky block. Two separately sticky elements
-  // pinned to the top overlap as soon as the page scrolls.
-  const chrome = el('div', { class: 'chrome' }, [header()]);
-  if (mode === 'submit' || mode === 'results') chrome.appendChild(banner());
-  app.appendChild(chrome);
-
-  const body = el('main', { class: `body ${mode === 'home' ? 'body-home' : ''}` });
-  app.appendChild(body);
+  // The body is built first because the questionnaire's domain tabs live in the chrome and
+  // register their own readouts, and renderSubmit clears that registry as it starts.
+  const body = el('main', {
+    class: `body ${mode === 'home' ? 'body-home' : ''} ${mode === 'submit' ? 'body-submit' : ''}`,
+  });
 
   if (mode === 'home') renderHome(body);
   else if (mode === 'submit') renderSubmit(body, rubric, assessment, () => go('results'));
@@ -98,10 +95,33 @@ function paint() {
   else if (mode === 'settings') renderSettings(body);
   else renderReview(body, rubric);
 
+  // Header, marking and the domain tabs travel as one sticky block. Separately pinned strips
+  // leave a seam that page content shows through.
+  const chrome = el('div', { class: 'chrome' }, [header()]);
+  if (mode === 'submit' || mode === 'results') chrome.appendChild(banner());
+  const tabs = takeSubmitTabs();
+  if (mode === 'submit' && tabs) chrome.appendChild(tabs);
+
+  app.appendChild(chrome);
+  app.appendChild(body);
+
   // A printed assessment carries its marking at the foot of the page as well as the head.
   // On screen the sticky one above is enough.
   if (mode === 'submit' || mode === 'results') app.appendChild(banner('print-only'));
   app.appendChild(footer());
+  measureChrome();
+}
+
+/**
+ * The domain tabs and the rail pin themselves under the header, so they need to know how tall
+ * it is. Guarded on a real measurement: jsdom returns zero from getBoundingClientRect, and a
+ * sticky offset of zero would put the tabs under the header rather than below it.
+ */
+function measureChrome(): void {
+  const chrome = document.querySelector('.chrome');
+  if (!chrome || typeof chrome.getBoundingClientRect !== 'function') return;
+  const h = chrome.getBoundingClientRect().height;
+  if (h > 0) document.documentElement.style.setProperty('--chrome-h', `${Math.round(h)}px`);
 }
 
 /**
