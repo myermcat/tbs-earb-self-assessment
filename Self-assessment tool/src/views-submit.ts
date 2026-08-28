@@ -433,9 +433,11 @@ function footerBar(
   const apply = (rr: Result) => {
     const problems = markingProblems(a);
     clear(gate);
+    gate.className = '';
     if (problems.length) {
       const needsFileMark = problems.some((x) => x.kind === 'no-file-marking');
       // Short enough to take in at a glance. The reader is trying to save, not to read.
+      gate.className = 'gate-band';
       gate.appendChild(el('div', { class: 'gate small' }, [
         el('div', {}, [
           el('strong', {}, [needsFileMark ? 'Mark this file to save it' : 'Fix this to save']),

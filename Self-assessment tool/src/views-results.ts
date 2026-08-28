@@ -13,6 +13,7 @@ import { markingProblems } from './marking';
  */
 export function renderResults(root: HTMLElement, rubric: Rubric, a: Assessment, onBack: () => void): void {
   clear(root);
+  addSnapHint(root);
   const r = score(rubric, a);
   const fs = flags(rubric, a, r);
   const highs = fs.filter((f) => f.severity === 'high').length;
@@ -190,6 +191,39 @@ export function renderResults(root: HTMLElement, rubric: Rubric, a: Assessment, 
     el('button', { class: 'ghost', onclick: () => window.print() }, ['Print or save as PDF']),
     el('button', { class: 'ghost', onclick: onBack }, ['Back to the questions']),
   ]));
+}
+
+/**
+ * The results stop on each screen, so a reader needs to know how many screens there are and
+ * which one they are on. One dot per section, filled for the one in view.
+ *
+ * IntersectionObserver is guarded: jsdom has none, and the page has to render without it.
+ */
+function addSnapHint(root: HTMLElement): void {
+  if (typeof IntersectionObserver !== 'function') return;
+  queueMicrotask(() => {
+    const sections = [...root.querySelectorAll(':scope > section')];
+    if (sections.length < 2) return;
+
+    const hint = el('nav', { class: 'snap-hint', 'aria-label': 'Parts of your results' });
+    const dots = sections.map((sec, i) =>
+      el('button', {
+        class: 'snap-dot', 'aria-label': `Part ${i + 1} of ${sections.length}`,
+        onclick: () => (sec as HTMLElement).scrollIntoView({ block: 'center' }),
+      }),
+    );
+    for (const d of dots) hint.appendChild(d);
+    root.parentElement?.appendChild(hint);
+
+    const io = new IntersectionObserver((entries) => {
+      for (const e of entries) {
+        if (!e.isIntersecting) continue;
+        const i = sections.indexOf(e.target);
+        dots.forEach((d, j) => d.classList.toggle('on', j === i));
+      }
+    }, { root, threshold: 0.6 });
+    for (const sec of sections) io.observe(sec);
+  });
 }
 
 function sendPackage(rubric: Rubric, a: Assessment, counts: { high: number; total: number }) {

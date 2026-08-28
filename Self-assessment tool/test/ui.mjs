@@ -125,6 +125,10 @@ const nextStep = () => byText('.ov-nav button', 'Next').click();
 ok('typing content blocks saving until the file is marked',
    byText('.footer-actions button', 'Save to a file').disabled === true);
 ok('the gate says what to do, briefly', view().includes('Mark this file to save it'));
+// The gate is a warning band across the bar, so its colour reaches both edges.
+ok('the gate band is not capped at the content width',
+   !/\.sticky-footer\s*>\s*\*\s*\{/.test(html) &&
+   /\.sticky-footer\s*>\s*\.gate-band/.test(html));
 {
   // Obvious beats explained: the banner that says the file is unmarked is the control.
   const b = q('.chrome .marking-banner');
@@ -559,6 +563,14 @@ ok("Dan's maturity label is shown", !!q('.maturity strong') && q('.maturity').te
 ok('routing band is shown separately from maturity', !!q('.band strong'));
 ok('routing is stated as a suggestion', view().includes('does not decide it'));
 ok('four domain bars rendered', qa('.bar-row').length === 4, String(qa('.bar-row').length));
+// The results are read one screen at a time, so the scroll stops on each part.
+ok('the results page is its own scroll container',
+   document.getElementById('app').className.includes('app-results'));
+ok('and the scroll snaps, stopping on each part',
+   /\.body-results\s*\{[^}]*scroll-snap-type:\s*y mandatory/s.test(html) &&
+   /\.body-results\s*>\s*section\s*\{[^}]*scroll-snap-stop:\s*always/s.test(html));
+ok('with a fallback for short viewports and reduced motion',
+   /max-height:\s*620px[^{]*\{[\s\S]{0,400}scroll-snap-type:\s*none/.test(html));
 ok('backlog section present', view().includes('weakest five'));
 ok('assessor questions previewed to the submitter', view().includes('What an assessor will probably ask'));
 ok('the no-evidence 9 is flagged', view().includes('High score, nothing cited'));

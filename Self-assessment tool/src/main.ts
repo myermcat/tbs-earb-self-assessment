@@ -81,12 +81,17 @@ const GEAR =
 
 function paint() {
   clear(app);
-  app.className = mode === 'home' ? 'app-home' : '';
+  app.className = mode === 'home' ? 'app-home' : mode === 'results' ? 'app-results' : '';
 
   // The body is built first because the questionnaire's domain tabs live in the chrome and
   // register their own readouts, and renderSubmit clears that registry as it starts.
   const body = el('main', {
-    class: `body ${mode === 'home' ? 'body-home' : ''} ${mode === 'submit' ? 'body-submit' : ''}`,
+    class: [
+      'body',
+      mode === 'home' ? 'body-home' : '',
+      mode === 'submit' ? 'body-submit' : '',
+      mode === 'results' ? 'body-results' : '',
+    ].filter(Boolean).join(' '),
   });
 
   if (mode === 'home') renderHome(body);
@@ -213,9 +218,11 @@ function draftNote(draft: Assessment, total: number): HTMLElement {
 
   return el('div', { class: 'draft-note' }, [
     el('p', { class: 'small' }, [
-      el('b', {}, [`${answered} of ${total} answered. `]),
-      `Kept by this browser on this machine, last changed ${saved}. `,
-      'Nothing was uploaded, and you do not need the file you saved to carry on.',
+      el('b', {}, [`${answered} of ${total} answered, last changed ${saved}.`]),
+    ]),
+    el('p', { class: 'small muted' }, [
+      'Saved locally on this machine, by your browser, as you type. Closing the tab or ',
+      'reloading the page does not lose it, and you do not need the file you saved to carry on.',
     ]),
     el('p', { class: 'tiny dim' }, [
       el('button', {
