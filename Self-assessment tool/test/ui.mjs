@@ -431,7 +431,19 @@ ok('csv header and row have the same width', head.split(',').length === row.spli
 ok('csv carries a column per section', head.includes('section_data_data-architecture-and-standards'));
 
 // ---- reviewer --------------------------------------------------------------------------
-byText('.tab', 'Review submissions').click();
+// Crossing to the assessor side. The two audiences do not share a path, and the crossover is
+// offered once, on the page a submitter arrives at.
+byText('.tab', 'Start').click();
+ok('the crossover is on the start page', !!q('.crossover button'));
+byText('.crossover button', 'Open the assessor view').click();
+ok('the assessor side announces itself', !!q('.side-badge'), q('.brand')?.textContent);
+ok("the assessor's path is just Submissions",
+   qa('nav.path .tab').map((t) => t.textContent).join('|') === 'Submissions',
+   qa('nav.path .tab').map((t) => t.textContent).join('|'));
+ok('the submitter path is gone from the assessor view',
+   !qa('nav.path .tab').some((t) => /Start|Fill it in|My results/.test(t.textContent)));
+ok('and there is a way back', !!byText('button', 'Leave assessor view'));
+ok('the side is remembered', window.localStorage.getItem('gc-arch-assessment:side') === 'assess');
 ok('reviewer dropzone rendered', view().includes('Load submissions'));
 
 const fileInput = q('.dropzone input[type=file]');

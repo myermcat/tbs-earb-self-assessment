@@ -148,6 +148,11 @@ li { margin-bottom: .22rem; }
   padding: .18rem .3rem; border-radius: 9px; border: 1px solid var(--line); }
 .chev { color: var(--ink-3); font-size: .9rem; padding: 0 .05rem; user-select: none; }
 
+.side-badge { font-size: .68rem; font-weight: 700; letter-spacing: .09em; text-transform: uppercase;
+  color: var(--accent); border: 1px solid var(--accent-line); background: var(--accent-soft);
+  border-radius: 999px; padding: .05rem .45rem; }
+.crossover { margin: .1rem .3rem .6rem; }
+
 .icon-btn { display: grid; place-items: center; width: 33px; height: 33px; padding: 0;
   border-radius: 9px; color: var(--ink-2); border: 1px solid var(--line); background: var(--surface); }
 .icon-btn:hover { color: var(--ink); }
