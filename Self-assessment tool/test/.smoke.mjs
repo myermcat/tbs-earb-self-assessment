@@ -18,8 +18,8 @@ function score(rubric2, a) {
         const ans = a.answers[question.id];
         const na = !!ans?.na;
         const isAnswered = !na && typeof ans?.score === "number";
-        if (!na) scoreable++;
-        if (isAnswered) answered++;
+        scoreable++;
+        if (isAnswered || na) answered++;
         const mult = rubric2.stageMultipliers[questionExpectation(question, stage)] ?? 1;
         const qShare = section.questions.length ? question.weight / section.questions.reduce((t, x) => t + x.weight, 0) : 0;
         return {
@@ -42,8 +42,8 @@ function score(rubric2, a) {
         weight: section.weight,
         effectiveWeight: section.weight * (rubric2.stageMultipliers[expectation] ?? 1),
         expectation,
-        answered: questions.filter((q) => q.answered).length,
-        total: questions.filter((q) => !q.na).length,
+        answered: questions.filter((q) => q.answered || q.na).length,
+        total: questions.length,
         questions
       };
     });
@@ -397,8 +397,8 @@ var rubric_v1_dan_default = {
   status: "draft",
   title: "GC Enterprise Architecture self-assessment",
   provenance: `Imported by tools/import-rubric.mjs from Dan's GC_EA_Assessment_Tool workbook (6 sheets) in "EARB target state knowledge base". Questions, section names, section weights, domain weights and the 0-10 ladder are all his. Added by us and marked as such: lifecycle stages, the stage rule on "Defining the Current State" sections, and the routing bands.`,
-  dlgBaseUrl: "",
-  dlgBaseUrlNote: "Set once the Digital Lifecycle Guide is live on GCXchange. Empty means stage links render as plain text.",
+  dlgBaseUrl: "https://myermcat.github.io/digital-lifecycle-guide",
+  dlgBaseUrlNote: "The guide, on GitHub Pages for now. Each stage points at its own page there.",
   importWarnings: [
     "Business Architecture: the section weights in the workbook add up to 80%, not 100%. The missing 20 points are shared out across the 6 sections that are there, in proportion, so the domain still scores out of 10. Worth checking whether a section was left out of the export."
   ],
@@ -542,45 +542,69 @@ var rubric_v1_dan_default = {
   lifecycleStages: [
     {
       id: "discovery",
-      label: "Create - Discovery",
-      dlgPage: "Create phase",
+      label: "Discovery",
+      phase: "Create",
+      dlgPath: "create-discovery",
       blurb: "Understanding the problem. There may be no current solution to describe yet."
     },
     {
       id: "alpha",
-      label: "Create - Alpha",
-      dlgPage: "Create phase",
+      label: "Alpha",
+      phase: "Create",
+      dlgPath: "create-alpha",
       blurb: "Testing whether an approach can work, with real users."
     },
     {
       id: "beta",
-      label: "Create - Beta",
-      dlgPage: "Create phase",
+      label: "Beta",
+      phase: "Create",
+      dlgPath: "create-beta",
       blurb: "Building the real thing in public, at growing scale."
     },
     {
       id: "stabilization",
-      label: "Live - Stabilization",
-      dlgPage: "Live phase",
+      label: "Stabilization",
+      phase: "Live",
+      dlgPath: "live-stabilization",
       blurb: "In service, settling down. Costs and operations should be known."
     },
     {
       id: "growth",
-      label: "Live - Growth",
-      dlgPage: "Live phase",
+      label: "Growth",
+      phase: "Live",
+      dlgPath: "live-growth",
       blurb: "In service, scaling up."
     },
     {
       id: "maturity",
-      label: "Live - Maturity",
-      dlgPage: "Live phase",
+      label: "Maturity",
+      phase: "Live",
+      dlgPath: "live-maturity",
       blurb: "In service, steady state. Everything should be documented and measured."
     },
     {
       id: "sunset",
       label: "Sunset",
-      dlgPage: "Sunset phase",
+      phase: "Sunset",
+      dlgPath: "sunset",
       blurb: "Replacing or retiring. Dependencies and data disposition matter most."
+    }
+  ],
+  phases: [
+    {
+      name: "Create",
+      dlgPath: "create",
+      blurb: "Being built, and not in service yet."
+    },
+    {
+      name: "Live",
+      dlgPath: "live",
+      blurb: "In service, with real users."
+    },
+    {
+      name: "Sunset",
+      dlgPath: "sunset",
+      blurb: "Being replaced or retired."
     }
   ],
   domains: [
@@ -1952,7 +1976,13 @@ ok("1 -> Critical Risk", mat(1) === "Critical Risk", String(mat(1)));
   a.answers[target] = { score: null, na: true };
   const r = score(rubric, a);
   ok("n/a does not drag the score down", Math.abs(r.overall - 6) < 1e-9, `got ${r.overall}`);
-  ok("n/a leaves the scoreable count", r.scoreable === allQ.length - 1, String(r.scoreable));
+  ok(
+    "n/a still counts as dealt with, so the denominator does not shrink",
+    r.scoreable === allQ.length,
+    String(r.scoreable)
+  );
+  ok("and it counts in the numerator too", r.answered === allQ.length, String(r.answered));
+  ok("so a fully handled assessment reads as complete", r.completeness === 1, String(r.completeness));
 }
 {
   const a = blank("beta");

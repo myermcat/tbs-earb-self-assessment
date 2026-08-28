@@ -106,7 +106,12 @@ ok('1 -> Critical Risk', mat(1) === 'Critical Risk', String(mat(1)));
   a.answers[target] = { score: null, na: true };
   const r = score(rubric, a);
   ok('n/a does not drag the score down', Math.abs((r.overall as number) - 6) < 1e-9, `got ${r.overall}`);
-  ok('n/a leaves the scoreable count', r.scoreable === allQ.length - 1, String(r.scoreable));
+  // Deciding a question does not apply IS answering it, so progress counts it. The score is a
+  // separate matter: an n/a question leaves the weighting entirely, which the line above proves.
+  ok('n/a still counts as dealt with, so the denominator does not shrink',
+     r.scoreable === allQ.length, String(r.scoreable));
+  ok('and it counts in the numerator too', r.answered === allQ.length, String(r.answered));
+  ok('so a fully handled assessment reads as complete', r.completeness === 1, String(r.completeness));
 }
 
 // Partial completion scores what was answered and reports the gap.

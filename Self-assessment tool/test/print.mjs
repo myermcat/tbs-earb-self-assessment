@@ -22,15 +22,27 @@ const g = (s) => [...document.querySelectorAll(s)];
 const fire = (n, t) => n.dispatchEvent(new window.Event(t, { bubbles: true }));
 await new Promise((r) => setTimeout(r, 60));
 
+// Walk the overview wizard: six steps, one at a time.
 g('.hero-actions button')[0].click();
-const inp = g('.card input[type=text]')[0];
-inp.value = 'Print check'; fire(inp, 'input'); fire(inp, 'change');
-const pb = g('.marking-chip input').find((r) => r.value === 'Protected B'); pb.checked = true; fire(pb, 'change');
+const next = () => g('.ov-nav button').find((b) => b.textContent.includes('Next')).click();
+const fill = (v) => {
+  const f = document.querySelector('.ov-block input[type=text], .ov-block textarea');
+  f.value = v; fire(f, 'input'); fire(f, 'change');
+};
+fill('Print check'); next();
+fill('Transport Canada'); next();
+fill('nick@tc.gc.ca'); next();
+fill('A solution for checking what prints.'); next();
+g('.marking-chip input').find((r) => r.value === 'Protected B').checked = true;
+fire(g('.marking-chip input').find((r) => r.value === 'Protected B'), 'change');
+next();
 const st = g('.stage-card input').find((r) => r.value === 'maturity'); st.checked = true; fire(st, 'change');
 g('.stepper .step').find((t) => t.textContent.includes('Technology')).click();
 
 const first = g('.question')[0];
 [...first.querySelectorAll('.score-btn')].find((b) => b.textContent === '7').click();
+// Reasoning and evidence fold away until wanted, so open them the way a reader would.
+first.querySelector('.q-extras-box').open = true;
 const ta = first.querySelector('textarea');
 ta.value = 'Reviewed quarterly and owned by the platform team.'; fire(ta, 'input');
 [...first.querySelectorAll('button')].find((b) => b.textContent === 'Add evidence').click();

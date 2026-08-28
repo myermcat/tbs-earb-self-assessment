@@ -1,7 +1,7 @@
 import type { Assessment, Rubric } from './types';
 import { el, clear } from './dom';
 import { validate } from './rubric';
-import { goToFirstGap, renderSubmit, setRepaint, takeSubmitTabs } from './views-submit';
+import { goToFirstGap, renderSubmit, resetOverviewToFirstGap, setRepaint, setStopKey, takeSubmitTabs } from './views-submit';
 import { renderResults } from './views-results';
 import { renderReview } from './views-review';
 import { APP_VERSION, blankAssessment, clearDraft, loadDraft, readJsonFiles } from './storage';
@@ -108,7 +108,7 @@ function paint() {
   // A printed assessment carries its marking at the foot of the page as well as the head.
   // On screen the sticky one above is enough.
   if (mode === 'submit' || mode === 'results') app.appendChild(banner('print-only'));
-  app.appendChild(footer());
+  if (mode !== 'submit') app.appendChild(footer());
   measureChrome();
 }
 
@@ -251,7 +251,11 @@ function renderHome(root: HTMLElement) {
         el('button', {
           class: 'primary big',
           // Continuing means going to the first thing left blank, not back to the top.
-          onclick: () => { if (started) goToFirstGap(rubric, assessment); go('submit'); },
+          onclick: () => {
+            resetOverviewToFirstGap(rubric, assessment);
+            if (started) goToFirstGap(rubric, assessment);
+            go('submit');
+          },
         }, [
           started ? 'Continue' : 'Fill it in',
           el('span', { class: 'arrow', 'aria-hidden': true }, ['\u2192']),
@@ -416,7 +420,24 @@ function openEverythingForPrint(): void {
   });
 }
 
+/**
+ * The browser's Back button should walk back through the questionnaire, since that is what a
+ * reader expects of anything that looks like 21 pages.
+ */
+function wireHistory(): void {
+  if (typeof window.addEventListener !== 'function') return;
+  window.addEventListener('popstate', (e) => {
+    const stop = (e as PopStateEvent).state?.stop;
+    if (typeof stop !== 'string') return;
+    setStopKey(stop);
+    mode = 'submit';
+    side = 'submit';
+    paint();
+  });
+}
+
 openEverythingForPrint();
+wireHistory();
 setRepaint(() => paint());
 
 const check = validate(rubric);
