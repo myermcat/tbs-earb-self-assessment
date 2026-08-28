@@ -1,9 +1,9 @@
 import { CLASSIFICATIONS, type Assessment, type EvidenceRef, type Question, type Rubric } from './types';
 import { el, clear, tone } from './dom';
-import { score, type SectionScore } from './scoring';
+import { score, type Result, type SectionScore } from './scoring';
 import { autosave, download, slug } from './storage';
 import { humanSize, openAttachment, readAttachment, totalAttachedBytes, TOTAL_LIMIT, TOTAL_WARN } from './attach';
-import { highestEvidenceMarking, markingProblems } from './marking';
+import { canSave, highestEvidenceMarking, markingProblems } from './marking';
 
 const KINDS: EvidenceRef['kind'][] = ['document', 'diagram', 'dashboard', 'system', 'report', 'other'];
 
@@ -22,6 +22,21 @@ let page: 'about' | string = 'about';
 let repaintApp: () => void = () => {};
 export function setRepaint(fn: () => void): void { repaintApp = fn; }
 
+/**
+ * Scoring a question used to rebuild the entire page, about four thousand nodes, because the
+ * aggregate readouts (the domain tabs, the section averages, the footer total, the save gate)
+ * had no way to update on their own. Rebuilding is why a section the reader had opened closed
+ * itself, why focus jumped out of a field, and why no completion animation could survive a
+ * click.
+ *
+ * So every aggregate readout registers a closure that repaints only itself from a fresh
+ * Result. A score click recomputes the score once and runs those closures, which touches a few
+ * dozen nodes. The score is still the single source of truth; nothing here caches a number.
+ */
+type Readout = (r: Result) => void;
+let readouts: Readout[] = [];
+const register = (fn: Readout, r: Result) => { fn(r); readouts.push(fn); };
+
 export function renderSubmit(
   root: HTMLElement,
   rubric: Rubric,
@@ -29,13 +44,35 @@ export function renderSubmit(
   onDone: () => void,
 ): void {
   clear(root);
-  const repaint = () => repaintApp();
+  readouts = [];
   const r = score(rubric, a);
 
-  root.appendChild(stepper(rubric, a, r, repaint));
+  /** Move to another page of the questionnaire. This one does rebuild, by definition. */
+  const navigate = (target: string) => {
+    page = target;
+    repaintApp();
+    window.scrollTo({ top: 0 });
+  };
+
+  /**
+   * The cheap path: recompute the score once, let every registered readout update itself.
+   *
+   * The gate is the one thing a readout cannot handle alone, because the shell draws the
+   * classification banner. So when the ability to save flips, fall back to a full repaint.
+   * That happens a handful of times in a session, not on every click.
+   */
+  let couldSave = canSave(a);
+  const refresh = () => {
+    const nowCanSave = canSave(a);
+    if (nowCanSave !== couldSave) { couldSave = nowCanSave; repaintApp(); return; }
+    const next = score(rubric, a);
+    for (const fn of readouts) fn(next);
+  };
+
+  root.appendChild(stepper(rubric, a, r, navigate));
 
   if (page === 'about') {
-    root.appendChild(aboutSection(rubric, a, repaint));
+    root.appendChild(aboutSection(rubric, a, refresh, repaintApp));
     if (!a.initiative.lifecycleStage) {
       root.appendChild(el('section', { class: 'card warn' }, [
         el('strong', {}, ['Pick a lifecycle stage before you start scoring']),
@@ -46,37 +83,83 @@ export function renderSubmit(
     }
   } else {
     const ds = r.domains.find((d) => d.domain.id === page);
-    if (!ds) { page = 'about'; repaint(); return; }
-    root.appendChild(el('section', { class: 'card' }, [
-      el('h2', {}, [ds.domain.label, el('span', { class: `pill ${tone(ds.score)}` }, [ds.score === null ? '--' : ds.score.toFixed(1)])]),
-      ds.domain.description ? el('p', { class: 'muted' }, [ds.domain.description]) : null,
-      el('p', { class: 'muted small' }, [
-        `${ds.domain.weight}% of the overall score. ${ds.answered} of ${ds.total} answered.`,
-      ]),
-    ]));
-    for (const ss of ds.sections) root.appendChild(sectionBlock(rubric, a, ss, repaint));
+    if (!ds) { page = 'about'; repaintApp(); return; }
+    root.appendChild(domainHead(ds, r, page));
+    for (const ss of ds.sections) root.appendChild(sectionBlock(rubric, a, ss, refresh, r));
   }
 
-  root.appendChild(pager(rubric, r, repaint, onDone));
-  root.appendChild(footerBar(rubric, a, r, onDone));
+  root.appendChild(pager(rubric, navigate, onDone));
+  root.appendChild(footerBar(a, r, onDone));
 }
 
-function stepper(rubric: Rubric, a: Assessment, r: ReturnType<typeof score>, repaint: () => void): HTMLElement {
-  const step = (label: string, target: string, done: number, total: number) =>
-    el('button', {
-      class: `step ${page === target ? 'on' : ''} ${total > 0 && done === total ? 'complete' : ''}`,
-      onclick: () => { page = target; repaint(); window.scrollTo({ top: 0 }); },
+/**
+ * The domain heading. The score pill is a sibling of the heading text and not inside it, so a
+ * screen reader reads "Business Architecture" and then "5.2 out of 10" as separate things.
+ */
+function domainHead(ds: Result['domains'][number], r: Result, domainId: string): HTMLElement {
+  const pill = el('span', { class: 'pill' });
+  const srPill = el('span', { class: 'sr-only' });
+  const counts = el('p', { class: 'muted small' });
+
+  const apply = (rr: Result) => {
+    const d = rr.domains.find((x) => x.domain.id === domainId);
+    if (!d) return;
+    pill.className = `pill ${tone(d.score)}`;
+    pill.textContent = d.score === null ? '--' : d.score.toFixed(1);
+    srPill.textContent = d.score === null ? 'not scored yet' : `${d.score.toFixed(1)} out of 10`;
+    counts.textContent = `${d.domain.weight}% of the overall score. ${d.answered} of ${d.total} answered.`;
+  };
+
+  const node = el('section', { class: 'card' }, [
+    el('div', { class: 'head-row' }, [
+      el('h2', {}, [ds.domain.label]),
+      pill,
+      srPill,
+    ]),
+    ds.domain.description ? el('p', { class: 'muted' }, [ds.domain.description]) : null,
+    counts,
+  ]);
+  register(apply, r);
+  return node;
+}
+
+function stepper(
+  rubric: Rubric,
+  a: Assessment,
+  r: Result,
+  navigate: (target: string) => void,
+): HTMLElement {
+  const step = (label: string, target: string, count: (rr: Result) => [number, number]) => {
+    const countEl = el('span', { class: 'step-count' });
+    const fill = el('i');
+    const btn = el('button', {
+      onclick: () => navigate(target),
     }, [
       el('span', { class: 'step-label' }, [label]),
-      total > 0 ? el('span', { class: 'step-count' }, [`${done} of ${total}`]) : null,
-      total > 0
-        ? el('span', { class: 'step-bar' }, [el('i', { style: `width:${Math.round((done / total) * 100)}%` })])
-        : null,
+      countEl,
+      el('span', { class: 'step-bar' }, [fill]),
     ]);
 
-  return el('nav', { class: 'stepper' }, [
-    step('Overview', 'about', a.initiative.lifecycleStage ? 1 : 0, 1),
-    ...r.domains.map((d) => step(shortLabel(d.domain.label), d.domain.id, d.answered, d.total)),
+    const apply = (rr: Result) => {
+      const [done, total] = count(rr);
+      const complete = total > 0 && done === total;
+      btn.className = `step ${page === target ? 'on' : ''} ${complete ? 'complete' : ''}`;
+      btn.setAttribute('aria-current', page === target ? 'page' : 'false');
+      countEl.textContent = `${done} of ${total}`;
+      fill.style.width = total > 0 ? `${Math.round((done / total) * 100)}%` : '0%';
+    };
+    register(apply, r);
+    return btn;
+  };
+
+  return el('nav', { class: 'stepper', 'aria-label': 'Parts of the assessment' }, [
+    step('Overview', 'about', () => [a.initiative.lifecycleStage ? 1 : 0, 1]),
+    ...rubric.domains.map((d) =>
+      step(shortLabel(d.label), d.id, (rr) => {
+        const ds = rr.domains.find((x) => x.domain.id === d.id);
+        return [ds?.answered ?? 0, ds?.total ?? 0];
+      }),
+    ),
   ]);
 }
 
@@ -85,48 +168,67 @@ function shortLabel(s: string): string {
   return s.replace(/\s*&\s*\w+/, '').replace(/\s*Architecture$/, '');
 }
 
-function pager(rubric: Rubric, r: ReturnType<typeof score>, repaint: () => void, onDone: () => void): HTMLElement {
+function pager(rubric: Rubric, navigate: (t: string) => void, onDone: () => void): HTMLElement {
   const order = ['about', ...rubric.domains.map((d) => d.id)];
   const i = order.indexOf(page);
-  const goto = (t: string) => { page = t; repaint(); window.scrollTo({ top: 0 }); };
   return el('section', { class: 'card actions' }, [
-    i > 0 ? el('button', { class: 'ghost', onclick: () => goto(order[i - 1]) }, ['Back']) : null,
+    i > 0 ? el('button', { class: 'ghost', onclick: () => navigate(order[i - 1]) }, ['Back']) : null,
     i < order.length - 1
-      ? el('button', { class: 'primary', onclick: () => goto(order[i + 1]) }, ['Next'])
+      ? el('button', { class: 'primary', onclick: () => navigate(order[i + 1]) }, ['Next'])
       : el('button', { class: 'primary', onclick: onDone }, ['See my results']),
   ]);
 }
 
-function footerBar(rubric: Rubric, a: Assessment, r: ReturnType<typeof score>, onDone: () => void): HTMLElement {
-  const problems = markingProblems(a);
-  return el('div', { class: 'sticky-footer' }, [
-    problems.length
-      ? el('div', { class: 'gate small' }, [
-          el('strong', {}, [problems.length === 1 ? 'One thing before you can save: ' : `${problems.length} things before you can save: `]),
-          problems[0].message,
-        ])
-      : null,
-    el('div', { class: 'footer-inner' }, [
-      el('div', { class: 'footer-score' }, [
-        el('span', { class: `pill ${tone(r.overall)}` }, [r.overall === null ? '--' : r.overall.toFixed(1)]),
-        el('span', { class: 'muted small' }, [
-          r.maturity ? r.maturity.label : 'not scored yet',
-          ` - ${r.answered} of ${r.scoreable} answered`,
+function footerBar(a: Assessment, r: Result, onDone: () => void): HTMLElement {
+  const gate = el('div', {});
+  const pill = el('span', { class: 'pill' });
+  const readout = el('span', { class: 'muted small' });
+  const save = el('button', { class: 'ghost', onclick: () => saveFile(a) }, ['Save to a file']);
+
+  const apply = (rr: Result) => {
+    const problems = markingProblems(a);
+    clear(gate);
+    if (problems.length) {
+      gate.appendChild(el('div', { class: 'gate small' }, [
+        el('strong', {}, [
+          problems.length === 1
+            ? 'One thing before you can save: '
+            : `${problems.length} things before you can save: `,
         ]),
-      ]),
+        problems[0].message,
+      ]));
+    }
+    pill.className = `pill ${tone(rr.overall)}`;
+    pill.textContent = rr.overall === null ? '--' : rr.overall.toFixed(1);
+    readout.textContent =
+      `${rr.maturity ? rr.maturity.label : 'not scored yet'} - ${rr.answered} of ${rr.scoreable} answered`;
+    save.disabled = problems.length > 0;
+    save.title = problems.length
+      ? problems.map((p) => p.message).join('\n')
+      : 'Save a copy you can reopen later';
+  };
+
+  const node = el('div', { class: 'sticky-footer' }, [
+    gate,
+    el('div', { class: 'footer-inner' }, [
+      el('div', { class: 'footer-score' }, [pill, readout]),
       el('div', { class: 'footer-actions' }, [
-        el('button', {
-          class: 'ghost', disabled: problems.length > 0,
-          title: problems.length ? problems.map((p) => p.message).join('\n') : 'Save a copy you can reopen later',
-          onclick: () => saveFile(a),
-        }, ['Save to a file']),
+        save,
         el('button', { class: 'primary', onclick: onDone }, ['See my results']),
       ]),
     ]),
   ]);
+  register(apply, r);
+  return node;
 }
 
-function sectionBlock(rubric: Rubric, a: Assessment, ss: SectionScore, repaint: () => void): HTMLElement {
+function sectionBlock(
+  rubric: Rubric,
+  a: Assessment,
+  ss: SectionScore,
+  refresh: () => void,
+  r: Result,
+): HTMLElement {
   const stageNote = (() => {
     const exp = ss.section.stageExpectation?.[a.initiative.lifecycleStage];
     if (!exp || exp === 'expected') return null;
@@ -136,20 +238,38 @@ function sectionBlock(rubric: Rubric, a: Assessment, ss: SectionScore, repaint: 
   })();
 
   const body = el('div', {});
-  for (const qs of ss.questions) body.appendChild(questionBlock(rubric, a, qs.question, repaint));
+  for (const qs of ss.questions) body.appendChild(questionBlock(rubric, a, qs.question, refresh));
 
-  return el('section', { class: 'card section' }, [
-    el('details', { open: ss.answered < ss.total }, [
-      el('summary', { class: 'section-summary' }, [
-        el('span', { class: `pill small ${tone(ss.score)}` }, [ss.score === null ? '--' : ss.score.toFixed(1)]),
-        el('span', { class: 'section-title' }, [ss.section.label]),
-        el('span', { class: 'muted small' }, [`${ss.weight}% of this domain`]),
-        el('span', { class: 'muted small' }, [`${ss.answered}/${ss.total}`]),
-        stageNote,
-      ]),
-      body,
-    ]),
-  ]);
+  const pill = el('span', { class: 'pill small' });
+  const srPill = el('span', { class: 'sr-only' });
+  const count = el('span', { class: 'muted small' });
+  const details = el('details', { open: ss.answered < ss.total });
+
+  const apply = (rr: Result) => {
+    const found = rr.domains
+      .flatMap((d) => d.sections)
+      .find((x) => x.section.id === ss.section.id && x.questions[0]?.domainId === ss.questions[0]?.domainId);
+    const cur = found ?? ss;
+    pill.className = `pill small ${tone(cur.score)}`;
+    pill.textContent = cur.score === null ? '--' : cur.score.toFixed(1);
+    srPill.textContent = cur.score === null ? 'not scored yet' : `${cur.score.toFixed(1)} out of 10`;
+    count.textContent = `${cur.answered}/${cur.total}`;
+    details.classList.toggle('done', cur.total > 0 && cur.answered === cur.total);
+  };
+
+  details.appendChild(el('summary', { class: 'section-summary' }, [
+    pill,
+    srPill,
+    el('span', { class: 'section-title' }, [ss.section.label]),
+    el('span', { class: 'muted small' }, [`${ss.weight}% of this domain`]),
+    count,
+    stageNote,
+  ]));
+  details.appendChild(body);
+
+  const node = el('section', { class: 'card section' }, [details]);
+  register(apply, r);
+  return node;
 }
 
 function saveFile(a: Assessment) {
@@ -157,14 +277,19 @@ function saveFile(a: Assessment) {
   download(`${slug(a.initiative.name)}-self-assessment.json`, JSON.stringify(a, null, 2));
 }
 
-function aboutSection(rubric: Rubric, a: Assessment, changed: () => void): HTMLElement {
+function aboutSection(
+  rubric: Rubric,
+  a: Assessment,
+  refresh: () => void,
+  rebuild: () => void,
+): HTMLElement {
   const set = (k: keyof Assessment['initiative']) => (e: Event) => {
     (a.initiative as Record<string, string>)[k] = (e.target as HTMLInputElement).value;
     autosave(a);
   };
   // Repainting on every keystroke would pull focus out of the field, so the marking gate
   // refreshes when the field is left rather than as it is typed in.
-  const settled = () => changed();
+  const settled = () => refresh();
 
   const stageWrap = el('div', { class: 'stage-grid' });
   for (const st of rubric.lifecycleStages) {
@@ -182,7 +307,7 @@ function aboutSection(rubric: Rubric, a: Assessment, changed: () => void): HTMLE
         el('input', {
           type: 'radio', name: 'stage', id, value: st.id,
           checked: a.initiative.lifecycleStage === st.id,
-          onchange: () => { a.initiative.lifecycleStage = st.id; autosave(a); changed(); },
+          onchange: () => { a.initiative.lifecycleStage = st.id; autosave(a); rebuild(); },
         }),
         el('div', {}, [
           el('strong', {}, [st.label]),
@@ -214,7 +339,7 @@ function aboutSection(rubric: Rubric, a: Assessment, changed: () => void): HTMLE
             el('input', {
               type: 'radio', name: 'filemark', value: c,
               checked: a.initiative.classification === c,
-              onchange: () => { a.initiative.classification = c; autosave(a); changed(); },
+              onchange: () => { a.initiative.classification = c; autosave(a); rebuild(); },
             }),
             c,
           ]))),
@@ -235,7 +360,7 @@ function field(label: string, control: HTMLElement): HTMLElement {
   return el('label', { class: 'field' }, [el('span', {}, [label]), control]);
 }
 
-function questionBlock(rubric: Rubric, a: Assessment, q: Question, changed: () => void): HTMLElement {
+function questionBlock(rubric: Rubric, a: Assessment, q: Question, refresh: () => void): HTMLElement {
   const ans = (a.answers[q.id] ??= { score: null, evidence: [], justification: '' });
   const ladder = (q.anchors ?? rubric.scale.anchors).slice().sort((x, y) => x.value - y.value);
   const wrap = el('div', { class: 'question' });
@@ -279,7 +404,7 @@ function questionBlock(rubric: Rubric, a: Assessment, q: Question, changed: () =
         el('button', {
           class: `score-btn v${v} ${ans.score === v ? 'on' : ''}`,
           disabled: !!ans.na,
-          onclick: () => { ans.score = ans.score === v ? null : v; ans.na = false; autosave(a); paintScores(); paintChosen(); changed(); },
+          onclick: () => { ans.score = ans.score === v ? null : v; ans.na = false; autosave(a); paintScores(); paintChosen(); refresh(); },
         }, [String(v)]),
       );
     }
@@ -290,7 +415,7 @@ function questionBlock(rubric: Rubric, a: Assessment, q: Question, changed: () =
           onchange: (e: Event) => {
             ans.na = (e.target as HTMLInputElement).checked;
             if (ans.na) ans.score = null;
-            autosave(a); paintScores(); paintChosen(); changed();
+            autosave(a); paintScores(); paintChosen(); refresh();
           },
         }),
         'Not applicable',
@@ -318,7 +443,7 @@ function questionBlock(rubric: Rubric, a: Assessment, q: Question, changed: () =
     const sel = el('select', {
       onchange: (e: Event) => {
         ans.picklist = (e.target as HTMLSelectElement).value;
-        autosave(a); paintOther(); changed();
+        autosave(a); paintOther(); refresh();
       },
     }, [el('option', { value: '' }, ['- choose -']),
         ...q.picklist.map((o) => el('option', { value: o.value, selected: ans.picklist === o.value }, [o.label]))]);
@@ -349,11 +474,11 @@ function questionBlock(rubric: Rubric, a: Assessment, q: Question, changed: () =
     }, [ans.justification ?? '']),
   ]));
 
-  wrap.appendChild(evidenceEditor(a, q, ans.evidence ??= [], changed));
+  wrap.appendChild(evidenceEditor(a, q, ans.evidence ??= [], refresh));
   return wrap;
 }
 
-function evidenceEditor(a: Assessment, q: Question, list: EvidenceRef[], changed: () => void): HTMLElement {
+function evidenceEditor(a: Assessment, q: Question, list: EvidenceRef[], refresh: () => void): HTMLElement {
   const box = el('div', { class: 'evidence' });
 
   const paint = () => {
@@ -369,7 +494,7 @@ function evidenceEditor(a: Assessment, q: Question, list: EvidenceRef[], changed
       const upd = (k: 'title' | 'location' | 'note' | 'kind' | 'classification') => (e: Event) => {
         (ev as unknown as Record<string, string>)[k] = (e.target as HTMLInputElement).value;
         autosave(a);
-        if (k === 'classification') { paint(); changed(); }
+        if (k === 'classification') { paint(); refresh(); }
       };
 
       const attachRow = ev.attachment
@@ -379,7 +504,7 @@ function evidenceEditor(a: Assessment, q: Question, list: EvidenceRef[], changed
             el('button', { class: 'ghost small', onclick: () => openAttachment(ev.attachment!) }, ['Open']),
             el('button', {
               class: 'ghost small',
-              onclick: () => { delete ev.attachment; autosave(a); paint(); changed(); },
+              onclick: () => { delete ev.attachment; autosave(a); paint(); refresh(); },
             }, ['Detach']),
           ])
         : el('label', { class: 'filelabel small' }, [
@@ -398,7 +523,7 @@ function evidenceEditor(a: Assessment, q: Question, list: EvidenceRef[], changed
                   }
                   ev.attachment = att;
                   if (!ev.title) ev.title = f.name;
-                  autosave(a); paint(); changed();
+                  autosave(a); paint(); refresh();
                 } catch (err) {
                   alert((err as Error).message);
                 }
@@ -415,7 +540,7 @@ function evidenceEditor(a: Assessment, q: Question, list: EvidenceRef[], changed
             el('option', { value: '', selected: !ev.classification }, ['- marking required -']),
             ...CLASSIFICATIONS.map((c) => el('option', { value: c, selected: ev.classification === c }, [c])),
           ]),
-          el('button', { class: 'ghost small', onclick: () => { list.splice(i, 1); autosave(a); paint(); changed(); } }, ['Remove']),
+          el('button', { class: 'ghost small', onclick: () => { list.splice(i, 1); autosave(a); paint(); refresh(); } }, ['Remove']),
         ]),
         el('div', { class: 'ev-row2' }, [
           attachRow,
@@ -438,7 +563,7 @@ function evidenceEditor(a: Assessment, q: Question, list: EvidenceRef[], changed
         class: 'ghost small',
         onclick: () => {
           list.push({ title: '', kind: 'document', location: '', classification: '' });
-          autosave(a); paint(); changed();
+          autosave(a); paint(); refresh();
         },
       }, ['Add evidence']),
       attached > TOTAL_WARN

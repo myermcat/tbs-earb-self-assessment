@@ -74,6 +74,15 @@
 
 * { box-sizing: border-box; }
 
+/* Visible to a screen reader, not on screen. Used to carry "out of 10" beside a score pill. */
+.sr-only {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+}
+
+/* A heading and its score, side by side, with the score outside the heading. */
+.head-row { display: flex; align-items: baseline; gap: .55rem; flex-wrap: wrap; }
+
 html { -webkit-text-size-adjust: 100%; }
 
 body {
