@@ -806,10 +806,14 @@ function questionBlock(rubric: Rubric, a: Assessment, q: Question, refresh: () =
   // The ladder, shown rather than hidden. It is the guidance, not just the scale.
   const ladderList = el('ul', { class: 'ladder' });
   for (const anchor of ladder) {
+    // Two children, because the row is a two-column grid: the number, then everything else.
+    // A third child became a third grid item and dropped onto its own row under the number.
     ladderList.appendChild(el('li', {}, [
       el('b', {}, [String(anchor.value)]),
-      anchor.name ? el('i', {}, [` ${anchor.name}. `]) : ' ',
-      anchor.label,
+      el('span', {}, [
+        anchor.name ? el('i', {}, [`${anchor.name}. `]) : null,
+        anchor.label,
+      ]),
     ]));
   }
   const ladderBox = el('details', { class: 'ladder-box' }, [

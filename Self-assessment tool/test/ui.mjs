@@ -460,6 +460,18 @@ ok('the questionnaire says where the answers go', view().includes('Saved locally
   ok('the chosen rung is named back to the user', first.querySelector('.chosen').textContent.includes('Scalable'),
      first.querySelector('.chosen').textContent.slice(0, 60));
   ok("the full ladder uses Dan's maturity names", first.textContent.includes('Symbiotic'));
+  // Each rung is one grid row: the number, then everything else. A third child became a
+  // third grid item and dropped onto its own line under the number.
+  {
+    const rows = [...first.querySelectorAll('.ladder li')];
+    ok('eleven rungs are listed', rows.length === 11, String(rows.length));
+    ok('and each rung is exactly two grid children, so nothing wraps under the number',
+       rows.every((r) => r.children.length === 2),
+       rows.map((r) => r.children.length).join(','));
+    ok('the rung name is emphasised inside the second child',
+       rows[7].children[1].querySelector('i')?.textContent.includes('Scalable'),
+       rows[7].children[1].textContent.slice(0, 40));
+  }
 }
 
 // ---- a high score with nothing behind it, an n/a, and one evidence reference ------------
