@@ -400,7 +400,7 @@ var rubric_v1_dan_default = {
   dlgBaseUrl: "",
   dlgBaseUrlNote: "Set once the Digital Lifecycle Guide is live on GCXchange. Empty means stage links render as plain text.",
   importWarnings: [
-    "Business Architecture: section weights sum to 80%, not 100%. Imported as stated; the roll-up normalises, so scores stay out of 10 - but this looks like a gap in the workbook."
+    "Business Architecture: the section weights in the workbook add up to 80%, not 100%. The missing 20 points are shared out across the 6 sections that are there, in proportion, so the domain still scores out of 10. Worth checking whether a section was left out of the export."
   ],
   scale: {
     min: 0,
@@ -683,7 +683,8 @@ var rubric_v1_dan_default = {
           stageExpectation: {
             discovery: "low-ok",
             alpha: "low-ok"
-          }
+          },
+          shareOfDomain: 6.3
         },
         {
           id: "defining-the-business-solution",
@@ -768,7 +769,8 @@ var rubric_v1_dan_default = {
               text: "How transparent is the solution design \u2014 is it documented, accessible, and understandable to those who rely on it?",
               weight: 1
             }
-          ]
+          ],
+          shareOfDomain: 31.3
         },
         {
           id: "demonstrated-engagement",
@@ -829,7 +831,8 @@ var rubric_v1_dan_default = {
               text: "How mature are personalization, predictive analytics, or AI-assisted capabilities within the solution offering?",
               weight: 1
             }
-          ]
+          ],
+          shareOfDomain: 12.5
         },
         {
           id: "calculated-measured-and-transparent-performance-and-value",
@@ -884,7 +887,8 @@ var rubric_v1_dan_default = {
               text: "Are periodic evaluations of continuing business need performed to assess whether the solution still justifies its cost?",
               weight: 1
             }
-          ]
+          ],
+          shareOfDomain: 12.5
         },
         {
           id: "operational-readiness",
@@ -939,7 +943,8 @@ var rubric_v1_dan_default = {
               text: "Are there operational runbooks, monitoring dashboards, and on-call processes in place to support production operations?",
               weight: 1
             }
-          ]
+          ],
+          shareOfDomain: 12.5
         },
         {
           id: "governance-and-strategy",
@@ -1000,7 +1005,8 @@ var rubric_v1_dan_default = {
               text: "How well does the solution contribute to GC-wide shared service consolidation and enterprise architecture objectives?",
               weight: 1
             }
-          ]
+          ],
+          shareOfDomain: 25
         }
       ]
     },
@@ -1073,7 +1079,8 @@ var rubric_v1_dan_default = {
           stageExpectation: {
             discovery: "low-ok",
             alpha: "low-ok"
-          }
+          },
+          shareOfDomain: 10
         },
         {
           id: "data-architecture-and-standards",
@@ -1152,7 +1159,8 @@ var rubric_v1_dan_default = {
               text: "Does the architecture support event-driven data integration patterns and real-time data processing where needed?",
               weight: 1
             }
-          ]
+          ],
+          shareOfDomain: 40
         },
         {
           id: "privacy-protection-and-compliance",
@@ -1213,7 +1221,8 @@ var rubric_v1_dan_default = {
               text: "Are access controls enforced at the data level, ensuring role-based and attribute-based access is actively governed?",
               weight: 1
             }
-          ]
+          ],
+          shareOfDomain: 25
         },
         {
           id: "accessibility-interoperability-and-usability",
@@ -1238,7 +1247,8 @@ var rubric_v1_dan_default = {
               text: "How accessible is data to authorized consumers, including other departments, partners, and (where appropriate) the public?",
               weight: 1
             }
-          ]
+          ],
+          shareOfDomain: 5
         },
         {
           id: "governance-oversight-and-accountability",
@@ -1281,7 +1291,8 @@ var rubric_v1_dan_default = {
               text: "Is there a regular data audit process to validate compliance with policies, identify orphaned data, and assess data health?",
               weight: 1
             }
-          ]
+          ],
+          shareOfDomain: 20
         }
       ]
     },
@@ -1354,7 +1365,8 @@ var rubric_v1_dan_default = {
           stageExpectation: {
             discovery: "low-ok",
             alpha: "low-ok"
-          }
+          },
+          shareOfDomain: 10
         },
         {
           id: "application-architecture-and-build-approach",
@@ -1421,7 +1433,8 @@ var rubric_v1_dan_default = {
               text: "Is the application designed as external-facing, internal enterprise, or administrative \u2014 and is the design tailored accordingly?",
               weight: 1
             }
-          ]
+          ],
+          shareOfDomain: 20
         },
         {
           id: "engineering-practices-and-frameworks",
@@ -1476,7 +1489,8 @@ var rubric_v1_dan_default = {
               text: "Is observability (logging, tracing, metrics) built into the application architecture from the start?",
               weight: 1
             }
-          ]
+          ],
+          shareOfDomain: 20
         },
         {
           id: "solution-options-and-ecosystem-strategy",
@@ -1543,7 +1557,8 @@ var rubric_v1_dan_default = {
               text: "How well are supply chain security risks addressed in the sourcing and integration of third-party components?",
               weight: 1
             }
-          ]
+          ],
+          shareOfDomain: 50
         }
       ]
     },
@@ -1604,7 +1619,8 @@ var rubric_v1_dan_default = {
           stageExpectation: {
             discovery: "low-ok",
             alpha: "low-ok"
-          }
+          },
+          shareOfDomain: 10
         },
         {
           id: "infrastructure-architecture-and-deployment-model",
@@ -1671,7 +1687,8 @@ var rubric_v1_dan_default = {
               text: "Is the deployment model designed to meet availability, recovery time, and recovery point objectives?",
               weight: 1
             }
-          ]
+          ],
+          shareOfDomain: 25
         },
         {
           id: "modern-engineering-patterns-and-platform-design",
@@ -1720,7 +1737,8 @@ var rubric_v1_dan_default = {
               text: "Are orchestration and container management (e.g., Kubernetes) used appropriately and configured to GC standards?",
               weight: 1
             }
-          ]
+          ],
+          shareOfDomain: 20
         },
         {
           id: "resilience-sovereignty-and-security",
@@ -1775,7 +1793,8 @@ var rubric_v1_dan_default = {
               text: "Are GC Cloud Guardrails and security baseline configurations implemented and continuously validated?",
               weight: 1
             }
-          ]
+          ],
+          shareOfDomain: 25
         },
         {
           id: "operations-governance-and-continuous-management",
@@ -1824,7 +1843,8 @@ var rubric_v1_dan_default = {
               text: "How mature is the infrastructure change management process \u2014 are changes reviewed, approved, and traceable?",
               weight: 1
             }
-          ]
+          ],
+          shareOfDomain: 20
         }
       ]
     }

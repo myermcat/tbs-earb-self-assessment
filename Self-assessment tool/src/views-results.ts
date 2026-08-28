@@ -43,9 +43,24 @@ export function renderResults(root: HTMLElement, rubric: Rubric, a: Assessment, 
       el('p', { class: 'muted small' }, [
         'This is a suggestion produced from your own scores. TBS confirms routing; a self-assessment does not decide it.',
       ]),
-      el('p', { class: 'muted small' }, [
-        `${r.answered} of ${r.scoreable} questions answered. ${highs} thing${highs === 1 ? '' : 's'} an assessor will probably ask about.`,
-      ]),
+      // How complete this is, said before anything else about it, because a score computed
+      // from a third of the questions is not the same claim as a score from all of them.
+      (() => {
+        const pct = Math.round(r.completeness * 100);
+        const full = r.answered >= r.scoreable;
+        return el('div', { class: `completeness ${full ? 'full' : 'partial'}` }, [
+          el('div', { class: 'completeness-bar' }, [el('i', { style: `width:${pct}%` })]),
+          el('p', { class: 'small' }, [
+            el('b', {}, [`${r.answered} of ${r.scoreable} answered (${pct}%). `]),
+            full
+              ? 'Everything has been scored.'
+              : 'This score is calculated from what has been answered so far. An unanswered question is left out of the sum, so it does not count as a zero, and the score will move as you fill the rest in.',
+          ]),
+          el('p', { class: 'small' }, [
+            `${highs} thing${highs === 1 ? '' : 's'} an assessor will probably ask about.`,
+          ]),
+        ]);
+      })(),
     ]),
   ]));
 

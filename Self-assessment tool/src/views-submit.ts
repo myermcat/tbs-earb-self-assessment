@@ -49,6 +49,35 @@ const firstStopIn = (list: Stop[], domainId: string): string =>
   list.find((x) => x.domainId === domainId)?.key ?? 'about';
 
 /**
+ * Where somebody coming back should land. Answers left blank scatter among answered ones over
+ * several sittings, and hunting for them is the worst part of returning to a long form.
+ */
+export function firstGap(rubric: Rubric, a: Assessment): { key: string; questionId: string | null } | null {
+  if (overviewProgress(a)[0] < overviewProgress(a)[1]) return { key: 'about', questionId: null };
+  for (const d of rubric.domains) {
+    for (const sec of d.sections) {
+      for (const q of sec.questions) {
+        const ans = a.answers[q.id];
+        if (!ans?.na && typeof ans?.score !== 'number') {
+          return { key: `${d.id}/${sec.id}`, questionId: q.id };
+        }
+      }
+    }
+  }
+  return null;
+}
+
+/** Set by the shell when the reader asks to be taken to the next gap. */
+let scrollToQuestion: string | null = null;
+export function goToFirstGap(rubric: Rubric, a: Assessment): boolean {
+  const gap = firstGap(rubric, a);
+  if (!gap) return false;
+  page = gap.key;
+  scrollToQuestion = gap.questionId;
+  return true;
+}
+
+/**
  * Repainting only this view leaves the shell stale - most visibly the classification banner,
  * which the shell draws. The shell hands us its own paint so a marking change is reflected
  * everywhere at once.
@@ -130,14 +159,6 @@ export function renderSubmit(
 
   if (here.domainId === null) {
     sheet.appendChild(aboutSection(rubric, a, refresh, repaintApp));
-    if (!a.initiative.lifecycleStage) {
-      sheet.appendChild(el('section', { class: 'card warn' }, [
-        el('strong', {}, ['Pick a lifecycle stage before you start scoring']),
-        el('p', { class: 'small' }, [
-          'It changes what is expected of you. Current-state questions count for less if there is nothing built yet.',
-        ]),
-      ]));
-    }
   } else {
     const ds = r.domains.find((d) => d.domain.id === here.domainId);
     const ss = ds?.sections.find((x) => x.section.id === here.sectionId);
@@ -149,7 +170,15 @@ export function renderSubmit(
   }
 
   sheet.appendChild(pager(list, here, navigate, onDone));
-  root.appendChild(footerBar(a, r, onDone, here));
+  root.appendChild(footerBar(rubric, a, r, onDone, here, navigate));
+
+  if (scrollToQuestion) {
+    const target = sheet.querySelector(`[data-qid="${cssId(scrollToQuestion)}"]`);
+    scrollToQuestion = null;
+    if (target && typeof (target as HTMLElement).scrollIntoView === 'function') {
+      (target as HTMLElement).scrollIntoView({ block: 'center' });
+    }
+  }
 }
 
 /**
@@ -174,8 +203,9 @@ function sectionHead(
     pill.className = `pill ${tone(cur.score)}`;
     pill.textContent = cur.score === null ? '--' : cur.score.toFixed(1);
     srPill.textContent = cur.score === null ? 'not scored yet' : `${cur.score.toFixed(1)} out of 10`;
+    const share = cur.section.shareOfDomain ?? cur.weight;
     counts.textContent =
-      `${cur.weight}% of ${d.domain.label}, which is ${d.domain.weight}% of the total. ` +
+      `${share}% of ${d.domain.label}, which is ${d.domain.weight}% of the total. ` +
       `${cur.answered} of ${cur.total} answered on this page.`;
   };
 
@@ -302,7 +332,7 @@ function stepper(
   };
 
   return el('nav', { class: 'stepper', 'aria-label': 'Parts of the assessment' }, [
-    step('Overview', 'about', (st) => st.domainId === null, () => [a.initiative.lifecycleStage ? 1 : 0, 1]),
+    step('Overview', 'about', (st) => st.domainId === null, () => overviewProgress(a)),
     ...rubric.domains.map((d) =>
       step(shortLabel(d.label), firstStopIn(list, d.id), (st) => st.domainId === d.id, (rr) => {
         const ds = rr.domains.find((x) => x.domain.id === d.id);
@@ -310,6 +340,22 @@ function stepper(
       }),
     ),
   ]);
+}
+
+/**
+ * The overview asks for six things, so counting it as one was misleading. None of them are
+ * scored; they are what an assessor needs to know before reading a score.
+ */
+export function overviewProgress(a: Assessment): [number, number] {
+  const fields = [
+    a.initiative.name.trim(),
+    a.initiative.department.trim(),
+    a.initiative.contact.trim(),
+    a.initiative.summary.trim(),
+    a.initiative.lifecycleStage,
+    a.initiative.classification,
+  ];
+  return [fields.filter(Boolean).length, fields.length];
 }
 
 /** "Application & Virtual Architecture" is too long for a tab. */
@@ -334,7 +380,14 @@ function pager(list: Stop[], here: Stop, navigate: (t: string) => void, onDone: 
   ]);
 }
 
-function footerBar(a: Assessment, r: Result, onDone: () => void, here: Stop): HTMLElement {
+function footerBar(
+  rubric: Rubric,
+  a: Assessment,
+  r: Result,
+  onDone: () => void,
+  here: Stop,
+  navigate: (t: string) => void,
+): HTMLElement {
   const gate = el('div', {});
   const pill = el('span', { class: 'pill', 'aria-hidden': true });
   const readout = el('span', { class: 'muted small' });
@@ -356,14 +409,11 @@ function footerBar(a: Assessment, r: Result, onDone: () => void, here: Stop): HT
     clear(gate);
     if (problems.length) {
       const needsFileMark = problems.some((x) => x.kind === 'no-file-marking');
+      // Short enough to take in at a glance. The reader is trying to save, not to read.
       gate.appendChild(el('div', { class: 'gate small' }, [
         el('div', {}, [
-          el('strong', {}, [
-            problems.length === 1
-              ? 'One thing before you can save: '
-              : `${problems.length} things before you can save: `,
-          ]),
-          problems[0].message,
+          el('strong', {}, [needsFileMark ? 'Mark this file to save it' : 'Fix this to save']),
+          needsFileMark ? '' : `: ${problems[0].message}`,
         ]),
         // Telling somebody to mark the file and making them go and find the control is how a
         // gate turns into a notice people learn to read past. The control is here.
@@ -404,6 +454,7 @@ function footerBar(a: Assessment, r: Result, onDone: () => void, here: Stop): HT
       secBar.classList.remove('celebrate');
       void secBar.offsetWidth;                     // restart the animation
       secBar.classList.add('celebrate');
+      confetti(rr.answered >= rr.scoreable ? 'whole' : 'section');
     }
     sectionWasComplete = nowComplete;
     secBar.classList.toggle('done', nowComplete);
@@ -418,6 +469,13 @@ function footerBar(a: Assessment, r: Result, onDone: () => void, here: Stop): HT
     el('div', { class: 'footer-inner' }, [
       el('div', { class: 'footer-score' }, [pill, readout]),
       el('div', { class: 'footer-actions' }, [
+        (() => {
+          const jump = el('button', { class: 'ghost', onclick: () => {
+            if (goToFirstGap(rubric, a)) repaintApp();
+          } }, ['Next unanswered']);
+          register((rr) => { jump.hidden = rr.answered >= rr.scoreable; }, r);
+          return jump;
+        })(),
         save,
         el('button', { class: 'primary', onclick: onDone }, ['See my results']),
       ]),
@@ -425,6 +483,35 @@ function footerBar(a: Assessment, r: Result, onDone: () => void, here: Stop): HT
   ]);
   register(apply, r);
   return node;
+}
+
+/**
+ * Finishing a section deserves more than a bar going green. Small, brief, and entirely
+ * decorative: a dozen pieces of paper in the score ramp's own colours, thrown from the footer,
+ * gone in a second and a half. Nothing waits on it and it cleans itself up.
+ *
+ * Skipped outright for anyone who has asked for reduced motion, and in jsdom, where there is
+ * no animation to see and no point building nodes for one.
+ */
+function confetti(scale: 'section' | 'whole'): void {
+  if (typeof document.createElement !== 'function') return;
+  const reduced = typeof window.matchMedia === 'function'
+    && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (reduced) return;
+
+  const burst = el('div', { class: 'confetti', 'aria-hidden': true });
+  const pieces = scale === 'whole' ? 60 : 18;
+  for (let i = 0; i < pieces; i++) {
+    const p = el('i');
+    // Spread across the width, in the eleven score colours, with staggered starts.
+    p.style.setProperty('--x', `${Math.round((i / pieces) * 100)}%`);
+    p.style.setProperty('--c', `var(--s${i % 11})`);
+    p.style.setProperty('--d', `${(i % 7) * 60}ms`);
+    p.style.setProperty('--r', `${((i * 37) % 120) - 60}px`);
+    burst.appendChild(p);
+  }
+  document.body.appendChild(burst);
+  setTimeout(() => burst.remove(), scale === 'whole' ? 2600 : 1800);
 }
 
 function saveFile(a: Assessment) {
@@ -473,15 +560,43 @@ function aboutSection(
     );
   }
 
+  const phases: { name: string; blurb: string; ids: string[] }[] = [
+    { name: 'Create', blurb: 'Being built, and not in service yet.', ids: ['discovery', 'alpha', 'beta'] },
+    { name: 'Live', blurb: 'In service, with real users.', ids: ['stabilization', 'growth', 'maturity'] },
+    { name: 'Sunset', blurb: 'Being replaced or retired.', ids: ['sunset'] },
+  ];
+
+  const stageGroups = el('div', { class: 'phase-groups' });
+  for (const ph of phases) {
+    const grid = el('div', { class: 'stage-grid' });
+    for (const st of rubric.lifecycleStages) {
+      if (!ph.ids.includes(st.id)) continue;
+      const card = stageWrap.querySelector(`#stage-${st.id}`)?.closest('.stage-card');
+      if (card) grid.appendChild(card);
+    }
+    if (!grid.children.length) continue;
+    stageGroups.appendChild(el('div', { class: `phase-group phase-${ph.name.toLowerCase()}` }, [
+      el('div', { class: 'phase-head' }, [
+        el('h4', {}, [ph.name]),
+        el('span', { class: 'muted tiny' }, [ph.blurb]),
+      ]),
+      grid,
+    ]));
+  }
+
   return el('section', { class: 'card' }, [
     el('h2', {}, ['About the initiative']),
+    el('p', { class: 'muted small' }, [
+      'Six things an assessor needs before a score means anything. None of them are scored.',
+    ]),
     el('div', { class: 'grid-2' }, [
       field('Initiative name', el('input', { type: 'text', value: a.initiative.name, oninput: set('name'), onchange: settled })),
       field('Department or agency', el('input', { type: 'text', value: a.initiative.department, oninput: set('department'), onchange: settled })),
       field('Who to contact about this', el('input', { type: 'text', value: a.initiative.contact, oninput: set('contact'), onchange: settled })),
     ]),
     field('In two or three sentences, what is it?', el('textarea', { rows: 3, oninput: set('summary'), onchange: settled }, [a.initiative.summary])),
-    el('h3', {}, ['How is this assessment marked?']),
+    el('hr', { class: 'q-split' }),
+    el('h3', { id: 'marking-control', tabindex: -1 }, ['How is this assessment marked?']),
     el('p', { class: 'muted' }, [
       'Mark the file as a whole, at the highest marking of anything you put in it - your own words, and anything you attach. ',
       'Individual scores are not marked; a number is not sensitive. You cannot save until this is set.',
@@ -503,11 +618,20 @@ function aboutSection(
           : null,
       ]);
     })(),
+    el('hr', { class: 'q-split' }),
     el('h3', {}, ['Where is it in the lifecycle?']),
-    el('p', { class: 'muted' }, [
-      'This changes what is expected of you. A discovery team has no current solution to document; a live service does.',
+    el('p', { class: 'muted small' }, [
+      'This changes what is expected of you. A discovery team has no current solution to document; a live service does. ',
+      rubric.dlgBaseUrl
+        ? el('a', { href: rubric.dlgBaseUrl, target: '_blank', rel: 'noreferrer', class: 'faint-link' }, [
+            'The Digital Lifecycle Guide explains the phases',
+          ])
+        : null,
     ]),
-    stageWrap,
+    a.initiative.lifecycleStage
+      ? null
+      : el('p', { class: 'small warn-text' }, ['Pick one before you start scoring.']),
+    stageGroups,
   ]);
 }
 
@@ -529,6 +653,7 @@ function questionBlock(rubric: Rubric, a: Assessment, q: Question, refresh: () =
   })();
 
   const textId = `q-${cssId(q.id)}-text`;
+  wrap.setAttribute('data-qid', cssId(q.id));
   wrap.appendChild(el('div', { class: 'q-head' }, [
     el('span', { class: 'qid' }, [q.id]),
     el('span', { class: 'q-text', id: textId }, [q.text]),
@@ -636,6 +761,7 @@ function questionBlock(rubric: Rubric, a: Assessment, q: Question, refresh: () =
   const paintChosen = () => {
     clear(chosen);
     wrap.classList.toggle('answered', ans.score !== null && !ans.na);
+    wrap.classList.toggle('unanswered', ans.score === null && !ans.na);
     wrap.classList.toggle('na', !!ans.na);
     if (ans.score !== null && !ans.na) wrap.style.setProperty('--edge', `var(--s${ans.score})`);
     else wrap.style.removeProperty('--edge');

@@ -122,9 +122,27 @@ for (const d of DOMAINS) {
     }
   }
 
+  /**
+   * Section weights are meant to be a percentage split of their domain. Business Architecture
+   * sums to 80 in Dan's workbook while the other three sum to 100, so twenty points are
+   * unaccounted for.
+   *
+   * The roll-up already divides by the weights present, which scales the six that are there up
+   * proportionally. That is the right arithmetic and it was invisible, because the page showed
+   * the raw numbers and they did not add up. So each section also carries its share of its
+   * domain, and the page shows that instead. The raw weight stays, because it is Dan's.
+   */
   const sum = sections.reduce((s, x) => s + x.weight, 0);
+  for (const sec of sections) {
+    sec.shareOfDomain = sum > 0 ? Math.round((sec.weight / sum) * 1000) / 10 : 0;
+  }
   if (Math.abs(sum - 100) > 0.01) {
-    warnings.push(`${d.label}: section weights sum to ${sum}%, not 100%. Imported as stated; the roll-up normalises, so scores stay out of 10 - but this looks like a gap in the workbook.`);
+    warnings.push(
+      `${d.label}: the section weights in the workbook add up to ${sum}%, not 100%. ` +
+      `The missing ${Math.round((100 - sum) * 10) / 10} points are shared out across the ` +
+      `${sections.length} sections that are there, in proportion, so the domain still scores out of 10. ` +
+      `Worth checking whether a section was left out of the export.`,
+    );
   }
   const empty = sections.filter((s) => !s.questions.length).map((s) => s.label);
   if (empty.length) warnings.push(`${d.label}: sections with no questions: ${empty.join(', ')}`);
