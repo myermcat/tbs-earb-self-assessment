@@ -199,6 +199,9 @@ textarea { resize: vertical; }
   transition: width .2s ease; }
 .step.complete .step-bar i { background: var(--good); }
 
+code.mono { background: var(--surface-2); border: 1px solid var(--line);
+  border-radius: 4px; padding: .02rem .3rem; }
+
 /* ---------- lifecycle stage picker ------------------------------------------------------ */
 
 .stage-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(235px, 1fr)); gap: .45rem; }

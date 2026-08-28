@@ -69,6 +69,49 @@ function footer(): HTMLElement {
   ]);
 }
 
+/**
+ * The tool is meant to be hosted while the information stays local: the page is code, the
+ * answers never leave the browser. Someone being asked to type Protected B material into a
+ * page they loaded off the internet is entitled to see that claim made plainly, and to be
+ * told how to check it rather than take it on trust.
+ */
+function provenancePanel(): HTMLElement {
+  const where = (() => {
+    const p = window.location.protocol;
+    if (p === 'file:') return 'a file on this machine';
+    if (p === 'https:' || p === 'http:') return window.location.host || 'a web address';
+    return 'this page';
+  })();
+
+  return el('section', { class: 'card' }, [
+    el('h2', {}, ['Where your answers go']),
+    el('p', { class: 'small' }, [
+      'This page was loaded from ', el('b', {}, [where]),
+      '. That is the only thing that came over the network. Everything you type from here on stays on this machine.',
+    ]),
+    el('ul', { class: 'steps small' }, [
+      el('li', {}, [
+        el('b', {}, ['It cannot send anything, anywhere. ']),
+        'The page declares ',
+        el('code', { class: 'mono' }, ["default-src 'none'; connect-src 'none'"]),
+        ' — a browser-level rule that blocks every outbound request. Not a promise in a policy document; a restriction the browser enforces. View source and search for it.',
+      ]),
+      el('li', {}, [
+        el('b', {}, ['Your answers live in two places. ']),
+        'A draft kept by this browser, on this machine, and the file you choose to save. Nothing else.',
+      ]),
+      el('li', {}, [
+        el('b', {}, ['You decide who sees it. ']),
+        'Saving produces a file. Sending it is a separate act, through whatever channel your department already uses for material at that marking.',
+      ]),
+      el('li', {}, [
+        el('b', {}, ['Work at your own classification. ']),
+        'Open your own material beside this page. It is never read, uploaded or scanned — attaching a file copies it into the assessment you save, and nowhere else.',
+      ]),
+    ]),
+  ]);
+}
+
 function renderHome(root: HTMLElement) {
   const draft = loadDraft();
 
@@ -129,6 +172,8 @@ function renderHome(root: HTMLElement) {
         : null,
     ]));
   }
+
+  root.appendChild(provenancePanel());
 
   root.appendChild(el('section', { class: 'card' }, [
     el('h2', {}, ['Swap in a different rubric']),

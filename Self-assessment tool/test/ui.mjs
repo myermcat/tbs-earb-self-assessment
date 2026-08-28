@@ -53,6 +53,12 @@ ok('draft status is shown, not hidden', view().includes('draft'));
 ok('the import warning about the Business weight gap is surfaced to the user',
    view().includes('80%'));
 ok('the question count is stated up front', view().includes(String(TOTAL)));
+// The tool is meant to be hosted with the data staying local, so the page has to state that
+// plainly and say how to verify it - not ask to be trusted.
+ok('the page says where it was loaded from', view().includes('Where your answers go'));
+ok('and names the rule that stops it transmitting', view().includes("connect-src 'none'"));
+ok('and says the answers live only in this browser and the saved file',
+   view().includes('live in two places'));
 ok('no network call is even possible (CSP)', html.includes("connect-src 'none'"));
 // Without an explicit color-scheme, native buttons and inputs follow the OS setting while
 // the page follows the media query, and a light page renders dark controls.

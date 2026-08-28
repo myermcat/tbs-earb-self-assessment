@@ -133,13 +133,37 @@ The tool always words this as a suggestion and says TBS confirms routing.
 - How should the file reach TBS - email, GCdocs, SharePoint, a GitHub issue?
 - Second storage path: GitHub for now, as agreed. What is the non-Microsoft fallback later?
 
-## Publishing
+## Hosted engine, local information
 
-`.github/workflows/pages.yml` will publish `dist/index.html` to GitHub Pages, and is
-**deliberately not enabled**. This repo holds Dan's DRAFT framework and the 176 questions;
-GitHub Pages on a free account only serves public repositories, so turning it on would make
-that content public. Keep the repo private and hand people the single HTML file until Dan
-says the content can be published.
+The right model, and the one the build already supports: **host the engine, keep the
+information local.** The page is code. It carries `default-src 'none'; connect-src 'none'`,
+so it cannot transmit anything no matter where it was loaded from - hosted or opened off a
+USB stick, the data behaviour is identical. Answers live in the browser and in the file the
+person chooses to save.
+
+Two things hosting genuinely changes, both worth knowing:
+
+- **Version drift goes away.** A hosted copy means everyone answers the current rubric.
+  Files scatter and people fill in stale ones - which is why every assessment records the
+  rubric version it was answered against.
+- **A department has to trust the copy.** Fine for a demo. For real Protected B use expect to
+  be asked for a GC-controlled location, or just the file. The home page states where it was
+  loaded from and how to verify the CSP, so the claim is checkable rather than asserted.
+
+`deploy/github-pages-workflow.yml` publishes it, and is **not active yet**. What becomes
+public is not data but the **176 questions** - Dan's DRAFT framework. That is a sequencing
+decision for him, not a security one. `deploy/README.md` has the steps.
+
+## Notifications
+
+Hosting does not enable them. A static page cannot send mail whether or not it sits at a URL,
+and the CSP forbids the attempt. Two layers instead:
+
+- **Now:** *Draft the email* opens the person's own mail client with the message written.
+- **Later, separate:** reminders and follow-ups come from whoever holds the intake, using
+  **GC Notify** - which is already in Dan's own rubric at application question Q33. It never
+  touches evidence. Adding a *submit* button that posts to that intake would work too, but it
+  puts data back on the network, so submission stays manual.
 
 ## Status
 
