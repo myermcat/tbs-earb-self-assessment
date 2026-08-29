@@ -4,7 +4,8 @@ import { validate } from './rubric';
 import { goToFirstGap, renderSubmit, resetOverviewToFirstGap, setRepaint, setStopKey, takeSubmitTabs } from './views-submit';
 import { renderResults } from './views-results';
 import { renderReview } from './views-review';
-import { APP_VERSION, blankAssessment, clearDraft, loadDraft, readJsonFiles } from './storage';
+import { answeredCount, APP_VERSION, blankAssessment, clearDraft, hasWork, lastSaveInfo,
+  loadDraft, readJsonFiles, saveAssessmentFile } from './storage';
 import { bannerFor } from './marking';
 import BUILTIN from '../rubric/rubric.v1-dan.json';
 
@@ -43,6 +44,21 @@ let rubric: Rubric = BUILTIN as unknown as Rubric;
 let assessment: Assessment = loadDraft() ?? blankAssessment(rubric);
 let side: Side = bootSide();
 let mode: Mode = side === 'assess' ? 'review' : 'home';
+
+type SettingsPane = 'questions' | 'answers' | 'danger';
+let settingsPane: SettingsPane = 'questions';
+
+/**
+ * The assessment a discard just threw away, held in this tab and nowhere else. Undo is offered
+ * from here. Nothing is written to disk to support it, so "permanently" stays true of the
+ * browser's own store, which is what somebody clearing sensitive material cares about.
+ */
+let rescued: Assessment | null = null;
+
+function openSettings(pane: SettingsPane) {
+  settingsPane = pane;
+  go('settings');
+}
 
 const app = document.getElementById('app')!;
 
@@ -160,7 +176,7 @@ function header(): HTMLElement {
         class: `icon-btn ${mode === 'settings' ? 'on' : ''}`,
         title: 'Settings', 'aria-label': 'Settings',
         html: GEAR,
-        onclick: () => go('settings'),
+        onclick: () => openSettings('questions'),
       }),
     ]),
   ]);
@@ -169,7 +185,7 @@ function header(): HTMLElement {
 function footer(): HTMLElement {
   return el('footer', { class: 'sitefoot' }, [
     el('span', {}, ['Everything you enter stays on this machine. ']),
-    el('button', { class: 'linkish', onclick: () => go('settings') }, ['How that works']),
+    el('button', { class: 'linkish', onclick: () => openSettings('answers') }, ['How that works']),
     el('span', {}, [`  ·  rubric ${rubric.version}  ·  v${APP_VERSION}`]),
   ]);
 }
@@ -210,7 +226,7 @@ function banner(extra = ''): HTMLElement {
  * that throws the work away should not be the brightest thing on the page.
  */
 function draftNote(draft: Assessment, total: number): HTMLElement {
-  const answered = Object.keys(draft.answers).filter((k) => typeof draft.answers[k].score === 'number').length;
+  const answered = answeredCount(draft);
   const saved = (() => {
     const t = Date.parse(draft.meta?.updatedAt ?? '');
     return Number.isFinite(t) ? new Date(t).toLocaleString() : 'a moment ago';
@@ -225,18 +241,9 @@ function draftNote(draft: Assessment, total: number): HTMLElement {
       'reloading the page does not lose it, and you do not need the file you saved to carry on.',
     ]),
     el('p', { class: 'tiny dim' }, [
-      el('button', {
-        class: 'linkish',
-        onclick: () => {
-          if (!confirm(
-            `Discard ${answered} answered question${answered === 1 ? '' : 's'} and start again?\n\n` +
-            'This cannot be undone. If you want to keep them, cancel, continue, and save a file first.',
-          )) return;
-          clearDraft();
-          assessment = blankAssessment(rubric);
-          go('submit');
-        },
-      }, ['Discard this and start again']),
+      'Starting over is in ',
+      el('button', { class: 'linkish', onclick: () => openSettings('danger') }, ['Settings']),
+      '.',
     ]),
   ]);
 }
@@ -321,106 +328,331 @@ function renderHome(root: HTMLElement) {
    first thing a person needs.
    ------------------------------------------------------------------------------------------ */
 
+const TRASH =
+  '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" ' +
+  'stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+  '<path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6M10 11v6M14 11v6"/></svg>';
+
+/* ------------------------------------------------------------------------------------------
+   Settings: a rail on the left, one pane at a time on the right.
+   ------------------------------------------------------------------------------------------ */
+
 function renderSettings(root: HTMLElement) {
-  root.appendChild(el('section', { class: 'card' }, [
-    el('h1', {}, ['Settings']),
-    el('p', { class: 'muted' }, ['The question set in use, and how this page handles what you enter.']),
-  ]));
+  const pane = el('section', { class: 'set-pane' });
 
-  root.appendChild(el('section', { class: 'card' }, [
-    el('h2', {}, ['Question set']),
-    el('dl', { class: 'kv' }, [
-      el('dt', {}, ['Title']), el('dd', {}, [rubric.title]),
-      el('dt', {}, ['Version']), el('dd', { class: 'mono' }, [rubric.version]),
-      el('dt', {}, ['Status']), el('dd', {}, [rubric.status]),
-      el('dt', {}, ['Size']), el('dd', {}, [
-        `${questionCount(rubric)} questions in ${rubric.domains.reduce((n, d) => n + d.sections.length, 0)} sections`,
-      ]),
-    ]),
-    rubric.provenance ? el('p', { class: 'small muted' }, [rubric.provenance]) : null,
-    rubric.importWarnings?.length
-      ? el('div', { class: 'card warn tight' }, [
-          el('strong', { class: 'small' }, ['Noted when this question set was imported']),
-          el('ul', { class: 'small' }, rubric.importWarnings.map((w) => el('li', {}, [w]))),
-        ])
-      : null,
-    el('h3', {}, ['Use a different question set']),
-    el('p', { class: 'small muted' }, [
-      'The questions, weights and scale live in one JSON file. Load another and the whole assessment changes.',
-    ]),
-    el('label', { class: 'filelabel' }, [
-      'Load a question set',
-      el('input', {
-        type: 'file', accept: '.json', hidden: true,
-        onchange: async (e: Event) => {
-          const f = (e.target as HTMLInputElement).files;
-          if (!f?.length) return;
-          const [item] = await readJsonFiles(f);
-          const v = validate(item.data);
-          if (!v.ok) { alert(`That question set will not load:\n\n- ${v.problems.join('\n- ')}`); return; }
-          rubric = v.rubric;
-          assessment = blankAssessment(rubric);
-          go('settings');
-        },
-      }),
-    ]),
-  ]));
+  const navRow = (label: string, id: SettingsPane, danger = false) =>
+    el('button', {
+      class: `set-navrow ${danger ? 'danger' : ''} ${settingsPane === id ? 'on' : ''}`,
+      'aria-current': settingsPane === id ? 'page' : 'false',
+      onclick: () => { settingsPane = id; paintPane(); },
+    }, [label]);
 
-  root.appendChild(provenancePanel());
+  const nav = el('nav', { class: 'set-nav', 'aria-label': 'Settings' });
+
+  /**
+   * Switching pane repaints the pane and nothing else, so there is no scroll jump and no
+   * history entry. Focus moves to the new heading, which is what announces the change to a
+   * screen reader without an aria-live region reading a whole pane aloud.
+   */
+  function paintPane() {
+    clear(nav);
+    nav.appendChild(el('span', { class: 'set-navgroup' }, ['Settings']));
+    nav.appendChild(navRow('Question set', 'questions'));
+    nav.appendChild(navRow('Your answers', 'answers'));
+    nav.appendChild(el('span', { class: 'set-navsep', 'aria-hidden': true }));
+    nav.appendChild(navRow('Start again', 'danger', true));
+
+    clear(pane);
+    if (settingsPane === 'questions') paneQuestions(pane);
+    else if (settingsPane === 'answers') paneAnswers(pane);
+    else paneDanger(pane);
+
+    const h = pane.querySelector('h1') as HTMLElement | null;
+    h?.focus?.();
+  }
+
+  paintPane();
+  root.appendChild(el('div', { class: 'set-layout' }, [nav, pane]));
 }
 
-/**
- * The tool is meant to be hosted while the information stays local: the page is code, the
- * answers never leave the browser. Someone asked to type Protected B material into a page
- * loaded from the internet is entitled to see that claim made plainly, and to be told how to
- * check it.
- */
-function provenancePanel(): HTMLElement {
+function setRow(
+  title: string,
+  body: string,
+  control: HTMLElement | null,
+  opts: { tier?: 'caution' | 'danger'; badge?: string } = {},
+): HTMLElement {
+  return el('div', { class: `set-row ${opts.tier ?? ''}` }, [
+    el('div', {}, [
+      el('div', { class: 'set-row-title' }, [
+        title,
+        opts.badge
+          ? el('span', { class: `badge ${opts.tier === 'danger' ? 'badge-bad' : 'badge-warn'}` }, [opts.badge])
+          : null,
+      ]),
+      el('p', {}, [body]),
+    ]),
+    control ? el('div', { class: 'set-row-act' }, [control]) : null,
+  ]);
+}
+
+function paneQuestions(pane: HTMLElement) {
+  pane.appendChild(el('h1', { tabindex: -1 }, ['Question set']));
+  pane.appendChild(el('p', { class: 'set-lead' }, ['The questions, weights and scale in use.']));
+
+  pane.appendChild(el('dl', { class: 'kv' }, [
+    el('dt', {}, ['Title']), el('dd', {}, [rubric.title]),
+    el('dt', {}, ['Version']), el('dd', { class: 'mono' }, [rubric.version]),
+    el('dt', {}, ['Status']), el('dd', {}, [rubric.status]),
+    el('dt', {}, ['Size']), el('dd', {}, [
+      `${questionCount(rubric)} questions in ${rubric.domains.reduce((n, d) => n + d.sections.length, 0)} sections`,
+    ]),
+  ]));
+  if (rubric.provenance) pane.appendChild(el('p', { class: 'small muted' }, [rubric.provenance]));
+  if (rubric.importWarnings?.length) {
+    pane.appendChild(el('div', { class: 'card warn tight' }, [
+      el('strong', { class: 'small' }, ['Noted when this question set was imported']),
+      el('ul', { class: 'small' }, rubric.importWarnings.map((w) => el('li', {}, [w]))),
+    ]));
+  }
+
+  /**
+   * Loading a different question set used to wipe every answer the moment a file validated,
+   * with no warning at all. It was the most destructive control in the tool and the only one
+   * that asked nothing, so it goes through the same confirmation as a discard.
+   */
+  const picker = el('label', { class: 'filelabel caution' }, [
+    'Load a question set',
+    el('input', {
+      type: 'file', accept: '.json', hidden: true,
+      onchange: async (e: Event) => {
+        const input = e.target as HTMLInputElement;
+        const f = input.files;
+        if (!f?.length) return;
+        const [item] = await readJsonFiles(f);
+        input.value = '';
+        const v = validate(item.data);
+        if (!v.ok) { alert(`That question set will not load:\n\n- ${v.problems.join('\n- ')}`); return; }
+
+        const swap = () => {
+          rubric = v.rubric;
+          assessment = blankAssessment(rubric);
+          resetOverviewToFirstGap(rubric, assessment);
+          settingsPane = 'questions';
+          go('settings');
+        };
+        if (!hasWork(assessment)) { swap(); return; }
+
+        confirmDestructive({
+          tier: 'caution',
+          title: `Replace the question set and clear ${answeredCount(assessment)} answers?`,
+          body: 'A different question set is a different assessment. The answers you have given cannot be carried across to it.',
+          saveLabel: 'Save a file, then replace',
+          commitLabel: 'Replace anyway',
+          cancelLabel: 'Keep my answers',
+          onCommit: swap,
+        });
+      },
+    }),
+  ]);
+
+  pane.appendChild(setRow(
+    'Replace the question set',
+    'The questions, weights and scale live in one JSON file. Loading another replaces the whole assessment, and the answers you have given cannot be carried across.',
+    picker,
+    { tier: 'caution', badge: 'Clears your answers' },
+  ));
+}
+
+function paneAnswers(pane: HTMLElement) {
+  pane.appendChild(el('h1', { tabindex: -1 }, ['Where your answers go']));
   const where = (() => {
     const p = window.location.protocol;
     if (p === 'file:') return 'a file on this machine';
     if (p === 'https:' || p === 'http:') return window.location.host || 'a web address';
     return 'this page';
   })();
+  pane.appendChild(el('p', { class: 'set-lead' }, [
+    'This page was loaded from ', el('b', {}, [where]),
+    '. That was the only thing that came over the network. Everything you type from here on stays on this machine.',
+  ]));
 
-  return el('section', { class: 'card' }, [
-    el('h2', {}, ['Where your answers go']),
-    el('p', { class: 'small' }, [
-      'This page was loaded from ', el('b', {}, [where]),
-      '. That was the only thing that came over the network. Everything you type from here on stays on this machine.',
-    ]),
-    el('ul', { class: 'small' }, [
-      el('li', {}, [
-        el('b', {}, ['It cannot send anything anywhere. ']),
-        'The page declares ',
-        el('code', { class: 'mono' }, ["default-src 'none'; connect-src 'none'"]),
-        ', a browser rule that blocks every outbound request. The browser enforces it. View source and search for it.',
+  pane.appendChild(setRow(
+    'It cannot send anything anywhere',
+    "The page declares default-src 'none'; connect-src 'none', a browser rule that blocks every outbound request. The browser enforces it. View source and search for it.",
+    null,
+  ));
+  pane.appendChild(setRow(
+    'Your answers are held in two places',
+    `A draft kept by this browser on this machine, holding ${answeredCount(assessment)} answers, and the file you choose to save.`,
+    null,
+  ));
+  pane.appendChild(setRow(
+    'Reloading does not lose anything',
+    'Every browser keeps a small private store on disk for each site it visits. This page writes the whole assessment there as you type and reads it back when you return, so closing the tab or restarting the machine is safe. That store belongs to one browser on one machine, so it does not follow you elsewhere, and clearing your browsing data clears it.',
+    null,
+  ));
+  pane.appendChild(setRow(
+    'Work at your own classification',
+    'Open your own material beside this page. Attaching a file copies it into the assessment you save, and nowhere else.',
+    null,
+  ));
+}
+
+function paneDanger(pane: HTMLElement) {
+  pane.appendChild(el('h1', { tabindex: -1 }, ['Start again']));
+  pane.appendChild(el('p', { class: 'set-lead' }, [
+    'Nothing here can be taken back once this tab is closed.',
+  ]));
+
+  if (rescued) {
+    const n = answeredCount(rescued);
+    pane.appendChild(el('div', { class: 'undo-bar' }, [
+      el('div', {}, [
+        el('div', { class: 'small' }, [
+          el('b', {}, ['Discarded. ']),
+          `${n} answer${n === 1 ? '' : 's'} were erased from this browser.`,
+        ]),
+        el('div', { class: 'tiny dim' }, [
+          'Undo is held in this tab only. Reload or close the tab and it is gone for good.',
+        ]),
       ]),
-      el('li', {}, [
-        el('b', {}, ['Your answers are held in two places. ']),
-        'A draft kept by this browser on this machine, and the file you choose to save.',
+      el('button', { class: 'ghost small', onclick: () => {
+        assessment = rescued as Assessment;
+        rescued = null;
+        resetOverviewToFirstGap(rubric, assessment);
+        go('settings');
+      } }, ['Undo']),
+      el('button', { class: 'primary small', onclick: () => { rescued = null; go('submit'); } }, [
+        'Start filling it in',
       ]),
-      el('li', {}, [
-        el('b', {}, ['Reloading does not lose anything. ']),
-        'Every browser keeps a small private store on disk for each site it visits. This page ',
-        'writes the whole assessment there as you type, and reads it back when you return, so ',
-        'closing the tab or restarting the machine is safe. That store belongs to one browser ',
-        'on one machine, so it does not follow you to another, and clearing your browsing data ',
-        'clears it. The file you save is the copy that travels.',
-      ]),
-      el('li', {}, [
-        el('b', {}, ['Work at your own classification. ']),
-        'Open your own material beside this page. Attaching a file copies it into the assessment you save, and nowhere else.',
-      ]),
-    ]),
-  ]);
+    ]));
+  }
+
+  const n = answeredCount(assessment);
+  const anything = hasWork(assessment);
+  const button = el('button', {
+    class: 'danger', disabled: !anything, html: `${TRASH}<span>Discard\u2026</span>`,
+    onclick: () => confirmDestructive({
+      tier: 'danger',
+      title: n > 0 ? `Discard ${n} answer${n === 1 ? '' : 's'}?` : 'Discard this assessment?',
+      body: 'Discarding empties the form and erases the draft this browser is holding. The questions themselves stay the same.',
+      saveLabel: 'Save a file, then discard',
+      commitLabel: 'Discard permanently',
+      cancelLabel: 'Keep my answers',
+      onCommit: () => {
+        rescued = assessment;
+        clearDraft();
+        assessment = blankAssessment(rubric);
+        resetOverviewToFirstGap(rubric, assessment);
+        go('settings');
+      },
+    }),
+  });
+
+  pane.appendChild(setRow(
+    'Discard this assessment and start again',
+    anything
+      ? `Erases the ${n} answer${n === 1 ? '' : 's'} this browser is holding and empties the form. A file you have already saved is not touched.`
+      : 'Nothing to discard. The form is already empty.',
+    button,
+    { tier: 'danger', badge: 'Cannot be undone' },
+  ));
+}
+
+/* ------------------------------------------------------------------------------------------
+   The confirmation.
+   ------------------------------------------------------------------------------------------ */
+
+interface ConfirmOpts {
+  tier: 'caution' | 'danger';
+  title: string;
+  body: string;
+  saveLabel: string;
+  commitLabel: string;
+  cancelLabel: string;
+  onCommit: () => void;
+}
+
+/**
+ * Native <dialog> brings the focus trap, Escape, the inert background and focus restoration,
+ * with no dependency. jsdom has no showModal, so there is a plain-confirm fallback: without it
+ * every test that reaches Settings would throw.
+ *
+ * The recommendation is the first button and the only filled one. Saving never auto-discards,
+ * because a browser download has no completion event: the person confirms they have the file,
+ * which is the only honest thing a page that cannot see the filesystem can do.
+ */
+function confirmDestructive(o: ConfirmOpts): void {
+  const dlg = document.createElement('dialog') as HTMLDialogElement;
+
+  if (typeof dlg.showModal !== 'function') {
+    if (window.confirm(`${o.title}\n\n${o.body}`)) o.onCommit();
+    return;
+  }
+
+  dlg.className = `confirm tier-${o.tier}`;
+  const actions = el('div', { class: 'cf-actions' });
+  const body = el('div', { class: 'cf-body' }, [el('p', {}, [o.body])]);
+
+  const stake = () => {
+    const last = lastSaveInfo();
+    return last
+      ? el('p', { class: 'cf-stake ok' }, [
+          `You saved ${last.name} at ${new Date(last.at).toLocaleTimeString()}. `,
+          'If you still have that file, you can open it again from the start page.',
+        ])
+      : el('p', { class: 'cf-stake' }, [
+          'This browser is holding the only copy. Nothing has been saved to a file since this page was opened.',
+        ]);
+  };
+  let stakeEl = stake();
+  body.appendChild(stakeEl);
+
+  const close = () => { try { dlg.close(); } catch { /* already closed */ } dlg.remove(); };
+
+  const paintActions = (saved: boolean) => {
+    clear(actions);
+    if (!saved) {
+      actions.appendChild(el('button', { class: 'primary cf-wide', onclick: () => {
+        const name = saveAssessmentFile(assessment);
+        const fresh = el('p', { class: 'cf-stake ok' }, [
+          `Saving as ${name}. Check your Downloads folder. `,
+          'If your browser asked where to put it and you cancelled, save it again.',
+        ]);
+        stakeEl.replaceWith(fresh);
+        stakeEl = fresh;
+        paintActions(true);
+      } }, [o.saveLabel]));
+      actions.appendChild(el('button', { class: 'danger cf-wide', onclick: () => { close(); o.onCommit(); } }, [
+        o.commitLabel,
+      ]));
+    } else {
+      actions.appendChild(el('button', { class: 'danger-solid cf-wide', onclick: () => { close(); o.onCommit(); } }, [
+        'I have the file. ' + o.commitLabel.toLowerCase(),
+      ]));
+      actions.appendChild(el('button', { class: 'cf-wide', onclick: () => { saveAssessmentFile(assessment); } }, [
+        'Save it again',
+      ]));
+    }
+    // The safest control takes focus, so Enter and Escape both cancel.
+    const cancel = el('button', { class: 'cf-wide', onclick: close }, [o.cancelLabel]);
+    actions.appendChild(cancel);
+    setTimeout(() => cancel.focus?.(), 0);
+  };
+  paintActions(false);
+
+  dlg.appendChild(el('div', { class: 'cf-head' }, [el('h2', { class: 'cf-title' }, [o.title])]));
+  dlg.appendChild(body);
+  dlg.appendChild(actions);
+  dlg.addEventListener('close', () => dlg.remove());
+  document.body.appendChild(dlg);
+  dlg.showModal();
 }
 
 /**
  * A folded section printed as nothing at all: hiding the <summary> hid the title, and
  * `details { display: block }` does not reveal a closed <details> in Blink or WebKit. So every
- * section is opened before the print dialog and put back afterwards, which is the only thing
- * that actually works.
+ * section is opened before the print dialog and put back afterwards.
  */
 function openEverythingForPrint(): void {
   if (typeof window.addEventListener !== 'function') return;
