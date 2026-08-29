@@ -1,7 +1,7 @@
 import { CLASSIFICATIONS, type Assessment, type EvidenceRef, type Question, type Rubric } from './types';
 import { el, clear, tone } from './dom';
 import { score, type Result, type SectionScore } from './scoring';
-import { autosave, download, slug } from './storage';
+import { autosave, saveAssessmentFile } from './storage';
 import { humanSize, openAttachment, readAttachment, totalAttachedBytes, TOTAL_LIMIT, TOTAL_WARN } from './attach';
 import { canSave, markingProblems } from './marking';
 
@@ -545,8 +545,7 @@ function confetti(scale: 'section' | 'whole'): void {
 }
 
 function saveFile(a: Assessment) {
-  autosave(a);
-  download(`${slug(a.initiative.name)}-self-assessment.json`, JSON.stringify(a, null, 2));
+  saveAssessmentFile(a);
 }
 
 /**

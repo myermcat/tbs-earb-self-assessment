@@ -62,6 +62,36 @@ export function download(filename: string, text: string, mime = 'application/jso
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
+/** How many questions carry a score. Home and Settings must never disagree about this. */
+export function answeredCount(a: Assessment): number {
+  return Object.values(a.answers).filter((x) => typeof x.score === 'number').length;
+}
+
+/** Anything at all in the file: an answer, or a fact about the initiative. */
+export function hasWork(a: Assessment): boolean {
+  if (answeredCount(a) > 0) return true;
+  return Object.values(a.initiative).some((v) => typeof v === 'string' && v.trim() !== '');
+}
+
+/**
+ * Whether a file has been written in this tab since the page loaded, and what it was called.
+ *
+ * Deliberately module state, lost on reload. After a reload we genuinely do not know whether a
+ * file exists on disk, and the honest fallback is to assume none does, which makes the warning
+ * before a discard stricter rather than laxer.
+ */
+let lastSave: { name: string; at: number } | null = null;
+export function lastSaveInfo(): { name: string; at: number } | null { return lastSave; }
+
+/** The one place an assessment becomes a file, so every save path records that it happened. */
+export function saveAssessmentFile(a: Assessment): string {
+  autosave(a);
+  const name = `${slug(a.initiative.name)}-self-assessment.json`;
+  download(name, JSON.stringify(a, null, 2));
+  lastSave = { name, at: Date.now() };
+  return name;
+}
+
 export function slug(s: string): string {
   return (s || 'assessment').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 60);
 }

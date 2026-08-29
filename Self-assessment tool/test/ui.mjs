@@ -45,6 +45,16 @@ const fire = (node, type) => node.dispatchEvent(new window.Event(type, { bubbles
  * than rendered output. Always assert against the app root instead.
  */
 const view = () => document.getElementById('app').textContent;
+/** Answers currently in the tool, read the way the app reads them. */
+const answeredNow = () => {
+  const raw = window.localStorage.getItem('gc-arch-assessment:draft');
+  const live = q('.set-row.danger p')?.textContent?.match(/Erases the (\d+)/);
+  if (live) return Number(live[1]);
+  if (!raw) return 0;
+  return Object.values(JSON.parse(raw).answers ?? {}).filter((x) => typeof x.score === 'number').length;
+};
+/** Settings is a rail and one pane, so a check has to open the pane it is about. */
+const pane = (name) => qa('.set-navrow').find((b) => b.textContent.includes(name)).click();
 /** Mirrors shortLabel() in views-submit.ts, which trims a domain name down to a tab label. */
 const shortName = (s) => s.replace(/\s*&\s*\w+/, '').replace(/\s*Architecture$/, '');
 
@@ -73,14 +83,39 @@ ok('the rubric version is available in the footer', q('.sitefoot').textContent.i
 ok('draft status is reachable from the footer', !!byText('button', 'How that works'));
 ok('the question count is stated up front', view().includes(String(TOTAL)));
 
-// Settings holds the rubric detail and the data-handling note.
+// Settings is a rail with one pane at a time, ordered from nothing at stake to everything.
 q('.icon-btn[aria-label="Settings"]').click();
+ok('settings is a rail and a pane, not a stack of cards',
+   !!q('.set-layout') && !!q('.set-nav') && !!q('.set-pane'));
+ok('three panes, named', qa('.set-navrow').map((b) => b.textContent).join('|') ===
+   'Question set|Your answers|Start again',
+   qa('.set-navrow').map((b) => b.textContent).join('|'));
+ok('the gear opens the harmless one', q('.set-navrow.on').textContent === 'Question set',
+   q('.set-navrow.on').textContent);
+ok('the destructive pane is marked as dangerous in the rail itself',
+   qa('.set-navrow')[2].classList.contains('danger'));
+
 ok('settings shows the rubric version', view().includes('1.0-dan'));
 ok('settings surfaces the import warning about the Business weight gap', view().includes('80%'));
+ok('settings offers a different question set', !!byText('.filelabel', 'Load a question set'));
+ok('and warns that loading one clears the answers',
+   !!q('.set-row.caution') && view().includes('Clears your answers'));
+
+pane('Your answers');
 ok('settings says where the page was loaded from', view().includes('Where your answers go'));
 ok('settings names the rule that stops it transmitting', view().includes("connect-src 'none'"));
-ok('settings offers a different question set', !!byText('.filelabel', 'Load a question set'));
+ok('and explains that reloading keeps the answers', view().includes('Reloading does not lose anything'));
+
+pane('Start again');
+ok('the discard control lives here, not on the start page', !!q('.set-row.danger button.danger'));
+ok('it says it cannot be undone', view().includes('Cannot be undone'));
+ok('and it is disabled while there is nothing to lose',
+   q('.set-row.danger button.danger').disabled === true);
+
+pane('Question set');
 byText('.tab', 'Start').click();
+ok('the start page no longer carries the destructive control',
+   !byText('button', 'Discard this and start again'));
 ok('no network call is even possible (CSP)', html.includes("connect-src 'none'"));
 // Without an explicit color-scheme, native buttons and inputs follow the OS setting while
 // the page follows the media query, and a light page renders dark controls.
@@ -239,6 +274,20 @@ ok('footer counts every answer', q('.footer-score .muted').textContent.includes(
 ok('all four domain tabs read complete', qa('.stepper .step.complete:not(:first-child)').length === 4,
    String(qa('.stepper .step.complete').length));
 ok('the questionnaire says where the answers go', view().includes('Saved locally as you type'));
+
+// With work in the file, the start page points at Settings and destroys nothing itself.
+{
+  byText('.tab', 'Start').click();
+  ok('the start page points at settings for starting over', view().includes('Starting over is in'));
+  ok('and offers no way to destroy anything from there',
+     !qa('.draft-note button').some((b) => /discard|erase|delete/i.test(b.textContent)));
+  byText('.linkish', 'Settings').click();
+  ok('that pointer opens the pane it names', q('.set-navrow.on').textContent === 'Start again',
+     q('.set-navrow.on')?.textContent);
+  ok('and now the discard is live, since there is something to lose',
+     q('.set-row.danger button.danger').disabled === false);
+  byText('.tab', 'Fill it in').click();
+}
 
 // ---- scoring a question must not rebuild the page, and every readout must agree ----------
 //
@@ -595,6 +644,41 @@ const [head, row] = csv.split('\r\n');
 ok('csv header and row have the same width', head.split(',').length === row.split(',').length,
    `${head.split(',').length} vs ${row.split(',').length}`);
 ok('csv carries a column per section', head.includes('section_data_data-architecture-and-standards'));
+
+// ---- discarding cannot lose work by accident --------------------------------------------
+//
+// jsdom has no <dialog>.showModal, so the app falls back to a plain confirm. That is the path
+// exercised here; the dialog itself is verified in a browser.
+{
+  // Scored answers only, the way the app counts them. One question is marked not applicable
+  // and carries no score.
+  const before = Object.values(savedJson.answers).filter((x) => typeof x.score === 'number').length;
+  q('.icon-btn[aria-label="Settings"]').click();
+  pane('Start again');
+
+  ok('the danger pane names what is at stake', /Erases the \d+ answers/.test(view()), view().slice(0, 80));
+
+  // Refuse the confirmation: nothing may change.
+  window.confirm = () => false;
+  q('.set-row.danger button.danger').click();
+  ok('saying no changes nothing', answeredNow() === before, `${answeredNow()} vs ${before}`);
+  ok('and no undo is offered, because nothing happened', !q('.undo-bar'));
+
+  // Accept it.
+  window.confirm = () => true;
+  q('.set-row.danger button.danger').click();
+  ok('discarding empties the assessment', answeredNow() === 0, String(answeredNow()));
+  ok('the browser draft is cleared too', !window.localStorage.getItem('gc-arch-assessment:draft'));
+  ok('and it stays on the pane that did it, so the loss is visible', !!q('.set-row.danger'));
+  ok('undo is offered', !!q('.undo-bar') && view().includes('Discarded.'));
+  ok('undo says it is only good for this tab', view().includes('this tab only'));
+
+  byText('.undo-bar button', 'Undo').click();
+  ok('undo puts every answer back', answeredNow() === before, `${answeredNow()} vs ${before}`);
+  ok('and the undo strip goes away once used', !q('.undo-bar'));
+
+  window.confirm = () => true;
+}
 
 // ---- reviewer --------------------------------------------------------------------------
 // Crossing to the assessor side. The two audiences do not share a path, and the crossover is
