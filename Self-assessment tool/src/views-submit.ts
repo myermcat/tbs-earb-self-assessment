@@ -412,9 +412,16 @@ function stepper(
 }
 
 
-/** The subject line an assessor can search for, written for them. */
-export function evidenceSubject(a: Assessment): string {
-  return `EARB evidence - ${a.initiative.name || 'your initiative'} - [question]`;
+/**
+ * The subject line for an artefact that has to travel by email.
+ *
+ * It carries the two things an assessor needs to match the message to an answer: which
+ * initiative, and which question. The first version read "EARB evidence - m - [question]",
+ * which meant nothing to anybody who had not written it.
+ */
+export function evidenceSubject(a: Assessment, questionId: string): string {
+  const who = a.initiative.name.trim() || 'your initiative';
+  return `EARB self-assessment evidence for ${who}, question ${questionId}`;
 }
 
 /**
@@ -437,7 +444,9 @@ export function setFileMarking(
   if (!c || c === 'Unclassified' || a.initiative.markingAcknowledged) return;
   demandPledge({
     marking: c,
-    subject: evidenceSubject(a),
+    // No question is on screen here, so this is an example. The evidence box on each question
+    // writes the real one, with that question's number already in it.
+    subject: evidenceSubject(a, 'BU-Q14'),
     onAcknowledge: () => { a.initiative.markingAcknowledged = true; autosave(a); after(); },
     onUnclassified: () => {
       a.initiative.classification = 'Unclassified';
@@ -749,8 +758,8 @@ function aboutSection(
     },
     {
       key: 'marking',
-      title: 'How is this assessment marked?',
-      help: 'Mark the file as a whole, at the highest marking of anything you put in it: your own words, and anything you attach. Scores are not marked, because a number is not sensitive.',
+      title: 'How is your evidence marked?',
+      help: 'This assessment is an unclassified document, and everything you type into it has to stay unclassified. What can carry a marking is the evidence behind your answers: a cost model, a diagram, a report. Give the highest marking of anything you will point at, so your assessor knows what they need access to. If it is all unclassified, say so.',
       filled: () => !!a.initiative.classification,
       build: () => markingChoices(a, rebuild),
     },
@@ -1340,9 +1349,8 @@ function evidenceEditor(a: Assessment, q: Question, list: EvidenceRef[], refresh
           ev.attachment ? null : el('button', {
             class: 'linkish tiny',
             onclick: () => {
-              const subject = `EARB evidence - ${a.initiative.name || 'initiative'} - ${q.id}`;
-              ev.location = `Sent by email. Subject: ${subject}`;
-              if (!ev.title) ev.title = 'Sent to the assessor by email';
+              ev.location = `Emailed to the assessor. Subject: ${evidenceSubject(a, q.id)}`;
+              if (!ev.title) ev.title = 'Emailed to the assessor';
               autosave(a); paint(); refresh();
             },
           }, ['It cannot be linked, I will email it']),
@@ -1350,6 +1358,26 @@ function evidenceEditor(a: Assessment, q: Question, list: EvidenceRef[], refresh
           // Skipping it while attached made the attached file invisible.
           attachRow,
         ]),
+        // Once they say they will email it, the exact subject line is here to copy. Retyping
+        // it by hand is how an assessor ends up unable to find the message.
+        (ev.location ?? '').startsWith('Emailed to the assessor')
+          ? el('div', { class: 'ev-subject' }, [
+              el('span', { class: 'tiny dim' }, ['Subject line for that email']),
+              el('div', { class: 'ev-subject-row' }, [
+                el('code', { class: 'mono' }, [evidenceSubject(a, q.id)]),
+                el('button', {
+                  class: 'ghost tiny',
+                  onclick: (e: Event) => {
+                    const btn = e.currentTarget as HTMLButtonElement;
+                    const line = evidenceSubject(a, q.id);
+                    void navigator.clipboard?.writeText?.(line);
+                    btn.textContent = 'Copied';
+                    setTimeout(() => { btn.textContent = 'Copy'; }, 1600);
+                  },
+                }, ['Copy']),
+              ]),
+            ])
+          : null,
         unmarked
           ? el('div', { class: 'small warn-text' }, ['This needs a marking before the assessment can be saved.'])
           : null,

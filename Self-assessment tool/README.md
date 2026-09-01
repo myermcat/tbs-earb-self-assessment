@@ -186,8 +186,21 @@ The preview above is `dist/index.html` published to a public repo by
 `../deploy/publish-preview.sh`. What is public there is not data but the **176 questions**,
 Dan's draft framework, which is a sequencing decision for him.
 
-The code itself is meant to move to `canada-ca`. Nick Couture holds that: the route is an
-issue on `canada-ca/welcome`, and the transfer is waiting on his reply.
+The code itself is meant to live in `canada-ca`. Two routes, and the cheap one was found by
+checking what that organization already does:
+
+- **Publish into `canada-ca/TBS-OCIO-ESP`,** which already serves
+  `canada-ca.github.io/TBS-OCIO-ESP/earb-forward-agenda/` from a folder holding one
+  `index.html`. We have push access. One commit publishes this tool the same way. What it
+  costs: that repo is public, so the 176 draft questions become public with it, which is
+  Dan's decision.
+- **A repository of its own,** which needs permission to create repositories in `canada-ca`.
+  Nick Couture holds that; the route he named is an issue on `canada-ca/welcome`.
+
+Worth knowing before planning on a private repo: all 35 Pages sites in `canada-ca` are served
+from public repositories, and no private repository there serves one. GitHub will not serve
+Pages from a private repository on a free plan at all, which is why the preview above lives in
+its own public repository.
 
 Version drift is the one thing hosting settles on its own. A hosted copy means everyone
 answers the current rubric; files scatter and people fill in stale ones, which is why every

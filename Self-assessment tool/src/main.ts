@@ -8,7 +8,7 @@ import { renderDashboard } from './views-dashboard';
 import { saveBadge } from './save-badge';
 import { answeredCount, APP_VERSION, blankAssessment, clearDraft, hasWork, lastSaveInfo,
   loadDraft, readJsonFiles, saveAssessmentFile } from './storage';
-import { bannerFor } from './marking';
+import { bannerFor, evidenceNote } from './marking';
 import BUILTIN from '../rubric/rubric.v1-dan.json';
 
 type Mode = 'home' | 'submit' | 'results' | 'review' | 'admin' | 'settings';
@@ -206,8 +206,10 @@ function banner(extra = ''): HTMLElement {
   const mark = bannerFor(assessment);
   const unmarked = mark === 'UNMARKED';
   if (!unmarked || extra) {
+    const note = evidenceNote(assessment);
     return el('div', { class: `marking-banner ${unmarked ? 'unmarked' : ''} ${extra}` }, [
       unmarked ? 'Unmarked' : mark,
+      note ? el('span', { class: 'mark-note' }, [note]) : null,
     ]);
   }
   // An unmarked banner is the one thing on the page that needs doing, so it is the control
@@ -223,7 +225,7 @@ function banner(extra = ''): HTMLElement {
       if (heading && typeof heading.scrollIntoView === 'function') heading.scrollIntoView({ block: 'center' });
       heading?.focus?.();
     },
-  }, ['Unmarked. Set the classification']);
+  }, ['Say how your evidence is marked']);
 }
 
 /* ------------------------------------------------------------------------------------------

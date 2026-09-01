@@ -19,7 +19,9 @@ import { join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const ROOT = join(fileURLToPath(new URL(".", import.meta.url)), "..");
-const SRC = join(ROOT, "src");
+/** Default target is the app's own source; a path argument lints anything else. */
+const ARG = process.argv[2];
+const SRC = ARG ? (ARG.startsWith("/") ? ARG : join(process.cwd(), ARG)) : join(ROOT, "src");
 
 /** Rules. `re` runs against each line of every source file under src/. */
 const RULES = [
@@ -91,6 +93,7 @@ const SKIP_DIRS = new Set(["node_modules", "dist", ".git", "components/ui"]);
 const SKIP_FILE = /\.(?:css|json|svg|png|jpg|ico)$|routeTree\.gen\.ts$|prose-lint/;
 
 function walk(dir, out = []) {
+  if (!statSync(dir).isDirectory()) return [dir];      // a single file target
   for (const name of readdirSync(dir)) {
     const full = join(dir, name);
     if (SKIP_DIRS.has(name)) continue;
@@ -105,7 +108,8 @@ function walk(dir, out = []) {
  * and comments are not published, and flagging them trains people to ignore the
  * linter.
  */
-function proseOnly(line) {
+function proseOnly(line, file = "") {
+  if (/\.(?:md|txt)$/.test(file)) return line;         // all prose, nothing to strip
   let s = line;
   if (/^\s*(?:\/\/|\*|\/\*)/.test(s)) return ""; // comment line
   s = s.replace(/^\s*import .*$/, "");
@@ -119,7 +123,7 @@ const hits = [];
 for (const file of walk(SRC)) {
   const lines = readFileSync(file, "utf8").split("\n");
   lines.forEach((raw, i) => {
-    const line = proseOnly(raw);
+    const line = proseOnly(raw, file);
     if (!line.trim()) return;
     for (const rule of RULES) {
       rule.re.lastIndex = 0;

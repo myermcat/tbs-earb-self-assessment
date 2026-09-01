@@ -18,8 +18,18 @@ export const quick = {
   title: 'Quick actions',
   hint: 'No discussion needed.',
   items: [
-    { t: 'Reword the marking question so it is about the evidence', status: 'next',
-      why: 'Nothing in the tool is classified, so "how is this assessment marked" is the wrong question: the assessment is always unclassified. What is being declared is the marking of the artefact being pointed at. One line of wording, and it needs your yes.' },
+    { t: 'Decide where the tool is published', status: 'next',
+      why: 'canada-ca/TBS-OCIO-ESP already publishes a tool as one index.html in a folder, and you already have push access. One commit puts this at canada-ca.github.io/TBS-OCIO-ESP/earb-self-assessment/, with no new repo and no transfer. The repo is public, so Dan has to clear the 176 draft questions being visible first.' },
+    { t: 'The marking question is about the evidence', status: 'done',
+      why: 'The assessment is always unclassified, so asking how the assessment is marked was the wrong question. It asks for the highest marking of the artefacts the answers point at, which is what an assessor needs access to.' },
+    { t: 'The banner stops printing the wrong marking', status: 'done',
+      why: 'Choosing Protected A stamped PROTECTED A across an unclassified document, top, bottom and every printout. It reads UNCLASSIFIED with "evidence up to Protected A" beside it.' },
+    { t: 'The email subject line is readable', status: 'done',
+      why: 'It said "EARB evidence - m - [question]", with a placeholder nobody filled in. It now names what it is, the initiative and the question number, and the evidence box offers a Copy button.' },
+    { t: 'The save badge says there is no online copy', status: 'done',
+      why: 'She asked where to save online. There is nowhere, and the badge now says so on hover instead of leaving "draft saved" to be read as the whole story.' },
+    { t: 'The prose linter takes any file', status: 'done',
+      why: 'The writing rules were being applied from memory for chat replies, and em dashes went out. Replies go through the same linter as the app copy now.' },
     { t: 'Backlog gets jump links and a Done section that stays', status: 'done',
       why: 'Done was at the bottom of eight layers with no way to reach it. Every section now has a link at the top, and Done is split into what came after Dan’s review and what he had already seen.' },
     { t: 'Every backlog item carries its reason', status: 'done',
@@ -221,9 +231,13 @@ export const layers = [
   {
     title: 'Data and hosting', owner: 'us and TBS',
     groups: [
-      { t: 'Get into canada-ca', status: 'wait',
-        why: 'Access is done. The repo is not.',
+      { t: 'Get into canada-ca', status: 'next',
+        why: 'Access is done. Publishing is a commit away in a repo you can already push to. A repo of our own is a separate, slower question.',
         subs: [
+          { t: 'Publish into canada-ca/TBS-OCIO-ESP', status: 'next',
+            why: 'One folder holding one index.html, the same shape as earb-forward-agenda, which that repo already serves. Needs Dan to clear the questions being public.' },
+          { t: 'GitHub Pages cannot serve a private repo on a free account', status: 'done',
+            why: 'Checked: all 35 Pages sites in canada-ca come from public repos, and no private repo there serves one. This is why a separate public preview repo exists.' },
           { t: 'Reply to Nick: transfer the existing repo', status: 'done',
             why: 'Sent. 28 commits of history, all yours.' },
           { t: 'Nick’s answer on who performs the transfer', status: 'wait', owes: 'Nick',
@@ -288,8 +302,8 @@ export const resolved = [
 ];
 
 export const questions = [
-  { q: 'What does the file marking mean, now that the tool is unclassified only', who: 'Dan, or your call',
-    blocks: 'One line of wording', meanwhile: 'The question still says "how is this assessment marked"; the pledge explains the file stays unclassified' },
+  { q: 'Can the 176 draft questions be public', who: 'Dan',
+    blocks: 'Publishing inside canada-ca', meanwhile: 'The preview sits on a personal public repo, which is the same exposure with less visibility' },
   { q: 'Who may edit a stored assessment, and how it is checked', who: 'Dan',
     blocks: 'Real authentication', meanwhile: 'Mockup screen, everything labelled unverified' },
   { q: 'Verifying an assessor’s identity', who: 'Dan',

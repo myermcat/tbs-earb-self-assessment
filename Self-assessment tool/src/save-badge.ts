@@ -16,14 +16,24 @@ export function saveBadge(openDetail: () => void): HTMLElement {
   const node = el('button', {
     class: 'save-state tiny',
     role: 'status',
-    title: 'Where your answers are kept',
     onclick: openDetail,
   });
+
+  // Hovering it answers the question people actually have, which is whether anybody else can
+  // see this yet.
+  const TITLE: Record<string, string> = {
+    idle: 'Nothing written yet',
+    saving: 'Writing to the TBS store',
+    local: 'Kept in this browser only. There is no online copy yet, and no way to make one: submitting is not built. Click for the detail.',
+    online: 'Written to the TBS store. Your assessor sees this copy.',
+    failed: 'The last write did not go through. Click for what to do.',
+  };
 
   const paint = () => {
     const { state, detail } = saveStatus();
     clear(node);
     node.className = `save-state tiny st-${state}`;
+    node.setAttribute('title', TITLE[state] ?? '');
     if (state === 'idle') {
       node.classList.add('hidden');
       return;
