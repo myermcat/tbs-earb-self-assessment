@@ -1,12 +1,13 @@
 import { CLASSIFICATIONS, classRank, type Assessment, type Classification } from './types';
 
 /**
- * Dan asked for the tool to push the user into marking what they enter, and to refuse to
- * save until they have.
+ * Everything in this tool is unclassified, settled with Dan on 1 September, so the assessment
+ * itself is always an unclassified document. `initiative.classification` therefore no longer
+ * describes this file. It records the highest marking among the artefacts the answers point
+ * at, which is what an assessor needs to know to go and read them.
  *
- * A number is not classified. What can be classified is text somebody wrote and files
- * somebody attached - so the marking lives on the file as a whole and on each attachment,
- * the way a real GC document is marked, rather than on each of 176 scores.
+ * The field keeps its name so files saved earlier still open. Every label the reader sees
+ * asks about the evidence.
  */
 
 export interface MarkingProblem {
@@ -42,7 +43,7 @@ export function markingProblems(a: Assessment): MarkingProblem[] {
   if (hasContent && !fileMark) {
     out.push({
       kind: 'no-file-marking',
-      message: 'Mark this assessment before saving it. Choose the highest marking of anything you have put in it.',
+      message: 'Say how your evidence is marked before saving. If every artefact you point at is unclassified, choose unclassified.',
     });
   }
 
@@ -55,7 +56,7 @@ export function markingProblems(a: Assessment): MarkingProblem[] {
         out.push({
           kind: 'evidence-above-file',
           questionId: qid,
-          message: `${qid}: "${named}" is ${e.classification}, which is higher than this file's ${fileMark} marking. Raise the file's marking, or record where the artefact lives without attaching it.`,
+          message: `${qid}: "${named}" is ${e.classification}, which is higher than the ${fileMark} you gave on the overview. Raise that answer to ${e.classification}.`,
         });
       }
     }
@@ -68,9 +69,21 @@ export function canSave(a: Assessment): boolean {
   return markingProblems(a).length === 0;
 }
 
-/** The banner text that goes at the top and bottom of the page and on every printout. */
+/**
+ * The banner at the top and bottom of the page, and on every printout.
+ *
+ * The assessment is unclassified, so that is what the banner says. It used to print the
+ * evidence marking as though the file itself were Protected A, which is the wrong marking on
+ * a document and would be a real problem on paper.
+ */
 export function bannerFor(a: Assessment): string {
-  return a.initiative.classification ? a.initiative.classification.toUpperCase() : 'UNMARKED';
+  return a.initiative.classification ? 'UNCLASSIFIED' : 'UNMARKED';
+}
+
+/** The second line: what the evidence behind the answers is marked, when it is not plain. */
+export function evidenceNote(a: Assessment): string {
+  const c = a.initiative.classification;
+  return c && c !== 'Unclassified' ? `evidence up to ${c}` : '';
 }
 
 export { CLASSIFICATIONS };

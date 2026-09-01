@@ -224,9 +224,12 @@ ok('finishing the group fills its dot', qa('.ov-dot.filled').length === 1,
   ok('Enter in a text field advances the wizard', view().includes('Step 2 of 3'), view().slice(0, 40));
 }
 
-// Step two, the marking. The whole GC scheme, in order.
+// Step two, the marking. The assessment is always an unclassified document, so the question
+// is about the artefacts the answers point at.
 const MARKINGS = 'Unclassified|Protected A|Protected B|Protected C|Confidential|Secret|Top Secret';
-ok('step two asks how the file is marked', view().includes('How is this assessment marked'));
+ok('step two asks how the evidence is marked', view().includes('How is your evidence marked'));
+ok('and says the assessment itself stays unclassified',
+   view().includes('unclassified document'));
 ok('every GC marking is offered', qa('.marking-chip').map((c) => c.textContent.trim()).join('|') === MARKINGS,
    qa('.marking-chip').map((c) => c.textContent.trim()).join('|'));
 ok('and the same list is offered inside the gate that demands one',
@@ -243,9 +246,14 @@ byText('.gate-marks .mark-btn', 'Protected B').click();
   ok('and it names the marking that triggered it',
      dlg.querySelector('.pledge-head h2').textContent.includes('Protected B'),
      dlg.querySelector('.pledge-head h2')?.textContent);
-  ok('it carries the email subject line, already written',
-     dlg.querySelector('.pledge-subject').textContent.startsWith('EARB evidence - '),
+  // The first version of this line read "EARB evidence - m - [question]", which meant
+  // nothing to anybody. It names what it is, which initiative, and which question.
+  ok('it shows a subject line somebody could read',
+     dlg.querySelector('.pledge-subject').textContent
+       .startsWith('EARB self-assessment evidence for '),
      dlg.querySelector('.pledge-subject')?.textContent);
+  ok('and says the real one is written for them per question',
+     dlg.textContent.includes('That is an example'));
 
   const x = dlg.querySelector('.pledge-x');
   ok('the close control is dead until the box is ticked', x.disabled === true);
@@ -677,8 +685,19 @@ ok('and offers the email route', !!byText('.ev-alt button', 'cannot be linked'))
   const loc = qa('.question').find((n) => n.textContent.includes('hosting environment'))
     .querySelector('.ev-row2 input[type=text]');
   ok('which fills in a findable subject line',
-     loc.value.startsWith('Sent by email. Subject: EARB evidence') && loc.value.includes('TE-Q1'),
+     loc.value.startsWith('Emailed to the assessor. Subject: EARB self-assessment evidence for')
+       && loc.value.includes('question TE-Q1'),
      loc.value);
+  {
+    // And the line is there to copy, so nobody retypes it and loses the question number.
+    const row = qa('.question').find((n) => n.textContent.includes('hosting environment'))
+      .querySelector('.ev-subject');
+    ok('the subject line is offered with a copy button',
+       !!row && row.textContent.includes('question TE-Q1') && !!byText('.ev-subject button', 'Copy'));
+    byText('.ev-subject button', 'Copy').click();
+    ok('and the button confirms it copied', byText('.ev-subject button', 'Copied')
+       || row.textContent.includes('Copied'));
+  }
   loc.value = '';
   fire(loc, 'input');
 }
@@ -721,7 +740,7 @@ ok('saving is unblocked once the evidence is marked',
   fire(sel, 'change');
   ok('evidence above the file marking blocks saving',
      byText('.footer-actions button', 'Save to a file').disabled === true);
-  ok('and says which way to resolve it', view().includes('higher than this file'));
+  ok('and says which way to resolve it', view().includes('Raise that answer to Secret'));
   sel.value = 'Protected B';
   fire(sel, 'change');
   ok('and unblocks when brought back down',
@@ -770,7 +789,10 @@ ok('backlog section present', view().includes('weakest five'));
 ok('assessor questions previewed to the submitter', view().includes('What an assessor will probably ask'));
 // One card when it is rare, one aggregate line when it is not; the sweep makes it common.
 ok('the no-evidence 9 is flagged', view().includes('nothing cited'));
-ok('the file marking reaches the results page', view().includes('PROTECTED B'));
+// The banner says what the document is, which is unclassified, and carries the evidence
+// marking as a second line. It used to print PROTECTED B across an unclassified document.
+ok('the banner marks the document as unclassified', view().includes('UNCLASSIFIED'));
+ok('and names the evidence marking beside it', view().includes('evidence up to Protected B'));
 ok('the copy does not appeal to an unnamed "us"',
    !view().includes('for us.') && !view().includes('Talk us through'));
 {

@@ -68,16 +68,16 @@ h2{scroll-margin-top:1rem}
 <div class="wrap"><h1>EARB self-assessment: backlog</h1>
 <p class="sub">Layers are the spine, the three views sit inside the interface layer, and every item appears once. Finished work moves to Done, which is split into what came after Dan's review and what he had already seen, and stays there for good. The links below jump to any section. Updated 2026-09-01.</p>
 <div class="kpis">
-<div class="kpi"><b>14</b><span>next</span></div>
+<div class="kpi"><b>16</b><span>next</span></div>
 <div class="kpi"><b>8</b><span><a href="#waiting">waiting on somebody</a></span></div>
 <div class="kpi"><b>12</b><span>later</span></div>
-<div class="kpi"><b>39</b><span><a href="#done">done</a></span></div>
+<div class="kpi"><b>45</b><span><a href="#done">done</a></span></div>
 <div class="kpi"><b>10</b><span>open questions</span></div>
 </div>
 <nav class="jump">
 <a href="#quick">Quick actions <b>1</b></a>
 <a href="#waiting">Waiting on somebody <b>8</b></a>
-<a href="#done">Done <b>39</b></a>
+<a href="#done">Done <b>45</b></a>
 <a href="#resolved">Resolved questions <b>10</b></a>
 <a href="#questions">Open questions <b>10</b></a>
 <a href="#layer-0">Question set</a>
@@ -92,8 +92,8 @@ h2{scroll-margin-top:1rem}
 <h2 id="quick">Quick actions</h2><p class="hint">No discussion needed.</p>
 <div class="card quick">
 <div class="leaf solo">
-<span class="t">Reword the marking question so it is about the evidence</span><span class="st st-next">Next</span>
-<span class="w">Nothing in the tool is classified, so "how is this assessment marked" is the wrong question: the assessment is always unclassified. What is being declared is the marking of the artefact being pointed at. One line of wording, and it needs your yes.</span>
+<span class="t">Decide where the tool is published</span><span class="st st-next">Next</span>
+<span class="w">canada-ca/TBS-OCIO-ESP already publishes a tool as one index.html in a folder, and you already have push access. One commit puts this at canada-ca.github.io/TBS-OCIO-ESP/earb-self-assessment/, with no new repo and no transfer. The repo is public, so Dan has to clear the 176 draft questions being visible first.</span>
 </div>
 </div>
 <h2 id="waiting">Waiting on somebody</h2><p class="hint">Chased, and not ours to finish. Each of these is also in its layer below.</p>
@@ -245,8 +245,12 @@ h2{scroll-margin-top:1rem}
 <div class="card">
 <details class="grp" open><summary class="row">
 <span class="t">Get into canada-ca</span><span class="st st-next">Next</span>
-<span class="w">Access is done. The repo is not.</span>
+<span class="w">Access is done. Publishing is a commit away in a repo you can already push to. A repo of our own is a separate, slower question.</span>
 </summary><div class="subs">
+<div class="leaf">
+<span class="t">Publish into canada-ca/TBS-OCIO-ESP</span><span class="st st-next">Next</span>
+<span class="w">One folder holding one index.html, the same shape as earb-forward-agenda, which that repo already serves. Needs Dan to clear the questions being public.</span>
+</div>
 <div class="leaf">
 <span class="t">Nick’s answer on who performs the transfer</span><span class="st st-wait">Waiting</span>
 <span class="w">Open an issue on canada-ca/welcome is the route he named. Whether he moves it or you do is the part still unanswered.</span>
@@ -299,9 +303,29 @@ h2{scroll-margin-top:1rem}
 </div>
 </div>
 <h2 id="done">Done</h2><p class="hint">Built and tested, and kept here permanently. Nothing on this list has to be remembered.</p>
-<h3 class="h3sub">Since Dan's review on 1 September &mdash; 37 items</h3>
+<h3 class="h3sub">Since Dan's review on 1 September &mdash; 43 items</h3>
 <p class="hint">This is the list to walk him through. Everything here came out of that conversation.</p>
 <div class="card done-card">
+<div class="leaf solo">
+<span class="t">The marking question is about the evidence</span><span class="st st-done">Done</span>
+<span class="w"><span class="done-layer">Quick action</span> &middot; The assessment is always unclassified, so asking how the assessment is marked was the wrong question. It asks for the highest marking of the artefacts the answers point at, which is what an assessor needs access to.</span>
+</div>
+<div class="leaf solo">
+<span class="t">The banner stops printing the wrong marking</span><span class="st st-done">Done</span>
+<span class="w"><span class="done-layer">Quick action</span> &middot; Choosing Protected A stamped PROTECTED A across an unclassified document, top, bottom and every printout. It reads UNCLASSIFIED with "evidence up to Protected A" beside it.</span>
+</div>
+<div class="leaf solo">
+<span class="t">The email subject line is readable</span><span class="st st-done">Done</span>
+<span class="w"><span class="done-layer">Quick action</span> &middot; It said "EARB evidence - m - [question]", with a placeholder nobody filled in. It now names what it is, the initiative and the question number, and the evidence box offers a Copy button.</span>
+</div>
+<div class="leaf solo">
+<span class="t">The save badge says there is no online copy</span><span class="st st-done">Done</span>
+<span class="w"><span class="done-layer">Quick action</span> &middot; She asked where to save online. There is nowhere, and the badge now says so on hover instead of leaving "draft saved" to be read as the whole story.</span>
+</div>
+<div class="leaf solo">
+<span class="t">The prose linter takes any file</span><span class="st st-done">Done</span>
+<span class="w"><span class="done-layer">Quick action</span> &middot; The writing rules were being applied from memory for chat replies, and em dashes went out. Replies go through the same linter as the app copy now.</span>
+</div>
 <div class="leaf solo">
 <span class="t">Backlog gets jump links and a Done section that stays</span><span class="st st-done">Done</span>
 <span class="w"><span class="done-layer">Quick action</span> &middot; Done was at the bottom of eight layers with no way to reach it. Every section now has a link at the top, and Done is split into what came after Dan’s review and what he had already seen.</span>
@@ -447,6 +471,10 @@ h2{scroll-margin-top:1rem}
 <span class="w"><span class="done-layer">Interface: admin</span> &middot; With no store, that is this browser and the files opened this session. The page says so rather than looking live.</span>
 </div>
 <div class="leaf solo">
+<span class="t">GitHub Pages cannot serve a private repo on a free account</span><span class="st st-done">Done</span>
+<span class="w"><span class="done-layer">Data and hosting</span> &middot; Checked: all 35 Pages sites in canada-ca come from public repos, and no private repo there serves one. This is why a separate public preview repo exists.</span>
+</div>
+<div class="leaf solo">
 <span class="t">Reply to Nick: transfer the existing repo</span><span class="st st-done">Done</span>
 <span class="w"><span class="done-layer">Data and hosting</span> &middot; Sent. 28 commits of history, all yours.</span>
 </div>
@@ -475,7 +503,7 @@ h2{scroll-margin-top:1rem}
 <div class="callout"><div class="q">How does the dashboard stay current?</div><div class="a"><b>Resolved.</b> By storing nothing. It recalculates each record from its answers as the page draws, so there is no roll-up that can go stale.</div></div>
 <h2 id="questions">Open questions</h2><p class="hint">Not work. Somebody owes an answer.</p>
 <div class="tw"><table><thead><tr><th>Question</th><th>Who owes it</th><th>Blocks</th><th>Meanwhile</th></tr></thead><tbody>
-<tr><td>What does the file marking mean, now that the tool is unclassified only</td><td>Dan, or your call</td><td>One line of wording</td><td>The question still says "how is this assessment marked"; the pledge explains the file stays unclassified</td></tr>
+<tr><td>Can the 176 draft questions be public</td><td>Dan</td><td>Publishing inside canada-ca</td><td>The preview sits on a personal public repo, which is the same exposure with less visibility</td></tr>
 <tr><td>Who may edit a stored assessment, and how it is checked</td><td>Dan</td><td>Real authentication</td><td>Mockup screen, everything labelled unverified</td></tr>
 <tr><td>Verifying an assessor’s identity</td><td>Dan</td><td>Real sign-in</td><td>Typed name, labelled unverified on every change it records</td></tr>
 <tr><td>Is admin a role, or an assessor with more buttons?</td><td>Dan</td><td>The admin-only actions</td><td>The dashboard is built; the actions are listed and marked unbuilt</td></tr>
@@ -486,4 +514,4 @@ h2{scroll-margin-top:1rem}
 <tr><td>Who performs the canada-ca transfer</td><td>Nick</td><td>The repo move</td><td>Asked. An issue on canada-ca/welcome is the route he named</td></tr>
 <tr><td>What the production intake should be</td><td>TBS</td><td>Production only</td><td>The prototype answer is an Azure Function plus one CSP line</td></tr>
 </tbody></table></div>
-<footer>40 open, 39 done. Generated from NOTES/backlog.data.mjs by tools/build-backlog.mjs.</footer></div>
+<footer>41 open, 45 done. Generated from NOTES/backlog.data.mjs by tools/build-backlog.mjs.</footer></div>

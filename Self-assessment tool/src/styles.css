@@ -845,6 +845,14 @@ code.mark-subject { display: block; margin: .25rem 0; }
 .footer-score { display: flex; align-items: center; gap: .6rem; flex-wrap: wrap; }
 /* Where the work is kept. It sits in the chrome, so every screen carries it, and it never
    disappears on a narrow screen: the wording shortens instead. */
+.ev-subject { margin: .35rem 0 .1rem; }
+.ev-subject-row { display: flex; align-items: center; gap: .4rem; flex-wrap: wrap; }
+.ev-subject code { background: var(--surface-2); border: 1px solid var(--line);
+  border-radius: 6px; padding: .2rem .4rem; font-size: .78rem; word-break: break-word; }
+
+.marking-banner .mark-note { font-weight: 600; letter-spacing: .04em; opacity: .8;
+  text-transform: none; margin-left: .5rem; }
+
 .save-state { display: inline-flex; align-items: center; gap: .35rem; cursor: pointer;
   background: var(--surface-2); border: 1px solid var(--line);
   border-radius: 999px; padding: .16rem .55rem; color: var(--ink-2); white-space: nowrap; }

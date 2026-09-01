@@ -17,7 +17,7 @@ import { el, clear } from './dom';
 export interface PledgeOpts {
   /** The marking that triggered this: 'Protected A', 'Secret', and so on. */
   marking: string;
-  /** The email subject line the submitter should use, already filled in. */
+  /** An example of the subject line to use, with a real question number in it. */
   subject: string;
   /** Ticked: they keep the marking, and the acknowledgement is recorded. */
   onAcknowledge: () => void;
@@ -91,8 +91,13 @@ export function demandPledge(o: PledgeOpts): void {
       ]),
       el('li', {}, [
         el('b', {}, ['If it cannot be linked, email it to your assessor ']),
-        'and say so in the evidence field. Use this subject line, so they can find it again:',
+        'and say so in the evidence box under the question. The subject line has to say which ',
+        'initiative and which question, so they can match your email to your answer:',
         el('code', { class: 'mono pledge-subject' }, [o.subject]),
+        el('span', { class: 'muted small' }, [
+          'That is an example. The evidence box writes the line for you, with the real ',
+          'question number in it, and there is a button to copy it.',
+        ]),
       ]),
     ]),
     el('p', { class: 'muted small' }, [
