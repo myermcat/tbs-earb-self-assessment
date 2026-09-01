@@ -825,6 +825,20 @@ ok('the marking is shown as handling information, not as an anomaly',
 ok('the audit is attributed to whoever signed in, and says it is unverified',
    view().includes('Auditing as') && view().includes('unverified'));
 
+// Agree-with-all: Dan asked for it by name. It marks a whole section as agreed and touches
+// no score.
+{
+  // The scores as the assessor left them, so "touches no score" is actually checked.
+  const nums = () => qa('.audit-controls input[type=number]').map((i) => i.value).join(',');
+  const before = nums();
+  ok('there are scores on the page to leave alone', before.length > 0);
+  const btn = byText('.section-head button', 'Agree with all');
+  ok('each section can be agreed with in one click', !!btn);
+  btn.click();
+  ok('and it says how many it marked', view().includes('marked as agreed'));
+  ok('while changing no score', nums() === before, `${before} -> ${nums()}`);
+}
+
 // Re-score one specific question so the delta is checkable.
 const targetQid = rubric.domains[0].sections[0].questions[0].id;
 const rowOf = (qid) => q(`.audit-row[data-qid="${qid}"]`);
