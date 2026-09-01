@@ -1390,9 +1390,23 @@ function evidenceEditor(a: Assessment, q: Question, list: EvidenceRef[], refresh
           ev.attachment ? null : el('button', {
             class: 'linkish tiny',
             onclick: () => {
-              ev.location = `Emailed to the assessor. Subject: ${evidenceSubject(a, q.id)}`;
-              if (!ev.title) ev.title = 'Emailed to the assessor';
-              autosave(a); paint(); refresh();
+              const write = () => {
+                ev.location = `Emailed to the assessor. Subject: ${evidenceSubject(a, q.id)}`;
+                if (!ev.title) ev.title = 'Emailed to the assessor';
+                autosave(a); paint(); refresh();
+              };
+              // It writes over the location field, so anything already typed there is asked
+              // about rather than replaced.
+              if (!ev.location.trim()) { write(); return; }
+              confirmStep({
+                tier: 'caution',
+                title: 'Replace what you typed as the location?',
+                body: 'This field will say the artefact was emailed, with the subject line to use. What is in it now goes.',
+                stake: `Now: ${ev.location}`,
+                commitLabel: 'Replace it',
+                cancelLabel: 'Leave it as it is',
+                onCommit: write,
+              });
             },
           }, ['It cannot be linked, I will email it']),
           // attachRow is the file chip when something is attached, and the picker when not.

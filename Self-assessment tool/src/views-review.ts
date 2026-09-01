@@ -71,6 +71,10 @@ async function ingest(rubric: Rubric, files: FileList, root: HTMLElement) {
       problems.push(`${item.file}: answered against rubric ${a.rubric.version}, this app has ${rubric.version}. Scores shown are recalculated with the current rubric.`);
     }
     const r = score(rubric, a);
+    const had = loaded.find((l) => l.file === item.file);
+    if (had && Object.keys(had.a.audit?.perQuestion ?? {}).length) {
+      problems.push(`${item.file}: this file was already open and has been replaced by the version you just picked. The scores and notes you had typed against the old one are gone.`);
+    }
     loaded = loaded.filter((l) => l.file !== item.file);
     loaded.push({ file: item.file, a, r, fs: flags(rubric, a, r) });
   }
@@ -282,11 +286,13 @@ function openDetail(rubric: Rubric, root: HTMLElement, l: Loaded) {
             let kept = 0;
             for (const qs of sec.questions) {
               const e = (audit.perQuestion[qs.question.id] ??= { auditedScore: null, verdict: '', note: '' });
-              // A score the assessor has already changed is not one they agree with.
+              // A score the assessor has already changed is not one they agree with, and
+              // neither is a question they have already judged some other way.
               if (typeof e.auditedScore === 'number' && e.auditedScore !== (a.answers[qs.question.id]?.score ?? null)) {
                 kept++;
                 continue;
               }
+              if (e.verdict && e.verdict !== 'agree') { kept++; continue; }
               e.verdict = 'agree';
               e.by = auditor || 'unnamed';
               e.at = new Date().toISOString();
@@ -494,8 +500,12 @@ function auditRow(
         value: entry.note ?? '',
         oninput: (e: Event) => {
           entry.note = (e.target as HTMLInputElement).value;
-          const last = (entry.history ?? [])[(entry.history ?? []).length - 1];
-          if (last) last.note = entry.note ?? '';
+          // Only the reason for the score as it now stands. Without this test, typing here
+          // rewrote whatever reason happened to be last in the trail, which is the one thing
+          // the trail exists to keep.
+          const hist = entry.history ?? [];
+          const last = hist[hist.length - 1];
+          if (last && last.score === entry.auditedScore) last.note = entry.note ?? '';
         },
         onchange: () => repaint(),
       }),
