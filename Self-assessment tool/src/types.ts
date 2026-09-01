@@ -163,6 +163,8 @@ export interface Assessment {
     summary: string;
     /** The marking on this file as a whole. Must be at least as high as anything inside it. */
     classification: Classification | '';
+    /** Ticked when somebody above unclassified has read what to do instead. */
+    markingAcknowledged?: boolean;
   };
   answers: Record<string, Answer>;
   meta: { createdAt: string; updatedAt: string; appVersion: string };
