@@ -1,5 +1,7 @@
 # GC Enterprise Architecture self-assessment
 
+**Try it: https://myermcat.github.io/tbs-earb-self-assessment-preview/**
+
 A department scores its own architecture against the Government of Canada Enterprise
 Architecture framework, points to evidence it already holds, and produces a structured file.
 Assessors audit the handful of answers that do not add up.

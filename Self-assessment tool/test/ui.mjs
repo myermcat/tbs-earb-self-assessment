@@ -148,6 +148,20 @@ ok('the overview tab counts the three groups', qa('.stepper .step')[0].textConte
 ok('a blank assessment has nothing to mark, so saving is allowed',
    byText('.footer-actions button', 'Save to a file').disabled === false);
 
+// The bar has to move on the first field. Counting groups meant it could not move until four
+// fields were filled, which reads as the tool ignoring you.
+{
+  const barWidth = () => qa('.stepper .step')[0].querySelector('.step-bar i').style.width;
+  ok('the overview bar starts empty', barWidth() === '0%', barWidth());
+  const first = q('.ov-block .grid-2 input');
+  first.value = 'X';
+  fire(first, 'input');
+  ok('and moves on the very first field', barWidth() !== '0%', barWidth());
+  ok('while the count still reads in groups',
+     qa('.stepper .step')[0].textContent.includes('0 of 3'),
+     qa('.stepper .step')[0].textContent);
+}
+
 // Step one: the four plain facts.
 {
   const [name, dept, contact] = qa('.ov-block .grid-2 input');
