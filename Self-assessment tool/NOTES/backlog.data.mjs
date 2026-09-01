@@ -18,12 +18,20 @@ export const quick = {
   title: 'Quick actions',
   hint: 'No discussion needed.',
   items: [
+    { t: 'Reword the marking question so it is about the evidence', status: 'next',
+      why: 'Nothing in the tool is classified, so "how is this assessment marked" is the wrong question: the assessment is always unclassified. What is being declared is the marking of the artefact being pointed at. One line of wording, and it needs your yes.' },
+    { t: 'Backlog gets jump links and a Done section that stays', status: 'done',
+      why: 'Done was at the bottom of eight layers with no way to reach it. Every section now has a link at the top, and Done is split into what came after Dan’s review and what he had already seen.' },
+    { t: 'Every backlog item carries its reason', status: 'done',
+      why: 'Five items had a title and nothing else, so they read as jargon. All of them now say why they exist.' },
     { t: 'Rail’s Overview row shows a count and a bar', status: 'done',
       why: 'Every other rail row had both; Overview had neither, which reads as a row stuck at zero.' },
     { t: 'Overview bar moves on the first keystroke', status: 'done',
       why: 'It counted the three groups, and group one needs four fields. It now measures the six fields while the count still reads in groups.' },
     { t: 'README and Settings stop describing a local-only tool', status: 'done',
       why: 'Both said the tool cannot transmit and that the repo is private. Neither was true.' },
+    { t: 'Settings marks the unbuilt parts as unbuilt', status: 'done',
+      why: 'It promised a submit act and a withdrawal path as though both existed. Neither is written, and copy that describes a feature has to say whether the feature is there.' },
   ],
 };
 
@@ -73,6 +81,8 @@ export const layers = [
         subs: [
           { t: 'The store seam', status: 'done',
             why: 'src/store.ts. One constant from live, and the dashboard already reads through it.' },
+          { t: 'The three calls a real write needs', status: 'done',
+            why: 'Saving, saved, failed with a reason. Nothing drives them yet, so the wording is settled before the write exists.' },
           { t: 'One deliberate first submit', status: 'next',
             why: 'You should know the moment your work becomes visible to TBS.' },
           { t: 'Autosave online after that', status: 'next',
@@ -97,6 +107,20 @@ export const layers = [
           { t: 'Email fallback, with a pattern', status: 'done',
             why: 'Marking, sent by email, subject line written for you, so an assessor can find it.' },
         ] },
+      { t: 'The classified pledge, as a modal', status: 'done',
+        why: 'She chose Protected A on the strip that says "mark this file to save it" and nothing happened. The advice panel was on a different screen, so it could be scrolled past and was.',
+        subs: [
+          { t: 'Any marking above unclassified takes over the screen', status: 'done',
+            why: 'Whichever control set it. The strip, the picker, and anything added later go through one function, so they cannot drift apart again.' },
+          { t: 'The close control is dead until the box is ticked', status: 'done',
+            why: 'Grey and unclickable, and it says "tick the box first". Escape does not dismiss it and clicking outside does nothing.' },
+          { t: 'The way out changes the answer', status: 'done',
+            why: 'An accidental click needs an exit that is not a dismissal: "this is unclassified after all" sets the marking back rather than waving the warning away.' },
+          { t: 'It asks once, not every time', status: 'done',
+            why: 'After the pledge, switching between classified markings does not ask again. The panel on the overview stays as the reference.' },
+          { t: 'The unmarked banner lands on the marking question', status: 'done',
+            why: 'It scrolled to an element that only exists on the overview, so from any of the twenty question pages it did nothing at all.' },
+        ] },
       { t: 'Marking', status: 'next',
         why: 'Somebody still has to state the marking of what they point at.',
         subs: [
@@ -113,7 +137,11 @@ export const layers = [
           { t: 'First-submit confirmation', status: 'next',
             why: 'Names what is about to go online and asks them to confirm it is unclassified.' },
           { t: 'Save status indicator', status: 'done',
-            why: 'Draft in browser, saving, saved, or not saved with a reason.' },
+            why: 'Draft in browser, saving, saved, or not saved with a reason. It sits in the header now, so it is on every screen and on a phone; it was on the 21 question pages only, and CSS hid it below 720px.' },
+          { t: 'Silent until something is actually written', status: 'done',
+            why: 'It opened at "draft saved in browser" on an empty page, which is a claim ahead of the fact.' },
+          { t: 'One live indicator, not one per repaint', status: 'done',
+            why: 'Each repaint added another listener holding a dead node. Harmless while the state never changed, and a leak the moment writes start.' },
         ] },
     ],
   },
@@ -149,6 +177,8 @@ export const layers = [
   {
     title: 'Interface: admin', owner: 'us',
     groups: [
+      { t: 'Reachable without going through the assessor view', status: 'done',
+        why: 'It sat behind two clicks on the assessor side with nothing on the start page pointing at it. There is a line under the assessor link now, and it asks who you are the same way.' },
       { t: 'The portfolio dashboard', status: 'done',
         why: 'Dan’s self-updating dashboard. It recalculates every record from the answers as the page draws, so there is no stored number to go stale.',
         subs: [
@@ -258,6 +288,8 @@ export const resolved = [
 ];
 
 export const questions = [
+  { q: 'What does the file marking mean, now that the tool is unclassified only', who: 'Dan, or your call',
+    blocks: 'One line of wording', meanwhile: 'The question still says "how is this assessment marked"; the pledge explains the file stays unclassified' },
   { q: 'Who may edit a stored assessment, and how it is checked', who: 'Dan',
     blocks: 'Real authentication', meanwhile: 'Mockup screen, everything labelled unverified' },
   { q: 'Verifying an assessor’s identity', who: 'Dan',
