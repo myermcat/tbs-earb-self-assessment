@@ -66,19 +66,20 @@ h2{scroll-margin-top:1rem}
 .kpi a{color:inherit;text-decoration:none}
 </style>
 <div class="wrap"><h1>EARB self-assessment: backlog</h1>
-<p class="sub">Layers are the spine, the three views sit inside the interface layer, and every item appears once. Finished work moves to Done at the bottom and stays there. Groups open and close. Updated 2026-09-01.</p>
+<p class="sub">Layers are the spine, the three views sit inside the interface layer, and every item appears once. Finished work moves to Done, which is split into what came after Dan's review and what he had already seen, and stays there for good. The links below jump to any section. Updated 2026-09-01.</p>
 <div class="kpis">
-<div class="kpi"><b>13</b><span>next</span></div>
+<div class="kpi"><b>14</b><span>next</span></div>
 <div class="kpi"><b>8</b><span><a href="#waiting">waiting on somebody</a></span></div>
 <div class="kpi"><b>12</b><span>later</span></div>
-<div class="kpi"><b>27</b><span><a href="#done">done</a></span></div>
-<div class="kpi"><b>9</b><span>open questions</span></div>
+<div class="kpi"><b>39</b><span><a href="#done">done</a></span></div>
+<div class="kpi"><b>10</b><span>open questions</span></div>
 </div>
 <nav class="jump">
+<a href="#quick">Quick actions <b>1</b></a>
 <a href="#waiting">Waiting on somebody <b>8</b></a>
-<a href="#done">Done <b>27</b></a>
+<a href="#done">Done <b>39</b></a>
 <a href="#resolved">Resolved questions <b>10</b></a>
-<a href="#questions">Open questions <b>9</b></a>
+<a href="#questions">Open questions <b>10</b></a>
 <a href="#layer-0">Question set</a>
 <a href="#layer-1">Engine</a>
 <a href="#layer-2">Interface: the submitter</a>
@@ -88,6 +89,13 @@ h2{scroll-margin-top:1rem}
 <a href="#layer-6">Data and hosting</a>
 <a href="#layer-7">Process, for people</a>
 </nav>
+<h2 id="quick">Quick actions</h2><p class="hint">No discussion needed.</p>
+<div class="card quick">
+<div class="leaf solo">
+<span class="t">Reword the marking question so it is about the evidence</span><span class="st st-next">Next</span>
+<span class="w">Nothing in the tool is classified, so "how is this assessment marked" is the wrong question: the assessment is always unclassified. What is being declared is the marking of the artefact being pointed at. One line of wording, and it needs your yes.</span>
+</div>
+</div>
 <h2 id="waiting">Waiting on somebody</h2><p class="hint">Chased, and not ours to finish. Each of these is also in its layer below.</p>
 <div class="tw"><table><thead><tr><th>Item</th><th>Who</th><th>Layer</th><th>Meanwhile</th></tr></thead><tbody>
 <tr><td>Confirm the answer type for every question</td><td>Dan</td><td>Question set</td><td>Ten are yes/no on our reading of the wording. The other 166 are scored 0 to 10.</td></tr>
@@ -291,9 +299,17 @@ h2{scroll-margin-top:1rem}
 </div>
 </div>
 <h2 id="done">Done</h2><p class="hint">Built and tested, and kept here permanently. Nothing on this list has to be remembered.</p>
-<h3 class="h3sub">Since Dan's review on 1 September &mdash; 25 items</h3>
+<h3 class="h3sub">Since Dan's review on 1 September &mdash; 37 items</h3>
 <p class="hint">This is the list to walk him through. Everything here came out of that conversation.</p>
 <div class="card done-card">
+<div class="leaf solo">
+<span class="t">Backlog gets jump links and a Done section that stays</span><span class="st st-done">Done</span>
+<span class="w"><span class="done-layer">Quick action</span> &middot; Done was at the bottom of eight layers with no way to reach it. Every section now has a link at the top, and Done is split into what came after Dan’s review and what he had already seen.</span>
+</div>
+<div class="leaf solo">
+<span class="t">Every backlog item carries its reason</span><span class="st st-done">Done</span>
+<span class="w"><span class="done-layer">Quick action</span> &middot; Five items had a title and nothing else, so they read as jargon. All of them now say why they exist.</span>
+</div>
 <div class="leaf solo">
 <span class="t">Rail’s Overview row shows a count and a bar</span><span class="st st-done">Done</span>
 <span class="w"><span class="done-layer">Quick action</span> &middot; Every other rail row had both; Overview had neither, which reads as a row stuck at zero.</span>
@@ -305,6 +321,10 @@ h2{scroll-margin-top:1rem}
 <div class="leaf solo">
 <span class="t">README and Settings stop describing a local-only tool</span><span class="st st-done">Done</span>
 <span class="w"><span class="done-layer">Quick action</span> &middot; Both said the tool cannot transmit and that the repo is private. Neither was true.</span>
+</div>
+<div class="leaf solo">
+<span class="t">Settings marks the unbuilt parts as unbuilt</span><span class="st st-done">Done</span>
+<span class="w"><span class="done-layer">Quick action</span> &middot; It promised a submit act and a withdrawal path as though both existed. Neither is written, and copy that describes a feature has to say whether the feature is there.</span>
 </div>
 <div class="leaf solo">
 <span class="t">Multiple answer types</span><span class="st st-done">Done</span>
@@ -327,12 +347,36 @@ h2{scroll-margin-top:1rem}
 <span class="w"><span class="done-layer">Engine</span> &middot; src/store.ts. One constant from live, and the dashboard already reads through it.</span>
 </div>
 <div class="leaf solo">
+<span class="t">The three calls a real write needs</span><span class="st st-done">Done</span>
+<span class="w"><span class="done-layer">Engine</span> &middot; Saving, saved, failed with a reason. Nothing drives them yet, so the wording is settled before the write exists.</span>
+</div>
+<div class="leaf solo">
 <span class="t">Ask for a link</span><span class="st st-done">Done</span>
 <span class="w"><span class="done-layer">Interface: the submitter</span> &middot; Point at where it lives, and make sure your assessor can open it.</span>
 </div>
 <div class="leaf solo">
 <span class="t">Email fallback, with a pattern</span><span class="st st-done">Done</span>
 <span class="w"><span class="done-layer">Interface: the submitter</span> &middot; Marking, sent by email, subject line written for you, so an assessor can find it.</span>
+</div>
+<div class="leaf solo">
+<span class="t">Any marking above unclassified takes over the screen</span><span class="st st-done">Done</span>
+<span class="w"><span class="done-layer">Interface: the submitter</span> &middot; Whichever control set it. The strip, the picker, and anything added later go through one function, so they cannot drift apart again.</span>
+</div>
+<div class="leaf solo">
+<span class="t">The close control is dead until the box is ticked</span><span class="st st-done">Done</span>
+<span class="w"><span class="done-layer">Interface: the submitter</span> &middot; Grey and unclickable, and it says "tick the box first". Escape does not dismiss it and clicking outside does nothing.</span>
+</div>
+<div class="leaf solo">
+<span class="t">The way out changes the answer</span><span class="st st-done">Done</span>
+<span class="w"><span class="done-layer">Interface: the submitter</span> &middot; An accidental click needs an exit that is not a dismissal: "this is unclassified after all" sets the marking back rather than waving the warning away.</span>
+</div>
+<div class="leaf solo">
+<span class="t">It asks once, not every time</span><span class="st st-done">Done</span>
+<span class="w"><span class="done-layer">Interface: the submitter</span> &middot; After the pledge, switching between classified markings does not ask again. The panel on the overview stays as the reference.</span>
+</div>
+<div class="leaf solo">
+<span class="t">The unmarked banner lands on the marking question</span><span class="st st-done">Done</span>
+<span class="w"><span class="done-layer">Interface: the submitter</span> &middot; It scrolled to an element that only exists on the overview, so from any of the twenty question pages it did nothing at all.</span>
 </div>
 <div class="leaf solo">
 <span class="t">One big unclassified tile, the six grouped behind it</span><span class="st st-done">Done</span>
@@ -344,7 +388,15 @@ h2{scroll-margin-top:1rem}
 </div>
 <div class="leaf solo">
 <span class="t">Save status indicator</span><span class="st st-done">Done</span>
-<span class="w"><span class="done-layer">Interface: the submitter</span> &middot; Draft in browser, saving, saved, or not saved with a reason.</span>
+<span class="w"><span class="done-layer">Interface: the submitter</span> &middot; Draft in browser, saving, saved, or not saved with a reason. It sits in the header now, so it is on every screen and on a phone; it was on the 21 question pages only, and CSS hid it below 720px.</span>
+</div>
+<div class="leaf solo">
+<span class="t">Silent until something is actually written</span><span class="st st-done">Done</span>
+<span class="w"><span class="done-layer">Interface: the submitter</span> &middot; It opened at "draft saved in browser" on an empty page, which is a claim ahead of the fact.</span>
+</div>
+<div class="leaf solo">
+<span class="t">One live indicator, not one per repaint</span><span class="st st-done">Done</span>
+<span class="w"><span class="done-layer">Interface: the submitter</span> &middot; Each repaint added another listener holding a dead node. Harmless while the state never changed, and a leak the moment writes start.</span>
 </div>
 <div class="leaf solo">
 <span class="t">Mockup verification screen</span><span class="st st-done">Done</span>
@@ -373,6 +425,10 @@ h2{scroll-margin-top:1rem}
 <div class="leaf solo">
 <span class="t">Load a question set moves here</span><span class="st st-done">Done</span>
 <span class="w"><span class="done-layer">Interface: the assessor</span> &middot; It belongs to whoever maintains the instrument. A submitter is told where it lives and not handed the control.</span>
+</div>
+<div class="leaf solo">
+<span class="t">Reachable without going through the assessor view</span><span class="st st-done">Done</span>
+<span class="w"><span class="done-layer">Interface: admin</span> &middot; It sat behind two clicks on the assessor side with nothing on the start page pointing at it. There is a line under the assessor link now, and it asks who you are the same way.</span>
 </div>
 <div class="leaf solo">
 <span class="t">Averages by domain and by topic</span><span class="st st-done">Done</span>
@@ -419,6 +475,7 @@ h2{scroll-margin-top:1rem}
 <div class="callout"><div class="q">How does the dashboard stay current?</div><div class="a"><b>Resolved.</b> By storing nothing. It recalculates each record from its answers as the page draws, so there is no roll-up that can go stale.</div></div>
 <h2 id="questions">Open questions</h2><p class="hint">Not work. Somebody owes an answer.</p>
 <div class="tw"><table><thead><tr><th>Question</th><th>Who owes it</th><th>Blocks</th><th>Meanwhile</th></tr></thead><tbody>
+<tr><td>What does the file marking mean, now that the tool is unclassified only</td><td>Dan, or your call</td><td>One line of wording</td><td>The question still says "how is this assessment marked"; the pledge explains the file stays unclassified</td></tr>
 <tr><td>Who may edit a stored assessment, and how it is checked</td><td>Dan</td><td>Real authentication</td><td>Mockup screen, everything labelled unverified</td></tr>
 <tr><td>Verifying an assessor’s identity</td><td>Dan</td><td>Real sign-in</td><td>Typed name, labelled unverified on every change it records</td></tr>
 <tr><td>Is admin a role, or an assessor with more buttons?</td><td>Dan</td><td>The admin-only actions</td><td>The dashboard is built; the actions are listed and marked unbuilt</td></tr>
@@ -429,4 +486,4 @@ h2{scroll-margin-top:1rem}
 <tr><td>Who performs the canada-ca transfer</td><td>Nick</td><td>The repo move</td><td>Asked. An issue on canada-ca/welcome is the route he named</td></tr>
 <tr><td>What the production intake should be</td><td>TBS</td><td>Production only</td><td>The prototype answer is an Azure Function plus one CSP line</td></tr>
 </tbody></table></div>
-<footer>39 open, 27 done. Generated from NOTES/backlog.data.mjs by tools/build-backlog.mjs.</footer></div>
+<footer>40 open, 39 done. Generated from NOTES/backlog.data.mjs by tools/build-backlog.mjs.</footer></div>

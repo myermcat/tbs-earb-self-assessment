@@ -172,7 +172,7 @@ const html = [
   '<title>EARB tool backlog</title>',
   STYLE,
   '<div class="wrap"><h1>EARB self-assessment: backlog</h1>',
-  `<p class="sub">Layers are the spine, the three views sit inside the interface layer, and every item appears once. Finished work moves to Done at the bottom and stays there. Groups open and close. Updated ${esc(updated)}.</p>`,
+  `<p class="sub">Layers are the spine, the three views sit inside the interface layer, and every item appears once. Finished work moves to Done, which is split into what came after Dan's review and what he had already seen, and stays there for good. The links below jump to any section. Updated ${esc(updated)}.</p>`,
   '<div class="kpis">',
   `<div class="kpi"><b>${count('next')}</b><span>next</span></div>`,
   `<div class="kpi"><b>${waiting.length}</b><span><a href="#waiting">waiting on somebody</a></span></div>`,
