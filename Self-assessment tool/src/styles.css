@@ -152,6 +152,8 @@ li { margin-bottom: .22rem; }
 }
 /* Lift only once there is content underneath to lift over. At the top of the page the border
    is the whole separation, which is what the border is for. */
+/* Watched, so the frame knows whether anything has scrolled under it. It takes no space. */
+.top-sentinel { display: block; height: 1px; margin-bottom: -1px; }
 .chrome { box-shadow: none; transition: box-shadow .15s ease; }
 .scrolled .chrome { box-shadow: 0 10px 18px -12px rgba(16, 24, 40, .55); }
 @media (prefers-color-scheme: dark) {
