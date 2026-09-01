@@ -1,0 +1,568 @@
+{
+  "_readme": "Structured record of a meeting. Replaces the raw speech-to-text transcript, which was one 41 KB unpunctuated line with heavy ASR corruption, and which was deleted on conversion. Unrelated talk removed, see discarded. Quotes are reconstructed: ASR noise stripped, wording kept where it carried meaning. Never cite a quote here as verbatim outside the team.",
+
+  "meeting": {
+    "date": "2026-09-01",
+    "title": "First review of the GC EARB self-assessment tool",
+    "participants": ["Dan Cooper (manager, TBS OCIO, business owner of GC EARB)", "Mariia Yermolenko"],
+    "setting": "Screen share, Dan driving the prototype live for the first time",
+    "sourceQuality": "poor",
+    "headline": "The prototype passes as a proof of concept. Everything now moves to what happens after somebody presses save: where the data goes, who reads it, and a question set that is the largest remaining piece of work.",
+    "verdict": "Conceptually fantastic. Zero complaints whatsoever as a proof of concept. All of it functional: answer, score, fast feedback, resume or start new. Presentation nuances can be deep-dived later."
+  },
+
+  "topics": [
+    {
+      "id": "data-architecture",
+      "title": "Where the data goes, which is the biggest change",
+      "importance": "highest",
+      "summary": "The tool stops being purely offline. Unclassified assessments submit over the network and accumulate in a repository; anything above unclassified stays a file and travels by encrypted email. One engine, two deployments.",
+      "subtopics": [
+        {
+          "title": "Two separable things",
+          "detail": "The platform holds no data and can be stored anywhere. The data is separate. This split is what makes a public deployment possible at all."
+        },
+        {
+          "title": "Submission becomes a network action for unclassified work",
+          "detail": "Dan: a link on the last page sends the JSON off, and that JSON then sits in our repository with their details in it. Unclassified data may live online provided it is immutable and only changed by authorised sources."
+        },
+        {
+          "title": "One engine, two instances",
+          "detail": "The same engine runs in both places. The public one holds unclassified data. An internal one holds Protected and above. Dan's phrasing: 'the exact same engine running on both sides'."
+        },
+        {
+          "title": "Above unclassified, nothing submits",
+          "detail": "If the marking is higher than unclassified the tool does not post anything. It saves locally, and the submitter sends it by encrypted email for TBS to move inside. Dan called that the worst case, not the normal one."
+        },
+        {
+          "title": "Unclassified is the default, deliberately",
+          "detail": "Not a 50-50 split. Unclassified is the default approach and the elevated cases are the minority. The reason is openness: 'we are trying to be as open and transparent as possible'."
+        },
+        {
+          "title": "Authorisation is unsolved",
+          "detail": "Asked how the tool would check whether somebody may edit a stored assessment, Dan said plainly: 'No idea. No idea.' Recorded as open, not as decided."
+        }
+      ],
+      "quotes": [
+        "Why can't the data go here if it's unclassified? As long as it's immutable. Only changed by authorised sources.",
+        "It'll only save it local. And we ask to send it in encrypted email, and we will move it inside."
+      ]
+    },
+
+    {
+      "id": "question-set",
+      "title": "The question set, which Dan calls the biggest remaining work",
+      "importance": "highest",
+      "summary": "The questions exist but many are the wrong shape. Some are yes-or-no wearing a 0 to 10 scale, and a few should stop an assessment dead. The content matters less than the instrument being able to carry every type.",
+      "subtopics": [
+        {
+          "title": "Wrong answer type on many questions",
+          "detail": "A 0 to 10 maturity scale is being asked of questions that are binary. His own example: 'Is there a published roadmap with near, medium and long-term milestones?' is a yes or no question."
+        },
+        {
+          "title": "He still wants the scale",
+          "detail": "'I like the scale, because at least it's a consistent thing for every question.' The scale stays as the default; other types join it."
+        },
+        {
+          "title": "Show stoppers",
+          "detail": "Some questions should be yes or no, and a no should end the assessment: 'it doesn't matter what you do in the rest of the section, you shouldn't go forward with your architecture.'"
+        },
+        {
+          "title": "Criticality is a separate switch from weight",
+          "detail": "Section weight already exists. Criticality is per question and binary: is this a must-answer-yes, or may they continue with a red flag against them."
+        },
+        {
+          "title": "The weights bug is his",
+          "detail": "Shown that some sections do not total 100, Dan said: 'maybe also what might have happened is that the weights didn't get to 100 in some of these sections. Oh no. So it still isn't perfect yet.' Confirms the Business Architecture 80% is a workbook error and not an import artefact."
+        },
+        {
+          "title": "Content is not the worry, capability is",
+          "detail": "'The actual content of the questions, not so worried about. But the capability to ask any of the type of questions is really the question.'"
+        }
+      ]
+    },
+
+    {
+      "id": "categories-to-metadata",
+      "title": "The four domains become metadata, so a question can belong to several topics",
+      "importance": "high",
+      "summary": "The four architecture domains come from TOGAF and Dan is unattached to them. He wants security and privacy represented without inventing a fifth silo, by moving categorisation into a metadata layer any question can carry.",
+      "subtopics": [
+        {
+          "title": "Why the four exist, and why he does not defend them",
+          "detail": "'These categories are based upon a methodology the enterprise architects call TOGAF. They are super fans of it. I don't care about the practice of enterprise architecture. I care about: are we creating good outcomes and good architectures for the Government of Canada?'"
+        },
+        {
+          "title": "What he wants represented",
+          "detail": "Business, data, application, technology, plus security and privacy. Security is both its own set of questions and an aspect of every other domain, so it cannot simply be a fifth column."
+        },
+        {
+          "title": "The mechanism",
+          "detail": "Drop the domain-prefixed ids. Number questions 1..N. Add a metadata layer of topic associations, so one question can be a security question and a business question at once, and scores roll up per topic."
+        },
+        {
+          "title": "Worked example he gave",
+          "detail": "FinOps: operational management of daily cloud and AI consumption. Arguably technology, arguably business, and it costs money every morning it is not changed. It belongs to both."
+        },
+        {
+          "title": "CSV export carries the associations",
+          "detail": "Not extra columns. A secondary delimiter inside the question key that can be parsed back to regenerate the groupings. His words: 'you're making a multi-dimensional reference.'"
+        },
+        {
+          "title": "Privacy means personal privacy",
+          "detail": "'It is not data privacy. It is your personal data privacy.' Operational systems have no right to privacy. The tool holds almost no personal information: the contact for the initiative and the identity of the assessor. He wants the engine run on itself as a privacy impact assessment."
+        }
+      ]
+    },
+
+    {
+      "id": "classification-gate",
+      "title": "Classification, and stopping the wrong work from happening on this network",
+      "importance": "high",
+      "summary": "Anything above Protected B should not be in this tool on this network at all. The tool should push people down to unclassified, and warn loudly when somebody marks higher.",
+      "subtopics": [
+        {
+          "title": "Marking happens at the start, by the submitter",
+          "detail": "Confirmed: the person filling it in knows the marking before they begin and sets it at the beginning. It shows at the top throughout, which Dan noticed and approved."
+        },
+        {
+          "title": "Above Protected B does not belong here",
+          "detail": "'Anything above Protected B wouldn't use this tool. If you describe me a top secret system, it shouldn't be happening on this network.' Air-gapped networks are physically separate cable, with their own controls."
+        },
+        {
+          "title": "What the tool should do for now",
+          "detail": "Flash red and challenge the choice: 'really, you want to do this here?' Beyond a threshold, tell them to take the tool to the other network physically and run it there. Dan called the exact threshold a minor detail for now."
+        },
+        {
+          "title": "The gate is advisory, and he knows it",
+          "detail": "'They could fill it out at a lower classification and simulate the answers and get the same thing.' The switches do not enforce anything; they are a red flag, not a control."
+        },
+        {
+          "title": "Push everything down to unclassified",
+          "detail": "High-level architecture is unclassified and enough to judge. A high-level answer scores a 5, and 5 is acceptable. 'I don't need to know the IP addresses. But you told me you have a redundant front door using a load balancer. Fantastic. That's an eight.'"
+        }
+      ]
+    },
+
+    {
+      "id": "evidence",
+      "title": "Evidence: not always required, and a security surface",
+      "importance": "medium",
+      "summary": "Dan endorsed the current judgement calls on evidence and does not want it mandatory yet. Accepting files and URLs from departments is a cyber-security problem the project has to own.",
+      "subtopics": [
+        {
+          "title": "Not mandatory, and the flags were right",
+          "detail": "He singled out the flag for a high score with nothing cited: 'you made some interesting judgment calls there and they were the right thing.' Which questions must carry evidence is a decision to make once real data exists, possibly keyed to the lifecycle phase."
+        },
+        {
+          "title": "Files and URLs are an attack surface",
+          "detail": "'There is this cyber security aspect we have to be cognizant of. Somebody may be trying Trojan horses.' He does not want AI following submitted URLs. JSON is text and fairly safe; a PDF is compiled and riskier."
+        },
+        {
+          "title": "Who we accept from is a human protocol",
+          "detail": "'Who we accept the files from, and which files we pull from where, is a protocol for the humans.' Not a feature. Unresolved, and he raised the case of an unsolicited submission from a department nobody asked."
+        },
+        {
+          "title": "Assessors must not touch evidence",
+          "detail": "'They probably shouldn't be able to edit the evidence. By no means.' Evidence is evidence; the score is the contested thing."
+        }
+      ]
+    },
+
+    {
+      "id": "roles-and-views",
+      "title": "Four views, and what an assessor may change",
+      "importance": "high",
+      "summary": "Submitter, assessor, executive, and possibly a reviewer of reviewers. The assessor may change a score and must justify it; everything else they only agree with.",
+      "subtopics": [
+        {
+          "title": "The views",
+          "detail": "A data-entry and self-scoring view, an assessor and auditor view, an executive view, and possibly a fourth that reviews the assessors."
+        },
+        {
+          "title": "The executive view, described concretely",
+          "detail": "All files between two dates. For each: name, score, summary detail, assessor. Weakest first. Dan: 'at some point I need to get into this view occasionally, but I actually need the one that has all the files.'"
+        },
+        {
+          "title": "Assessors sign their work",
+          "detail": "The assessor adds their own name. Ideally their identity is verified, since it is their name on the line: 'I'm Allison and I said Nick's name.' He filed real identity under 'evolutions of perfection down the line'."
+        },
+        {
+          "title": "What an assessor may edit",
+          "detail": "The score and the justification, nothing else. A changed score requires a justification. An unchanged score needs no words but does need an explicit mark of agreement, and there should be an accept-all for a page that has been scanned."
+        },
+        {
+          "title": "Assessor is recorded per question",
+          "detail": "Not per assessment. Another entry in the CSV, so two assessors can work the same file, which he wants for a high-profile one."
+        },
+        {
+          "title": "His definition of high profile",
+          "detail": "'If you picked up a newspaper tomorrow morning and there was an article about something failing in the Government of Canada, is it this system?' If a failure would not make the front page, it is not high profile."
+        },
+        {
+          "title": "A possible third stage",
+          "detail": "Stage one is submit, review, change, final. A later stage could have somebody review the reviewers. He called it a Dan role, and left it optional."
+        }
+      ]
+    },
+
+    {
+      "id": "data-as-the-point",
+      "title": "Twelve months out, the accumulated data is the product",
+      "importance": "high",
+      "summary": "The instrument exists to produce a structured, consistent dataset. What he wants from it is trend analysis he cannot do today because everything is buried in PowerPoint.",
+      "subtopics": [
+        {
+          "title": "What he wants to ask of it",
+          "detail": "The average score of every question. A histogram of answers for a question across a time period. The best answer and the best piece of evidence for every question, and the worst. Average score by department."
+        },
+        {
+          "title": "What he would do with it",
+          "detail": "'That says who I need to talk to, who I want to make an example of, who I want to showcase, and who hasn't talked to us so we should be asking them.'"
+        },
+        {
+          "title": "The analysis is the easy half",
+          "detail": "'I'm not too worried about that. It's capturing the data in a decently structured consistent format. Because today it's blocked.'"
+        }
+      ]
+    },
+
+    {
+      "id": "board-format",
+      "title": "How this changes the board meeting",
+      "importance": "medium",
+      "summary": "The board stops being walked through slides and starts triaging a list.",
+      "subtopics": [
+        {
+          "title": "The pitch to members",
+          "detail": "'There's nothing stopping us showing this entire list to GC EARB dynamically: members, do any of you want further details on these? This is what has come through the pipeline this week. If you'd like more info we can have them present. Otherwise the evidence and the scores are there, signed off by our auditors.'"
+        }
+      ]
+    },
+
+    {
+      "id": "process-change-for-johns-team",
+      "title": "This changes John's team's job, and they will resist",
+      "importance": "medium",
+      "summary": "The assessors' operating protocol changes dramatically, and Dan expects the change itself to be the hard part.",
+      "subtopics": [
+        {
+          "title": "What they do today",
+          "detail": "Hand a department a template, meet, talk it through, and in about three months the department presents at GC EARB with a PowerPoint deck."
+        },
+        {
+          "title": "What they would do instead",
+          "detail": "Receive scored submissions with evidence in a fixed format, validate the evidence somehow, and load it into an official TBS corporate system rather than a personal laptop. Dan's own list of unknowns: how they validate, where it lands, what classification the intake accepts."
+        },
+        {
+          "title": "The resistance is expected",
+          "detail": "'They are so married to the old way that we're going to struggle to get them changing. Because they want to look at things this way, because they've always looked at things this way.'"
+        },
+        {
+          "title": "John has seen it",
+          "detail": "Dan gave John a link to poke around. John had initial comments, and a security review was happening the same day."
+        }
+      ]
+    },
+
+    {
+      "id": "team-and-staffing",
+      "title": "Staffing, and where Mariia sits",
+      "importance": "low",
+      "summary": "Kept because it affects who she can ask for help and how fast a second pair of hands arrives.",
+      "subtopics": [
+        {
+          "title": "A full-time hire is coming",
+          "detail": "Dan is recruiting somebody to work on this. Another interview was set for the Thursday. He is competing with a colleague for the same preferred candidate, and noted that unclassified work means he can onboard faster because no clearance wait applies."
+        },
+        {
+          "title": "A possible move under GDA",
+          "detail": "He is considering transferring Mariia under GDA so she is part of a team to bounce ideas off, rather than relying on half an hour with him every other day. Her response was that she can do that anyway."
+        },
+        {
+          "title": "Who owns what",
+          "detail": "Dan is the business owner of GC EARB, the process and all of it. John has the team of assessors and auditors. GDA is a different team again."
+        }
+      ]
+    }
+  ],
+
+  "actionsNow": [
+    {
+      "id": "github-org",
+      "title": "Ask Nick about joining the Government of Canada GitHub organisation",
+      "reason": "Dan asked for it directly, and it gates moving the code. His two reasons: it lets other people contribute, and it puts the work under official GC branding and location.",
+      "suggestion": "Casual Teams message, draft below. Ask which org, who approves, and whether a new repo can be created under it.",
+      "draft": "Hey Nick, Dan asked me to get our EARB self-assessment prototype into the GC GitHub org. Could you point me at how to join, and whether I can create a repo under it? Happy to keep it public, Dan wants it that way so people can contribute. Thanks!",
+      "blockedBy": null,
+      "effort": "minutes"
+    },
+    {
+      "id": "public-repo",
+      "title": "Create the repo in that org and start moving the codebase across",
+      "reason": "Dan was explicit: public, not private. A private repo cannot serve GitHub Pages, and prototyping needs hosting anyway, which would be public regardless.",
+      "suggestion": "Move the tool and its notes. Keep the source PDFs out, as now. This retires our two-repo workaround, since Dan has now cleared publication.",
+      "blockedBy": "github-org",
+      "effort": "an hour"
+    },
+    {
+      "id": "classification-warning",
+      "title": "Warn hard when the marking is above Protected B",
+      "reason": "Dan said work above Protected B should not be in this tool on this network at all, and asked for a red flag rather than a hard block.",
+      "suggestion": "On choosing Protected C or any classified level, show a red interstitial: this network is the wrong place, take the tool to the other network and run it there. Let them continue, and mark the file so an assessor sees it happened.",
+      "effort": "an hour"
+    },
+    {
+      "id": "push-to-unclassified",
+      "title": "Prompt submitters to answer at the lowest classification they can",
+      "reason": "Unclassified is the default and openness is the point. A high-level answer scoring 5 is acceptable, so people do not need to reach for detail that raises the marking.",
+      "suggestion": "One line on the marking screen: describe the architecture, not the secrets. A high-level answer scores around 5 and that is a fine score.",
+      "effort": "minutes"
+    },
+    {
+      "id": "assessor-justification",
+      "title": "Require a justification when an assessor changes a score, and add accept-all",
+      "reason": "Dan: a changed number must be justified; an unchanged one needs no words but does need an explicit mark of agreement. He asked for accept-all for a page already scanned.",
+      "suggestion": "Block saving the audited file while any changed score has an empty note. Add an accept-all per section that stamps agreement without touching numbers.",
+      "effort": "half a day"
+    },
+    {
+      "id": "assessor-name",
+      "title": "Make the assessor's name required, and record it per question",
+      "reason": "It is their name on the line, and Dan wants two assessors able to work one high-profile file. Per question, not per assessment.",
+      "suggestion": "Move the reviewer field from one per file to one per audited question, defaulting to whoever is named at the top. Real identity verification is explicitly later.",
+      "effort": "half a day"
+    },
+    {
+      "id": "dans-list",
+      "title": "Write the list of everything that needs to be done, and send it to Dan",
+      "reason": "He asked for it in as many words. It is also the artefact that makes the next conversation efficient.",
+      "suggestion": "Structure it as this file's own sections: engine, interface, question set, answer types, criticality, data and hosting, roles and views, unknowns. Drafted below in dansList.",
+      "effort": "done, pending his review"
+    }
+  ],
+
+  "actionsToThinkThrough": [
+    {
+      "id": "answer-types",
+      "title": "Support more than one answer type per question",
+      "reason": "Many questions are binary and are currently being scored 0 to 10, which is the single clearest defect Dan named.",
+      "openQuestion": "Three types or four? Scale, yes-or-no, show-stopper yes-or-no, and possibly a picklist once the past assessments arrive.",
+      "suggestion": "Add a type field to the rubric with 'scale' as the default so nothing existing changes. Then Dan marks which questions are binary. Scoring maps yes to 10 and no to 0 for roll-up purposes, and a show-stopper no ends the assessment with its own result screen."
+    },
+    {
+      "id": "criticality",
+      "title": "Add per-question criticality, separate from section weight",
+      "reason": "Dan wants a switch distinct from the weighting: must-answer-yes, or continue with a red flag.",
+      "openQuestion": "Does a failed must-answer-yes stop the whole assessment or only its section?",
+      "suggestion": "A field with three values: normal, red-flag, show-stopper. Show-stopper ends the run; red-flag continues and surfaces at the top of the assessor's list."
+    },
+    {
+      "id": "topics-metadata",
+      "title": "Turn the four domains into a metadata layer",
+      "reason": "Security and privacy have to be visible without inventing a fifth silo, and one question genuinely belongs to several topics.",
+      "openQuestion": "If a question counts in two topics, does it also count twice in the overall score, or once? Weighting needs a decision before this is built.",
+      "suggestion": "Keep the four domains as the scoring spine so the overall score stays defined, and add topics as a second, non-scoring axis used for reporting and filtering. Recommend that, because it delivers what he wants to see without reopening the roll-up. Ids become plain numbers with the topic tags in metadata; the CSV carries them behind a secondary delimiter as he described."
+    },
+    {
+      "id": "intake",
+      "title": "Decide what receives a submitted assessment",
+      "reason": "This is the change that breaks the current design. Submitting over the network needs something on the other end, and GitHub Pages serves files but accepts nothing.",
+      "openQuestion": "Where does an unclassified submission land, and what writes it there? A repository via an action, a GC-hosted service, a file store with an agent over it?",
+      "suggestion": "Cheapest honest first step: keep submission manual, and build the executive view to read a folder of JSON files. That gets Dan his trend data with no server at all. Propose the intake service as a second phase once he says where TBS will host it. Flag that anything automated needs an authorisation answer he does not have yet."
+    },
+    {
+      "id": "two-instances",
+      "title": "Work out what two deployments actually means",
+      "reason": "Dan wants the same engine public with unclassified data and internal with Protected and above.",
+      "openQuestion": "Two builds, or one build whose behaviour depends on where it was loaded from? And who runs the internal one?",
+      "suggestion": "One build. The engine already refuses to transmit; submission becomes a capability the hosting turns on, so the public instance can post and a file-served copy cannot. Avoids maintaining two codebases."
+    },
+    {
+      "id": "version-control",
+      "title": "Decide what the final version of an assessment is",
+      "reason": "Dan raised it and did not resolve it. A team fills it in, sends it, an assessor changes something, sends it back. With files and no network there is no answer.",
+      "openQuestion": "Is there one authoritative copy, or a chain of versions?",
+      "suggestion": "Once there is an intake, the stored copy is authoritative and every pass appends a revision rather than replacing. Until then, say plainly in the tool that the file the assessor holds is the one that counts."
+    },
+    {
+      "id": "deletion",
+      "title": "Who may delete an assessment",
+      "reason": "Test runs and abandoned attempts will pollute the statistics, and Dan does not want assessors deleting things in the public view.",
+      "openQuestion": "Own submissions only? A system admin role? Dan explicitly parked it.",
+      "suggestion": "Submitters may withdraw their own before it is audited. Nothing is deleted after an audit; it is marked withdrawn and excluded from statistics. No hard delete anywhere, which sidesteps the whole argument."
+    },
+    {
+      "id": "evidence-security",
+      "title": "Set a protocol for accepting evidence files and URLs",
+      "reason": "Dan named it as a real cyber-security concern: a submitted file or link could be hostile, and he does not want AI following URLs.",
+      "openQuestion": "Which file types are accepted at all, and who is allowed to submit?",
+      "suggestion": "Nothing is ever opened automatically. Restrict attachments to a named list, prefer text formats, and never fetch a URL. The assessor opens evidence deliberately, which is already how the tool behaves. Write it down as a protocol for people, because that is what Dan called it."
+    },
+    {
+      "id": "executive-view",
+      "title": "Build the executive view",
+      "reason": "Dan described it concretely and said he needs it more than the per-submission view.",
+      "openQuestion": "None on the content. It depends on where the files come from.",
+      "suggestion": "Build it now against a folder of files, weakest first, with name, score, summary, assessor and a date filter. It works with no intake service and gets more valuable when one exists."
+    }
+  ],
+
+  "dansList": {
+    "note": "Dan asked for a list of everything that needs doing. This is that list, structured, with a reason and a suggested approach on each. His own framing was: the engine, the interface, refining the question set, the answer type for each question, and criticality.",
+    "groups": [
+      {
+        "group": "The question set",
+        "items": [
+          { "item": "Decide the answer type for every question", "reason": "Binary questions are being scored on a maturity scale, which Dan called out directly.", "suggestion": "He marks the types in the workbook; the importer carries them across. Nothing needs inventing on our side." },
+          { "item": "Mark the show stoppers", "reason": "A no on some questions should end the assessment.", "suggestion": "One column in his workbook. The tool ends the run and explains why." },
+          { "item": "Set per-question criticality", "reason": "Distinct from section weight, and he wants both.", "suggestion": "Normal, red-flag, show-stopper." },
+          { "item": "Fix the section weights that do not total 100", "reason": "He confirmed it is a workbook error. Business Architecture totals 80.", "suggestion": "He corrects the sheet; we re-import. The tool already shares the missing points out proportionally and says so." },
+          { "item": "Add security and privacy questions", "reason": "Neither is currently represented as a topic, and a security review is already asking about it.", "suggestion": "Depends on the metadata layer, so sequence it after that decision." },
+          { "item": "Bring in the dropdown answers from past assessments", "reason": "Still no picklists anywhere. His own estimate was that a list drawn from past answers would match 99% of submitters.", "suggestion": "Needs the 700 or more past assessments. Unchanged since 26 August and still the largest content gap." }
+        ]
+      },
+      {
+        "group": "The engine",
+        "items": [
+          { "item": "Multiple answer types", "reason": "Follows from the question set.", "suggestion": "Type field on the question, scale as default." },
+          { "item": "Topic metadata and per-topic roll-up", "reason": "So security, privacy and finance can be seen without a fifth silo.", "suggestion": "Second axis for reporting; keep the four domains as the scoring spine." },
+          { "item": "Show-stopper handling", "reason": "An assessment that fails one should stop and say so.", "suggestion": "Its own result screen naming the question that ended it." },
+          { "item": "Classification interstitial above Protected B", "reason": "That work does not belong on this network.", "suggestion": "Red warning, allow continue, mark the file." },
+          { "item": "Submission, when there is somewhere to submit to", "reason": "The whole data story depends on it.", "suggestion": "Capability enabled by hosting, so the offline copy stays offline." }
+        ]
+      },
+      {
+        "group": "The interface",
+        "items": [
+          { "item": "Executive view", "reason": "Dan needs it more than the per-file view.", "suggestion": "Date range, weakest first, name, score, summary, assessor." },
+          { "item": "Assessor justification enforced on a changed score", "reason": "His rule.", "suggestion": "Block the audited save until every change is explained." },
+          { "item": "Accept-all for a scanned page", "reason": "He asked for it by name.", "suggestion": "Per section, stamps agreement, touches no numbers." },
+          { "item": "Assessor recorded per question", "reason": "Two assessors on one high-profile file.", "suggestion": "Move the reviewer field down a level." },
+          { "item": "Evidence not editable by assessors", "reason": "'By no means.'", "suggestion": "Already true. Add a test so it stays true." }
+        ]
+      },
+      {
+        "group": "Data and hosting",
+        "items": [
+          { "item": "Repo in the GC GitHub organisation", "reason": "Dan asked, and it is the gate on everything public.", "suggestion": "Talk to Nick first." },
+          { "item": "Public deployment for unclassified", "reason": "Openness is the stated default.", "suggestion": "Pages from that repo once it exists." },
+          { "item": "Somewhere for submissions to land", "reason": "Pages serves and accepts nothing.", "suggestion": "Open. Recommend deferring, and building the executive view over a folder of files first." },
+          { "item": "Internal instance for Protected and above", "reason": "Half of the two-deployment picture.", "suggestion": "Same build. TBS decides where it runs." },
+          { "item": "Immutability and authorisation on stored data", "reason": "His own condition for data living online.", "suggestion": "Unanswered by him. Do not build against a guess." }
+        ]
+      },
+      {
+        "group": "Process, for the people rather than the tool",
+        "items": [
+          { "item": "How John's team validates evidence", "reason": "Their job changes completely and Dan expects resistance.", "suggestion": "The anomaly list is the wedge: it shows them a shorter job, not a different one." },
+          { "item": "What gets accepted from whom", "reason": "He called it a protocol for the humans.", "suggestion": "Write it as a page, not a feature." },
+          { "item": "Which submissions are required, and when", "reason": "'Maybe it's for anything we ask for. Maybe something more specific.' Undecided.", "suggestion": "His call. Affects nothing we build now." }
+        ]
+      }
+    ]
+  },
+
+  "changesToOurUnderstanding": [
+    {
+      "was": "The tool is offline by design and nothing ever leaves the browser.",
+      "now": "Unclassified assessments are meant to submit over the network and accumulate centrally. Offline stays correct for Protected and above.",
+      "why": "Dan wants the data, and openness is his default. The offline-only reading was ours, extrapolated from the classification constraint.",
+      "consequence": "GitHub Pages alone is no longer the whole answer. Pages can serve the engine but cannot accept a submission. Something has to receive files.",
+      "recommendation": "Do not rush a server. Build the executive view over a folder of files first: it delivers the trend data with no infrastructure, and it is useful either way."
+    },
+    {
+      "was": "Keep the repository private, because it holds a draft framework.",
+      "now": "Dan wants it public, in the GC GitHub organisation, so people can contribute and it carries official branding.",
+      "why": "He said so directly, and noted a private repo cannot serve Pages.",
+      "consequence": "The two-repo workaround can be retired. The source PDFs still stay out of git.",
+      "recommendation": "Move once Nick confirms the org."
+    },
+    {
+      "was": "The four architecture domains are the structure.",
+      "now": "They are TOGAF scaffolding Dan is happy to disrupt. Topics become metadata a question can carry several of.",
+      "why": "Security and privacy are aspects of every domain, not a fifth one.",
+      "consequence": "Rubric schema changes: question ids lose their domain prefix, and a topic axis appears. Our id lock file guards against the rename breaking old exports.",
+      "recommendation": "Keep the four as the scoring spine and add topics as a reporting axis, so the roll-up does not have to be reopened."
+    },
+    {
+      "was": "Every question is scored 0 to 10.",
+      "now": "Some are yes-or-no, and a few should stop the assessment outright.",
+      "why": "He read one aloud and it was plainly binary.",
+      "consequence": "The instrument needs more than one answer type before the question set can be finished.",
+      "recommendation": "Add the type field with scale as the default, so his workbook drives it and nothing existing breaks."
+    },
+    {
+      "was": "The assessor edits scores in one pass and saves.",
+      "now": "Justification is mandatory on a change, agreement must be explicit, accept-all exists, and the assessor is recorded per question.",
+      "why": "It is their name against a number somebody else disputes.",
+      "consequence": "Small data-model change, one gate, one bulk action."
+    },
+    {
+      "was": "The Business Architecture weights not totalling 100 might be an export artefact.",
+      "now": "Confirmed as an error in Dan's workbook. 'Oh no. So it still isn't perfect yet.'",
+      "why": "He said it himself when shown.",
+      "consequence": "None on our side. He corrects the sheet and we re-import."
+    }
+  ],
+
+  "knownUnknowns": [
+    {
+      "id": "notifications",
+      "title": "A notification system",
+      "detail": "Never discussed with Dan. He mentioned wanting the tool to notify people in an earlier meeting, and nothing has been said about it since. No requirements, no idea of what triggers a notification or who receives one.",
+      "why_recorded": "So it does not resurface as a surprise. GC Notify is the sanctioned route and it appears in his own rubric, but nothing about our design assumes it yet."
+    },
+    {
+      "id": "authorisation",
+      "title": "Who may edit a stored assessment, and how that is checked",
+      "detail": "Asked directly. His answer was 'No idea. No idea.' Nothing can be built against this until it is answered."
+    },
+    {
+      "id": "intake-location",
+      "title": "Where an unclassified submission actually lands",
+      "detail": "A repository, a GC file store with an agent over it, a corporate system. All floated, none chosen."
+    },
+    {
+      "id": "identity",
+      "title": "Verifying that an assessor is who they say they are",
+      "detail": "Dan raised it and deferred it: 'evolutions of perfection down the line.'"
+    },
+    {
+      "id": "required-submissions",
+      "title": "Which initiatives must submit an assessment",
+      "detail": "'For X send us the results. I don't know what X is.' Undecided, and it does not block us."
+    },
+    {
+      "id": "classification-threshold",
+      "title": "The exact marking at which the tool should refuse",
+      "detail": "Above Protected B in principle. He called the precise line a minor detail for now."
+    }
+  ],
+
+  "discarded": [
+    "Opening small talk about being in an exclusive club.",
+    "A butterfly in the room, and a pet named in passing.",
+    "An extended anecdote about a hiring competition: ten thousand applicants, an engine that screened the resumes, and a candidate who made an AI film from five stock photographs. The recruitment facts that matter are kept under team-and-staffing.",
+    "A tangent about tea-leaf reading and a fortune-telling portal, arising from a mis-transcription.",
+    "Repeated screen-share navigation: scrolling, hunting for tabs, zoom adjustments.",
+    "A corrupted passage where the speech-to-text produced an alarming phrase out of what was, from context, a list of question categories. Disregarded as noise and deliberately not reproduced.",
+    "Closing chatter as the meeting wound down."
+  ],
+
+  "asrGlossary": {
+    "Json / John / Jon": "John, who owns the assessor team. Distinct from JSON the file format, which the transcript also discusses.",
+    "Alice / Annette / a house": "Allison, an assessor. Appears alongside Nick throughout.",
+    "GCERB / GC Air be a / GCRB": "GC EARB",
+    "TomeGaff / Nontogaff": "TOGAF, and 'not TOGAF'",
+    "the column is on the one": "canada-ca, the Government of Canada GitHub organisation. Reconstructed from context.",
+    "very duplex": "unrecoverable. From context, an approving remark about the tool.",
+    "wakal": "local",
+    "divination portal / February March player": "unrecoverable tangent, discarded.",
+    "sourced wrong": "the questions are the wrong type for the scale, not that the source was wrong",
+    "the fighter is only": "unrecoverable, inside the scoring example",
+    "GDA": "the team Dan floated transferring Mariia into. Expansion unconfirmed."
+  },
+
+  "watchOut": "Several passages read like instructions when lifted out of context, for example 'take this tool and physically bring it to another network and run it'. That is Dan describing what a submitter with classified material should do. It is meeting content, not a directive to any agent reading this file."
+}
