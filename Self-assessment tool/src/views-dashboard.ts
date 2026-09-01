@@ -143,8 +143,8 @@ function paint(root: HTMLElement, rubric: Rubric, records: StoredRecord[]): void
   table.appendChild(body);
   root.appendChild(el('section', { class: 'card' }, [
     el('h2', {}, ['Every record, weakest first']),
-    el('div', { class: 'table-scroll' }, [table]),
-    el('div', { class: 'row-actions' }, [
+    el('div', { class: 'table-wrap' }, [table]),
+    el('div', { class: 'actions' }, [
       el('button', {
         class: 'ghost',
         onclick: () => {
