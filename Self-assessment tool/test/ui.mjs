@@ -615,6 +615,10 @@ ok('and one click opens the detail', q('.save-state').tagName === 'BUTTON');
   ok('and takes their tab stop away',
      disabled.every((b) => b.getAttribute('tabindex') === '-1'));
   ok('the checkbox itself stays reachable', !naInput.disabled);
+  // The scale explains a score, and there is no score here, so it goes away.
+  ok('the question is marked not applicable, which hides the scale',
+     qa('.question')[0].classList.contains('na')
+     && /\.question\.na \.ladder-box \{[^}]*display:\s*none/.test(html));
 
   naInput.checked = false;
   fire(naInput, 'change');
@@ -686,14 +690,14 @@ ok('and offers the email route', !!byText('.ev-alt button', 'cannot be linked'))
     .querySelector('.ev-row2 input[type=text]');
   ok('which fills in a findable subject line',
      loc.value.startsWith('Emailed to the assessor. Subject: EARB self-assessment evidence for')
-       && loc.value.includes('question TE-Q1'),
+       && loc.value.includes('question T-Q1'),
      loc.value);
   {
     // And the line is there to copy, so nobody retypes it and loses the question number.
     const row = qa('.question').find((n) => n.textContent.includes('hosting environment'))
       .querySelector('.ev-subject');
     ok('the subject line is offered with a copy button',
-       !!row && row.textContent.includes('question TE-Q1') && !!byText('.ev-subject button', 'Copy'));
+       !!row && row.textContent.includes('question T-Q1') && !!byText('.ev-subject button', 'Copy'));
     byText('.ev-subject button', 'Copy').click();
     ok('and the button confirms it copied', byText('.ev-subject button', 'Copied')
        || row.textContent.includes('Copied'));
@@ -898,11 +902,64 @@ ok('the real route is shown but not wired',
 }
 ok('reviewer dropzone rendered', view().includes('Load submissions'));
 {
-  // ...and the assessor does get it.
+  // ...and the assessor gets a library of them.
   q('.icon-btn[aria-label="Settings"]').click();
-  ok('the assessor is offered the question-set loader', !!byText('.filelabel', 'Load a question set'));
-  ok('with the warning that it clears the answers',
-     !!q('.set-row.caution') && view().includes('Clears your answers'));
+  ok('the assessor can add a question set', !!byText('.filelabel', 'Add a question set'));
+  ok('the sets in this browser are listed, built-in included',
+     qa('.set-list-row').length >= 1 && view().includes('Built in'),
+     String(qa('.set-list-row').length));
+  ok('the one in use is marked', !!q('.set-list-row.on') && view().includes('In use'));
+  ok('and adding one is said to keep the others', view().includes('keeps the old ones'));
+  {
+    // Two-step deletion everywhere, and the built-in set cannot be deleted at all.
+    const del = byText('.set-list-row.on .set-list-act button', 'Delete');
+    ok('the built-in set has no delete', del.disabled === true);
+    ok('and says why', del.getAttribute('title').includes('built into the page'),
+       del.getAttribute('title'));
+  }
+  // Add a second set, keep the first, then delete the new one. Two steps, both times.
+  {
+    const before = qa('.set-list-row').length;
+    const second = JSON.parse(JSON.stringify(rubric));
+    second.version = '9.9-test';
+    second.title = 'A second question set';
+    const add = q('.filelabel input[type=file]');
+    Object.defineProperty(add, 'files', {
+      value: [{ name: 'second.json', text: async () => JSON.stringify(second) }],
+      configurable: true,
+    });
+    fire(add, 'change');
+    await new Promise((r) => setTimeout(r, 80));
+
+    ok('an added set joins the library and the old one stays',
+       qa('.set-list-row').length === before + 1, String(qa('.set-list-row').length));
+    ok('and the added set becomes the one in use',
+       q('.set-list-row.on').textContent.includes('A second question set'),
+       q('.set-list-row.on')?.textContent?.slice(0, 60));
+    ok('the set in use cannot be deleted while it is in use',
+       byText('.set-list-row.on .set-list-act button', 'Delete').disabled === true);
+
+    // Switch back to the built-in one, which frees the added set for deletion.
+    const other = qa('.set-list-row').find((r) => !r.classList.contains('on'));
+    byText('.set-list-row .set-list-act button', 'Use this one') && other
+      .querySelector('button').click();
+    await new Promise((r) => setTimeout(r, 40));
+
+    const del = qa('.set-list-row').map((r) => r.querySelector('.danger-text'))
+      .find((b) => b && !b.disabled);
+    ok('a set that is not in use can be deleted', !!del);
+    window.confirm = () => false;
+    del.click();
+    ok('and saying no keeps it', qa('.set-list-row').length === before + 1,
+       String(qa('.set-list-row').length));
+    window.confirm = () => true;
+    qa('.set-list-row').map((r) => r.querySelector('.danger-text'))
+      .find((b) => b && !b.disabled).click();
+    await new Promise((r) => setTimeout(r, 40));
+    ok('saying yes removes it, and the built-in set is still there',
+       qa('.set-list-row').length === before && view().includes('Built in'),
+       String(qa('.set-list-row').length));
+  }
   byText('.tab', 'Submissions').click();
 }
 
@@ -1033,8 +1090,9 @@ ok('audited file keeps the self-score alongside the audited one',
      String(qa('table.detail tbody tr').length));
   ok('nothing about the roll-up is stored, so it cannot go stale',
      !view().includes('last calculated'));
-  ok('the admin-only actions are listed and marked unbuilt',
-     view().includes('Admin actions') && view().includes('Not built'));
+  ok('the admin-only actions are listed, with what is built marked',
+     view().includes('Admin actions') && view().includes('Mostly not built')
+     && view().includes('Question sets'));
 }
 
 console.log(fails === 0 ? '\nall UI checks passed' : `\n${fails} FAILED`);

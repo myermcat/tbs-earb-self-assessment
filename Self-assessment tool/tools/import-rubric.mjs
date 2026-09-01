@@ -158,7 +158,7 @@ for (const d of DOMAINS) {
 
     if (/^Q\d+$/.test(qNum) && qText && current) {
       current.questions.push({
-        id: `${d.id.slice(0, 2).toUpperCase()}-${qNum}`,
+        id: `${d.id.slice(0, 1).toUpperCase()}-${qNum}`,
         sheetRef: qNum,
         text: qText,
         weight: 1,

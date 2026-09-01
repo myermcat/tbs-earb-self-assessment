@@ -688,7 +688,7 @@ var rubric_v1_dan_default = {
           weight: 5,
           questions: [
             {
-              id: "BU-Q1",
+              id: "B-Q1",
               sheetRef: "Q1",
               text: "How thoroughly has the current state of this solution been documented, including all processes, data flows, and system dependencies?",
               weight: 1,
@@ -698,7 +698,7 @@ var rubric_v1_dan_default = {
               ]
             },
             {
-              id: "BU-Q2",
+              id: "B-Q2",
               sheetRef: "Q2",
               text: "What entities (data objects, records, clients, files) are currently produced, managed, or maintained by this solution?",
               weight: 1,
@@ -708,7 +708,7 @@ var rubric_v1_dan_default = {
               ]
             },
             {
-              id: "BU-Q3",
+              id: "B-Q3",
               sheetRef: "Q3",
               text: "Have all roles and responsibilities across stakeholders, operators, and service consumers been identified, documented, and formally accepted?",
               weight: 1,
@@ -718,7 +718,7 @@ var rubric_v1_dan_default = {
               ]
             },
             {
-              id: "BU-Q4",
+              id: "B-Q4",
               sheetRef: "Q4",
               text: "How well understood is the criticality of this solution to Government of Canada program delivery and citizen outcomes?",
               weight: 1,
@@ -728,7 +728,7 @@ var rubric_v1_dan_default = {
               ]
             },
             {
-              id: "BU-Q5",
+              id: "B-Q5",
               sheetRef: "Q5",
               text: "Are all sub-components of the current solution assessed for their individual criticality, availability, and risk exposure?",
               weight: 1,
@@ -738,7 +738,7 @@ var rubric_v1_dan_default = {
               ]
             },
             {
-              id: "BU-Q6",
+              id: "B-Q6",
               sheetRef: "Q6",
               text: "What is the current level of utilization and demand for the solution (transaction volumes, active users, peak load)?",
               weight: 1,
@@ -748,7 +748,7 @@ var rubric_v1_dan_default = {
               ]
             },
             {
-              id: "BU-Q7",
+              id: "B-Q7",
               sheetRef: "Q7",
               text: "What is the known availability, uptime, and service continuity record of the current solution?",
               weight: 1,
@@ -758,7 +758,7 @@ var rubric_v1_dan_default = {
               ]
             },
             {
-              id: "BU-Q8",
+              id: "B-Q8",
               sheetRef: "Q8",
               text: "How well understood are the total lifecycle costs \u2014 including build, operate, maintain, and decommission \u2014 of the current solution?",
               weight: 1,
@@ -768,7 +768,7 @@ var rubric_v1_dan_default = {
               ]
             },
             {
-              id: "BU-Q9",
+              id: "B-Q9",
               sheetRef: "Q9",
               text: "What are the current unit economics (cost per transaction, cost per entity managed) and how are they tracked?",
               weight: 1,
@@ -778,7 +778,7 @@ var rubric_v1_dan_default = {
               ]
             },
             {
-              id: "BU-Q10",
+              id: "B-Q10",
               sheetRef: "Q10",
               text: "How mature and current are the performance indicators for this solution, and what trends do they reflect?",
               weight: 1,
@@ -788,7 +788,7 @@ var rubric_v1_dan_default = {
               ]
             },
             {
-              id: "BU-Q11",
+              id: "B-Q11",
               sheetRef: "Q11",
               text: "Is the lifespan and full lifecycle of the solution mapped out, and is the current position within that lifecycle known?",
               weight: 1,
@@ -798,7 +798,7 @@ var rubric_v1_dan_default = {
               ]
             },
             {
-              id: "BU-Q12",
+              id: "B-Q12",
               sheetRef: "Q12",
               text: "What major events (technology refresh, contract renewal, legislative changes) are on the horizon for this solution?",
               weight: 1,
@@ -808,7 +808,7 @@ var rubric_v1_dan_default = {
               ]
             },
             {
-              id: "BU-Q13",
+              id: "B-Q13",
               sheetRef: "Q13",
               text: "How well understood are the specific skills, staffing levels, and capacity requirements to operate and evolve this solution?",
               weight: 1,
@@ -818,7 +818,7 @@ var rubric_v1_dan_default = {
               ]
             },
             {
-              id: "BU-Q14",
+              id: "B-Q14",
               sheetRef: "Q14",
               text: "How are universal requirements \u2014 accessibility, official languages, inclusion, and privacy \u2014 currently addressed in the solution?",
               weight: 1,
@@ -841,7 +841,7 @@ var rubric_v1_dan_default = {
           weight: 25,
           questions: [
             {
-              id: "BU-Q15",
+              id: "B-Q15",
               sheetRef: "Q15",
               text: "How clearly and completely has the core business problem been defined and agreed upon by all stakeholders?",
               weight: 1,
@@ -851,7 +851,7 @@ var rubric_v1_dan_default = {
               ]
             },
             {
-              id: "BU-Q16",
+              id: "B-Q16",
               sheetRef: "Q16",
               text: "Is there a documented business case that articulates the expected value, outcomes, and measurable benefits of the proposed solution?",
               weight: 1,
@@ -861,7 +861,7 @@ var rubric_v1_dan_default = {
               ]
             },
             {
-              id: "BU-Q17",
+              id: "B-Q17",
               sheetRef: "Q17",
               text: "How well do the proposed solution capabilities map to the GC Business Capability Model and existing enterprise services?",
               weight: 1,
@@ -871,7 +871,7 @@ var rubric_v1_dan_default = {
               ]
             },
             {
-              id: "BU-Q18",
+              id: "B-Q18",
               sheetRef: "Q18",
               text: "Have value streams been fully mapped, showing how business capabilities deliver outcomes to clients and citizens?",
               weight: 1,
@@ -881,7 +881,7 @@ var rubric_v1_dan_default = {
               ]
             },
             {
-              id: "BU-Q19",
+              id: "B-Q19",
               sheetRef: "Q19",
               text: "Is the solution design driven by defined user personas, journeys, and evidence-based user research?",
               weight: 1,
@@ -891,7 +891,7 @@ var rubric_v1_dan_default = {
               ]
             },
             {
-              id: "BU-Q20",
+              id: "B-Q20",
               sheetRef: "Q20",
               text: "How clearly are the target service levels, response times, and quality benchmarks defined for the proposed solution?",
               weight: 1,
@@ -901,7 +901,7 @@ var rubric_v1_dan_default = {
               ]
             },
             {
-              id: "BU-Q21",
+              id: "B-Q21",
               sheetRef: "Q21",
               text: "Has the solution's criticality to GC program delivery been assessed, and does the architecture reflect that criticality?",
               weight: 1,
@@ -911,7 +911,7 @@ var rubric_v1_dan_default = {
               ]
             },
             {
-              id: "BU-Q22",
+              id: "B-Q22",
               sheetRef: "Q22",
               text: "Is there a funding model and sourcing strategy that is sustainable across the full lifecycle of the solution?",
               weight: 1,
@@ -921,7 +921,7 @@ var rubric_v1_dan_default = {
               ]
             },
             {
-              id: "BU-Q23",
+              id: "B-Q23",
               sheetRef: "Q23",
               text: "How well is the talent strategy defined, including required skills, existing capacity, training pipeline, and long-term retention?",
               weight: 1,
@@ -931,7 +931,7 @@ var rubric_v1_dan_default = {
               ]
             },
             {
-              id: "BU-Q24",
+              id: "B-Q24",
               sheetRef: "Q24",
               text: "Is a demand forecast available, and does the solution design account for projected growth and usage variability?",
               weight: 1,
@@ -941,7 +941,7 @@ var rubric_v1_dan_default = {
               ]
             },
             {
-              id: "BU-Q25",
+              id: "B-Q25",
               sheetRef: "Q25",
               text: "How well is the solution integrated within the broader GC enterprise ecosystem and aligned with whole-of-government priorities?",
               weight: 1,
@@ -951,7 +951,7 @@ var rubric_v1_dan_default = {
               ]
             },
             {
-              id: "BU-Q26",
+              id: "B-Q26",
               sheetRef: "Q26",
               text: "Is the solution designed to maximize reuse of existing GC shared services and platforms before building new capabilities?",
               weight: 1,
@@ -961,7 +961,7 @@ var rubric_v1_dan_default = {
               ]
             },
             {
-              id: "BU-Q27",
+              id: "B-Q27",
               sheetRef: "Q27",
               text: "How transparent is the solution design \u2014 is it documented, accessible, and understandable to those who rely on it?",
               weight: 1,
@@ -979,7 +979,7 @@ var rubric_v1_dan_default = {
           weight: 10,
           questions: [
             {
-              id: "BU-Q28",
+              id: "B-Q28",
               sheetRef: "Q28",
               text: "Have user personas, stories, and journeys been mapped and validated through direct engagement with actual users and stakeholders?",
               weight: 1,
@@ -989,7 +989,7 @@ var rubric_v1_dan_default = {
               ]
             },
             {
-              id: "BU-Q29",
+              id: "B-Q29",
               sheetRef: "Q29",
               text: "Are there formal, repeatable mechanisms to capture client, user, and stakeholder needs on a continuous basis?",
               weight: 1,
@@ -999,7 +999,7 @@ var rubric_v1_dan_default = {
               ]
             },
             {
-              id: "BU-Q30",
+              id: "B-Q30",
               sheetRef: "Q30",
               text: "How mature are feedback loops between the delivery team and end users, including Communities of Practice and regular reviews?",
               weight: 1,
@@ -1009,7 +1009,7 @@ var rubric_v1_dan_default = {
               ]
             },
             {
-              id: "BU-Q31",
+              id: "B-Q31",
               sheetRef: "Q31",
               text: "Are all roles, accountabilities, and decision rights across the solution ecosystem clearly documented in a RACI or equivalent model?",
               weight: 1,
@@ -1019,7 +1019,7 @@ var rubric_v1_dan_default = {
               ]
             },
             {
-              id: "BU-Q32",
+              id: "B-Q32",
               sheetRef: "Q32",
               text: "Is solution documentation, interactive guidance, and self-service assistance available and actively maintained for all user types?",
               weight: 1,
@@ -1029,7 +1029,7 @@ var rubric_v1_dan_default = {
               ]
             },
             {
-              id: "BU-Q33",
+              id: "B-Q33",
               sheetRef: "Q33",
               text: "How transparent is the operational status of the solution, including an offering roadmap and historical event schedule?",
               weight: 1,
@@ -1039,7 +1039,7 @@ var rubric_v1_dan_default = {
               ]
             },
             {
-              id: "BU-Q34",
+              id: "B-Q34",
               sheetRef: "Q34",
               text: "Are performance metrics (NPS, CSAT, CES, usage rates, drop-off rates) defined, measured, and reported back to stakeholders?",
               weight: 1,
@@ -1049,7 +1049,7 @@ var rubric_v1_dan_default = {
               ]
             },
             {
-              id: "BU-Q35",
+              id: "B-Q35",
               sheetRef: "Q35",
               text: "Does the solution support multi-channel delivery patterns (web, chat, phone, in-person) that reflect real user demand?",
               weight: 1,
@@ -1059,7 +1059,7 @@ var rubric_v1_dan_default = {
               ]
             },
             {
-              id: "BU-Q36",
+              id: "B-Q36",
               sheetRef: "Q36",
               text: "How mature are personalization, predictive analytics, or AI-assisted capabilities within the solution offering?",
               weight: 1,
@@ -1077,7 +1077,7 @@ var rubric_v1_dan_default = {
           weight: 10,
           questions: [
             {
-              id: "BU-Q37",
+              id: "B-Q37",
               sheetRef: "Q37",
               text: "Are Service Level Objectives (SLOs) and Service Level Agreements (SLAs) formally defined, monitored, and reported?",
               weight: 1,
@@ -1087,7 +1087,7 @@ var rubric_v1_dan_default = {
               ]
             },
             {
-              id: "BU-Q38",
+              id: "B-Q38",
               sheetRef: "Q38",
               text: "Is there end-to-end instrumentation of delivery processes, enabling real-time performance monitoring and visualization?",
               weight: 1,
@@ -1097,7 +1097,7 @@ var rubric_v1_dan_default = {
               ]
             },
             {
-              id: "BU-Q39",
+              id: "B-Q39",
               sheetRef: "Q39",
               text: "How well are costs, prices, and unit economics tracked and published, enabling informed investment decisions?",
               weight: 1,
@@ -1107,7 +1107,7 @@ var rubric_v1_dan_default = {
               ]
             },
             {
-              id: "BU-Q40",
+              id: "B-Q40",
               sheetRef: "Q40",
               text: "Are client satisfaction scores (CSAT, NPS, or equivalent) captured systematically and acted upon?",
               weight: 1,
@@ -1117,7 +1117,7 @@ var rubric_v1_dan_default = {
               ]
             },
             {
-              id: "BU-Q41",
+              id: "B-Q41",
               sheetRef: "Q41",
               text: "How are quality and error rates measured, tracked, and used to drive continuous improvement?",
               weight: 1,
@@ -1127,7 +1127,7 @@ var rubric_v1_dan_default = {
               ]
             },
             {
-              id: "BU-Q42",
+              id: "B-Q42",
               sheetRef: "Q42",
               text: "Are response times, total transaction times, and execution time variance measured and within defined thresholds?",
               weight: 1,
@@ -1137,7 +1137,7 @@ var rubric_v1_dan_default = {
               ]
             },
             {
-              id: "BU-Q43",
+              id: "B-Q43",
               sheetRef: "Q43",
               text: "Is trend analysis performed regularly on key metrics to anticipate performance changes and drive proactive action?",
               weight: 1,
@@ -1147,7 +1147,7 @@ var rubric_v1_dan_default = {
               ]
             },
             {
-              id: "BU-Q44",
+              id: "B-Q44",
               sheetRef: "Q44",
               text: "Are periodic evaluations of continuing business need performed to assess whether the solution still justifies its cost?",
               weight: 1,
@@ -1165,7 +1165,7 @@ var rubric_v1_dan_default = {
           weight: 10,
           questions: [
             {
-              id: "BU-Q45",
+              id: "B-Q45",
               sheetRef: "Q45",
               text: "How well-defined is the delivery pipeline, including deployment cadence, automation, rollback procedures, and success rates?",
               weight: 1,
@@ -1175,7 +1175,7 @@ var rubric_v1_dan_default = {
               ]
             },
             {
-              id: "BU-Q46",
+              id: "B-Q46",
               sheetRef: "Q46",
               text: "Are skills requirements, staffing levels, and a training and improvement pipeline in place to sustain operations?",
               weight: 1,
@@ -1185,7 +1185,7 @@ var rubric_v1_dan_default = {
               ]
             },
             {
-              id: "BU-Q47",
+              id: "B-Q47",
               sheetRef: "Q47",
               text: "Is there an established and confirmed funding strategy, including lifecycle funding beyond the initial build phase?",
               weight: 1,
@@ -1195,7 +1195,7 @@ var rubric_v1_dan_default = {
               ]
             },
             {
-              id: "BU-Q48",
+              id: "B-Q48",
               sheetRef: "Q48",
               text: "How mature and tested is the incident management, business continuity, and disaster recovery planning for this solution?",
               weight: 1,
@@ -1205,7 +1205,7 @@ var rubric_v1_dan_default = {
               ]
             },
             {
-              id: "BU-Q49",
+              id: "B-Q49",
               sheetRef: "Q49",
               text: "Is the infrastructure and technology acquisition strategy defined, including procurement pathways and lead times?",
               weight: 1,
@@ -1215,7 +1215,7 @@ var rubric_v1_dan_default = {
               ]
             },
             {
-              id: "BU-Q50",
+              id: "B-Q50",
               sheetRef: "Q50",
               text: "Has a formal threat and risk assessment (including sovereignty and security classification) been completed and reviewed?",
               weight: 1,
@@ -1226,7 +1226,7 @@ var rubric_v1_dan_default = {
               ]
             },
             {
-              id: "BU-Q51",
+              id: "B-Q51",
               sheetRef: "Q51",
               text: "How deep and well-prioritized is the feature and requirements backlog, and does it reflect validated stakeholder needs?",
               weight: 1,
@@ -1236,7 +1236,7 @@ var rubric_v1_dan_default = {
               ]
             },
             {
-              id: "BU-Q52",
+              id: "B-Q52",
               sheetRef: "Q52",
               text: "Are there operational runbooks, monitoring dashboards, and on-call processes in place to support production operations?",
               weight: 1,
@@ -1254,7 +1254,7 @@ var rubric_v1_dan_default = {
           weight: 20,
           questions: [
             {
-              id: "BU-Q53",
+              id: "B-Q53",
               sheetRef: "Q53",
               text: "Is there a clearly defined governance model with accountable decision-makers for the solution's direction and performance?",
               weight: 1,
@@ -1264,7 +1264,7 @@ var rubric_v1_dan_default = {
               ]
             },
             {
-              id: "BU-Q54",
+              id: "B-Q54",
               sheetRef: "Q54",
               text: "How well does the solution align with the GC Digital Operations Strategic Plan and departmental enterprise strategy?",
               weight: 1,
@@ -1274,7 +1274,7 @@ var rubric_v1_dan_default = {
               ]
             },
             {
-              id: "BU-Q55",
+              id: "B-Q55",
               sheetRef: "Q55",
               text: "Is there a published roadmap with near, medium, and long-term milestones that is communicated to stakeholders?",
               weight: 1,
@@ -1284,7 +1284,7 @@ var rubric_v1_dan_default = {
               ]
             },
             {
-              id: "BU-Q56",
+              id: "B-Q56",
               sheetRef: "Q56",
               text: "How mature is the change management process, including impact assessment, approval workflows, and communication plans?",
               weight: 1,
@@ -1294,7 +1294,7 @@ var rubric_v1_dan_default = {
               ]
             },
             {
-              id: "BU-Q57",
+              id: "B-Q57",
               sheetRef: "Q57",
               text: "Are compliance requirements (legal, regulatory, policy, accessibility, bilingualism) formally tracked and verified?",
               weight: 1,
@@ -1304,7 +1304,7 @@ var rubric_v1_dan_default = {
               ]
             },
             {
-              id: "BU-Q58",
+              id: "B-Q58",
               sheetRef: "Q58",
               text: "Is there a formal risk register maintained for the solution, with assigned owners and documented mitigation strategies?",
               weight: 1,
@@ -1314,7 +1314,7 @@ var rubric_v1_dan_default = {
               ]
             },
             {
-              id: "BU-Q59",
+              id: "B-Q59",
               sheetRef: "Q59",
               text: "How well is vendor and third-party relationship governance defined, including performance monitoring and exit strategies?",
               weight: 1,
@@ -1324,7 +1324,7 @@ var rubric_v1_dan_default = {
               ]
             },
             {
-              id: "BU-Q60",
+              id: "B-Q60",
               sheetRef: "Q60",
               text: "Is there a documented and approved data governance model aligned with the solution's information and privacy requirements?",
               weight: 1,
@@ -1335,7 +1335,7 @@ var rubric_v1_dan_default = {
               ]
             },
             {
-              id: "BU-Q61",
+              id: "B-Q61",
               sheetRef: "Q61",
               text: "How well does the solution contribute to GC-wide shared service consolidation and enterprise architecture objectives?",
               weight: 1,
@@ -1361,7 +1361,7 @@ var rubric_v1_dan_default = {
           weight: 10,
           questions: [
             {
-              id: "DA-Q1",
+              id: "D-Q1",
               sheetRef: "Q1",
               text: "How well documented are current data models, entity relationships, and data-sharing agreements?",
               weight: 1,
@@ -1371,7 +1371,7 @@ var rubric_v1_dan_default = {
               ]
             },
             {
-              id: "DA-Q2",
+              id: "D-Q2",
               sheetRef: "Q2",
               text: "What is the degree of data fragmentation, duplication, and inconsistency across the current solution and its dependencies?",
               weight: 1,
@@ -1381,7 +1381,7 @@ var rubric_v1_dan_default = {
               ]
             },
             {
-              id: "DA-Q3",
+              id: "D-Q3",
               sheetRef: "Q3",
               text: "How well understood are data volumes, growth rates, residency requirements, and encryption posture?",
               weight: 1,
@@ -1392,7 +1392,7 @@ var rubric_v1_dan_default = {
               ]
             },
             {
-              id: "DA-Q4",
+              id: "D-Q4",
               sheetRef: "Q4",
               text: "Is the lifespan and full data lifecycle \u2014 from creation to disposition \u2014 mapped and governed?",
               weight: 1,
@@ -1402,7 +1402,7 @@ var rubric_v1_dan_default = {
               ]
             },
             {
-              id: "DA-Q5",
+              id: "D-Q5",
               sheetRef: "Q5",
               text: "Are data formats proprietary or based on open, interoperable standards?",
               weight: 1,
@@ -1412,7 +1412,7 @@ var rubric_v1_dan_default = {
               ]
             },
             {
-              id: "DA-Q6",
+              id: "D-Q6",
               sheetRef: "Q6",
               text: "How open and transparent is data publication, and is a default-open approach applied where appropriate?",
               weight: 1,
@@ -1422,7 +1422,7 @@ var rubric_v1_dan_default = {
               ]
             },
             {
-              id: "DA-Q7",
+              id: "D-Q7",
               sheetRef: "Q7",
               text: "Are analytics and trend analysis capabilities available to support decision-making from current data assets?",
               weight: 1,
@@ -1432,7 +1432,7 @@ var rubric_v1_dan_default = {
               ]
             },
             {
-              id: "DA-Q8",
+              id: "D-Q8",
               sheetRef: "Q8",
               text: "How mature are data access controls, auditing mechanisms, and the ability to trace who accessed what and when?",
               weight: 1,
@@ -1443,7 +1443,7 @@ var rubric_v1_dan_default = {
               ]
             },
             {
-              id: "DA-Q9",
+              id: "D-Q9",
               sheetRef: "Q9",
               text: "How interoperable is the current data environment with other GC systems, programs, and platforms?",
               weight: 1,
@@ -1465,7 +1465,7 @@ var rubric_v1_dan_default = {
           weight: 40,
           questions: [
             {
-              id: "DA-Q10",
+              id: "D-Q10",
               sheetRef: "Q10",
               text: "Is there a formal, documented data model that reflects all key entities, relationships, attributes, and business rules?",
               weight: 1,
@@ -1475,7 +1475,7 @@ var rubric_v1_dan_default = {
               ]
             },
             {
-              id: "DA-Q11",
+              id: "D-Q11",
               sheetRef: "Q11",
               text: "How mature is master data management \u2014 are authoritative data sources identified, maintained, and trusted?",
               weight: 1,
@@ -1485,7 +1485,7 @@ var rubric_v1_dan_default = {
               ]
             },
             {
-              id: "DA-Q12",
+              id: "D-Q12",
               sheetRef: "Q12",
               text: "Is data lifecycle governance established, covering creation, versioning, archiving, and secure disposition?",
               weight: 1,
@@ -1496,7 +1496,7 @@ var rubric_v1_dan_default = {
               ]
             },
             {
-              id: "DA-Q13",
+              id: "D-Q13",
               sheetRef: "Q13",
               text: "Are international and GC data standards applied (e.g., ISO, DCAT, NIEM, GC Open Data Directive)?",
               weight: 1,
@@ -1506,7 +1506,7 @@ var rubric_v1_dan_default = {
               ]
             },
             {
-              id: "DA-Q14",
+              id: "D-Q14",
               sheetRef: "Q14",
               text: "How well defined is data lineage \u2014 can the origin, transformation, and movement of data be traced end-to-end?",
               weight: 1,
@@ -1516,7 +1516,7 @@ var rubric_v1_dan_default = {
               ]
             },
             {
-              id: "DA-Q15",
+              id: "D-Q15",
               sheetRef: "Q15",
               text: "Is comprehensive metadata management in place, enabling data discovery, classification, and contextual understanding?",
               weight: 1,
@@ -1526,7 +1526,7 @@ var rubric_v1_dan_default = {
               ]
             },
             {
-              id: "DA-Q16",
+              id: "D-Q16",
               sheetRef: "Q16",
               text: "How mature is data quality management \u2014 are completeness, accuracy, consistency, and timeliness measured and enforced?",
               weight: 1,
@@ -1536,7 +1536,7 @@ var rubric_v1_dan_default = {
               ]
             },
             {
-              id: "DA-Q17",
+              id: "D-Q17",
               sheetRef: "Q17",
               text: "Is data instrumentation in place to capture operational telemetry, audit records, and system-generated metadata?",
               weight: 1,
@@ -1546,7 +1546,7 @@ var rubric_v1_dan_default = {
               ]
             },
             {
-              id: "DA-Q18",
+              id: "D-Q18",
               sheetRef: "Q18",
               text: "Are data read/write performance requirements (volumes, IOPS, movement patterns) understood and architecturally addressed?",
               weight: 1,
@@ -1556,7 +1556,7 @@ var rubric_v1_dan_default = {
               ]
             },
             {
-              id: "DA-Q19",
+              id: "D-Q19",
               sheetRef: "Q19",
               text: "Is there a strategy for structured, semi-structured, and unstructured data that applies consistent governance across all types?",
               weight: 1,
@@ -1566,7 +1566,7 @@ var rubric_v1_dan_default = {
               ]
             },
             {
-              id: "DA-Q20",
+              id: "D-Q20",
               sheetRef: "Q20",
               text: "How well is data residency managed \u2014 are intentional copies of data tracked, controlled, and compliant with policy?",
               weight: 1,
@@ -1576,7 +1576,7 @@ var rubric_v1_dan_default = {
               ]
             },
             {
-              id: "DA-Q21",
+              id: "D-Q21",
               sheetRef: "Q21",
               text: "Does the architecture support event-driven data integration patterns and real-time data processing where needed?",
               weight: 1,
@@ -1594,7 +1594,7 @@ var rubric_v1_dan_default = {
           weight: 25,
           questions: [
             {
-              id: "DA-Q22",
+              id: "D-Q22",
               sheetRef: "Q22",
               text: "Has a Privacy Impact Assessment (PIA) been completed, and does the architecture reflect its recommendations?",
               weight: 1,
@@ -1605,7 +1605,7 @@ var rubric_v1_dan_default = {
               ]
             },
             {
-              id: "DA-Q23",
+              id: "D-Q23",
               sheetRef: "Q23",
               text: "Is Privacy by Design embedded throughout the solution, from data collection through to disposition?",
               weight: 1,
@@ -1616,7 +1616,7 @@ var rubric_v1_dan_default = {
               ]
             },
             {
-              id: "DA-Q24",
+              id: "D-Q24",
               sheetRef: "Q24",
               text: "How mature is data categorization \u2014 are all data assets classified by sensitivity, and is handling appropriate to classification?",
               weight: 1,
@@ -1626,7 +1626,7 @@ var rubric_v1_dan_default = {
               ]
             },
             {
-              id: "DA-Q25",
+              id: "D-Q25",
               sheetRef: "Q25",
               text: "Is encryption applied at rest, in transit, and in processing for all data at the appropriate sensitivity level?",
               weight: 1,
@@ -1637,7 +1637,7 @@ var rubric_v1_dan_default = {
               ]
             },
             {
-              id: "DA-Q26",
+              id: "D-Q26",
               sheetRef: "Q26",
               text: "Are data sovereignty requirements met \u2014 is there full awareness of where data resides, crosses borders, and is subject to foreign law?",
               weight: 1,
@@ -1648,7 +1648,7 @@ var rubric_v1_dan_default = {
               ]
             },
             {
-              id: "DA-Q27",
+              id: "D-Q27",
               sheetRef: "Q27",
               text: "Are data retention and disposition policies enforced, including secure deletion and legal hold capabilities?",
               weight: 1,
@@ -1660,7 +1660,7 @@ var rubric_v1_dan_default = {
               ]
             },
             {
-              id: "DA-Q28",
+              id: "D-Q28",
               sheetRef: "Q28",
               text: "How well are collection limitation principles applied \u2014 is only necessary data collected, with informed consent where required?",
               weight: 1,
@@ -1671,7 +1671,7 @@ var rubric_v1_dan_default = {
               ]
             },
             {
-              id: "DA-Q29",
+              id: "D-Q29",
               sheetRef: "Q29",
               text: "Is there a documented breach response plan, and has it been tested?",
               weight: 1,
@@ -1682,7 +1682,7 @@ var rubric_v1_dan_default = {
               ]
             },
             {
-              id: "DA-Q30",
+              id: "D-Q30",
               sheetRef: "Q30",
               text: "Are access controls enforced at the data level, ensuring role-based and attribute-based access is actively governed?",
               weight: 1,
@@ -1701,7 +1701,7 @@ var rubric_v1_dan_default = {
           weight: 5,
           questions: [
             {
-              id: "DA-Q31",
+              id: "D-Q31",
               sheetRef: "Q31",
               text: "Does the data architecture align with FAIR principles (Findable, Accessible, Interoperable, Reusable)?",
               weight: 1,
@@ -1711,7 +1711,7 @@ var rubric_v1_dan_default = {
               ]
             },
             {
-              id: "DA-Q32",
+              id: "D-Q32",
               sheetRef: "Q32",
               text: "Are APIs and data-sharing interfaces standards-based and documented, enabling downstream consumption without tight coupling?",
               weight: 1,
@@ -1721,7 +1721,7 @@ var rubric_v1_dan_default = {
               ]
             },
             {
-              id: "DA-Q33",
+              id: "D-Q33",
               sheetRef: "Q33",
               text: "How accessible is data to authorized consumers, including other departments, partners, and (where appropriate) the public?",
               weight: 1,
@@ -1740,7 +1740,7 @@ var rubric_v1_dan_default = {
           weight: 20,
           questions: [
             {
-              id: "DA-Q34",
+              id: "D-Q34",
               sheetRef: "Q34",
               text: "Is there a designated data owner and data steward for each key dataset, with documented accountability?",
               weight: 1,
@@ -1750,7 +1750,7 @@ var rubric_v1_dan_default = {
               ]
             },
             {
-              id: "DA-Q35",
+              id: "D-Q35",
               sheetRef: "Q35",
               text: "How mature is the data governance framework \u2014 does it cover policies, standards, roles, dispute resolution, and enforcement?",
               weight: 1,
@@ -1760,7 +1760,7 @@ var rubric_v1_dan_default = {
               ]
             },
             {
-              id: "DA-Q36",
+              id: "D-Q36",
               sheetRef: "Q36",
               text: "Are data governance decisions transparent and auditable, including any changes to data models, access rules, or classifications?",
               weight: 1,
@@ -1770,7 +1770,7 @@ var rubric_v1_dan_default = {
               ]
             },
             {
-              id: "DA-Q37",
+              id: "D-Q37",
               sheetRef: "Q37",
               text: "Is there a process to ensure data governance keeps pace with legislative changes (Privacy Act, Access to Information, Bill C-27)?",
               weight: 1,
@@ -1781,7 +1781,7 @@ var rubric_v1_dan_default = {
               ]
             },
             {
-              id: "DA-Q38",
+              id: "D-Q38",
               sheetRef: "Q38",
               text: "How well is data quality monitored, reported on, and escalated when thresholds are breached?",
               weight: 1,
@@ -1792,7 +1792,7 @@ var rubric_v1_dan_default = {
               ]
             },
             {
-              id: "DA-Q39",
+              id: "D-Q39",
               sheetRef: "Q39",
               text: "Is there a regular data audit process to validate compliance with policies, identify orphaned data, and assess data health?",
               weight: 1,
@@ -1818,7 +1818,7 @@ var rubric_v1_dan_default = {
           weight: 10,
           questions: [
             {
-              id: "AP-Q1",
+              id: "A-Q1",
               sheetRef: "Q1",
               text: "Is the current application solution fully documented, including architecture diagrams, data flows, and integration points?",
               weight: 1,
@@ -1828,7 +1828,7 @@ var rubric_v1_dan_default = {
               ]
             },
             {
-              id: "AP-Q2",
+              id: "A-Q2",
               sheetRef: "Q2",
               text: "How well is the current system instrumented \u2014 are resource allocation, consumption, and application health monitored?",
               weight: 1,
@@ -1838,7 +1838,7 @@ var rubric_v1_dan_default = {
               ]
             },
             {
-              id: "AP-Q3",
+              id: "A-Q3",
               sheetRef: "Q3",
               text: "What is the outstanding technical debt, and is it formally tracked in a backlog with prioritization?",
               weight: 1,
@@ -1848,7 +1848,7 @@ var rubric_v1_dan_default = {
               ]
             },
             {
-              id: "AP-Q4",
+              id: "A-Q4",
               sheetRef: "Q4",
               text: "When are major software contracts expiring, and is there a renewal or replacement strategy in place?",
               weight: 1,
@@ -1858,7 +1858,7 @@ var rubric_v1_dan_default = {
               ]
             },
             {
-              id: "AP-Q5",
+              id: "A-Q5",
               sheetRef: "Q5",
               text: "What known security vulnerabilities exist in the current solution, and what is the remediation status?",
               weight: 1,
@@ -1869,7 +1869,7 @@ var rubric_v1_dan_default = {
               ]
             },
             {
-              id: "AP-Q6",
+              id: "A-Q6",
               sheetRef: "Q6",
               text: "How well understood are the delivery pipeline properties \u2014 maturity, automation, deployment frequency, and failure rate?",
               weight: 1,
@@ -1879,7 +1879,7 @@ var rubric_v1_dan_default = {
               ]
             },
             {
-              id: "AP-Q7",
+              id: "A-Q7",
               sheetRef: "Q7",
               text: "What is the degree of vendor or technology lock-in, and are exit/migration pathways understood?",
               weight: 1,
@@ -1889,7 +1889,7 @@ var rubric_v1_dan_default = {
               ]
             },
             {
-              id: "AP-Q8",
+              id: "A-Q8",
               sheetRef: "Q8",
               text: "Are all upstream and downstream application dependencies mapped and current?",
               weight: 1,
@@ -1899,7 +1899,7 @@ var rubric_v1_dan_default = {
               ]
             },
             {
-              id: "AP-Q9",
+              id: "A-Q9",
               sheetRef: "Q9",
               text: "What is the known backlog of defects, flaws, and unresolved issues, and how is it managed?",
               weight: 1,
@@ -1921,7 +1921,7 @@ var rubric_v1_dan_default = {
           weight: 20,
           questions: [
             {
-              id: "AP-Q10",
+              id: "A-Q10",
               sheetRef: "Q10",
               text: "Is the application type (COTS, configured, custom-built, low/no-code, assembled) clearly defined and justified?",
               weight: 1,
@@ -1931,7 +1931,7 @@ var rubric_v1_dan_default = {
               ]
             },
             {
-              id: "AP-Q11",
+              id: "A-Q11",
               sheetRef: "Q11",
               text: "Is the delivery methodology (agile, waterfall, hybrid) appropriate to the solution's context and documented?",
               weight: 1,
@@ -1941,7 +1941,7 @@ var rubric_v1_dan_default = {
               ]
             },
             {
-              id: "AP-Q12",
+              id: "A-Q12",
               sheetRef: "Q12",
               text: "How software-defined is the solution \u2014 are configuration, policy, and infrastructure managed as code?",
               weight: 1,
@@ -1951,7 +1951,7 @@ var rubric_v1_dan_default = {
               ]
             },
             {
-              id: "AP-Q13",
+              id: "A-Q13",
               sheetRef: "Q13",
               text: "Is the application designed with capabilities-based modularity, enabling components to be replaced independently?",
               weight: 1,
@@ -1961,7 +1961,7 @@ var rubric_v1_dan_default = {
               ]
             },
             {
-              id: "AP-Q14",
+              id: "A-Q14",
               sheetRef: "Q14",
               text: "How are interoperability interfaces between internal components and external applications exposed and governed?",
               weight: 1,
@@ -1971,7 +1971,7 @@ var rubric_v1_dan_default = {
               ]
             },
             {
-              id: "AP-Q15",
+              id: "A-Q15",
               sheetRef: "Q15",
               text: "Is intellectual property ownership clear, and are code licensing obligations tracked and managed?",
               weight: 1,
@@ -1981,7 +1981,7 @@ var rubric_v1_dan_default = {
               ]
             },
             {
-              id: "AP-Q16",
+              id: "A-Q16",
               sheetRef: "Q16",
               text: "How mature is code reuse \u2014 is there a shared code repository, automated integration, and published component catalogue?",
               weight: 1,
@@ -1991,7 +1991,7 @@ var rubric_v1_dan_default = {
               ]
             },
             {
-              id: "AP-Q17",
+              id: "A-Q17",
               sheetRef: "Q17",
               text: "What is the lowest required integration level (container, VM/OS, physical hardware), and is it minimized where possible?",
               weight: 1,
@@ -2001,7 +2001,7 @@ var rubric_v1_dan_default = {
               ]
             },
             {
-              id: "AP-Q18",
+              id: "A-Q18",
               sheetRef: "Q18",
               text: "Are volume, redundancy, elasticity, scalability, throttling, and observability requirements defined and implemented?",
               weight: 1,
@@ -2011,7 +2011,7 @@ var rubric_v1_dan_default = {
               ]
             },
             {
-              id: "AP-Q19",
+              id: "A-Q19",
               sheetRef: "Q19",
               text: "Is the application designed as external-facing, internal enterprise, or administrative \u2014 and is the design tailored accordingly?",
               weight: 1,
@@ -2029,7 +2029,7 @@ var rubric_v1_dan_default = {
           weight: 20,
           questions: [
             {
-              id: "AP-Q20",
+              id: "A-Q20",
               sheetRef: "Q20",
               text: "How mature is the DevSecOps pipeline \u2014 including continuous integration, continuous deployment, automated testing, and security gates?",
               weight: 1,
@@ -2040,7 +2040,7 @@ var rubric_v1_dan_default = {
               ]
             },
             {
-              id: "AP-Q21",
+              id: "A-Q21",
               sheetRef: "Q21",
               text: "Is test coverage defined, measured, and enforced \u2014 including unit, integration, regression, performance, and security testing?",
               weight: 1,
@@ -2051,7 +2051,7 @@ var rubric_v1_dan_default = {
               ]
             },
             {
-              id: "AP-Q22",
+              id: "A-Q22",
               sheetRef: "Q22",
               text: "How well are coding standards, frameworks, and languages documented, enforced, and aligned with GC guidance?",
               weight: 1,
@@ -2061,7 +2061,7 @@ var rubric_v1_dan_default = {
               ]
             },
             {
-              id: "AP-Q23",
+              id: "A-Q23",
               sheetRef: "Q23",
               text: "Are accessibility standards (WCAG 2.1 AA or equivalent) embedded in the development and QA process?",
               weight: 1,
@@ -2071,7 +2071,7 @@ var rubric_v1_dan_default = {
               ]
             },
             {
-              id: "AP-Q24",
+              id: "A-Q24",
               sheetRef: "Q24",
               text: "Is there an algorithmic impact assessment (AIA) process in place for any AI/ML components in the application?",
               weight: 1,
@@ -2081,7 +2081,7 @@ var rubric_v1_dan_default = {
               ]
             },
             {
-              id: "AP-Q25",
+              id: "A-Q25",
               sheetRef: "Q25",
               text: "How mature is the code review and peer review process, and is it consistently applied?",
               weight: 1,
@@ -2091,7 +2091,7 @@ var rubric_v1_dan_default = {
               ]
             },
             {
-              id: "AP-Q26",
+              id: "A-Q26",
               sheetRef: "Q26",
               text: "Are application performance benchmarks established, tested against in CI/CD, and used to gate deployments?",
               weight: 1,
@@ -2101,7 +2101,7 @@ var rubric_v1_dan_default = {
               ]
             },
             {
-              id: "AP-Q27",
+              id: "A-Q27",
               sheetRef: "Q27",
               text: "Is observability (logging, tracing, metrics) built into the application architecture from the start?",
               weight: 1,
@@ -2119,7 +2119,7 @@ var rubric_v1_dan_default = {
           weight: 50,
           questions: [
             {
-              id: "AP-Q28",
+              id: "A-Q28",
               sheetRef: "Q28",
               text: "Has a multi-disciplinary team \u2014 including business, security, privacy, data, and technology \u2014 been engaged in solution design?",
               weight: 1,
@@ -2131,7 +2131,7 @@ var rubric_v1_dan_default = {
               ]
             },
             {
-              id: "AP-Q29",
+              id: "A-Q29",
               sheetRef: "Q29",
               text: "Were enterprise contracts and procurement pathways (GC-wide standing offers, task authorizations) explored before custom sourcing?",
               weight: 1,
@@ -2142,7 +2142,7 @@ var rubric_v1_dan_default = {
               ]
             },
             {
-              id: "AP-Q30",
+              id: "A-Q30",
               sheetRef: "Q30",
               text: "Was optionality fully investigated \u2014 including multi-vendor, open source, and homegrown options \u2014 with a documented rationale?",
               weight: 1,
@@ -2152,7 +2152,7 @@ var rubric_v1_dan_default = {
               ]
             },
             {
-              id: "AP-Q31",
+              id: "A-Q31",
               sheetRef: "Q31",
               text: "Is a Total Cost of Ownership (TCO) model available that includes build, operate, maintain, licensing, and exit costs?",
               weight: 1,
@@ -2162,7 +2162,7 @@ var rubric_v1_dan_default = {
               ]
             },
             {
-              id: "AP-Q32",
+              id: "A-Q32",
               sheetRef: "Q32",
               text: "How well are digital sovereignty considerations addressed \u2014 are GC data and systems protected from foreign jurisdiction risk?",
               weight: 1,
@@ -2173,7 +2173,7 @@ var rubric_v1_dan_default = {
               ]
             },
             {
-              id: "AP-Q33",
+              id: "A-Q33",
               sheetRef: "Q33",
               text: "Is the solution designed to integrate with GC-wide shared services (Sign-In Canada, GC Notify, GC Forms, etc.) where applicable?",
               weight: 1,
@@ -2183,7 +2183,7 @@ var rubric_v1_dan_default = {
               ]
             },
             {
-              id: "AP-Q34",
+              id: "A-Q34",
               sheetRef: "Q34",
               text: "How well does the solution avoid unnecessary duplication with existing GC capabilities and investments?",
               weight: 1,
@@ -2193,7 +2193,7 @@ var rubric_v1_dan_default = {
               ]
             },
             {
-              id: "AP-Q35",
+              id: "A-Q35",
               sheetRef: "Q35",
               text: "Is there a clear strategy for AI integration \u2014 including use of GC Foundation Models and GC AI Compute infrastructure?",
               weight: 1,
@@ -2203,7 +2203,7 @@ var rubric_v1_dan_default = {
               ]
             },
             {
-              id: "AP-Q36",
+              id: "A-Q36",
               sheetRef: "Q36",
               text: "Is the solution designed to be decommissioned or migrated, with a documented sunset and transition strategy?",
               weight: 1,
@@ -2213,7 +2213,7 @@ var rubric_v1_dan_default = {
               ]
             },
             {
-              id: "AP-Q37",
+              id: "A-Q37",
               sheetRef: "Q37",
               text: "How well are supply chain security risks addressed in the sourcing and integration of third-party components?",
               weight: 1,
@@ -2240,7 +2240,7 @@ var rubric_v1_dan_default = {
           weight: 10,
           questions: [
             {
-              id: "TE-Q1",
+              id: "T-Q1",
               sheetRef: "Q1",
               text: "Are all details of the current solution's hosting environment \u2014 hardware, software, network, and configuration \u2014 fully documented?",
               weight: 1,
@@ -2250,7 +2250,7 @@ var rubric_v1_dan_default = {
               ]
             },
             {
-              id: "TE-Q2",
+              id: "T-Q2",
               sheetRef: "Q2",
               text: "Is the current solution healthy, with no critical alerts, capacity issues, or unresolved infrastructure-level incidents?",
               weight: 1,
@@ -2260,7 +2260,7 @@ var rubric_v1_dan_default = {
               ]
             },
             {
-              id: "TE-Q3",
+              id: "T-Q3",
               sheetRef: "Q3",
               text: "Are there any imminent changes to consumed infrastructure services, and is the solution prepared for those transitions?",
               weight: 1,
@@ -2270,7 +2270,7 @@ var rubric_v1_dan_default = {
               ]
             },
             {
-              id: "TE-Q4",
+              id: "T-Q4",
               sheetRef: "Q4",
               text: "Is the lifespan of the solution shorter than that of the infrastructure \u2014 and if not, is an upgrade plan in the backlog?",
               weight: 1,
@@ -2280,7 +2280,7 @@ var rubric_v1_dan_default = {
               ]
             },
             {
-              id: "TE-Q5",
+              id: "T-Q5",
               sheetRef: "Q5",
               text: "How well-informed is the team about their infrastructure service provider's roadmap, changes, and service performance?",
               weight: 1,
@@ -2290,7 +2290,7 @@ var rubric_v1_dan_default = {
               ]
             },
             {
-              id: "TE-Q6",
+              id: "T-Q6",
               sheetRef: "Q6",
               text: "Can infrastructure be ordered and provisioned on demand, and what lead time is required?",
               weight: 1,
@@ -2300,7 +2300,7 @@ var rubric_v1_dan_default = {
               ]
             },
             {
-              id: "TE-Q7",
+              id: "T-Q7",
               sheetRef: "Q7",
               text: "Is there a clear inventory of all infrastructure components, including versions, patch levels, and support status?",
               weight: 1,
@@ -2322,7 +2322,7 @@ var rubric_v1_dan_default = {
           weight: 25,
           questions: [
             {
-              id: "TE-Q8",
+              id: "T-Q8",
               sheetRef: "Q8",
               text: "Is the physical hosting model (on-premise EDC, public cloud, private cloud, hybrid) clearly justified and documented?",
               weight: 1,
@@ -2332,7 +2332,7 @@ var rubric_v1_dan_default = {
               ]
             },
             {
-              id: "TE-Q9",
+              id: "T-Q9",
               sheetRef: "Q9",
               text: "Is the decision between shared and dedicated hardware documented with supporting rationale for cost, isolation, and performance?",
               weight: 1,
@@ -2342,7 +2342,7 @@ var rubric_v1_dan_default = {
               ]
             },
             {
-              id: "TE-Q10",
+              id: "T-Q10",
               sheetRef: "Q10",
               text: "Are physical kiosks, IoT devices, or specialized hardware requirements identified and architecturally accommodated?",
               weight: 1,
@@ -2352,7 +2352,7 @@ var rubric_v1_dan_default = {
               ]
             },
             {
-              id: "TE-Q11",
+              id: "T-Q11",
               sheetRef: "Q11",
               text: "How well does the design leverage GC-wide service consolidation, shared footprint, and enterprise infrastructure services?",
               weight: 1,
@@ -2362,7 +2362,7 @@ var rubric_v1_dan_default = {
               ]
             },
             {
-              id: "TE-Q12",
+              id: "T-Q12",
               sheetRef: "Q12",
               text: "Are elasticity, burst capacity, and auto-scaling requirements defined and architecturally implemented?",
               weight: 1,
@@ -2372,7 +2372,7 @@ var rubric_v1_dan_default = {
               ]
             },
             {
-              id: "TE-Q13",
+              id: "T-Q13",
               sheetRef: "Q13",
               text: "Are High-Performance Computing (HPC) and edge computing needs assessed and addressed where applicable?",
               weight: 1,
@@ -2382,7 +2382,7 @@ var rubric_v1_dan_default = {
               ]
             },
             {
-              id: "TE-Q14",
+              id: "T-Q14",
               sheetRef: "Q14",
               text: "Is GC AI Compute (dedicated GC-owned/controlled GPU infrastructure) considered and evaluated as a first option for AI workloads?",
               weight: 1,
@@ -2392,7 +2392,7 @@ var rubric_v1_dan_default = {
               ]
             },
             {
-              id: "TE-Q15",
+              id: "T-Q15",
               sheetRef: "Q15",
               text: "Are bandwidth, latency, and network connectivity requirements defined and met by the infrastructure design?",
               weight: 1,
@@ -2402,7 +2402,7 @@ var rubric_v1_dan_default = {
               ]
             },
             {
-              id: "TE-Q16",
+              id: "T-Q16",
               sheetRef: "Q16",
               text: "Are storage volumes, IOPS, throughput, and data tiering requirements specified and provisioned appropriately?",
               weight: 1,
@@ -2412,7 +2412,7 @@ var rubric_v1_dan_default = {
               ]
             },
             {
-              id: "TE-Q17",
+              id: "T-Q17",
               sheetRef: "Q17",
               text: "Is the deployment model designed to meet availability, recovery time, and recovery point objectives?",
               weight: 1,
@@ -2430,7 +2430,7 @@ var rubric_v1_dan_default = {
           weight: 20,
           questions: [
             {
-              id: "TE-Q18",
+              id: "T-Q18",
               sheetRef: "Q18",
               text: "Is configuration and infrastructure managed as code (IaC/CaC), enabling reproducible and auditable deployments?",
               weight: 1,
@@ -2440,7 +2440,7 @@ var rubric_v1_dan_default = {
               ]
             },
             {
-              id: "TE-Q19",
+              id: "T-Q19",
               sheetRef: "Q19",
               text: "How well does the team understand and apply GC-relevant infrastructure design patterns and reference architectures?",
               weight: 1,
@@ -2450,7 +2450,7 @@ var rubric_v1_dan_default = {
               ]
             },
             {
-              id: "TE-Q20",
+              id: "T-Q20",
               sheetRef: "Q20",
               text: "Does the architecture embrace composable, modular designs and event-driven models where appropriate?",
               weight: 1,
@@ -2460,7 +2460,7 @@ var rubric_v1_dan_default = {
               ]
             },
             {
-              id: "TE-Q21",
+              id: "T-Q21",
               sheetRef: "Q21",
               text: "Is interoperability and containerization baked into the infrastructure design from the beginning?",
               weight: 1,
@@ -2470,7 +2470,7 @@ var rubric_v1_dan_default = {
               ]
             },
             {
-              id: "TE-Q22",
+              id: "T-Q22",
               sheetRef: "Q22",
               text: "Is there a documented plan and roadmap for quantum and post-quantum cryptography readiness?",
               weight: 1,
@@ -2481,7 +2481,7 @@ var rubric_v1_dan_default = {
               ]
             },
             {
-              id: "TE-Q23",
+              id: "T-Q23",
               sheetRef: "Q23",
               text: "How mature is the use of platform engineering practices \u2014 are developer-facing platforms self-service and well-governed?",
               weight: 1,
@@ -2491,7 +2491,7 @@ var rubric_v1_dan_default = {
               ]
             },
             {
-              id: "TE-Q24",
+              id: "T-Q24",
               sheetRef: "Q24",
               text: "Are orchestration and container management (e.g., Kubernetes) used appropriately and configured to GC standards?",
               weight: 1,
@@ -2509,7 +2509,7 @@ var rubric_v1_dan_default = {
           weight: 25,
           questions: [
             {
-              id: "TE-Q25",
+              id: "T-Q25",
               sheetRef: "Q25",
               text: "Are resilience requirements (availability tiers, fault tolerance, geo-redundancy) formally defined and validated in design?",
               weight: 1,
@@ -2519,7 +2519,7 @@ var rubric_v1_dan_default = {
               ]
             },
             {
-              id: "TE-Q26",
+              id: "T-Q26",
               sheetRef: "Q26",
               text: "Is the solution's data sovereignty posture clearly documented, including data residency and foreign access risk mitigation?",
               weight: 1,
@@ -2530,7 +2530,7 @@ var rubric_v1_dan_default = {
               ]
             },
             {
-              id: "TE-Q27",
+              id: "T-Q27",
               sheetRef: "Q27",
               text: "How mature is the zero-trust security architecture \u2014 is authentication, authorization, and segmentation enforced throughout?",
               weight: 1,
@@ -2541,7 +2541,7 @@ var rubric_v1_dan_default = {
               ]
             },
             {
-              id: "TE-Q28",
+              id: "T-Q28",
               sheetRef: "Q28",
               text: "Is encryption applied appropriately at rest, in transit, and in processing, using GC-approved cryptographic standards?",
               weight: 1,
@@ -2552,7 +2552,7 @@ var rubric_v1_dan_default = {
               ]
             },
             {
-              id: "TE-Q29",
+              id: "T-Q29",
               sheetRef: "Q29",
               text: "Has a Threat and Risk Assessment (TRA) or Security Assessment and Authorization (SA&A) been completed and reflected in design?",
               weight: 1,
@@ -2563,7 +2563,7 @@ var rubric_v1_dan_default = {
               ]
             },
             {
-              id: "TE-Q30",
+              id: "T-Q30",
               sheetRef: "Q30",
               text: "Are security controls validated through automated security testing, vulnerability scanning, and penetration testing?",
               weight: 1,
@@ -2574,7 +2574,7 @@ var rubric_v1_dan_default = {
               ]
             },
             {
-              id: "TE-Q31",
+              id: "T-Q31",
               sheetRef: "Q31",
               text: "Is there a documented and tested disaster recovery plan, with defined RTO and RPO that align to business requirements?",
               weight: 1,
@@ -2584,7 +2584,7 @@ var rubric_v1_dan_default = {
               ]
             },
             {
-              id: "TE-Q32",
+              id: "T-Q32",
               sheetRef: "Q32",
               text: "Are GC Cloud Guardrails and security baseline configurations implemented and continuously validated?",
               weight: 1,
@@ -2603,7 +2603,7 @@ var rubric_v1_dan_default = {
           weight: 20,
           questions: [
             {
-              id: "TE-Q33",
+              id: "T-Q33",
               sheetRef: "Q33",
               text: "Are real-time monitoring, alerting, and incident response capabilities in place and actively used?",
               weight: 1,
@@ -2613,7 +2613,7 @@ var rubric_v1_dan_default = {
               ]
             },
             {
-              id: "TE-Q34",
+              id: "T-Q34",
               sheetRef: "Q34",
               text: "Is activity auditing implemented at the infrastructure level, enabling forensic investigation and compliance verification?",
               weight: 1,
@@ -2623,7 +2623,7 @@ var rubric_v1_dan_default = {
               ]
             },
             {
-              id: "TE-Q35",
+              id: "T-Q35",
               sheetRef: "Q35",
               text: "How mature is the FinOps practice \u2014 are cloud and infrastructure costs tracked, attributed, optimized, and reported?",
               weight: 1,
@@ -2633,7 +2633,7 @@ var rubric_v1_dan_default = {
               ]
             },
             {
-              id: "TE-Q36",
+              id: "T-Q36",
               sheetRef: "Q36",
               text: "Is there infrastructure-level observability (metrics, logs, traces) that provides end-to-end system visibility?",
               weight: 1,
@@ -2643,7 +2643,7 @@ var rubric_v1_dan_default = {
               ]
             },
             {
-              id: "TE-Q37",
+              id: "T-Q37",
               sheetRef: "Q37",
               text: "Are resource governance policies enforced \u2014 including tagging, cost allocation, and access to shared infrastructure?",
               weight: 1,
@@ -2653,7 +2653,7 @@ var rubric_v1_dan_default = {
               ]
             },
             {
-              id: "TE-Q38",
+              id: "T-Q38",
               sheetRef: "Q38",
               text: "Is there a continuous business need (CBN) process to evaluate whether infrastructure investment remains justified?",
               weight: 1,
@@ -2663,7 +2663,7 @@ var rubric_v1_dan_default = {
               ]
             },
             {
-              id: "TE-Q39",
+              id: "T-Q39",
               sheetRef: "Q39",
               text: "How mature is the infrastructure change management process \u2014 are changes reviewed, approved, and traceable?",
               weight: 1,

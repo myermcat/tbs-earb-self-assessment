@@ -165,11 +165,14 @@ function paint(root: HTMLElement, rubric: Rubric, records: StoredRecord[]): void
   // What this role can do that an assessor cannot, and what nobody has decided yet.
   root.appendChild(el('section', { class: 'card' }, [
     el('h2', {}, ['Admin actions']),
-    el('span', { class: 'badge badge-warn' }, ['Not built']),
+    el('span', { class: 'badge badge-warn' }, ['Mostly not built']),
     el('ul', { class: 'steps' }, [
       el('li', {}, [el('b', {}, ['Withdraw a record. ']), 'Out of every statistic on this page, still in the list. Nothing is deleted.']),
       el('li', {}, [el('b', {}, ['Re-assign an assessor. ']), 'When somebody leaves, or a file needs a second pair of eyes.']),
-      el('li', {}, [el('b', {}, ['Replace the question set. ']), 'In Settings on the assessor side today.']),
+      el('li', {}, [
+        el('b', {}, ['Question sets. ']),
+        'Built. Settings holds every set this browser knows, marks the one in use, and takes a new one. Adding a set keeps the old ones, and deleting one asks twice.',
+      ]),
       el('li', {}, [el('b', {}, ['Clear out test submissions. ']), 'Dan raised it and parked it.']),
     ]),
     el('p', { class: 'small muted' }, [

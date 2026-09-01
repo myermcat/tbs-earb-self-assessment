@@ -452,7 +452,7 @@ export function setFileMarking(
     marking: c,
     // No question is on screen here, so this is an example. The evidence box on each question
     // writes the real one, with that question's number already in it.
-    subject: evidenceSubject(a, 'BU-Q14'),
+    subject: evidenceSubject(a, 'B-Q14'),
     onAcknowledge: () => { a.initiative.markingAcknowledged = true; autosave(a); after(); },
     onUnclassified: () => {
       a.initiative.classification = 'Unclassified';
