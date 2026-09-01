@@ -7,10 +7,29 @@ export interface Anchor { value: number; name?: string; colour?: string; label: 
 
 export interface PicklistOption { value: string; label: string }
 
+/**
+ * How a question is answered. `scale` is the 0 to 10 maturity ladder and the default, so a
+ * rubric that says nothing behaves exactly as before. `yesno` is for the questions Dan spotted
+ * that are binary wearing a scale.
+ *
+ * A `no` on a yes/no question raises a RED FLAG: it colours the section and the person carries
+ * on. It does not stop the assessment. Nothing in this tool stops an assessment.
+ */
+export type AnswerType = 'scale' | 'yesno';
+
+export interface Topic {
+  id: string;
+  label: string;
+  note?: string;
+}
+
 export interface Question {
   id: string;
   sheetRef?: string;                                   // e.g. "Q37", to trace back to the workbook
   text: string;
+  answerType?: AnswerType;
+  /** Topics this question counts towards, beyond its own domain. */
+  topics?: string[];
   help?: string;
   weight: number;                                      // relative weight inside its section
   evidencePrompt?: string;
@@ -81,6 +100,8 @@ export interface Rubric {
   bandsNote?: string;
   stageMultipliers: Record<StageExpectation, number>;
   stageMultipliersNote?: string;
+  topics?: Topic[];
+  topicsNote?: string;
   lifecycleStages: LifecycleStage[];
   phases?: Phase[];
   domains: Domain[];
@@ -138,10 +159,29 @@ export interface Answer {
   evidence?: EvidenceRef[];
 }
 
+/**
+ * One move in the exchange over a question. Append-only: an assessor changes a score with a
+ * reason, another disagrees and changes it with theirs, and both survive. Nobody's reasoning is
+ * overwritten by the next person's.
+ */
+export interface AuditMove {
+  by: string;
+  at: string;
+  score: number | null;
+  note: string;
+  /** Never verified. There is no authentication in this tool. */
+  unverified: true;
+}
+
 export interface AuditEntry {
   auditedScore: number | null;
   verdict: 'agree' | 'adjust' | 'insufficient' | '';
   note?: string;
+  /** Who made the standing change, and when. */
+  by?: string;
+  at?: string;
+  /** The full back and forth, oldest first. */
+  history?: AuditMove[];
 }
 
 export interface Audit {
@@ -154,6 +194,8 @@ export interface Audit {
 export interface Assessment {
   fileType: 'gc-arch-assessment';
   formatVersion: number;
+  /** Assigned by the store when the record first goes online. Absent while it is only a draft. */
+  id?: string;
   rubric: { id: string; version: string; title: string };
   initiative: {
     name: string;
@@ -167,6 +209,8 @@ export interface Assessment {
     markingAcknowledged?: boolean;
   };
   answers: Record<string, Answer>;
-  meta: { createdAt: string; updatedAt: string; appVersion: string };
+  meta: { createdAt: string; updatedAt: string; appVersion: string; submittedAt?: string };
+  /** Set when a record is pulled back out of the statistics. Nothing is ever deleted. */
+  withdrawnAt?: string;
   audit?: Audit;
 }

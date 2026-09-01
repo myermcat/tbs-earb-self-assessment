@@ -1,6 +1,6 @@
 import { CLASSIFICATIONS, type Assessment, type EvidenceRef, type Question, type Rubric } from './types';
 import { el, clear, tone } from './dom';
-import { score, type Result, type SectionScore } from './scoring';
+import { domainRedFlags, score, sectionRedFlags, type Result, type SectionScore } from './scoring';
 import { autosave, onSaveStateChange, saveAssessmentFile, saveStatus } from './storage';
 import { humanSize, openAttachment, readAttachment, totalAttachedBytes, TOTAL_LIMIT, TOTAL_WARN } from './attach';
 import { canSave, markingProblems } from './marking';
@@ -226,6 +226,15 @@ function sectionHead(
     const d = rr.domains.find((x) => x.domain.id === here.domainId);
     const cur = d?.sections.find((x) => x.section.id === here.sectionId);
     if (!cur || !d) return;
+    const flags = sectionRedFlags(cur);
+    node.classList.toggle('red-flag', flags.length > 0);
+    clear(flagNote);
+    if (flags.length) {
+      flagNote.appendChild(el('div', { class: 'flag-note' }, [
+        el('strong', {}, [`${flags.length} red flag${flags.length === 1 ? '' : 's'} in this section. `]),
+        'Answered no where the answer should be yes. Nothing is blocked, and an assessor will look.',
+      ]));
+    }
     pill.className = `pill ${tone(cur.score)}`;
     pill.textContent = cur.score === null ? '--' : cur.score.toFixed(1);
     srPill.textContent = cur.score === null ? 'not scored yet' : `${cur.score.toFixed(1)} out of 10`;
@@ -243,6 +252,7 @@ function sectionHead(
     ]);
   })();
 
+  const flagNote = el('div', {});
   const node = el('section', { class: 'card section-head-card' }, [
     el('p', { class: 'eyebrow' }, [ds.domain.label]),
     el('div', { class: 'head-row' }, [
@@ -252,6 +262,7 @@ function sectionHead(
       stageNote,
     ]),
     counts,
+    flagNote,
   ]);
   register(apply, r);
   return node;
@@ -332,6 +343,7 @@ function sectionRail(
               count.textContent = `${done}/${total}`;
               fill.style.width = total > 0 ? `${Math.round((done / total) * 100)}%` : '0%';
               row.classList.toggle('done', total > 0 && done === total);
+              row.classList.toggle('red-flag', !!cur && sectionRedFlags(cur).length > 0);
             }, r);
             return row;
           })
@@ -354,6 +366,7 @@ function stepper(
     owns: (s: Stop) => boolean,
     count: (rr: Result) => [number, number],
     fill?: () => [number, number],
+    flags?: (rr: Result) => boolean,
   ) => {
     const countEl = el('span', { class: 'step-count' });
     const bar = el('i');
@@ -370,7 +383,8 @@ function stepper(
       const [done, total] = count(rr);
       const complete = total > 0 && done === total;
       const on = owns(stopOf(list, page));
-      btn.className = `step ${on ? 'on' : ''} ${complete ? 'complete' : ''}`;
+      const flagged = flags ? flags(rr) : false;
+      btn.className = `step ${on ? 'on' : ''} ${complete ? 'complete' : ''} ${flagged ? 'red-flag' : ''}`;
       btn.setAttribute('aria-current', on ? 'page' : 'false');
       countEl.textContent = `${done} of ${total}`;
       const [fDone, fTotal] = fillOf ? fillOf() : [done, total];
@@ -387,6 +401,9 @@ function stepper(
       step(shortLabel(d.label), firstStopIn(list, d.id), (st) => st.domainId === d.id, (rr) => {
         const ds = rr.domains.find((x) => x.domain.id === d.id);
         return [ds?.answered ?? 0, ds?.total ?? 0];
+      }, undefined, (rr) => {
+        const ds = rr.domains.find((x) => x.domain.id === d.id);
+        return !!ds && domainRedFlags(ds).length > 0;
       }),
     ),
   ]);
@@ -969,11 +986,12 @@ function questionBlock(rubric: Rubric, a: Assessment, q: Question, refresh: () =
       ]),
     ]));
   }
-  const ladderBox = el('details', { class: 'ladder-box' }, [
-    el('summary', {}, ['What the numbers mean']),
-    ladderList,
-  ]);
-  wrap.appendChild(ladderBox);
+  if (q.answerType !== 'yesno') {
+    wrap.appendChild(el('details', { class: 'ladder-box' }, [
+      el('summary', {}, ['What the numbers mean']),
+      ladderList,
+    ]));
+  }
 
   /**
    * The eleven scores are one choice, so they are one radio group and take one tab stop
@@ -1005,8 +1023,30 @@ function questionBlock(rubric: Rubric, a: Assessment, q: Question, refresh: () =
     refresh();
   };
 
+  const isYesNo = q.answerType === 'yesno';
+
   const paintScores = () => {
     clear(scoreRow);
+
+    // A yes/no question is two buttons. It still stores a score, so every roll-up, export and
+    // flag keeps working with no special case: yes is 10, no is 0.
+    if (isYesNo) {
+      const opt = (label: string, value: number) =>
+        el('button', {
+          class: `yn-btn ${ans.score === value ? 'on' : ''} ${value === 0 ? 'no' : 'yes'}`,
+          role: 'radio',
+          'aria-checked': ans.score === value ? 'true' : 'false',
+          'aria-disabled': ans.na ? 'true' : 'false',
+          tabindex: ans.na || (ans.score === null ? value !== rubric.scale.max : ans.score !== value) ? -1 : 0,
+          disabled: !!ans.na,
+          onclick: () => choose(ans.score === value ? null : value),
+        }, [label]);
+      scoreRow.appendChild(opt('Yes', rubric.scale.max));
+      scoreRow.appendChild(opt('No', rubric.scale.min));
+      naBox.checked = !!ans.na;
+      return;
+    }
+
     const values: number[] = [];
     for (let v = rubric.scale.min; v <= rubric.scale.max; v++) values.push(v);
 
@@ -1059,6 +1099,8 @@ function questionBlock(rubric: Rubric, a: Assessment, q: Question, refresh: () =
 
   const paintChosen = () => {
     clear(chosen);
+    // A no on a yes/no question is a red flag: it colours things and the person carries on.
+    wrap.classList.toggle('red-flag', isYesNo && ans.score === rubric.scale.min && !ans.na);
     wrap.classList.toggle('answered', ans.score !== null && !ans.na);
     wrap.classList.toggle('unanswered', ans.score === null && !ans.na);
     wrap.classList.toggle('na', !!ans.na);
@@ -1071,6 +1113,14 @@ function questionBlock(rubric: Rubric, a: Assessment, q: Question, refresh: () =
         ? 'Not answered'
         : `Score ${ans.score} of 10${rung?.name ? ` - ${rung.name}` : ''}`;
     if (ans.na || ans.score === null) return;
+    if (isYesNo) {
+      chosen.appendChild(el('span', {}, [
+        ans.score === rubric.scale.min
+          ? 'A no here is a red flag. It does not stop the assessment, and the section is marked so an assessor looks.'
+          : 'Yes.',
+      ]));
+      return;
+    }
     if (rung) {
       chosen.appendChild(el('span', {}, [
         rung.name ? el('b', {}, [`${rung.value} - ${rung.name}. `]) : '',

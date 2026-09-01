@@ -75,6 +75,45 @@ async function sheet(name) {
 }
 
 const clean = (s) => (s ?? '').replace(/\s+/g, ' ').trim();
+
+/**
+ * Dan wants security and privacy visible without inventing a fifth domain, so a question can
+ * carry several topics. Two sources, and the second one is provisional.
+ *
+ *   1. Its own domain, which is mechanical and certain.
+ *   2. Security or privacy, where the question text names those concepts outright.
+ *
+ * The second is a keyword pass and it is a starting point, not an answer. Dan owns the real
+ * assignments; this exists so the roll-up is demonstrable before he does them.
+ */
+/**
+ * Questions that read as yes or no rather than as a maturity. Dan named this defect and gave
+ * one example; these are the ones whose wording is unambiguously binary. PROVISIONAL, and his
+ * to confirm, which is why the pattern is narrow rather than clever.
+ */
+const YESNO_PATTERNS = [
+  /^Is there a published roadmap\b/i,
+  /^Has a formal threat and risk assessment\b/i,
+  /^Has a Privacy Impact Assessment\b/i,
+  /^Has a Threat and Risk Assessment\b/i,
+  /^Is there a formal risk register\b/i,
+  /^Is there a documented breach response plan\b/i,
+  /^Is there a continuous business need\b/i,
+  /^Is there an algorithmic impact assessment\b/i,
+  /^Are accessibility standards\b/i,
+  /^Is GC AI Compute\b/i,
+];
+const answerTypeFor = (text) => (YESNO_PATTERNS.some((re) => re.test(text)) ? 'yesno' : 'scale');
+
+const SECURITY_WORDS = /\b(security|secure|threat|vulnerabilit|encrypt|zero-trust|zero trust|cryptograph|penetration|guardrail|authenticat|authoriz|access control|breach|sovereignty|supply chain)/i;
+const PRIVACY_WORDS = /\b(privacy|personal information|PIA|Privacy Impact|consent|collection limitation|retention and disposition|ATIP)/i;
+
+function topicsFor(domainId, text) {
+  const out = [domainId];
+  if (SECURITY_WORDS.test(text)) out.push('security');
+  if (PRIVACY_WORDS.test(text)) out.push('privacy');
+  return out;
+}
 const slug = (s) => clean(s).toLowerCase().replace(/&/g, 'and').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 
 // ---- the 0-10 ladder -------------------------------------------------------------------
@@ -118,7 +157,14 @@ for (const d of DOMAINS) {
     }
 
     if (/^Q\d+$/.test(qNum) && qText && current) {
-      current.questions.push({ id: `${d.id.slice(0, 2).toUpperCase()}-${qNum}`, sheetRef: qNum, text: qText, weight: 1 });
+      current.questions.push({
+        id: `${d.id.slice(0, 2).toUpperCase()}-${qNum}`,
+        sheetRef: qNum,
+        text: qText,
+        weight: 1,
+        answerType: answerTypeFor(qText),
+        topics: topicsFor(d.id, qText),
+      });
     }
   }
 
@@ -211,6 +257,25 @@ const rubric = {
   stageMultipliers: { 'low-ok': 0.25, expected: 1, critical: 1.5 },
   stageMultipliersNote:
     'Our addition. Lifecycle stage is not captured in the current process at all - Dan named it as the key missing field. Only "Defining the Current State" sections carry a rule so far.',
+
+  topics: [
+    { id: 'business',    label: 'Business',    note: 'Strategy, process, value and cost.' },
+    { id: 'data',        label: 'Data',        note: 'Models, quality, lineage and stewardship.' },
+    { id: 'application', label: 'Application', note: 'What the software does and depends on.' },
+    { id: 'technology',  label: 'Technology',  note: 'Where it runs, and whether it stays up.' },
+    { id: 'security',    label: 'Security',    note: 'Cuts across all four. Dan asked for this one by name.' },
+    { id: 'privacy',     label: 'Privacy',     note: 'Personal information specifically, not data in general.' },
+  ],
+  answerTypesNote:
+    'PROVISIONAL. Dan named this defect: several questions are yes or no wearing a 0 to 10 scale. ' +
+    'The ones marked yesno here are the ones whose wording is unambiguously binary. He owns the real ' +
+    'list. A no on a yes/no question raises a red flag: it colours the section and the person carries ' +
+    'on. Nothing in this tool stops an assessment.',
+  topicsNote:
+    'A second axis, not a second scoring spine. The four domains still produce the overall score, ' +
+    'and a question counts once there. A question also counts at full weight inside every topic it ' +
+    'carries, which is where the weights genuinely differ. Domain topics are mechanical. Security and ' +
+    'privacy were derived from the question wording and are PROVISIONAL: Dan owns the real assignments.',
 
   lifecycleStages,
   phases,

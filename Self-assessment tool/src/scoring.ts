@@ -1,4 +1,4 @@
-import type { Assessment, Band, Domain, MaturityBand, Question, Rubric, Section } from './types';
+import type { Assessment, Band, Domain, MaturityBand, Question, Rubric, Section, Topic } from './types';
 
 export interface QuestionScore {
   question: Question;
@@ -33,11 +33,26 @@ export interface DomainScore {
   sections: SectionScore[];
 }
 
+export interface TopicScore {
+  topic: Topic;
+  score: number | null;
+  answered: number;
+  total: number;
+  /** Questions carrying this topic whose yes/no answer is a no. */
+  redFlags: QuestionScore[];
+}
+
 export interface Result {
   overall: number | null;
   band: Band | null;
   maturity: MaturityBand | null;
   domains: DomainScore[];
+  /**
+   * A second axis, not a second spine. A question counts ONCE in the overall score, through its
+   * domain, and at FULL weight inside every topic it carries. That is what makes a question able
+   * to weigh differently in security than it does in business without inflating the total.
+   */
+  topics: TopicScore[];
   completeness: number;
   answered: number;
   scoreable: number;
@@ -132,15 +147,47 @@ export function score(rubric: Rubric, a: Assessment): Result {
   const dw = scored.reduce((s, d) => s + d.weight, 0);
   const overall = dw === 0 ? null : scored.reduce((s, d) => s + (d.score as number) * d.weight, 0) / dw;
 
+  const every = domains.flatMap((d) => d.sections.flatMap((x) => x.questions));
+  const topics: TopicScore[] = (rubric.topics ?? []).map((topic) => {
+    const mine = every.filter((q) => (q.question.topics ?? []).includes(topic.id));
+    const scored = mine.filter((q) => q.answered);
+    const wsum = scored.reduce((t, q) => t + q.effectiveWeight, 0);
+    return {
+      topic,
+      score: wsum === 0 ? null : scored.reduce((t, q) => t + (q.raw as number) * q.effectiveWeight, 0) / wsum,
+      answered: mine.filter((q) => q.answered || q.na).length,
+      total: mine.length,
+      redFlags: mine.filter(isRedFlag),
+    };
+  });
+
   return {
     overall,
     band: overall === null ? null : bandFor(rubric, overall),
     maturity: overall === null ? null : maturityFor(rubric, overall),
     domains,
+    topics,
     completeness: scoreable === 0 ? 0 : answered / scoreable,
     answered,
     scoreable,
   };
+}
+
+/**
+ * A no on a yes/no question. It colours the section and the person carries on: nothing in this
+ * tool stops an assessment.
+ */
+export function isRedFlag(q: QuestionScore): boolean {
+  return q.question.answerType === 'yesno' && q.answered && q.raw === 0;
+}
+
+/** Red-flagged questions in a section, used to colour it everywhere it appears. */
+export function sectionRedFlags(s: SectionScore): QuestionScore[] {
+  return s.questions.filter(isRedFlag);
+}
+
+export function domainRedFlags(d: DomainScore): QuestionScore[] {
+  return d.sections.flatMap(sectionRedFlags);
 }
 
 export function bandFor(rubric: Rubric, overall: number): Band {

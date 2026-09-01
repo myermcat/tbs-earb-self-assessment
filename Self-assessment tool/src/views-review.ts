@@ -20,6 +20,13 @@ interface Loaded {
 
 let loaded: Loaded[] = [];
 
+/** What the dashboard can see of this session: the files the assessor opened. */
+export function openedThisSession(): Assessment[] { return loaded.map((l) => l.a); }
+
+/** The name typed on the mockup sign-in. Never verified, and labelled so everywhere. */
+let auditor = '';
+export function setAuditor(name: string): void { auditor = name; }
+
 export function renderReview(root: HTMLElement, rubric: Rubric): void {
   clear(root);
 
@@ -132,6 +139,9 @@ function openDetail(rubric: Rubric, root: HTMLElement, l: Loaded) {
   }
   /** Questions reachable through an aggregated card, so they are not also listed below. */
   const inAggregate = new Set(fs.flatMap((f) => f.questionIds ?? []));
+  // A question can carry its own finding and sit inside an aggregate at the same time. It is
+  // still one question to look at: count it once, and show it once, inside the aggregate.
+  const needLook = new Set([...byQuestion.keys(), ...inAggregate]);
   const questionOf = new Map(allQuestionScores(r).map((qs) => [qs.question.id, qs]));
   const repaint = () => openDetail(rubric, root, l);
 
@@ -173,7 +183,7 @@ function openDetail(rubric: Rubric, root: HTMLElement, l: Loaded) {
   root.appendChild(el('section', { class: 'card' }, [
     el('div', { class: 'kpi-row' }, [
       kpi(String(fs.filter((f) => f.severity === 'high').length), 'must ask'),
-      kpi(String(byQuestion.size + inAggregate.size), 'questions flagged'),
+      kpi(String(needLook.size), 'questions flagged'),
       kpi(`${Math.round(r.completeness * 100)}%`, 'complete'),
       kpi(String(attachments), 'files attached'),
       kpi(String(changed.length), 'you changed'),
@@ -184,7 +194,7 @@ function openDetail(rubric: Rubric, root: HTMLElement, l: Loaded) {
   const flagBox = el('section', { class: 'card' }, [
     el('h2', {}, ['Audit these']),
     el('p', { class: 'muted small' }, [
-        `${byQuestion.size + inAggregate.size} of ${r.scoreable} questions need a look. Score them here; the rest is below if you want it.`,
+        `${needLook.size} of ${r.scoreable} questions need a look. Score them here; the rest is below if you want it.`,
     ]),
   ]);
 
@@ -195,7 +205,7 @@ function openDetail(rubric: Rubric, root: HTMLElement, l: Loaded) {
     const rows = el('div', {});
     for (const qid of f.questionIds) {
       const qs = questionOf.get(qid);
-      if (qs) rows.appendChild(auditRow(rubric, a, qs, audit, [], repaint, true));
+      if (qs) rows.appendChild(auditRow(rubric, a, qs, audit, byQuestion.get(qid) ?? [], repaint, true));
     }
     flagBox.appendChild(el('div', { class: `flag sev-${f.severity}` }, [
       el('div', { class: 'flag-title' }, [el('span', { class: 'sev-dot' }), el('strong', {}, [f.title])]),
@@ -208,10 +218,11 @@ function openDetail(rubric: Rubric, root: HTMLElement, l: Loaded) {
     ]));
   }
 
-  if (!byQuestion.size && !inAggregate.size) {
+  if (!needLook.size) {
     flagBox.appendChild(el('p', {}, ['Nothing anomalous. Spot-check and move on.']));
   }
   for (const [qid, qflags] of byQuestion) {
+    if (inAggregate.has(qid)) continue;   // already shown inside its aggregate
     const qs = questionOf.get(qid);
     if (!qs) continue;
     flagBox.appendChild(auditRow(rubric, a, qs, audit, qflags, repaint, true));
@@ -283,12 +294,10 @@ function openDetail(rubric: Rubric, root: HTMLElement, l: Loaded) {
 
   // ---- 4. sign off ---------------------------------------------------------------------
   root.appendChild(el('section', { class: 'card' }, [
-    el('label', { class: 'field' }, [
-      el('span', {}, ['Your name']),
-      el('input', {
-        type: 'text', class: 'reviewer-name', value: audit.reviewer,
-        oninput: (e: Event) => { audit.reviewer = (e.target as HTMLInputElement).value; },
-      }),
+    el('p', { class: 'small' }, [
+      'Auditing as ', el('b', {}, [auditor || 'unnamed']), ' ',
+      el('span', { class: 'badge badge-warn' }, ['unverified']),
+      el('span', { class: 'muted' }, [' Recorded against every score you change.']),
     ]),
     el('label', { class: 'field' }, [
       el('span', {}, ['Overall note for the board']),
@@ -298,10 +307,20 @@ function openDetail(rubric: Rubric, root: HTMLElement, l: Loaded) {
       }, [audit.overallNote ?? '']),
     ]),
     el('div', { class: 'actions' }, [
-      el('button', { class: 'primary', onclick: () => {
-        audit.reviewedAt = new Date().toISOString();
-        download(`${slug(a.initiative.name)}-audited.json`, JSON.stringify(a, null, 2));
-      } }, ['Save the audited file']),
+      (() => {
+        const missing = unexplainedChanges(a);
+        return el('button', {
+          class: 'primary', disabled: missing.length > 0,
+          title: missing.length
+            ? `A changed score needs a reason: ${missing.join(', ')}`
+            : 'Save your audit',
+          onclick: () => {
+            audit.reviewedAt = new Date().toISOString();
+            audit.reviewer = auditor || audit.reviewer;
+            download(`${slug(a.initiative.name)}-audited.json`, JSON.stringify(a, null, 2));
+          },
+        }, [missing.length ? `${missing.length} change${missing.length === 1 ? '' : 's'} need a reason` : 'Save the audited file']);
+      })(),
       el('button', { class: 'ghost', onclick: () => window.print() }, ['Print the one-pager']),
     ]),
   ]));
@@ -335,6 +354,7 @@ function auditRow(
   const q = qs.question;
   const ans = a.answers[q.id];
   const entry: AuditEntry = (audit.perQuestion[q.id] ??= { auditedScore: null, verdict: '', note: '' });
+  const standing = entry.auditedScore;
   const ev = ans?.evidence ?? [];
   const wasChanged = typeof entry.auditedScore === 'number' && entry.auditedScore !== (ans?.score ?? null);
 
@@ -384,12 +404,42 @@ function auditRow(
         ))
       : el('p', { class: 'muted small' }, ['No evidence referenced.']),
 
+    // The exchange, and the two facts that show by default: it was edited, and by whom.
+    (entry.history ?? []).length
+      ? el('details', { class: 'exchange' }, [
+          el('summary', {}, [
+            el('b', {}, ['Edited']),
+            ' by ',
+            (entry.history ?? []).map((m) => m.by).filter((v, i, arr) => arr.indexOf(v) === i).join(', '),
+            el('span', { class: 'tiny dim' }, [` · ${(entry.history ?? []).length} change${(entry.history ?? []).length === 1 ? '' : 's'}`]),
+          ]),
+          el('ol', { class: 'exchange-list small' }, (entry.history ?? []).map((m) =>
+            el('li', {}, [
+              el('b', {}, [`${m.score ?? '--'} `]),
+              `by ${m.by} `,
+              el('span', { class: 'badge badge-warn tiny' }, ['unverified']),
+              m.note ? el('div', { class: 'muted' }, [m.note]) : el('div', { class: 'warn-text' }, ['No reason given.']),
+            ]),
+          )),
+        ])
+      : null,
+
     el('div', { class: 'audit-controls' }, [
       el('label', {}, ['Your score ', el('input', {
         type: 'number', min: 0, max: 10, value: entry.auditedScore ?? '',
         onchange: (e: Event) => {
           const v = (e.target as HTMLInputElement).value;
-          entry.auditedScore = v === '' ? null : Number(v);
+          const next = v === '' ? null : Number(v);
+          // Compared against the score as it stood when this row was drawn: oninput has
+          // already written the field through, so entry.auditedScore is no baseline.
+          if (next !== standing) {
+            entry.auditedScore = next;
+            entry.by = auditor || 'unnamed';
+            entry.at = new Date().toISOString();
+            (entry.history ??= []).push({
+              by: entry.by, at: entry.at, score: next, note: entry.note ?? '', unverified: true,
+            });
+          }
           repaint();
         },
         oninput: (e: Event) => {
@@ -406,11 +456,34 @@ function auditRow(
         el('option', { value: 'insufficient', selected: entry.verdict === 'insufficient' }, ['Not enough evidence']),
       ]),
       el('input', {
-        type: 'text', placeholder: 'Note', value: entry.note ?? '',
-        oninput: (e: Event) => { entry.note = (e.target as HTMLInputElement).value; },
+        type: 'text',
+        class: needsReason(a, q.id, entry) ? 'needs-marking' : '',
+        placeholder: needsReason(a, q.id, entry) ? 'Why? Required for a changed score' : 'Note',
+        value: entry.note ?? '',
+        oninput: (e: Event) => {
+          entry.note = (e.target as HTMLInputElement).value;
+          const last = (entry.history ?? [])[(entry.history ?? []).length - 1];
+          if (last) last.note = entry.note ?? '';
+        },
+        onchange: () => repaint(),
       }),
     ]),
   ]);
+}
+
+/** Dan's rule: a changed number must be justified. An unchanged one needs no words. */
+export function needsReason(a: Assessment, qid: string, entry: AuditEntry): boolean {
+  const changed = typeof entry.auditedScore === 'number'
+    && entry.auditedScore !== (a.answers[qid]?.score ?? null);
+  return changed && !(entry.note ?? '').trim();
+}
+
+export function unexplainedChanges(a: Assessment): string[] {
+  const audit = a.audit;
+  if (!audit) return [];
+  return Object.entries(audit.perQuestion)
+    .filter(([qid, e]) => needsReason(a, qid, e))
+    .map(([qid]) => qid);
 }
 
 function exportAllCsv(rubric: Rubric) {
