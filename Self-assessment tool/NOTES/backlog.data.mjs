@@ -18,6 +18,8 @@ export const quick = {
   title: 'Quick actions',
   hint: 'No discussion needed.',
   items: [
+    { t: 'The assessor side keeps nothing between reloads', status: 'next',
+      why: 'Every audited score, verdict, note and history entry lives in memory only until the file is saved. A reload, a crash or a stray click on Clear takes the afternoon with it. The submitter side has autosaved to the browser since the start.' },
     { t: 'Decide where the tool is published', status: 'next',
       why: 'canada-ca/TBS-OCIO-ESP already publishes a tool as one index.html in a folder, and you already have push access. One commit puts this at canada-ca.github.io/TBS-OCIO-ESP/earb-self-assessment/, with no new repo and no transfer. The repo is public, so Dan has to clear the 176 draft questions being visible first.' },
     { t: 'The marking question is about the evidence', status: 'done',
@@ -28,6 +30,16 @@ export const quick = {
       why: 'It said "EARB evidence - m - [question]", with a placeholder nobody filled in. It now names what it is, the initiative and the question number, and the evidence box offers a Copy button.' },
     { t: 'The save badge says there is no online copy', status: 'done',
       why: 'She asked where to save online. There is nowhere, and the badge now says so on hover instead of leaving "draft saved" to be read as the whole story.' },
+    { t: 'A library of question sets', status: 'done',
+      why: 'Sets accumulate now. Settings lists every one this browser holds, marks the one in use, and takes another. Adding one keeps the old ones and becomes current. Deleting is two steps, offers the file back first, and is refused on the built-in set and on the set in use.' },
+    { t: 'Question ids lose a letter', status: 'done',
+      why: 'BU-Q1 is now B-Q1. The four domain initials are distinct, so the second letter carried nothing. Cheap today because no real submission exists; expensive once ids are column names in somebody exported spreadsheet.' },
+    { t: 'Nothing is destroyed in one step', status: 'done',
+      why: 'An audit found twenty destructive actions and eleven of them destroyed something with no prompt at all. Every one now asks, keeps a copy where it can, or leaves the work alone.' },
+    { t: 'Not applicable hides the scale and keeps the score', status: 'done',
+      why: 'The eleven descriptions explain a score, and a question that does not apply has none. Ticking the box also used to erase the score, and unticking did not give it back.' },
+    { t: 'The frame stops reading as part of the page', status: 'done',
+      why: 'Measured: the header separated from the page by 1.13 to 1 in light and 1.08 to 1 in dark, and the page footer was exactly the page colour. The frame has its own edge token, the dark frame is now lighter than the page instead of darker, the footer has a ground, and a shadow appears only once content scrolls under it.' },
     { t: 'The rail stops repeating the domain tabs on a narrow screen', status: 'done',
       why: 'Below 860px the rail lies down into a strip under the tabs. On the overview it had no section rows to show, so the same five items appeared twice. Found while checking the marking banner on the live page.' },
     { t: 'The prose linter takes any file', status: 'done',
@@ -168,6 +180,8 @@ export const layers = [
           { t: 'Real sign-in', status: 'wait', owes: 'Dan',
             why: 'Blocked on how identity gets checked at all, which is his answer to give.' },
         ] },
+      { t: 'Nothing an assessor typed is overwritten silently', status: 'done',
+        why: 'Four places did it. Agree-with-all replaced a verdict somebody had already given, the note field rewrote the reason on whatever change was last in the trail, reloading a file of the same name discarded the audit attached to it without a word, and the email button wrote over a link somebody had typed.' },
       { t: 'Auditing rules Dan gave as rules', status: 'done',
         why: 'He stated these as requirements in the review, not as ideas. All five are built.',
         subs: [
@@ -304,6 +318,8 @@ export const resolved = [
 ];
 
 export const questions = [
+  { q: 'Where an assessor\u2019s work is kept between reloads', who: 'us',
+    blocks: 'Nothing yet', meanwhile: 'It is in memory only. Saving the audited file is the only copy' },
   { q: 'Can the 176 draft questions be public', who: 'Dan',
     blocks: 'Publishing inside canada-ca', meanwhile: 'The preview sits on a personal public repo, which is the same exposure with less visibility' },
   { q: 'Who may edit a stored assessment, and how it is checked', who: 'Dan',

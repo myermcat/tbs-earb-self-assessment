@@ -68,18 +68,18 @@ h2{scroll-margin-top:1rem}
 <div class="wrap"><h1>EARB self-assessment: backlog</h1>
 <p class="sub">Layers are the spine, the three views sit inside the interface layer, and every item appears once. Finished work moves to Done, which is split into what came after Dan's review and what he had already seen, and stays there for good. The links below jump to any section. Updated 2026-09-01.</p>
 <div class="kpis">
-<div class="kpi"><b>16</b><span>next</span></div>
+<div class="kpi"><b>17</b><span>next</span></div>
 <div class="kpi"><b>8</b><span><a href="#waiting">waiting on somebody</a></span></div>
 <div class="kpi"><b>12</b><span>later</span></div>
-<div class="kpi"><b>46</b><span><a href="#done">done</a></span></div>
-<div class="kpi"><b>10</b><span>open questions</span></div>
+<div class="kpi"><b>52</b><span><a href="#done">done</a></span></div>
+<div class="kpi"><b>11</b><span>open questions</span></div>
 </div>
 <nav class="jump">
-<a href="#quick">Quick actions <b>1</b></a>
+<a href="#quick">Quick actions <b>2</b></a>
 <a href="#waiting">Waiting on somebody <b>8</b></a>
-<a href="#done">Done <b>46</b></a>
+<a href="#done">Done <b>52</b></a>
 <a href="#resolved">Resolved questions <b>10</b></a>
-<a href="#questions">Open questions <b>10</b></a>
+<a href="#questions">Open questions <b>11</b></a>
 <a href="#layer-0">Question set</a>
 <a href="#layer-1">Engine</a>
 <a href="#layer-2">Interface: the submitter</a>
@@ -91,6 +91,10 @@ h2{scroll-margin-top:1rem}
 </nav>
 <h2 id="quick">Quick actions</h2><p class="hint">No discussion needed.</p>
 <div class="card quick">
+<div class="leaf solo">
+<span class="t">The assessor side keeps nothing between reloads</span><span class="st st-next">Next</span>
+<span class="w">Every audited score, verdict, note and history entry lives in memory only until the file is saved. A reload, a crash or a stray click on Clear takes the afternoon with it. The submitter side has autosaved to the browser since the start.</span>
+</div>
 <div class="leaf solo">
 <span class="t">Decide where the tool is published</span><span class="st st-next">Next</span>
 <span class="w">canada-ca/TBS-OCIO-ESP already publishes a tool as one index.html in a folder, and you already have push access. One commit puts this at canada-ca.github.io/TBS-OCIO-ESP/earb-self-assessment/, with no new repo and no transfer. The repo is public, so Dan has to clear the 176 draft questions being visible first.</span>
@@ -303,7 +307,7 @@ h2{scroll-margin-top:1rem}
 </div>
 </div>
 <h2 id="done">Done</h2><p class="hint">Built and tested, and kept here permanently. Nothing on this list has to be remembered.</p>
-<h3 class="h3sub">Since Dan's review on 1 September &mdash; 44 items</h3>
+<h3 class="h3sub">Since Dan's review on 1 September &mdash; 50 items</h3>
 <p class="hint">This is the list to walk him through. Everything here came out of that conversation.</p>
 <div class="card done-card">
 <div class="leaf solo">
@@ -321,6 +325,26 @@ h2{scroll-margin-top:1rem}
 <div class="leaf solo">
 <span class="t">The save badge says there is no online copy</span><span class="st st-done">Done</span>
 <span class="w"><span class="done-layer">Quick action</span> &middot; She asked where to save online. There is nowhere, and the badge now says so on hover instead of leaving "draft saved" to be read as the whole story.</span>
+</div>
+<div class="leaf solo">
+<span class="t">A library of question sets</span><span class="st st-done">Done</span>
+<span class="w"><span class="done-layer">Quick action</span> &middot; Sets accumulate now. Settings lists every one this browser holds, marks the one in use, and takes another. Adding one keeps the old ones and becomes current. Deleting is two steps, offers the file back first, and is refused on the built-in set and on the set in use.</span>
+</div>
+<div class="leaf solo">
+<span class="t">Question ids lose a letter</span><span class="st st-done">Done</span>
+<span class="w"><span class="done-layer">Quick action</span> &middot; BU-Q1 is now B-Q1. The four domain initials are distinct, so the second letter carried nothing. Cheap today because no real submission exists; expensive once ids are column names in somebody exported spreadsheet.</span>
+</div>
+<div class="leaf solo">
+<span class="t">Nothing is destroyed in one step</span><span class="st st-done">Done</span>
+<span class="w"><span class="done-layer">Quick action</span> &middot; An audit found twenty destructive actions and eleven of them destroyed something with no prompt at all. Every one now asks, keeps a copy where it can, or leaves the work alone.</span>
+</div>
+<div class="leaf solo">
+<span class="t">Not applicable hides the scale and keeps the score</span><span class="st st-done">Done</span>
+<span class="w"><span class="done-layer">Quick action</span> &middot; The eleven descriptions explain a score, and a question that does not apply has none. Ticking the box also used to erase the score, and unticking did not give it back.</span>
+</div>
+<div class="leaf solo">
+<span class="t">The frame stops reading as part of the page</span><span class="st st-done">Done</span>
+<span class="w"><span class="done-layer">Quick action</span> &middot; Measured: the header separated from the page by 1.13 to 1 in light and 1.08 to 1 in dark, and the page footer was exactly the page colour. The frame has its own edge token, the dark frame is now lighter than the page instead of darker, the footer has a ground, and a shadow appears only once content scrolls under it.</span>
 </div>
 <div class="leaf solo">
 <span class="t">The rail stops repeating the domain tabs on a narrow screen</span><span class="st st-done">Done</span>
@@ -431,6 +455,10 @@ h2{scroll-margin-top:1rem}
 <span class="w"><span class="done-layer">Interface: the assessor</span> &middot; Labelled a mockup, the departmental-account button visibly disabled, everything unverified.</span>
 </div>
 <div class="leaf solo">
+<span class="t">Nothing an assessor typed is overwritten silently</span><span class="st st-done">Done</span>
+<span class="w"><span class="done-layer">Interface: the assessor</span> &middot; Four places did it. Agree-with-all replaced a verdict somebody had already given, the note field rewrote the reason on whatever change was last in the trail, reloading a file of the same name discarded the audit attached to it without a word, and the email button wrote over a link somebody had typed.</span>
+</div>
+<div class="leaf solo">
 <span class="t">Justification required on a changed score</span><span class="st st-done">Done</span>
 <span class="w"><span class="done-layer">Interface: the assessor</span> &middot; His rule. The file cannot be saved while one is missing, and the button says how many are outstanding.</span>
 </div>
@@ -507,6 +535,7 @@ h2{scroll-margin-top:1rem}
 <div class="callout"><div class="q">How does the dashboard stay current?</div><div class="a"><b>Resolved.</b> By storing nothing. It recalculates each record from its answers as the page draws, so there is no roll-up that can go stale.</div></div>
 <h2 id="questions">Open questions</h2><p class="hint">Not work. Somebody owes an answer.</p>
 <div class="tw"><table><thead><tr><th>Question</th><th>Who owes it</th><th>Blocks</th><th>Meanwhile</th></tr></thead><tbody>
+<tr><td>Where an assessor’s work is kept between reloads</td><td>us</td><td>Nothing yet</td><td>It is in memory only. Saving the audited file is the only copy</td></tr>
 <tr><td>Can the 176 draft questions be public</td><td>Dan</td><td>Publishing inside canada-ca</td><td>The preview sits on a personal public repo, which is the same exposure with less visibility</td></tr>
 <tr><td>Who may edit a stored assessment, and how it is checked</td><td>Dan</td><td>Real authentication</td><td>Mockup screen, everything labelled unverified</td></tr>
 <tr><td>Verifying an assessor’s identity</td><td>Dan</td><td>Real sign-in</td><td>Typed name, labelled unverified on every change it records</td></tr>
@@ -518,4 +547,4 @@ h2{scroll-margin-top:1rem}
 <tr><td>Who performs the canada-ca transfer</td><td>Nick</td><td>The repo move</td><td>Asked. An issue on canada-ca/welcome is the route he named</td></tr>
 <tr><td>What the production intake should be</td><td>TBS</td><td>Production only</td><td>The prototype answer is an Azure Function plus one CSP line</td></tr>
 </tbody></table></div>
-<footer>41 open, 46 done. Generated from NOTES/backlog.data.mjs by tools/build-backlog.mjs.</footer></div>
+<footer>42 open, 52 done. Generated from NOTES/backlog.data.mjs by tools/build-backlog.mjs.</footer></div>
