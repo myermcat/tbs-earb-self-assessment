@@ -71,10 +71,9 @@ names, so the importer refuses to let one point at a different question later.
 
 ## Status
 
-A working prototype, against a draft framework. Two things are still needed from TBS: the
-answer data from past assessments, which is the only real source for the dropdowns, and
-sign-off on the routing thresholds. `Self-assessment tool/NOTES/Build-brief.md` tracks the
-requirements and what is deliberately left out.
+A working prototype against a draft question set. Open the backlog in a browser to see what
+is built, what is next, and what is waiting on somebody:
+`Self-assessment tool/NOTES/backlog.html`.
 
-The repository is private because it holds a draft framework. The engine itself is
-unclassified and holds no departmental information.
+Two things are still needed from Dan: the answer data from past assessments, which is the
+only real source for the dropdowns, and sign-off on the routing thresholds.

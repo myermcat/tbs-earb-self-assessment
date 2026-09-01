@@ -9,7 +9,7 @@ import { answeredCount, APP_VERSION, blankAssessment, clearDraft, hasWork, lastS
 import { bannerFor } from './marking';
 import BUILTIN from '../rubric/rubric.v1-dan.json';
 
-type Mode = 'home' | 'submit' | 'results' | 'review' | 'settings';
+type Mode = 'home' | 'submit' | 'results' | 'review' | 'admin' | 'settings';
 
 /**
  * Two jobs live in this file, and they belong to different people. A department fills an
@@ -25,7 +25,7 @@ type Side = 'submit' | 'assess';
 const SIDE_KEY = 'gc-arch-assessment:side';
 const SIDE_OF: Record<Mode, Side | null> = {
   home: 'submit', submit: 'submit', results: 'submit',
-  review: 'assess',
+  review: 'assess', admin: 'assess',
   settings: null,             // settings belongs to whoever is looking at it
 };
 
@@ -114,6 +114,7 @@ function paint() {
   else if (mode === 'submit') renderSubmit(body, rubric, assessment, () => go('results'));
   else if (mode === 'results') renderResults(body, rubric, assessment, () => go('submit'));
   else if (mode === 'settings') renderSettings(body);
+  else if (mode === 'admin') renderAdmin(body);
   else renderReview(body, rubric);
 
   // Header, marking and the domain tabs travel as one sticky block. Separately pinned strips
@@ -163,7 +164,9 @@ function header(): HTMLElement {
     ]),
     el('div', { class: 'topbar-right' }, [
       side === 'assess'
-        ? el('nav', { class: 'path', 'aria-label': 'Where you are' }, [tab('Submissions', 'review')])
+        ? el('nav', { class: 'path', 'aria-label': 'Where you are' }, [
+            tab('Submissions', 'review'), chev(), tab('Admin', 'admin'),
+          ])
         : el('nav', { class: 'path', 'aria-label': 'Where you are' }, [
             tab('Start', 'home'), chev(),
             tab('Fill it in', 'submit'), chev(),
@@ -328,6 +331,33 @@ function renderHome(root: HTMLElement) {
    first thing a person needs.
    ------------------------------------------------------------------------------------------ */
 
+/**
+ * The admin view. A placeholder, and labelled as one: nobody has decided what the role does
+ * beyond withdrawing a record and re-assigning an assessor, so the page says that rather than
+ * inventing controls that would have to be unbuilt.
+ */
+function renderAdmin(root: HTMLElement) {
+  root.appendChild(el('section', { class: 'card' }, [
+    el('div', { class: 'head-row' }, [
+      el('h1', {}, ['Admin']),
+      el('span', { class: 'badge badge-warn' }, ['Placeholder']),
+    ]),
+    el('p', { class: 'muted' }, [
+      'Nothing here is built. The role exists in the plan and nobody has decided what it does, ',
+      'so this page lists what it is expected to hold and stops there.',
+    ]),
+    el('ul', { class: 'steps' }, [
+      el('li', {}, [el('b', {}, ['Withdraw a record. ']), 'Excluded from the statistics, never deleted.']),
+      el('li', {}, [el('b', {}, ['Re-assign an assessor. ']), 'When somebody leaves or a file needs a second pair of eyes.']),
+      el('li', {}, [el('b', {}, ['Replace the question set. ']), 'Today this is in Settings, and it probably belongs here.']),
+      el('li', {}, [el('b', {}, ['Clear out test submissions. ']), 'Dan raised it and parked it.']),
+    ]),
+    el('p', { class: 'small muted' }, [
+      'Open question for Dan: is this a separate role, or an assessor with more buttons?',
+    ]),
+  ]));
+}
+
 const TRASH =
   '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" ' +
   'stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
@@ -465,35 +495,29 @@ function paneQuestions(pane: HTMLElement) {
 
 function paneAnswers(pane: HTMLElement) {
   pane.appendChild(el('h1', { tabindex: -1 }, ['Where your answers go']));
-  const where = (() => {
-    const p = window.location.protocol;
-    if (p === 'file:') return 'a file on this machine';
-    if (p === 'https:' || p === 'http:') return window.location.host || 'a web address';
-    return 'this page';
-  })();
   pane.appendChild(el('p', { class: 'set-lead' }, [
-    'This page was loaded from ', el('b', {}, [where]),
-    '. That was the only thing that came over the network. Everything you type from here on stays on this machine.',
+    'Everything in this tool is unclassified. Nothing protected or classified belongs in it, ',
+    'which is what keeps the rest of this simple.',
   ]));
 
   pane.appendChild(setRow(
-    'It cannot send anything anywhere',
-    "The page declares default-src 'none'; connect-src 'none', a browser rule that blocks every outbound request. The browser enforces it. View source and search for it.",
+    'Unclassified only',
+    'Not the answers and not the evidence. Point at where an artefact already lives and make sure your assessor can open it. Where something cannot be linked because of its marking, send it to your assessor by email and record here that you did, with its marking and the subject line.',
     null,
   ));
   pane.appendChild(setRow(
-    'Your answers are held in two places',
-    `A draft kept by this browser on this machine, holding ${answeredCount(assessment)} answers, and the file you choose to save.`,
+    'This browser keeps your work as you type',
+    `Every browser keeps a small private store on disk for each site it visits. This page writes the whole assessment there as you type, so closing the tab or reloading is safe. It is holding ${answeredCount(assessment)} answers now. That store belongs to one browser on one machine, and clearing your browsing data clears it.`,
     null,
   ));
   pane.appendChild(setRow(
-    'Reloading does not lose anything',
-    'Every browser keeps a small private store on disk for each site it visits. This page writes the whole assessment there as you type and reads it back when you return, so closing the tab or restarting the machine is safe. That store belongs to one browser on one machine, so it does not follow you elsewhere, and clearing your browsing data clears it.',
+    'Submitting is one deliberate act',
+    'Nothing is sent while you are filling this in. You submit when you are finished, and the tool tells you what is about to go before it goes.',
     null,
   ));
   pane.appendChild(setRow(
-    'Work at your own classification',
-    'Open your own material beside this page. Attaching a file copies it into the assessment you save, and nowhere else.',
+    'Nothing is recalled once submitted',
+    'A submitted assessment is not deleted. It can be withdrawn and left out of the statistics, which is a different thing. A copy may already exist in a backup or in somebody else\'s download, so nothing here claims to erase it.',
     null,
   ));
 }
