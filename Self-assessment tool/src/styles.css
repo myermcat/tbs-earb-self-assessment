@@ -681,6 +681,10 @@ details[open] > .section-summary::before { transform: rotate(90deg); }
 .step.red-flag { border-color: color-mix(in srgb, var(--bad) 45%, var(--line)); }
 .step.red-flag .step-label::after { content: ' !'; color: var(--bad); font-weight: 800; }
 .step.red-flag .step-bar i { background: var(--bad); }
+/* A portfolio row where somebody answered no. A border on a <tr> does not paint, so the tint
+   goes on the cells. */
+tr.red-flag td { background: var(--bad-bg); }
+tr.red-flag td:first-child { box-shadow: inset 2px 0 0 var(--bad); }
 
 /* the 0-10 selector, in Dan's colours */
 .score-line { display: flex; gap: .5rem; flex-wrap: wrap; align-items: center; margin: .5rem 0 .35rem; }
