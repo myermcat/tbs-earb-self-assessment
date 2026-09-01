@@ -641,6 +641,8 @@ details[open] > .section-summary::before { transform: rotate(90deg); }
 .question.unanswered::before { background: repeating-linear-gradient(
   180deg, var(--line-2) 0 4px, transparent 4px 8px); }
 .question.na .q-ans, .question.na .evidence { opacity: .5; }
+/* The scale explains a score, and a question that does not apply has none. */
+.question.na .ladder-box { display: none; }
 .question.na::before { background: var(--line-2); }
 .q-head { display: flex; gap: .5rem; align-items: baseline; flex-wrap: wrap; margin-bottom: .2rem; }
 .qid { font-family: var(--mono); font-size: .7rem; color: var(--ink-3);
@@ -848,6 +850,18 @@ code.mark-subject { display: block; margin: .25rem 0; }
 .footer-score { display: flex; align-items: center; gap: .6rem; flex-wrap: wrap; }
 /* Where the work is kept. It sits in the chrome, so every screen carries it, and it never
    disappears on a narrow screen: the wording shortens instead. */
+/* The question-set library. One row per set, the one in use marked. */
+.set-h2 { font-size: 1rem; margin: 1.4rem 0 .2rem; display: flex; gap: .4rem; align-items: baseline; }
+.set-list { display: flex; flex-direction: column; gap: .4rem; margin: .6rem 0 .8rem; }
+.set-list-row { display: flex; gap: .8rem; align-items: flex-start; justify-content: space-between;
+  background: var(--surface); border: 1px solid var(--line); border-radius: 10px;
+  padding: .6rem .75rem; }
+.set-list-row.on { border-color: var(--accent-line); background: var(--accent-soft); }
+.set-list-row p { margin: .15rem 0 0; }
+.set-list-act { display: flex; gap: .35rem; align-items: center; flex: none; }
+.danger-text { color: var(--bad); }
+.danger-text[disabled] { color: var(--ink-3); }
+
 .ev-subject { margin: .35rem 0 .1rem; }
 .ev-subject-row { display: flex; align-items: center; gap: .4rem; flex-wrap: wrap; }
 .ev-subject code { background: var(--surface-2); border: 1px solid var(--line);

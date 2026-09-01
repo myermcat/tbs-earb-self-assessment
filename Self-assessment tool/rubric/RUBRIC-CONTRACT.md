@@ -81,7 +81,7 @@ silently breaks comparison with everything already exported.
 every run and refuses to let an id quietly point at a different question:
 
 ```
-- Question TE-Q7 now means something different.
+- Question T-Q7 now means something different.
       was: "Is there a clear inventory of all infrastructure components, including"
       now: "Something completely different about hats"
       Ids are column names in every CSV already exported. Add a new question rather than

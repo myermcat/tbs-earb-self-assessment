@@ -5,9 +5,11 @@ import { goToFirstGap, renderSubmit, resetOverviewToFirstGap, setRepaint, setSto
 import { renderResults } from './views-results';
 import { openedThisSession, renderReview, setAuditor } from './views-review';
 import { renderDashboard } from './views-dashboard';
+import { addToLibrary, currentId, currentRubric, libraryList, removeFromLibrary, setCurrentId } from './library';
+import { confirmStep } from './confirm';
 import { saveBadge } from './save-badge';
-import { answeredCount, APP_VERSION, blankAssessment, clearDraft, hasWork, lastSaveInfo,
-  loadDraft, readJsonFiles, saveAssessmentFile } from './storage';
+import { answeredCount, APP_VERSION, blankAssessment, clearDraft, download, hasWork, lastSaveInfo,
+  loadDraft, readJsonFiles, saveAssessmentFile, slug } from './storage';
 import { bannerFor, evidenceNote } from './marking';
 import BUILTIN from '../rubric/rubric.v1-dan.json';
 
@@ -42,7 +44,8 @@ function bootSide(): Side {
   return 'submit';
 }
 
-let rubric: Rubric = BUILTIN as unknown as Rubric;
+// The set in use is remembered, so a reload does not silently go back to the built-in one.
+let rubric: Rubric = currentRubric(BUILTIN as unknown as Rubric);
 let assessment: Assessment = loadDraft() ?? blankAssessment(rubric);
 let side: Side = bootSide();
 let mode: Mode = side === 'assess' ? 'review' : 'home';
@@ -518,7 +521,7 @@ function paneQuestions(pane: HTMLElement) {
    * through the same confirmation as a discard.
    */
   const picker = el('label', { class: 'filelabel caution' }, [
-    'Load a question set',
+    'Add a question set',
     el('input', {
       type: 'file', accept: '.json', hidden: true,
       onchange: async (e: Event) => {
@@ -530,7 +533,13 @@ function paneQuestions(pane: HTMLElement) {
         const v = validate(item.data);
         if (!v.ok) { alert(`That question set will not load:\n\n- ${v.problems.join('\n- ')}`); return; }
 
+        const added = addToLibrary(v.rubric, new Date().toISOString());
+        if (!added.ok) { alert(added.problem); return; }
+
+        // A new set becomes the one in use, which is what somebody adding one wants. The set
+        // it replaces stays in the library.
         const swap = () => {
+          setCurrentId(added.id);
           rubric = v.rubric;
           assessment = blankAssessment(rubric);
           resetOverviewToFirstGap(rubric, assessment);
@@ -541,10 +550,10 @@ function paneQuestions(pane: HTMLElement) {
 
         confirmDestructive({
           tier: 'caution',
-          title: `Replace the question set and clear ${answeredCount(assessment)} answers?`,
-          body: 'A different question set is a different assessment. The answers you have given cannot be carried across to it.',
-          saveLabel: 'Save a file, then replace',
-          commitLabel: 'Replace anyway',
+          title: `Use the new question set and clear ${answeredCount(assessment)} answers?`,
+          body: 'A different question set is a different assessment. The answers you have given cannot be carried across to it. The set is in your library either way.',
+          saveLabel: 'Save a file, then switch',
+          commitLabel: 'Switch anyway',
           cancelLabel: 'Keep my answers',
           onCommit: swap,
         });
@@ -552,20 +561,110 @@ function paneQuestions(pane: HTMLElement) {
     }),
   ]);
 
-  if (side === 'assess') {
+  if (side !== 'assess') {
     pane.appendChild(setRow(
-      'Replace the question set',
-      'The questions, weights and scale live in one JSON file. Loading another replaces the whole assessment, and the answers you have given cannot be carried across.',
-      picker,
-      { tier: 'caution', badge: 'Clears your answers' },
-    ));
-  } else {
-    pane.appendChild(setRow(
-      'Replacing the question set',
-      'Whoever maintains the instrument does this, on the assessor side. It is not offered here, because loading a different set clears every answer.',
+      'Changing the question set',
+      'Whoever maintains the instrument does this, on the assessor side. It is not offered here, because using a different set clears every answer.',
       null,
     ));
+    return;
   }
+
+  /**
+   * The library. Sets accumulate: the one in the build, plus every one that has been added.
+   * Switching clears answers, so it asks. Deleting asks as well, and offers the file back
+   * first, because a set somebody spent a morning building is not recoverable from here.
+   */
+  const lib = libraryList(BUILTIN as unknown as Rubric);
+  const cur = currentId();
+
+  const rows = el('div', { class: 'set-list' });
+  for (const entry of lib) {
+    const isCurrent = entry.id === cur;
+    const acts = el('div', { class: 'set-list-act' });
+
+    if (isCurrent) {
+      acts.appendChild(el('span', { class: 'badge' }, ['In use']));
+    } else {
+      acts.appendChild(el('button', {
+        class: 'ghost small',
+        onclick: () => {
+          const swap = () => {
+            setCurrentId(entry.id);
+            rubric = entry.rubric;
+            assessment = blankAssessment(rubric);
+            resetOverviewToFirstGap(rubric, assessment);
+            go('settings');
+          };
+          if (!hasWork(assessment)) { swap(); return; }
+          confirmDestructive({
+            tier: 'caution',
+            title: `Switch to this set and clear ${answeredCount(assessment)} answers?`,
+            body: 'Answers belong to the set they were given against, so they cannot be carried across.',
+            saveLabel: 'Save a file, then switch',
+            commitLabel: 'Switch anyway',
+            cancelLabel: 'Keep my answers',
+            onCommit: swap,
+          });
+        },
+      }, ['Use this one']));
+    }
+
+    const why = entry.builtIn
+      ? 'This set is built into the page, so it cannot be deleted.'
+      : isCurrent
+        ? 'This is the set in use. Switch to another one first.'
+        : 'Delete this set';
+    acts.appendChild(el('button', {
+      class: 'ghost small danger-text',
+      disabled: !!entry.builtIn || isCurrent,
+      title: why,
+      onclick: () => {
+        confirmStep({
+          tier: 'danger',
+          title: `Delete "${entry.rubric.title}" ${entry.rubric.version}?`,
+          body: 'This removes the question set from this browser. No answers are touched, and nothing else in the tool changes.',
+          stake: 'Nobody can get it back from here. If this is the only copy, take the file first.',
+          offer: {
+            label: 'Download the set, then delete',
+            run: () => {
+              const name = `${slug(entry.rubric.title)}-${entry.rubric.version}.json`;
+              download(name, JSON.stringify(entry.rubric, null, 2));
+              return `Saving as ${name}. Check your Downloads folder.`;
+            },
+          },
+          commitLabel: 'Delete permanently',
+          cancelLabel: 'Keep it',
+          onCommit: () => { removeFromLibrary(entry.id); go('settings'); },
+        });
+      },
+    }, ['Delete']));
+
+    rows.appendChild(el('div', { class: `set-list-row ${isCurrent ? 'on' : ''}` }, [
+      el('div', {}, [
+        el('div', { class: 'set-row-title' }, [
+          entry.rubric.title,
+          el('span', { class: 'mono small muted' }, [` ${entry.rubric.version}`]),
+          entry.builtIn ? el('span', { class: 'badge' }, ['Built in']) : null,
+        ]),
+        el('p', { class: 'small muted' }, [
+          `${questionCount(entry.rubric)} questions, ${entry.rubric.status}`,
+          entry.addedAt ? `. Added ${new Date(entry.addedAt).toLocaleDateString()}` : '',
+        ]),
+      ]),
+      acts,
+    ]));
+  }
+
+  pane.appendChild(el('h2', { class: 'set-h2' }, [
+    'Question sets in this browser',
+    el('span', { class: 'muted small' }, [` ${lib.length}`]),
+  ]));
+  pane.appendChild(el('p', { class: 'small muted' }, [
+    'Adding a set keeps the old ones. The one in use decides what everybody answers.',
+  ]));
+  pane.appendChild(rows);
+  pane.appendChild(el('div', { class: 'actions' }, [picker]));
 }
 
 function paneAnswers(pane: HTMLElement) {
