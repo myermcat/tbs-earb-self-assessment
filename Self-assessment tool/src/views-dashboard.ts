@@ -42,11 +42,13 @@ function paint(root: HTMLElement, rubric: Rubric, records: StoredRecord[]): void
   const avg = scored.length
     ? scored.reduce((n, row) => n + (row.r.overall as number), 0) / scored.length
     : null;
-  // The board-referral line: the lowest band that is not a pass. Its number is the one Dan
-  // has given three different answers about, so it is labelled provisional wherever it shows.
-  const gate = [...rubric.bands].sort((x, y) => x.min - y.min).find((b) => b.tone !== 'good');
+  // The board-referral line: the floor of the band above the worst one, so "below it" means
+  // the assessment lands in the band that says come and explain. Dan has given three
+  // different numbers for this, so it is labelled provisional wherever it shows.
+  const ladder = [...rubric.bands].sort((x, y) => x.min - y.min);
+  const gate = ladder[1] ?? null;
   const threshold = gate ? gate.min : null;
-  const provisional = gate?.source === 'interpolated';
+  const provisional = gate?.source === 'interpolated' || ladder[0]?.source === 'interpolated';
   const below = threshold === null ? null
     : scored.filter((row) => (row.r.overall as number) < threshold).length;
 
@@ -66,7 +68,7 @@ function paint(root: HTMLElement, rubric: Rubric, records: StoredRecord[]): void
     el('div', { class: 'kpi-row' }, [
       kpi(String(live.length), live.length === 1 ? 'record' : 'records'),
       kpi(avg === null ? '--' : avg.toFixed(1), 'average overall'),
-      kpi(below === null ? '--' : String(below), threshold === null ? 'below the threshold' : `below ${threshold}`),
+      kpi(below === null ? '--' : String(below), threshold === null ? 'below the threshold' : `below ${threshold}, for the board`),
       kpi(String(rows.reduce((n, row) => n + row.redFlags, 0)), 'answered no'),
       kpi(String(records.filter((rec) => rec.status === 'audited').length), 'audited'),
     ]),
