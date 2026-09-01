@@ -97,9 +97,10 @@ ok('the destructive pane is marked as dangerous in the rail itself',
 
 ok('settings shows the rubric version', view().includes('1.0-dan'));
 ok('settings surfaces the import warning about the Business weight gap', view().includes('80%'));
-ok('settings offers a different question set', !!byText('.filelabel', 'Load a question set'));
-ok('and warns that loading one clears the answers',
-   !!q('.set-row.caution') && view().includes('Clears your answers'));
+// Replacing the question set belongs to whoever maintains the instrument, so a submitter is
+// told where it lives and not handed the control.
+ok('a submitter is not offered the question-set loader', !byText('.filelabel', 'Load a question set'));
+ok('and is told who does it', view().includes('on the assessor side'));
 
 pane('Your answers');
 ok('settings says where the page was loaded from', view().includes('Where your answers go'));
@@ -261,7 +262,10 @@ for (const { d, sec } of SECTIONS) {
      !!q('.toc-sec.on') && q('.toc-sec.on').textContent.includes(sec.label));
 
   for (const qb of qa('.question')) {
-    [...qb.querySelectorAll('.score-btn')].find((b) => b.textContent === '7').click();
+    // Most questions are a 0-10 ladder; a handful are yes/no and carry two buttons instead.
+    const scale = [...qb.querySelectorAll('.score-btn')].find((b) => b.textContent === '7');
+    const yes = [...qb.querySelectorAll('.yn-btn')].find((b) => b.textContent.startsWith('Yes'));
+    (scale ?? yes).click();
   }
   seen += sec.questions.length;
 }
@@ -282,9 +286,13 @@ ok('the rail shows every section of the current domain as done',
      bars.map((b) => b.querySelector('.progress-shell i').style.width).join(' '));
   ok('a finished section is marked done on its bar', !!q('.progress-shell i.done'));
 }
-ok('footer shows 7.0 once everything is a 7', q('.footer-score .pill').textContent.trim() === '7.0',
-   q('.footer-score .pill').textContent);
-ok("footer shows Dan's maturity label for 7.0", q('.footer-score .muted').textContent.includes('Advanced'),
+// Every scale question got a 7 and every yes/no question got a Yes, which scores the top of
+// the scale, so the overall sits a little above 7.
+ok('footer reflects the sweep: a shade over 7', (() => {
+  const v = Number(q('.footer-score .pill').textContent.trim());
+  return v >= 7 && v < 7.5;
+})(), q('.footer-score .pill').textContent);
+ok("footer shows Dan's maturity label for that score", q('.footer-score .muted').textContent.includes('Advanced'),
    q('.footer-score .muted').textContent);
 ok('footer counts every answer', q('.footer-score .muted').textContent.includes(`${TOTAL} of ${TOTAL}`),
    q('.footer-score .muted').textContent);
@@ -335,6 +343,7 @@ ok('and the indicator is a live region', q('.save-state')?.getAttribute('role') 
   // Change an already-answered question to a different score, counting what it touches.
   const target = qa('.question')[1];
   const before = footerCount();
+  const scoreBefore = q('.footer-score .pill').textContent.trim();
   const app = document.getElementById('app');
   const pageSize = app.querySelectorAll('*').length;
 
@@ -364,8 +373,8 @@ ok('and the indicator is a live region', q('.save-state')?.getAttribute('role') 
   ok('focus survives a score click on another question', document.activeElement === probeTextarea);
   ok('changing an answered question to a different score does not move the count',
      footerCount() === before, `${before} -> ${footerCount()}`);
-  ok('but the score itself does move',
-     footerText().includes('Baseline Ready'), footerText());
+  ok('but the score itself does move', !footerText().includes(scoreBefore),
+     `${scoreBefore} -> ${footerText()}`);
 
   // Readouts must agree with each other after the change.
   ok('the footer still counts every answer', footerCount().includes(`${TOTAL} of ${TOTAL}`), footerCount());
@@ -628,7 +637,20 @@ ok('a fully answered assessment gets a routing suggestion',
    !view().includes('No routing suggestion yet'));
 
 ok('routing is stated as a suggestion', view().includes('does not decide it'));
-ok('four domain bars rendered', qa('.bar-row').length === 4, String(qa('.bar-row').length));
+{
+  // Four domains, then the same answers cut by subject. Both are bar rows, so scope the count.
+  const cards = qa('section.card');
+  const domainCard = cards.find((c) => c.querySelector('h2')?.textContent === 'By architecture domain');
+  const topicCard = cards.find((c) => c.querySelector('h2')?.textContent === 'Across the domains');
+  ok('four domain bars rendered', domainCard.querySelectorAll('.bar-row').length === 4,
+     String(domainCard.querySelectorAll('.bar-row').length));
+  ok('and the cross-cutting topics are shown separately, with a provisional label',
+     !!topicCard && topicCard.querySelectorAll('.bar-row').length > 0 &&
+     topicCard.textContent.includes('provisional'),
+     String(topicCard?.querySelectorAll('.bar-row').length));
+  ok('the topic block says the numbers do not add up to the overall',
+     topicCard.textContent.includes('do not add up to the overall'));
+}
 // The results are read one screen at a time, so the scroll stops on each part.
 ok('the results page is its own scroll container',
    document.getElementById('app').className.includes('app-results'));
@@ -645,7 +667,8 @@ ok('with a fallback for short viewports and reduced motion',
    /prefers-reduced-motion[^{]*\{[\s\S]{0,300}scroll-snap-type:\s*none/.test(html));
 ok('backlog section present', view().includes('weakest five'));
 ok('assessor questions previewed to the submitter', view().includes('What an assessor will probably ask'));
-ok('the no-evidence 9 is flagged', view().includes('High score, nothing cited'));
+// One card when it is rare, one aggregate line when it is not; the sweep makes it common.
+ok('the no-evidence 9 is flagged', view().includes('nothing cited'));
 ok('the file marking reaches the results page', view().includes('PROTECTED B'));
 ok('the copy does not appeal to an unnamed "us"',
    !view().includes('for us.') && !view().includes('Talk us through'));
@@ -722,13 +745,7 @@ ok('the assessor side announces itself', !!q('.side-badge'), q('.brand')?.textCo
 ok("the assessor's path is Submissions then Admin",
    qa('nav.path .tab').map((t) => t.textContent).join('|') === 'Submissions|Admin',
    qa('nav.path .tab').map((t) => t.textContent).join('|'));
-{
-  byText('.tab', 'Admin').click();
-  ok('the admin view exists and is labelled a placeholder',
-     view().includes('Admin') && view().includes('Placeholder'));
-  ok('and it says nothing there is built', view().includes('Nothing here is built'));
-  byText('.tab', 'Submissions').click();
-}
+ok('the assessor path offers an admin view', !!byText('.tab', 'Admin'));
 ok('the submitter path is gone from the assessor view',
    !qa('nav.path .tab').some((t) => /Start|Fill it in|My results/.test(t.textContent)));
 ok('and there is a way back', !!byText('button', 'Leave assessor view'));
@@ -752,6 +769,14 @@ ok('the real route is shown but not wired',
      q('.side-badge')?.textContent);
 }
 ok('reviewer dropzone rendered', view().includes('Load submissions'));
+{
+  // ...and the assessor does get it.
+  q('.icon-btn[aria-label="Settings"]').click();
+  ok('the assessor is offered the question-set loader', !!byText('.filelabel', 'Load a question set'));
+  ok('with the warning that it clears the answers',
+     !!q('.set-row.caution') && view().includes('Clears your answers'));
+  byText('.tab', 'Submissions').click();
+}
 
 const fileInput = q('.dropzone input[type=file]');
 Object.defineProperty(fileInput, 'files', {
@@ -775,10 +800,12 @@ ok('assessor sees the evidence reference and its classification',
 // the rest. This is the whole point of the reviewer side.
 {
   const flaggedRows = qa('.audit-row.flagged').length;
-  const allRows = qa('.audit-row').length;
+  // A question can belong to two findings and appear under both, so count questions, not rows.
+  const allQids = new Set(qa('.audit-row .qid').map((n) => n.textContent));
   ok('flagged questions are surfaced on their own', flaggedRows > 0, String(flaggedRows));
-  ok('the flagged set is a small fraction of 176', flaggedRows < 20, String(flaggedRows));
-  ok('everything else is present but folded away', allRows === TOTAL, `${allRows} vs ${TOTAL}`);
+  ok('the flagged set is a small fraction of 176', flaggedRows < 40, String(flaggedRows));
+  ok('every question is on the page, the unflagged ones folded away',
+     allQids.size === TOTAL, `${allQids.size} vs ${TOTAL}`);
   ok('the fold says how many are behind it', view().includes('nothing flagged'));
   ok('a KPI row summarises the submission', qa('.kpi').length === 5, String(qa('.kpi').length));
 }
@@ -795,13 +822,13 @@ ok('the marking is shown as handling information, not as an anomaly',
      opened.length === 1 && String(opened[0]).startsWith('blob:'), String(opened[0]));
 }
 
-const nameField = q('input.reviewer-name');
-nameField.value = 'Allison';
-fire(nameField, 'input');
+ok('the audit is attributed to whoever signed in, and says it is unverified',
+   view().includes('Auditing as') && view().includes('unverified'));
 
 // Re-score one specific question so the delta is checkable.
 const targetQid = rubric.domains[0].sections[0].questions[0].id;
-const targetRow = q(`.audit-row[data-qid="${targetQid}"]`);
+const rowOf = (qid) => q(`.audit-row[data-qid="${qid}"]`);
+const targetRow = rowOf(targetQid);
 ok('every question is addressable by its rubric id', !!targetRow, targetQid);
 const targetInput = targetRow.querySelector('.audit-controls input[type=number]');
 targetInput.value = '4';
@@ -811,12 +838,62 @@ ok('changing a score marks that line as changed',
    !!q(`.audit-row.changed[data-qid="${targetQid}"]`));
 ok('the change is summarised for the assessor', view().includes('What you changed'));
 ok('the delta is shown with direction', view().includes('They said 7, you scored 4'));
+
+// A changed number has to be justified, and until it is, the file cannot be saved.
+ok('saving is blocked while a changed score has no reason',
+   !byText('button', 'Save the audited file') && view().includes('need a reason'));
+{
+  // The view repaints on a score change, so the row has to be looked up again.
+  const noteField = rowOf(targetQid).querySelector('.audit-controls input[type=text]');
+  ok('the missing reason is marked on the field itself', noteField.classList.contains('needs-marking'));
+  noteField.value = 'Their evidence covers one region, not the estate.';
+  fire(noteField, 'input');
+  fire(noteField, 'change');
+}
+ok('with a reason, saving is offered again', !!byText('button', 'Save the audited file'));
+
+// The exchange: it says it was edited, and by whom, before anyone opens anything.
+{
+  const ex = rowOf(targetQid).querySelector('.exchange summary');
+  ok('the line shows that it was edited and who by',
+     !!ex && ex.textContent.includes('Edited') && ex.textContent.includes('Allison'),
+     ex?.textContent);
+}
+
 byText('button', 'Save the audited file').click();
 const audited = JSON.parse(await text(saved[saved.length - 1]));
 ok('audited file records the reviewer', audited.audit.reviewer === 'Allison', String(audited.audit?.reviewer));
+{
+  const h = audited.audit.perQuestion[targetQid].history ?? [];
+  ok('the file keeps the whole exchange, with names, times and reasons',
+     h.length === 1 && h[0].by === 'Allison' && !!h[0].at && h[0].note.includes('one region') &&
+     h[0].unverified === true,
+     JSON.stringify(h));
+}
 ok('audited file keeps the self-score alongside the audited one',
    audited.answers[targetQid].score === 7 && audited.audit.perQuestion[targetQid].auditedScore === 4,
    `${audited.answers[targetQid].score} / ${audited.audit.perQuestion[targetQid].auditedScore}`);
+
+{
+  // The admin view is the portfolio dashboard. It reads the records asynchronously, because
+  // the same call becomes one request the day a store exists.
+  byText('.tab', 'Admin').click();
+  await new Promise((r) => setTimeout(r, 0));
+  ok('the admin view is a portfolio dashboard', view().includes('Portfolio'));
+  ok('it admits nothing is hosted yet', view().includes('Not hosted yet'));
+  ok('and says exactly what it can see', view().includes('Showing:'));
+  ok('and says the submission opened this session is what it is reading',
+     view().includes('opened this session'));
+  ok('with a roll-up per domain and per topic',
+     view().includes('Average by domain') && view().includes('Average across the domains'));
+  ok('the records are listed weakest first, in one table',
+     view().includes('Every record, weakest first') && qa('table.detail tbody tr').length > 0,
+     String(qa('table.detail tbody tr').length));
+  ok('nothing about the roll-up is stored, so it cannot go stale',
+     !view().includes('last calculated'));
+  ok('the admin-only actions are listed and marked unbuilt',
+     view().includes('Admin actions') && view().includes('Not built'));
+}
 
 console.log(fails === 0 ? '\nall UI checks passed' : `\n${fails} FAILED`);
 process.exit(fails === 0 ? 0 : 1);

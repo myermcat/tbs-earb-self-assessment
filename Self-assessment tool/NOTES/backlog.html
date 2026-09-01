@@ -53,98 +53,47 @@ th,td{text-align:left;padding:.5rem .7rem;border-bottom:1px solid var(--line);ve
 th{font-size:.68rem;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-3)}
 .tw{overflow-x:auto;border:1px solid var(--line);border-radius:10px}
 footer{margin-top:3rem;color:var(--ink-3);font-size:.8rem}
+.done-layer{font-size:.66rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3)}
+.wait-row .t{font-weight:600}
+.done-card .leaf{opacity:.92}
 </style>
 <div class="wrap"><h1>EARB self-assessment: backlog</h1>
-<p class="sub">Layers are the spine, the three views sit inside the interface layer, and every item appears once. Groups open and close. Updated 2026-09-01.</p>
+<p class="sub">Layers are the spine, the three views sit inside the interface layer, and every item appears once. Finished work moves to Done at the bottom and stays there. Groups open and close. Updated 2026-09-01.</p>
 <div class="kpis">
-<div class="kpi"><b>10</b><span>quick actions</span></div>
-<div class="kpi"><b>30</b><span>next</span></div>
-<div class="kpi"><b>2</b><span>waiting</span></div>
-<div class="kpi"><b>8</b><span>resolved</span></div>
-<div class="kpi"><b>6</b><span>open questions</span></div>
+<div class="kpi"><b>13</b><span>next</span></div>
+<div class="kpi"><b>14</b><span>waiting on somebody</span></div>
+<div class="kpi"><b>12</b><span>later</span></div>
+<div class="kpi"><b>27</b><span>done</span></div>
+<div class="kpi"><b>9</b><span>open questions</span></div>
 </div>
-<h2>Quick actions</h2><p class="hint">No discussion needed.</p>
-<div class="card quick">
-<div class="leaf solo">
-<span class="t">Reply to Nick: transfer, not fresh</span><span class="st st-next">Next</span>
-<span class="w">He asked which. 28 commits of history, all authored by you, plus the id lock file whose value is entirely historical.</span>
-</div>
-<div class="leaf solo">
-<span class="t">Rail's Overview row shows a count and a bar</span><span class="st st-done">Done</span>
-<span class="w">Every other rail row had both; Overview had neither, which reads as a row stuck at zero.</span>
-</div>
-<div class="leaf solo">
-<span class="t">Overview bar moves on the first keystroke</span><span class="st st-done">Done</span>
-<span class="w">It counted the three groups, and group one needs four fields. It now measures the six fields while the count still reads in groups.</span>
-</div>
-<div class="leaf solo">
-<span class="t">README and Settings stop describing a local-only tool</span><span class="st st-done">Done</span>
-<span class="w">Both said the tool cannot transmit and the repo is private. Neither was true.</span>
-</div>
-<div class="leaf solo">
-<span class="t">Admin view placeholder, under Submissions</span><span class="st st-done">Done</span>
-<span class="w">The role is in the plan and undecided, so the page says so.</span>
-</div>
-<details class="grp" open><summary class="row">
-<span class="t">Save status indicator</span><span class="st st-next">Next</span>
-<span class="w">Three states so nobody wonders whether their work is safe.</span>
-</summary><div class="subs">
-<div class="leaf">
-<span class="t">Draft saved in browser</span><span class="st st-next">Next</span>
-<span class="w">Before the first submit, nothing is online and the tool should say which.</span>
-</div>
-<div class="leaf">
-<span class="t">Saving, with a spinner</span><span class="st st-next">Next</span>
-<span class="w">While a write is in flight.</span>
-</div>
-<div class="leaf">
-<span class="t">Not saved, with a reason</span><span class="st st-next">Next</span>
-<span class="w">Offline, or the write failed. Never silent.</span>
-</div>
-</div></details>
-<details class="grp" open><summary class="row">
-<span class="t">Evidence field asks for a link</span><span class="st st-next">Next</span>
-<span class="w">Everything in the tool is unclassified, so evidence points at where the artefact already lives.</span>
-</summary><div class="subs">
-<div class="leaf">
-<span class="t">Link first</span><span class="st st-next">Next</span>
-<span class="w">The normal case. Make sure your assessor can open it.</span>
-</div>
-<div class="leaf">
-<span class="t">Or by email, recorded here</span><span class="st st-next">Next</span>
-<span class="w">For an artefact that cannot be linked. Pattern: marking, sent by email, subject.</span>
-</div>
-</div></details>
-<div class="leaf solo">
-<span class="t">Classified picker explains what to do instead</span><span class="st st-next">Next</span>
-<span class="w">Picking anything above unclassified opens a panel with the email pattern and an acknowledgement toggle.</span>
-</div>
-<div class="leaf solo">
-<span class="t">Show-stopper colours its section red</span><span class="st st-next">Next</span>
-<span class="w">Not a stop. Red in the middle of the page, in its rail row, and on its domain tab.</span>
-</div>
-<div class="leaf solo">
-<span class="t">Mockup verification screen</span><span class="st st-next">Next</span>
-<span class="w">Agree the shape before anyone builds auth. Labelled a mockup, everything unverified.</span>
-</div>
-</div>
+<h2>Waiting on somebody</h2><p class="hint">Chased, and not ours to finish. Each of these is also in its layer below.</p>
+<div class="tw"><table><thead><tr><th>Item</th><th>Who</th><th>Layer</th><th>Meanwhile</th></tr></thead><tbody>
+<tr><td>Confirm the answer type for every question</td><td>Dan</td><td>Question set</td><td>Ten are yes/no on our reading of the wording. The other 166 are scored 0 to 10.</td></tr>
+<tr><td>Confirm which no answers matter most</td><td>Dan</td><td>Question set</td><td>Every no colours its section red today. If some should not, that is his call.</td></tr>
+<tr><td>Set per-question criticality</td><td>Dan</td><td>Question set</td><td>Separate from section weight, and nothing in his workbook carries it.</td></tr>
+<tr><td>Fix the section weights that total 80</td><td>Dan</td><td>Question set</td><td>His error, confirmed in his own words. The tool shares the missing 20 proportionally and shows the normalised share.</td></tr>
+<tr><td>Bring in the dropdown answers</td><td>Dan</td><td>Question set</td><td>No picklists exist. Needs the 700 or more past assessments, which only he can hand over.</td></tr>
+<tr><td>Real sign-in</td><td>Dan</td><td>Interface: the assessor</td><td>Blocked on how identity gets checked at all, which is his answer to give.</td></tr>
+<tr><td>Nick’s answer on who performs the transfer</td><td>Nick</td><td>Data and hosting</td><td>Open an issue on canada-ca/welcome is the route he named. Whether he moves it or you do is the part still unanswered.</td></tr>
+<tr><td>Decide the triggers</td><td>Dan</td><td>Data and hosting</td><td>Submission, assignment, a changed score and a reminder are four different decisions.</td></tr>
+</tbody></table></div>
 <h2>Question set <span class="owner">Dan</span></h2>
 <div class="card">
 <details class="grp" open><summary class="row">
-<span class="t">Answer types and criticality</span><span class="st st-next">Next</span>
-<span class="w">The shape of the questions, which Dan called the biggest remaining piece.</span>
+<span class="t">Answer types and criticality</span><span class="st st-wait">Waiting</span>
+<span class="w">The shape of the questions, which Dan called the biggest remaining piece. Our reading is in the tool and labelled provisional.</span>
 </summary><div class="subs">
 <div class="leaf">
-<span class="t">Decide the answer type for every question</span><span class="st st-next">Next</span>
-<span class="w">Binary questions are scored 0 to 10 today.</span>
+<span class="t">Confirm the answer type for every question</span><span class="st st-wait">Waiting</span>
+<span class="w">Ten are yes/no on our reading of the wording. The other 166 are scored 0 to 10.</span>
 </div>
 <div class="leaf">
-<span class="t">Mark the show stoppers</span><span class="st st-next">Next</span>
-<span class="w">A no turns its section red.</span>
+<span class="t">Confirm which no answers matter most</span><span class="st st-wait">Waiting</span>
+<span class="w">Every no colours its section red today. If some should not, that is his call.</span>
 </div>
 <div class="leaf">
-<span class="t">Set per-question criticality</span><span class="st st-next">Next</span>
-<span class="w">Normal, red flag, show stopper. Separate from section weight.</span>
+<span class="t">Set per-question criticality</span><span class="st st-wait">Waiting</span>
+<span class="w">Separate from section weight, and nothing in his workbook carries it.</span>
 </div>
 </div></details>
 <details class="grp" open><summary class="row">
@@ -153,44 +102,23 @@ footer{margin-top:3rem;color:var(--ink-3);font-size:.8rem}
 </summary><div class="subs">
 <div class="leaf">
 <span class="t">Fix the section weights that total 80</span><span class="st st-wait">Waiting</span>
-<span class="w">His error, confirmed in his own words.</span>
+<span class="w">His error, confirmed in his own words. The tool shares the missing 20 proportionally and shows the normalised share.</span>
 </div>
 <div class="leaf">
 <span class="t">Add security and privacy questions</span><span class="st st-later">Later</span>
-<span class="w">Neither is represented. A security review is already asking.</span>
+<span class="w">Neither is represented. A security review is already asking. The topic view makes the gap visible in the meantime.</span>
 </div>
 <div class="leaf">
 <span class="t">Bring in the dropdown answers</span><span class="st st-wait">Waiting</span>
-<span class="w">No picklists exist. Needs the 700 or more past assessments.</span>
+<span class="w">No picklists exist. Needs the 700 or more past assessments, which only he can hand over.</span>
 </div>
 </div></details>
 </div>
 <h2>Engine <span class="owner">us</span></h2>
 <div class="card">
 <details class="grp" open><summary class="row">
-<span class="t">Question mechanics</span><span class="st st-next">Next</span>
-<span class="w">What the instrument can carry.</span>
-</summary><div class="subs">
-<div class="leaf">
-<span class="t">Multiple answer types</span><span class="st st-next">Next</span>
-<span class="w">A type field with scale as the default, so nothing existing breaks.</span>
-</div>
-<div class="leaf">
-<span class="t">Show-stopper handling</span><span class="st st-next">Next</span>
-<span class="w">Colours the section, does not stop the run.</span>
-</div>
-<div class="leaf">
-<span class="t">Topic metadata and per-topic roll-up</span><span class="st st-next">Next</span>
-<span class="w">Security, privacy and finance visible without a fifth silo.</span>
-</div>
-<div class="leaf">
-<span class="t">Two-topic scoring</span><span class="st st-next">Next</span>
-<span class="w">Once in the overall, at full weight inside each topic.</span>
-</div>
-</div></details>
-<details class="grp" open><summary class="row">
 <span class="t">Storage and concurrency</span><span class="st st-next">Next</span>
-<span class="w">Everything is unclassified, so it can all live online.</span>
+<span class="w">Everything is unclassified, so it can all live online. The seam is written; the store is not.</span>
 </summary><div class="subs">
 <div class="leaf">
 <span class="t">One deliberate first submit</span><span class="st st-next">Next</span>
@@ -205,113 +133,53 @@ footer{margin-top:3rem;color:var(--ink-3);font-size:.8rem}
 <span class="w">Not locking. Two people in different questions never collide.</span>
 </div>
 <div class="leaf">
-<span class="t">Submitter answers and assessor scores are separate fields</span><span class="st st-next">Next</span>
-<span class="w">Which is why user and assessor cannot collide at all.</span>
+<span class="t">Tell the other person it changed under them</span><span class="st st-next">Next</span>
+<span class="w">The audit trail already keeps both accounts. What is missing is the live signal while somebody is looking at the line.</span>
 </div>
 </div></details>
 </div>
 <h2>Interface: the submitter <span class="owner">us</span></h2>
 <div class="card">
 <details class="grp" open><summary class="row">
-<span class="t">Evidence</span><span class="st st-next">Next</span>
-<span class="w">The change that follows from unclassified-only.</span>
-</summary><div class="subs">
-<div class="leaf">
-<span class="t">Ask for a link</span><span class="st st-next">Next</span>
-<span class="w">Point at where it lives. Make sure your assessor can open it.</span>
-</div>
-<div class="leaf">
-<span class="t">Email fallback, with a pattern</span><span class="st st-next">Next</span>
-<span class="w">Marking, sent by email, subject. So an assessor can find it.</span>
-</div>
-</div></details>
-<details class="grp" open><summary class="row">
 <span class="t">Marking</span><span class="st st-next">Next</span>
 <span class="w">Somebody still has to state the marking of what they point at.</span>
 </summary><div class="subs">
 <div class="leaf">
-<span class="t">One big unclassified tile, the six grouped behind it</span><span class="st st-next">Next</span>
-<span class="w">The default must not be taxed by the rare path.</span>
-</div>
-<div class="leaf">
-<span class="t">Classified panel with an acknowledgement toggle</span><span class="st st-next">Next</span>
-<span class="w">What to do instead, at the moment it is relevant.</span>
-</div>
-<div class="leaf">
 <span class="t">Collapse three pickers into one</span><span class="st st-next">Next</span>
-<span class="w">The footer's seven pills bypass the whole design.</span>
+<span class="w">The footer’s seven pills bypass the whole design.</span>
 </div>
 </div></details>
 <details class="grp" open><summary class="row">
 <span class="t">Submitting</span><span class="st st-next">Next</span>
+
 </summary><div class="subs">
 <div class="leaf">
 <span class="t">First-submit confirmation</span><span class="st st-next">Next</span>
 <span class="w">Names what is about to go online and asks them to confirm it is unclassified.</span>
-</div>
-<div class="leaf">
-<span class="t">Save status indicator</span><span class="st st-next">Next</span>
-<span class="w">Draft in browser, saving, or not saved with a reason.</span>
 </div>
 </div></details>
 </div>
 <h2>Interface: the assessor <span class="owner">us</span></h2>
 <div class="card">
 <details class="grp" open><summary class="row">
-<span class="t">Identity</span><span class="st st-next">Next</span>
-<span class="w">Their name against a number somebody disputes.</span>
+<span class="t">Identity</span><span class="st st-wait">Waiting</span>
+<span class="w">Their name goes against a number somebody may dispute.</span>
 </summary><div class="subs">
 <div class="leaf">
-<span class="t">Mockup verification screen</span><span class="st st-next">Next</span>
-<span class="w">Labelled a mockup. Everything unverified.</span>
-</div>
-<div class="leaf">
-<span class="t">Real sign-in</span><span class="st st-later">Later</span>
-<span class="w">Blocked on Dan.</span>
+<span class="t">Real sign-in</span><span class="st st-wait">Waiting</span>
+<span class="w">Blocked on how identity gets checked at all, which is his answer to give.</span>
 </div>
 </div></details>
-<details class="grp" open><summary class="row">
-<span class="t">Auditing rules Dan gave as rules</span><span class="st st-next">Next</span>
-</summary><div class="subs">
-<div class="leaf">
-<span class="t">Justification required on a changed score</span><span class="st st-next">Next</span>
-<span class="w">His rule.</span>
-</div>
-<div class="leaf">
-<span class="t">Accept-all per section</span><span class="st st-next">Next</span>
-<span class="w">He asked for it by name.</span>
-</div>
-<div class="leaf">
-<span class="t">Assessor recorded per question</span><span class="st st-next">Next</span>
-<span class="w">Two assessors on one high-profile file.</span>
-</div>
-<div class="leaf">
-<span class="t">The edit exchange, visible</span><span class="st st-next">Next</span>
-<span class="w">Default display: it was edited, and by whom. The full back and forth on request.</span>
-</div>
-<div class="leaf">
-<span class="t">Evidence read-only</span><span class="st st-next">Next</span>
-<span class="w">Already true. Needs a test so it stays true.</span>
-</div>
-</div></details>
-<div class="leaf solo">
-<span class="t">Load a question set moves here</span><span class="st st-next">Next</span>
-<span class="w">It belongs to whoever maintains the instrument.</span>
-</div>
 </div>
 <h2>Interface: admin <span class="owner">us</span></h2>
 <div class="card">
-<div class="leaf solo">
-<span class="t">The page exists and says what it is for</span><span class="st st-done">Done</span>
-<span class="w">Placeholder, labelled.</span>
-</div>
 <details class="grp" open><summary class="row">
-<span class="t">What it would hold</span><span class="st st-later">Later</span>
-<span class="w">Nobody has decided. Listed so the roles matrix is complete.</span>
+<span class="t">Admin-only actions</span><span class="st st-later">Later</span>
+<span class="w">Nobody has decided whether admin is a role. Listed so the roles matrix is complete.</span>
 </summary><div class="subs">
 <div class="leaf">
 <span class="t">Withdraw a record</span><span class="st st-later">Later</span>
-<span class="w">Excluded from statistics, never deleted.</span>
+<span class="w">Out of every statistic, still in the list. Nothing is deleted.</span>
 </div>
 <div class="leaf">
 <span class="t">Re-assign an assessor</span><span class="st st-later">Later</span>
@@ -323,24 +191,23 @@ footer{margin-top:3rem;color:var(--ink-3);font-size:.8rem}
 </div>
 </div></details>
 </div>
-<h2>Interface: the executive dashboard <span class="owner">us</span></h2>
+<h2>Interface: the executive view <span class="owner">us</span></h2>
 <div class="card">
-<div class="leaf solo">
-<span class="t">Live dashboard over the stored assessments</span><span class="st st-next">Next</span>
-<span class="w">All online, so it updates itself.</span>
-</div>
 <details class="grp" open><summary class="row">
-<span class="t">Dan's twelve-month questions</span><span class="st st-later">Later</span>
-<span class="w">The reason the data is worth capturing at all.</span>
+<span class="t">Dan’s twelve-month questions</span><span class="st st-later">Later</span>
+<span class="w">The reason the data is worth capturing at all. All of it needs more than one record to mean anything.</span>
 </summary><div class="subs">
 <div class="leaf">
 <span class="t">Per-question averages and histograms</span><span class="st st-later">Later</span>
+
 </div>
 <div class="leaf">
 <span class="t">Average by department</span><span class="st st-later">Later</span>
+
 </div>
 <div class="leaf">
 <span class="t">Best and worst evidence per question</span><span class="st st-later">Later</span>
+
 </div>
 </div></details>
 </div>
@@ -351,36 +218,45 @@ footer{margin-top:3rem;color:var(--ink-3);font-size:.8rem}
 <span class="w">Access is done. The repo is not.</span>
 </summary><div class="subs">
 <div class="leaf">
-<span class="t">Reply to Nick: transfer the existing repo</span><span class="st st-next">Next</span>
-<span class="w">28 commits of history, all yours.</span>
+<span class="t">Nick’s answer on who performs the transfer</span><span class="st st-wait">Waiting</span>
+<span class="w">Open an issue on canada-ca/welcome is the route he named. Whether he moves it or you do is the part still unanswered.</span>
 </div>
 <div class="leaf">
 <span class="t">Retire the separate preview repo</span><span class="st st-next">Next</span>
-<span class="w">Pages can come from the canada-ca repo.</span>
+<span class="w">Pages can come from the canada-ca repo once it exists.</span>
 </div>
 </div></details>
 <details class="grp" open><summary class="row">
 <span class="t">Where submissions land</span><span class="st st-next">Next</span>
-<span class="w">Dan asked us to figure it out, so here is the answer.</span>
+<span class="w">Dan asked us to figure it out. GitHub Pages serves static files and cannot accept a write, so something has to receive one.</span>
 </summary><div class="subs">
 <div class="leaf">
-<span class="t">Submissions as JSON files in the repo, written by an action</span><span class="st st-next">Next</span>
-<span class="w">Gives immutability and authorised writes only, which are Dan's two conditions, for free.</span>
+<span class="t">A write endpoint</span><span class="st st-next">Next</span>
+<span class="w">An Azure Function is the cheapest route: canada-ca/TBS-OCIO-ESP already builds through Azure Pipelines, so the account and the approval path exist.</span>
 </div>
 <div class="leaf">
-<span class="t">Dashboard reads those files at build time</span><span class="st st-next">Next</span>
-<span class="w">Self-updating with no server.</span>
+<span class="t">Open the CSP to exactly that origin</span><span class="st st-next">Next</span>
+<span class="w">One line in build.mjs. The page blocks every outbound request until then.</span>
 </div>
 <div class="leaf">
 <span class="t">Per-user auth</span><span class="st st-later">Later</span>
-<span class="w">The known limit of the above. Options are in the answer.</span>
+<span class="w">The known limit. Microsoft Entra is the obvious route, since departments already sign in with it.</span>
+</div>
+</div></details>
+<details class="grp" open><summary class="row">
+<span class="t">Notifications</span><span class="st st-wait">Waiting</span>
+<span class="w">GC Notify is the sanctioned service and is already in Dan’s own rubric at application question Q33. What triggers one is his decision and he has not made it.</span>
+</summary><div class="subs">
+<div class="leaf">
+<span class="t">Decide the triggers</span><span class="st st-wait">Waiting</span>
+<span class="w">Submission, assignment, a changed score and a reminder are four different decisions.</span>
 </div>
 </div></details>
 </div>
 <h2>Process, for people <span class="owner">Dan and John</span></h2>
 <div class="card">
 <div class="leaf solo">
-<span class="t">How John's team validates evidence</span><span class="st st-later">Later</span>
+<span class="t">How John’s team validates evidence</span><span class="st st-later">Later</span>
 <span class="w">Their job changes completely and Dan expects resistance.</span>
 </div>
 <div class="leaf solo">
@@ -392,8 +268,119 @@ footer{margin-top:3rem;color:var(--ink-3);font-size:.8rem}
 <span class="w">His call. Blocks nothing we build.</span>
 </div>
 </div>
-<h2>Resolved</h2><p class="hint">Settled, and how.</p>
-<div class="callout"><div class="q">Should the tool hold classified information?</div><div class="a"><b>Resolved.</b> No. Nothing protected or classified goes in at all, settled with Dan on 2 September. That removed the second deployment, the local-only engine, the theme switch, and the whole recall problem.</div></div>
+<h2>Done</h2><p class="hint">Built and tested. Kept here so the list of what exists is one place.</p>
+<div class="card done-card">
+<div class="leaf solo">
+<span class="t">Rail’s Overview row shows a count and a bar</span><span class="st st-done">Done</span>
+<span class="w"><span class="done-layer">Quick action</span> &middot; Every other rail row had both; Overview had neither, which reads as a row stuck at zero.</span>
+</div>
+<div class="leaf solo">
+<span class="t">Overview bar moves on the first keystroke</span><span class="st st-done">Done</span>
+<span class="w"><span class="done-layer">Quick action</span> &middot; It counted the three groups, and group one needs four fields. It now measures the six fields while the count still reads in groups.</span>
+</div>
+<div class="leaf solo">
+<span class="t">README and Settings stop describing a local-only tool</span><span class="st st-done">Done</span>
+<span class="w"><span class="done-layer">Quick action</span> &middot; Both said the tool cannot transmit and that the repo is private. Neither was true.</span>
+</div>
+<div class="leaf solo">
+<span class="t">Multiple answer types</span><span class="st st-done">Done</span>
+<span class="w"><span class="done-layer">Engine</span> &middot; A type field with scale as the default, so nothing existing breaks.</span>
+</div>
+<div class="leaf solo">
+<span class="t">A no answer colours its section</span><span class="st st-done">Done</span>
+<span class="w"><span class="done-layer">Engine</span> &middot; The question, its section, its rail row and its domain tab. It stops nothing.</span>
+</div>
+<div class="leaf solo">
+<span class="t">Topic metadata and per-topic roll-up</span><span class="st st-done">Done</span>
+<span class="w"><span class="done-layer">Engine</span> &middot; Security, privacy, cost, data, business and technology, visible without inventing a fifth domain.</span>
+</div>
+<div class="leaf solo">
+<span class="t">Two-topic scoring</span><span class="st st-done">Done</span>
+<span class="w"><span class="done-layer">Engine</span> &middot; Once in the overall, at full weight inside each topic, because the weight genuinely differs by topic.</span>
+</div>
+<div class="leaf solo">
+<span class="t">The store seam</span><span class="st st-done">Done</span>
+<span class="w"><span class="done-layer">Engine</span> &middot; src/store.ts. One constant from live, and the dashboard already reads through it.</span>
+</div>
+<div class="leaf solo">
+<span class="t">Submitter answers and assessor scores are separate fields</span><span class="st st-done">Done</span>
+<span class="w"><span class="done-layer">Engine</span> &middot; Which is why a submitter and an assessor cannot collide at all.</span>
+</div>
+<div class="leaf solo">
+<span class="t">Ask for a link</span><span class="st st-done">Done</span>
+<span class="w"><span class="done-layer">Interface: the submitter</span> &middot; Point at where it lives, and make sure your assessor can open it.</span>
+</div>
+<div class="leaf solo">
+<span class="t">Email fallback, with a pattern</span><span class="st st-done">Done</span>
+<span class="w"><span class="done-layer">Interface: the submitter</span> &middot; Marking, sent by email, subject line written for you, so an assessor can find it.</span>
+</div>
+<div class="leaf solo">
+<span class="t">One big unclassified tile, the six grouped behind it</span><span class="st st-done">Done</span>
+<span class="w"><span class="done-layer">Interface: the submitter</span> &middot; The default must not be taxed by the rare path.</span>
+</div>
+<div class="leaf solo">
+<span class="t">Classified panel with an acknowledgement toggle</span><span class="st st-done">Done</span>
+<span class="w"><span class="done-layer">Interface: the submitter</span> &middot; What to do instead, at the moment it is relevant.</span>
+</div>
+<div class="leaf solo">
+<span class="t">Save status indicator</span><span class="st st-done">Done</span>
+<span class="w"><span class="done-layer">Interface: the submitter</span> &middot; Draft in browser, saving, saved, or not saved with a reason.</span>
+</div>
+<div class="leaf solo">
+<span class="t">Mockup verification screen</span><span class="st st-done">Done</span>
+<span class="w"><span class="done-layer">Interface: the assessor</span> &middot; Labelled a mockup, the departmental-account button visibly disabled, everything unverified.</span>
+</div>
+<div class="leaf solo">
+<span class="t">Justification required on a changed score</span><span class="st st-done">Done</span>
+<span class="w"><span class="done-layer">Interface: the assessor</span> &middot; His rule. The file cannot be saved while one is missing, and the button says how many are outstanding.</span>
+</div>
+<div class="leaf solo">
+<span class="t">Accept-all per section</span><span class="st st-done">Done</span>
+<span class="w"><span class="done-layer">Interface: the assessor</span> &middot; He asked for it by name. It touches no score, and skips any changed score that still needs a reason.</span>
+</div>
+<div class="leaf solo">
+<span class="t">Assessor recorded per question</span><span class="st st-done">Done</span>
+<span class="w"><span class="done-layer">Interface: the assessor</span> &middot; Two assessors on one high-profile file. Each change carries a name, a time and a reason.</span>
+</div>
+<div class="leaf solo">
+<span class="t">The edit exchange, visible</span><span class="st st-done">Done</span>
+<span class="w"><span class="done-layer">Interface: the assessor</span> &middot; The line says it was edited and by whom. The full back and forth opens on request, and nothing is overwritten.</span>
+</div>
+<div class="leaf solo">
+<span class="t">Evidence read-only</span><span class="st st-done">Done</span>
+<span class="w"><span class="done-layer">Interface: the assessor</span> &middot; Already true, and now held true by a test.</span>
+</div>
+<div class="leaf solo">
+<span class="t">Load a question set moves here</span><span class="st st-done">Done</span>
+<span class="w"><span class="done-layer">Interface: the assessor</span> &middot; It belongs to whoever maintains the instrument. A submitter is told where it lives and not handed the control.</span>
+</div>
+<div class="leaf solo">
+<span class="t">Averages by domain and by topic</span><span class="st st-done">Done</span>
+<span class="w"><span class="done-layer">Interface: admin</span> &middot; The topic cut is the one a single assessment cannot show: security spread thin over four domains looks fine in each of them.</span>
+</div>
+<div class="leaf solo">
+<span class="t">Every record, weakest first</span><span class="st st-done">Done</span>
+<span class="w"><span class="done-layer">Interface: admin</span> &middot; The list is a worklist. Red rows are the ones with a no answer.</span>
+</div>
+<div class="leaf solo">
+<span class="t">Portfolio CSV</span><span class="st st-done">Done</span>
+<span class="w"><span class="done-layer">Interface: admin</span> &middot; One row per record, topic columns included.</span>
+</div>
+<div class="leaf solo">
+<span class="t">It says what it can currently see</span><span class="st st-done">Done</span>
+<span class="w"><span class="done-layer">Interface: admin</span> &middot; With no store, that is this browser and the files opened this session. The page says so rather than looking live.</span>
+</div>
+<div class="leaf solo">
+<span class="t">Reply to Nick: transfer the existing repo</span><span class="st st-done">Done</span>
+<span class="w"><span class="done-layer">Data and hosting</span> &middot; Sent. 28 commits of history, all yours.</span>
+</div>
+<div class="leaf solo">
+<span class="t">Draft the email</span><span class="st st-done">Done</span>
+<span class="w"><span class="done-layer">Data and hosting</span> &middot; Opens the person’s own mail client with the message written. All a static page can do.</span>
+</div>
+</div>
+<h2>Resolved questions</h2><p class="hint">Settled, and how.</p>
+<div class="callout"><div class="q">Should the tool hold classified information?</div><div class="a"><b>Resolved.</b> No. Nothing protected or classified goes in at all, settled with Dan on 1 September. That removed the second deployment, the local-only engine, the theme switch, and the whole recall problem.</div></div>
 <div class="callout"><div class="q">What happens to online data when a marking rises?</div><div class="a"><b>Resolved.</b> Dropped. The tool never stores classified evidence, so the question cannot arise.</div></div>
 <div class="callout"><div class="q">Does a two-topic question count twice overall?</div><div class="a"><b>Resolved.</b> No. Once in the overall score, and at full weight inside each topic, which is where the weights genuinely differ.</div></div>
 <div class="callout"><div class="q">File sharing for a team filling one in together?</div><div class="a"><b>Resolved.</b> No files. Everything is online, so version control stops being a problem the tool has to solve.</div></div>
@@ -401,13 +388,18 @@ footer{margin-top:3rem;color:var(--ink-3);font-size:.8rem}
 <div class="callout"><div class="q">One build or two?</div><div class="a"><b>Resolved.</b> One. Submission is a capability the hosting turns on.</div></div>
 <div class="callout"><div class="q">Where the plan lives</div><div class="a"><b>Resolved.</b> This page. The Markdown version is deleted.</div></div>
 <div class="callout"><div class="q">Org access to canada-ca</div><div class="a"><b>Resolved.</b> Done. Nick invited you, and the TBS-OCIO-ESP team gives push access to canada-ca/TBS-OCIO-ESP.</div></div>
+<div class="callout"><div class="q">Who may replace the question set?</div><div class="a"><b>Resolved.</b> The assessor and admin side only. Loading one clears every answer, so a submitter is told where it lives and not handed the control.</div></div>
+<div class="callout"><div class="q">How does the dashboard stay current?</div><div class="a"><b>Resolved.</b> By storing nothing. It recalculates each record from its answers as the page draws, so there is no roll-up that can go stale.</div></div>
 <h2>Open questions</h2><p class="hint">Not work. Somebody owes an answer.</p>
 <div class="tw"><table><thead><tr><th>Question</th><th>Who owes it</th><th>Blocks</th><th>Meanwhile</th></tr></thead><tbody>
 <tr><td>Who may edit a stored assessment, and how it is checked</td><td>Dan</td><td>Real authentication</td><td>Mockup screen, everything labelled unverified</td></tr>
-<tr><td>Verifying an assessor's identity</td><td>Dan</td><td>Real sign-in</td><td>Typed name, labelled unverified</td></tr>
-<tr><td>Is admin a role, or an assessor with more buttons?</td><td>Dan</td><td>The admin view</td><td>Placeholder page listing what it would hold</td></tr>
-<tr><td>Notification triggers and recipients</td><td>Dan</td><td>Notifications</td><td>Never discussed. GC Notify is the sanctioned route</td></tr>
+<tr><td>Verifying an assessor’s identity</td><td>Dan</td><td>Real sign-in</td><td>Typed name, labelled unverified on every change it records</td></tr>
+<tr><td>Is admin a role, or an assessor with more buttons?</td><td>Dan</td><td>The admin-only actions</td><td>The dashboard is built; the actions are listed and marked unbuilt</td></tr>
+<tr><td>Notification triggers and recipients</td><td>Dan</td><td>Notifications</td><td>Draft the email. GC Notify is the sanctioned route</td></tr>
+<tr><td>Which questions are yes/no, and which no answers matter most</td><td>Dan</td><td>Nothing</td><td>Ten on our reading, labelled provisional in the app</td></tr>
+<tr><td>The routing thresholds</td><td>Dan</td><td>Nothing</td><td>Interpolated between two numbers he named, labelled provisional</td></tr>
 <tr><td>Which initiatives must submit</td><td>Dan</td><td>Nothing</td><td>Ignore for now</td></tr>
-<tr><td>What the production intake should be</td><td>TBS</td><td>Production only</td><td>The prototype answer is a repo plus an action</td></tr>
+<tr><td>Who performs the canada-ca transfer</td><td>Nick</td><td>The repo move</td><td>Asked. An issue on canada-ca/welcome is the route he named</td></tr>
+<tr><td>What the production intake should be</td><td>TBS</td><td>Production only</td><td>The prototype answer is an Azure Function plus one CSP line</td></tr>
 </tbody></table></div>
-<footer>45 items in 19 groups across 8 layers.</footer></div>
+<footer>39 open, 27 done. Generated from NOTES/backlog.data.mjs by tools/build-backlog.mjs.</footer></div>

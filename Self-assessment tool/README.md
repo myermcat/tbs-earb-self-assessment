@@ -1,5 +1,7 @@
 # GC architecture self-assessment - prototype
 
+**Live: https://myermcat.github.io/tbs-earb-self-assessment-preview/**
+
 Replaces the GC EARB assessment template and the hand-built score deck. A department
 scores itself against a published rubric, points at evidence it already has, and produces
 a structured file. Assessors audit the anomalies instead of reading a deck.
@@ -13,66 +15,87 @@ From Dan Cooper, 2026-08-26. Full record of that meeting is in
 npm install
 npm run build      # writes dist/index.html - one self-contained file
 npm run dev        # same, rebuilding on save
-npm test           # 36 logic checks + 42 UI checks against the built file
+npm test           # prose lint, then the logic, UI and print suites against the built file
 npm run check      # typecheck only
 ```
 
 `dist/index.html` is the whole product. Open it directly, email it, put it on a share,
 or serve it from GitHub Pages. It behaves identically in all four cases.
 
-## Why one file with no server
+## Everything in it is unclassified
 
-Three constraints from the meeting all point the same way.
+Dan settled this on 2026-09-01: nothing classified goes into the tool at all. That one rule
+removes most of the design problem. There is no second engine, no local-only mode, no
+marking-dependent behaviour, and no recall path to build for something that leaked online.
 
-- **Classification.** The process is unclassified, results may be Protected, and evidence
-  can be Secret or higher. A hosted form that ingests evidence would need an accreditation
-  nobody wants to pay for. Offline sidesteps the question.
-- **The laptop.** Locked down. Python will not run. Assume no install, no runtime, no key.
-- **The network.** Wireless cannot resolve internal sites. An externally hosted app is not
-  a delivery channel you can rely on.
+The classification picker stays, for one job: catching the case where somebody's **evidence**
+is classified. Choose anything above unclassified and a panel explains what to do instead -
+send that artefact to the assessor by email, with a subject line the tool writes for you, and
+note in the answer that you did. It asks for an explicit *I understand* before continuing.
 
-So: no backend, no build step at the user's end, no dependency at runtime. The page carries
-`default-src 'none'; connect-src 'none'`, which means it *cannot* fetch, XHR, open a socket
-or submit a form anywhere, even if someone later added code that tried. Verified by a test.
+Evidence is therefore a **link to where the artefact already lives**, plus a note that the
+assessor has been given access. Attaching an unclassified file is still possible for the case
+where nothing can be linked, and it is offered as the alternative rather than the default. A
+high score with nothing cited raises a flag for the assessor either way.
 
-## Marking and evidence
+## Where the answers live
 
-The file carries one classification marking; every attachment carries its own. **Saving is
-refused** until the file is marked, until every attachment is marked, and unless the file's
-marking is at least as high as everything inside it. Scores themselves are not marked - a
-number is not sensitive, the text and the files are. The marking appears as a banner at the
-top and bottom of the page and on anything printed.
-
-Evidence can be **attached** (held in the file as base64, opened by the assessor in place -
-15 MB per file, 50 MB total) or **pointed at** (a path, a URL, a system name), for anything
-that cannot travel. A high score backed only by a pointer raises a flag for the assessor.
-
-## Where the data lives
-
-There is no database. Persistence is two separate things:
+**Today.** Two places, neither of them a server:
 
 1. **Autosave into the browser** (`localStorage`), so closing the tab does not lose work.
    Per-browser, per-machine, invisible to everyone else.
-2. **Save to a file** - the `.json` the submitter keeps and sends on, through whatever
-   channel they already use. Reopening that file restores everything.
+2. **Save to a file** - the `.json` the submitter keeps and sends on. Reopening it restores
+   everything.
 
-Attachments ride inside that same file, so there is one artefact to send and the assessor
-does not have to email anybody to see the evidence.
+The page carries `default-src 'none'; connect-src 'none'`, so it cannot fetch, XHR, open a
+socket or submit a form anywhere, even if someone later added code that tried. Verified by a
+test.
+
+**Next: one store, online.** Since nothing in it is classified, the records can live in one
+place, which kills the two problems files create - a submitter and an assessor editing
+different copies, and Dan collecting files to see how the portfolio is doing. GitHub Pages
+serves static files and cannot accept a write, so this needs a small write endpoint. An Azure
+Function is the cheapest route: `canada-ca/TBS-OCIO-ESP` already builds through Azure
+Pipelines, so the account, the tenancy and the approval path exist.
+
+`src/store.ts` is that seam, and it is deliberately one constant away from live:
+
+- `ENDPOINT` is `null`, so `listRecords()` reads the draft in this browser plus whatever the
+  assessor opened this session.
+- With an endpoint it reads the store instead and falls back to the local sources when the
+  request fails.
+- The CSP then opens to exactly that one origin. One line in `build.mjs`.
+
+The dashboard is built against that call, so it needs no change when the store appears - and
+it says on the page which of the two it is reading.
+
+## Two people on one record
+
+Not solved, and the tool does not pretend otherwise. With a store, a submitter and an assessor
+can be on the same question at the same time. The shape that fits what is already built: the
+audit trail is append-only, so neither person's number or reason is overwritten, and each line
+shows that it was edited and by whom. What is missing is the live signal - telling the other
+person it happened while they are looking at it. That is in the backlog, not in the code.
 
 ## What is in here
 
 ```
-rubric/rubric.v0-standin.json   The questions, weights, scale, bands, stages. DATA, not code.
+rubric/rubric.v1-dan.json       The questions, weights, scale, bands, stages. DATA, not code.
+rubric/rubric-ids.lock.json     What each question id meant. Ids are CSV columns; they cannot move.
 rubric/RUBRIC-CONTRACT.md       What a valid rubric file must contain.
+tools/import-rubric.mjs         Regenerates the rubric from Dan's workbook.
 src/types.ts                    Shapes.
 src/rubric.ts                   Rubric validation - refuses a bad file rather than half-loading it.
 src/scoring.ts                  Weighted roll-up, stage weighting, bands, weakest/strongest.
 src/flags.ts                    The anomaly detector. This is the assessor's new job.
-src/storage.ts                  Autosave, file save/load, download.
+src/storage.ts                  Autosave, file save/load, download, save-state reporting.
+src/store.ts                    The seam where the hosted store goes. One constant from live.
+src/marking.ts                  Classification markings and the classified-evidence panel.
 src/csv.ts                      One row per assessment, for trend analysis in Excel.
 src/views-submit.ts             The questionnaire.
 src/views-results.ts            The submitter's result and backlog.
-src/views-review.ts             Triage list and per-submission audit.
+src/views-review.ts             Triage list, per-submission audit, the edit exchange.
+src/views-dashboard.ts          The admin view: the portfolio on one page.
 src/main.ts                     Shell, navigation, rubric swapping.
 build.mjs                       Bundles everything into dist/index.html.
 test/smoke.ts                   Scoring, banding, flags, CSV, round-trip.
@@ -82,8 +105,9 @@ test/ui.mjs                     Drives the built file in a real DOM, end to end.
 ## The rubric is data
 
 Dan writes the questions, the weights and the ladder. The app renders whatever it is handed.
-A new version of the rubric is a new JSON file, not a new release of the app - and the home
-page has a **Load a rubric file** control so he can drop his own in and see it immediately.
+A new version of the rubric is a new JSON file, not a new release of the app. The control that
+loads one lives in Settings **on the assessor side**: replacing the question set clears every
+answer, so it belongs to whoever maintains the instrument, not to somebody filling one in.
 
 Every assessment records the rubric version it was answered against, so a two-year-old
 submission stays interpretable after the questions change.
@@ -109,6 +133,16 @@ three-colour red-amber-green of our invention.
 - Not applicable and unanswered questions leave the denominator rather than scoring zero.
   Unanswered is reported separately as completeness, and flagged.
 - Domain scores roll up by domain weight into one overall score, then into a band.
+- Ten questions are **yes/no** rather than a ladder. A *no* scores zero and colours its
+  question, its section, the rail row and the domain tab red. It stops nothing: it marks
+  where a reader should look first. Which questions these are is our reading of the wording
+  and is labelled provisional until Dan confirms it.
+- Questions also carry **topics** - security, privacy, cost, data, business, technology - so
+  the same answers can be cut across the domains. Security questions sit in all four domains,
+  which means a department weak on security cannot see it in the domain bars: the weakness is
+  spread over four numbers that each look fine. A question counts fully in each topic it
+  belongs to, and once in the overall, so the topic scores do not add up to the overall. The
+  page says so.
 
 ## Bands
 
@@ -123,6 +157,19 @@ Dan's spoken numbers, in `rubric.bands`, **not signed off by anyone**:
 
 The tool always words this as a suggestion and says TBS confirms routing.
 
+## The assessor's rules
+
+- **A changed score needs a reason.** The file cannot be saved while one is missing, and the
+  button says how many are outstanding.
+- **Nothing is overwritten.** Each change appends to that question's history with a name, a
+  time and the reason. Two assessors disagreeing leaves both accounts on the line.
+- **The line says it was edited, and by whom**, before anyone opens anything.
+- **Agree with all** marks a whole section as agreed without touching a score. It skips any
+  question whose changed score has no reason yet.
+- **Names are not verified.** There is no authentication. The assessor side opens on a screen
+  shaped like a sign-in that says it is a mockup, the departmental-account button is visibly
+  disabled, and everything the session produces is labelled `unverified`.
+
 ## Open questions for Dan
 
 - Confirm or change the band thresholds. A self-scored hall pass is a real gaming
@@ -133,41 +180,37 @@ The tool always words this as a suggestion and says TBS confirms routing.
 - How should the file reach TBS - email, GCdocs, SharePoint, a GitHub issue?
 - Second storage path: GitHub for now, as agreed. What is the non-Microsoft fallback later?
 
-## Hosted engine, local information
+## Hosting
 
-The right model, and the one the build already supports: **host the engine, keep the
-information local.** The page is code. It carries `default-src 'none'; connect-src 'none'`,
-so it cannot transmit anything no matter where it was loaded from - hosted or opened off a
-USB stick, the data behaviour is identical. Answers live in the browser and in the file the
-person chooses to save.
+The preview above is `dist/index.html` published to a public repo by
+`../deploy/publish-preview.sh`. What is public there is not data but the **176 questions**,
+Dan's draft framework, which is a sequencing decision for him.
 
-Two things hosting genuinely changes, both worth knowing:
+The code itself is meant to move to `canada-ca`. Nick Couture holds that: the route is an
+issue on `canada-ca/welcome`, and the transfer is waiting on his reply.
 
-- **Version drift goes away.** A hosted copy means everyone answers the current rubric.
-  Files scatter and people fill in stale ones - which is why every assessment records the
-  rubric version it was answered against.
-- **A department has to trust the copy.** Fine for a demo. For real Protected B use expect to
-  be asked for a GC-controlled location, or just the file. The home page states where it was
-  loaded from and how to verify the CSP, so the claim is checkable rather than asserted.
-
-`deploy/github-pages-workflow.yml` publishes it, and is **not active yet**. What becomes
-public is not data but the **176 questions** - Dan's DRAFT framework. That is a sequencing
-decision for him, not a security one. `deploy/README.md` has the steps.
+Version drift is the one thing hosting settles on its own. A hosted copy means everyone
+answers the current rubric; files scatter and people fill in stale ones, which is why every
+assessment records the version it was answered against.
 
 ## Notifications
 
-Hosting does not enable them. A static page cannot send mail whether or not it sits at a URL,
-and the CSP forbids the attempt. Two layers instead:
+A static page cannot send mail, and the CSP forbids the attempt, so today the only mechanism
+is *Draft the email*: it opens the person's own mail client with the message already written.
 
-- **Now:** *Draft the email* opens the person's own mail client with the message written.
-- **Later, separate:** reminders and follow-ups come from whoever holds the intake, using
-  **GC Notify** - which is already in Dan's own rubric at application question Q33. It never
-  touches evidence. Adding a *submit* button that posts to that intake would work too, but it
-  puts data back on the network, so submission stays manual.
+Once a write endpoint exists it can send. **GC Notify** is the service to use - it is already
+in Dan's own rubric at application question Q33. What triggers a notification is Dan's to
+decide and he has not: submission, assignment, a changed score, and a reminder are four
+different decisions.
 
 ## Status
 
-Prototype. The rubric is a stand-in written from wording Dan read aloud - four questions
-use his exact phrasing, the rest are plausible inventions, and **every picklist is invented**
-rather than derived from the ~800 past assessments. Replace `rubric/` before showing this
-to anyone outside the team as though the content were real.
+Prototype, against Dan's own question set: `rubric/rubric.v1-dan.json` is generated from his
+six-sheet workbook by `tools/import-rubric.mjs`, so the 176 questions and their weights are
+his. Three things in it are still ours and are labelled that way in the app - the routing
+thresholds, which questions are yes/no, and the topic grouping. **Every picklist is invented**
+rather than derived from the 700-odd past assessments, which is the one piece of data only Dan
+can hand over.
+
+The backlog is the live picture of what is built, what is next, and what is waiting on
+somebody: open `NOTES/backlog.html` in a browser.

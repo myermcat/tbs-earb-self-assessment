@@ -3,7 +3,8 @@ import { el, clear } from './dom';
 import { validate } from './rubric';
 import { goToFirstGap, renderSubmit, resetOverviewToFirstGap, setRepaint, setStopKey, takeSubmitTabs } from './views-submit';
 import { renderResults } from './views-results';
-import { renderReview } from './views-review';
+import { openedThisSession, renderReview, setAuditor } from './views-review';
+import { renderDashboard } from './views-dashboard';
 import { answeredCount, APP_VERSION, blankAssessment, clearDraft, hasWork, lastSaveInfo,
   loadDraft, readJsonFiles, saveAssessmentFile } from './storage';
 import { bannerFor } from './marking';
@@ -355,6 +356,7 @@ function renderSignIn(root: HTMLElement, onDone: () => void) {
 
   const go = () => {
     if (!assessorName.trim()) { input.focus(); return; }
+    setAuditor(assessorName.trim());
     onDone();
   };
 
@@ -397,30 +399,13 @@ function renderSignIn(root: HTMLElement, onDone: () => void) {
 }
 
 /**
- * The admin view. A placeholder, and labelled as one: nobody has decided what the role does
- * beyond withdrawing a record and re-assigning an assessor, so the page says that rather than
- * inventing controls that would have to be unbuilt.
+ * The admin view: the portfolio dashboard. It recalculates every record from its answers as the
+ * page draws, so there is no stored roll-up to go stale - Dan's dashboard updates itself by
+ * never storing a number in the first place. What it can reach depends on whether a store
+ * exists, and the page says which.
  */
 function renderAdmin(root: HTMLElement) {
-  root.appendChild(el('section', { class: 'card' }, [
-    el('div', { class: 'head-row' }, [
-      el('h1', {}, ['Admin']),
-      el('span', { class: 'badge badge-warn' }, ['Placeholder']),
-    ]),
-    el('p', { class: 'muted' }, [
-      'Nothing here is built. The role exists in the plan and nobody has decided what it does, ',
-      'so this page lists what it is expected to hold and stops there.',
-    ]),
-    el('ul', { class: 'steps' }, [
-      el('li', {}, [el('b', {}, ['Withdraw a record. ']), 'Excluded from the statistics, never deleted.']),
-      el('li', {}, [el('b', {}, ['Re-assign an assessor. ']), 'When somebody leaves or a file needs a second pair of eyes.']),
-      el('li', {}, [el('b', {}, ['Replace the question set. ']), 'Today this is in Settings, and it probably belongs here.']),
-      el('li', {}, [el('b', {}, ['Clear out test submissions. ']), 'Dan raised it and parked it.']),
-    ]),
-    el('p', { class: 'small muted' }, [
-      'Open question for Dan: is this a separate role, or an assessor with more buttons?',
-    ]),
-  ]));
+  renderDashboard(root, rubric, openedThisSession());
 }
 
 const TRASH =
@@ -511,9 +496,12 @@ function paneQuestions(pane: HTMLElement) {
   }
 
   /**
-   * Loading a different question set used to wipe every answer the moment a file validated,
-   * with no warning at all. It was the most destructive control in the tool and the only one
-   * that asked nothing, so it goes through the same confirmation as a discard.
+   * Replacing the question set belongs to whoever maintains the instrument, not to somebody
+   * filling one in. It is offered on the assessor and admin side only.
+   *
+   * It also used to wipe every answer the moment a file validated, with no warning at all: the
+   * most destructive control in the tool and the only one that asked nothing. It now goes
+   * through the same confirmation as a discard.
    */
   const picker = el('label', { class: 'filelabel caution' }, [
     'Load a question set',
@@ -550,12 +538,20 @@ function paneQuestions(pane: HTMLElement) {
     }),
   ]);
 
-  pane.appendChild(setRow(
-    'Replace the question set',
-    'The questions, weights and scale live in one JSON file. Loading another replaces the whole assessment, and the answers you have given cannot be carried across.',
-    picker,
-    { tier: 'caution', badge: 'Clears your answers' },
-  ));
+  if (side === 'assess') {
+    pane.appendChild(setRow(
+      'Replace the question set',
+      'The questions, weights and scale live in one JSON file. Loading another replaces the whole assessment, and the answers you have given cannot be carried across.',
+      picker,
+      { tier: 'caution', badge: 'Clears your answers' },
+    ));
+  } else {
+    pane.appendChild(setRow(
+      'Replacing the question set',
+      'Whoever maintains the instrument does this, on the assessor side. It is not offered here, because loading a different set clears every answer.',
+      null,
+    ));
+  }
 }
 
 function paneAnswers(pane: HTMLElement) {
@@ -578,6 +574,11 @@ function paneAnswers(pane: HTMLElement) {
   pane.appendChild(setRow(
     'Submitting is one deliberate act',
     'Nothing is sent while you are filling this in. You submit when you are finished, and the tool tells you what is about to go before it goes.',
+    null,
+  ));
+  pane.appendChild(setRow(
+    'One shared copy, once it is hosted',
+    'The plan is for submitted assessments to live in one place, so you and your assessor read the same record and nobody works from an older file. That store does not exist yet: today this page can only write to this browser and to a file you save. Nothing about your answers changes when it arrives.',
     null,
   ));
   pane.appendChild(setRow(

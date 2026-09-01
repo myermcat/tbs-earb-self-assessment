@@ -15,6 +15,10 @@ export function csvHeader(rubric: Rubric): string[] {
   ];
   for (const d of rubric.domains) cols.push(`domain_${d.id}`);
   for (const d of rubric.domains) for (const s of d.sections) cols.push(`section_${d.id}_${s.id}`);
+  // Cross-cutting views of the same questions: security spans all four domains, so it gets a
+  // column of its own. These do not add up to the overall - a question sits in one domain but
+  // can sit in several topics.
+  for (const t of rubric.topics ?? []) cols.push(`topic_${t.id}`);
   for (const d of rubric.domains) {
     for (const s of d.sections) {
       for (const q of s.questions) {
@@ -37,6 +41,7 @@ export function csvRow(rubric: Rubric, a: Assessment, flagCounts: { high: number
   ];
   for (const d of r.domains) row.push(d.score === null ? '' : d.score.toFixed(2));
   for (const d of r.domains) for (const s of d.sections) row.push(s.score === null ? '' : s.score.toFixed(2));
+  for (const t of r.topics) row.push(t.score === null ? '' : t.score.toFixed(2));
   for (const d of rubric.domains) {
     for (const sec of d.sections) {
       for (const q of sec.questions) {

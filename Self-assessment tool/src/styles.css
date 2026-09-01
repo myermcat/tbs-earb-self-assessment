@@ -660,6 +660,28 @@ details[open] > .section-summary::before { transform: rotate(90deg); }
 .ladder i { font-style: normal; font-weight: 650; color: var(--ink); }
 .ladder span { color: var(--ink-2); line-height: 1.4; }
 
+/* A yes/no question. A no is a red flag: the section is marked and the person carries on. */
+.yn-btn { padding: .3rem 1.1rem; border-radius: 7px; font-size: .88rem; font-weight: 600;
+  border: 1px solid var(--line-2); background: var(--surface); color: var(--ink-2); }
+.yn-btn.on.yes { background: var(--good); border-color: var(--good); color: #fff; }
+.yn-btn.on.no { background: var(--bad); border-color: var(--bad); color: #fff; }
+.yn-btn:disabled { opacity: .3; }
+
+/* The flag, in the three places a section appears: the page, the rail, the domain tab. */
+.question.red-flag { box-shadow: var(--shadow), inset 0 0 0 1px color-mix(in srgb, var(--bad) 45%, transparent); }
+.question.red-flag::before { background: var(--bad); }
+.section-head-card.red-flag { border-color: color-mix(in srgb, var(--bad) 40%, var(--line)); }
+.flag-note { border-left: 3px solid var(--bad); background: var(--bad-bg); color: var(--ink);
+  padding: .45rem .7rem; margin-top: .6rem; font-size: .855rem;
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0; }
+.toc-row.red-flag { color: var(--bad); }
+.toc-row.red-flag .toc-count { color: var(--bad); }
+.toc-row.red-flag .toc-bar i { background: var(--bad); }
+.toc-row.red-flag.on { background: var(--bad-bg); box-shadow: inset 2px 0 0 var(--bad); }
+.step.red-flag { border-color: color-mix(in srgb, var(--bad) 45%, var(--line)); }
+.step.red-flag .step-label::after { content: ' !'; color: var(--bad); font-weight: 800; }
+.step.red-flag .step-bar i { background: var(--bad); }
+
 /* the 0-10 selector, in Dan's colours */
 .score-line { display: flex; gap: .5rem; flex-wrap: wrap; align-items: center; margin: .5rem 0 .35rem; }
 .score-row { display: flex; gap: .2rem; flex-wrap: wrap; align-items: center; }
@@ -954,6 +976,13 @@ td.num { text-align: right; font-family: var(--mono); font-variant-numeric: tabu
 .audit-controls { display: flex; gap: .45rem; align-items: center; flex-wrap: wrap; margin-top: .45rem; }
 .audit-controls label { font-size: .83rem; color: var(--ink-2); display: flex; align-items: center; gap: .3rem; }
 .audit-controls select, .audit-controls input[type=text] { width: auto; flex: 1 1 8rem; }
+/* The exchange over one question: append-only, oldest first, nobody overwritten. */
+.exchange { margin: .4rem 0; font-size: .855rem; }
+.exchange summary { cursor: pointer; color: var(--accent); }
+.exchange-list { margin: .35rem 0 .1rem; padding-left: 1.2rem; }
+.exchange-list li { margin-bottom: .3rem; }
+.badge.tiny { font-size: .66rem; }
+
 .delta { font-family: var(--mono); font-size: .8rem; font-weight: 700; }
 .delta.up { color: var(--good); } .delta.down { color: var(--bad); }
 .section-head { display: flex; align-items: center; gap: .5rem; margin: 1rem 0 .3rem;

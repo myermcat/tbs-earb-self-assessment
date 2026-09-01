@@ -92,6 +92,42 @@ export function renderResults(root: HTMLElement, rubric: Rubric, a: Assessment, 
   }
   root.appendChild(bars);
 
+  // The same answers cut a second way. Security questions sit in all four domains, so a
+  // department that is weak on security cannot see it in the domain bars: the weakness is
+  // spread across four numbers that each look fine. These topic scores are that view. They do
+  // not add up to the overall, and the page says so, because a question belongs to one domain
+  // but can belong to several topics.
+  const withTopics = r.topics.filter((t) => t.total > 0);
+  if (withTopics.length) {
+    const tbox = el('section', { class: 'card' }, [
+      el('h2', {}, ['Across the domains']),
+      el('p', { class: 'muted small' }, [
+        'The same questions, grouped by subject. A question can be about two things at once, ',
+        'so these do not add up to the overall.',
+        rubric.topicsNote ? el('span', { class: 'badge badge-warn' }, ['provisional grouping']) : null,
+      ]),
+    ]);
+    for (const t of withTopics) {
+      tbox.appendChild(el('div', { class: 'bar-row' }, [
+        el('div', { class: 'bar-label' }, [
+          t.topic.label,
+          el('span', { class: 'muted small' }, [` ${t.answered} of ${t.total} answered`]),
+          t.redFlags.length
+            ? el('span', { class: 'badge badge-bad' }, [`${t.redFlags.length} answered no`])
+            : null,
+        ]),
+        el('div', { class: 'bar-track' }, [
+          el('div', { class: `bar-fill ${bar(t.score)}`, style: `width:${((t.score ?? 0) / 10) * 100}%` }),
+        ]),
+        el('div', { class: `bar-num ${tone(t.score)}` }, [t.score === null ? '--' : t.score.toFixed(1)]),
+      ]));
+    }
+    if (rubric.topicsNote) {
+      tbox.appendChild(el('p', { class: 'tiny dim' }, [rubric.topicsNote]));
+    }
+    root.appendChild(tbox);
+  }
+
   // The backlog. This is the teach-me-to-fish half of the tool.
   const w = weakest(r, 5);
   if (w.length) {
