@@ -25,6 +25,8 @@ export function openedThisSession(): Assessment[] { return loaded.map((l) => l.a
 
 /** The name typed on the mockup sign-in. Never verified, and labelled so everywhere. */
 let auditor = '';
+/** What the last Agree-with-all did, so the button reports itself instead of going quiet. */
+let lastAgree: { section: string; agreed: number; kept: number } | null = null;
 export function setAuditor(name: string): void { auditor = name; }
 
 export function renderReview(root: HTMLElement, rubric: Rubric): void {
@@ -270,6 +272,36 @@ function openDetail(rubric: Rubric, root: HTMLElement, l: Loaded) {
         sec.section.label,
         el('span', { class: 'muted small' }, [`${sec.weight}% of this domain`]),
         el('span', { class: `pill small ${tone(sec.score)}` }, [sec.score === null ? '--' : sec.score.toFixed(1)]),
+        // Dan asked for this by name: a section an assessor has read and has nothing to say
+        // about should take one click, not one per question. It touches no score.
+        el('button', {
+          class: 'ghost small',
+          title: 'Mark every question in this section as agreed. Changes no scores.',
+          onclick: () => {
+            let agreed = 0;
+            let kept = 0;
+            for (const qs of sec.questions) {
+              const e = (audit.perQuestion[qs.question.id] ??= { auditedScore: null, verdict: '', note: '' });
+              // A score the assessor has already changed is not one they agree with.
+              if (typeof e.auditedScore === 'number' && e.auditedScore !== (a.answers[qs.question.id]?.score ?? null)) {
+                kept++;
+                continue;
+              }
+              e.verdict = 'agree';
+              e.by = auditor || 'unnamed';
+              e.at = new Date().toISOString();
+              agreed++;
+            }
+            lastAgree = { section: sec.section.id, agreed, kept };
+            repaint();
+          },
+        }, ['Agree with all']),
+        lastAgree && lastAgree.section === sec.section.id
+          ? el('span', { class: 'small muted' }, [
+              `${lastAgree.agreed} marked as agreed`,
+              lastAgree.kept ? `, ${lastAgree.kept} left as you scored ${lastAgree.kept === 1 ? 'it' : 'them'}` : '',
+            ])
+          : null,
       ]));
       for (const qs of rows) {
         domainRows.push(auditRow(rubric, a, qs, audit, [], repaint, false));
