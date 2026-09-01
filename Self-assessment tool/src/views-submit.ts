@@ -333,15 +333,22 @@ function stepper(
   navigate: (target: string) => void,
   list: Stop[],
 ): HTMLElement {
-  const step = (label: string, target: string, owns: (s: Stop) => boolean, count: (rr: Result) => [number, number]) => {
+  const step = (
+    label: string,
+    target: string,
+    owns: (s: Stop) => boolean,
+    count: (rr: Result) => [number, number],
+    fill?: () => [number, number],
+  ) => {
     const countEl = el('span', { class: 'step-count' });
-    const fill = el('i');
+    const bar = el('i');
+    const fillOf = fill;
     const btn = el('button', {
       onclick: () => navigate(target),
     }, [
       el('span', { class: 'step-label' }, [label]),
       countEl,
-      el('span', { class: 'step-bar' }, [fill]),
+      el('span', { class: 'step-bar' }, [bar]),
     ]);
 
     const apply = (rr: Result) => {
@@ -351,14 +358,16 @@ function stepper(
       btn.className = `step ${on ? 'on' : ''} ${complete ? 'complete' : ''}`;
       btn.setAttribute('aria-current', on ? 'page' : 'false');
       countEl.textContent = `${done} of ${total}`;
-      fill.style.width = total > 0 ? `${Math.round((done / total) * 100)}%` : '0%';
+      const [fDone, fTotal] = fillOf ? fillOf() : [done, total];
+      bar.style.width = fTotal > 0 ? `${Math.round((fDone / fTotal) * 100)}%` : '0%';
     };
     register(apply, r);
     return btn;
   };
 
   return el('nav', { class: 'stepper', 'aria-label': 'Parts of the assessment' }, [
-    step('Overview', 'about', (st) => st.domainId === null, () => overviewProgress(a)),
+    step('Overview', 'about', (st) => st.domainId === null,
+      () => overviewProgress(a), () => overviewFieldProgress(a)),
     ...rubric.domains.map((d) =>
       step(shortLabel(d.label), firstStopIn(list, d.id), (st) => st.domainId === d.id, (rr) => {
         const ds = rr.domains.find((x) => x.domain.id === d.id);
@@ -380,6 +389,25 @@ export function overviewProgress(a: Assessment): [number, number] {
     !!a.initiative.lifecycleStage,
   ];
   return [groups.filter(Boolean).length, groups.length];
+}
+
+/**
+ * The bar and the count measure different things on purpose.
+ *
+ * The count is groups, because the overview is three screens. The bar is the six underlying
+ * fields, because a bar that cannot move until four fields are filled reads as broken: you
+ * type your name, nothing happens, and the tool looks like it is ignoring you.
+ */
+export function overviewFieldProgress(a: Assessment): [number, number] {
+  const fields = [
+    a.initiative.name.trim(),
+    a.initiative.department.trim(),
+    a.initiative.contact.trim(),
+    a.initiative.summary.trim(),
+    a.initiative.classification,
+    a.initiative.lifecycleStage,
+  ];
+  return [fields.filter(Boolean).length, fields.length];
 }
 
 /** "Application & Virtual Architecture" is too long for a tab. */
@@ -601,7 +629,10 @@ function aboutSection(
   const text = (k: 'name' | 'department' | 'contact', placeholder: string) =>
     el('input', {
       type: 'text', value: a.initiative[k], placeholder,
-      oninput: set(k), onchange: settled,
+      // The bar has to move while a field is being typed, so the readouts refresh on input.
+      // They only ever write to existing nodes, so focus is never disturbed.
+      oninput: (e: Event) => { set(k)(e); settled(); },
+      onchange: settled,
     });
 
   /**
@@ -624,7 +655,8 @@ function aboutSection(
         ]),
         field('In two or three sentences, what is it?', el('textarea', {
           rows: 3, placeholder: 'What it does, and who it is for.',
-          oninput: set('summary'), onchange: settled,
+          oninput: (e: Event) => { set('summary')(e); settled(); },
+          onchange: settled,
         }, [a.initiative.summary])),
       ]),
     },
