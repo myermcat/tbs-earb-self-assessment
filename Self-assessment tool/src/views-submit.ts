@@ -282,7 +282,13 @@ function sectionRail(
   navigate: (t: string) => void,
   list: Stop[],
 ): HTMLElement {
-  const nav = el('nav', { class: 'toc', 'aria-label': 'Sections of this assessment' });
+  // On a narrow screen the rail lies down into a horizontal strip, directly under the domain
+  // tabs, which show the same five things. On the overview there are no section rows to add,
+  // so the strip was the tabs printed twice. The class lets the stylesheet hide it there.
+  const nav = el('nav', {
+    class: `toc ${here.domainId === null ? 'no-sections' : ''}`,
+    'aria-label': 'Sections of this assessment',
+  });
 
   // Every other rail row carries a count and a track. Overview carried neither, which reads
   // as a row stuck at zero.

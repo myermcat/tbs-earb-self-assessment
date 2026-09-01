@@ -28,6 +28,8 @@ export const quick = {
       why: 'It said "EARB evidence - m - [question]", with a placeholder nobody filled in. It now names what it is, the initiative and the question number, and the evidence box offers a Copy button.' },
     { t: 'The save badge says there is no online copy', status: 'done',
       why: 'She asked where to save online. There is nowhere, and the badge now says so on hover instead of leaving "draft saved" to be read as the whole story.' },
+    { t: 'The rail stops repeating the domain tabs on a narrow screen', status: 'done',
+      why: 'Below 860px the rail lies down into a strip under the tabs. On the overview it had no section rows to show, so the same five items appeared twice. Found while checking the marking banner on the live page.' },
     { t: 'The prose linter takes any file', status: 'done',
       why: 'The writing rules were being applied from memory for chat replies, and em dashes went out. Replies go through the same linter as the app copy now.' },
     { t: 'Backlog gets jump links and a Done section that stays', status: 'done',
