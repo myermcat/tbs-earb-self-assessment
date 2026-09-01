@@ -160,6 +160,11 @@ li { margin-bottom: .22rem; }
   padding: .18rem .3rem; border-radius: 9px; border: 1px solid var(--line); }
 .chev { color: var(--ink-3); font-size: .9rem; padding: 0 .05rem; user-select: none; }
 
+.signin { max-width: 34rem; margin: 2rem auto; }
+.signin-mock { background: var(--surface-2); border: 1px dashed var(--line-2);
+  border-radius: var(--radius-sm); padding: .7rem .85rem; margin-top: .8rem; }
+.signin-mock button { margin: .3rem 0 .2rem; }
+
 .side-badge { font-size: .68rem; font-weight: 700; letter-spacing: .09em; text-transform: uppercase;
   color: var(--accent); border: 1px solid var(--accent-line); background: var(--accent-soft);
   border-radius: 999px; padding: .05rem .45rem; }
@@ -706,7 +711,8 @@ details[open] > .q-extras-summary::before { content: '\2212'; }
 .ev-item.unmarked { background: var(--bad-bg); border-radius: var(--radius-sm);
   box-shadow: 0 0 0 1px color-mix(in srgb, var(--bad) 30%, transparent); padding: .45rem .5rem; }
 .ev-row  { display: grid; grid-template-columns: 1.6fr .85fr 1.15fr auto; gap: .3rem; }
-.ev-row2 { display: grid; grid-template-columns: auto 1fr; gap: .35rem; margin-top: .3rem; align-items: center; }
+.ev-row2 { display: grid; grid-template-columns: 1.4fr 1fr; gap: .3rem; margin-top: .3rem; }
+.ev-alt { display: flex; gap: .7rem; align-items: center; flex-wrap: wrap; margin-top: .3rem; }
 .att { display: inline-flex; align-items: center; gap: .4rem; background: var(--good-bg);
   border: 1px solid color-mix(in srgb, var(--good) 35%, transparent);
   border-radius: 7px; padding: .18rem .4rem; }
@@ -749,6 +755,28 @@ button.marking-banner:hover { filter: brightness(1.25); background: #2a1414; }
 
 .marking-banner.print-only { display: none; }
 .marking-row { display: flex; gap: .35rem; flex-wrap: wrap; margin-bottom: .45rem; }
+
+/* Unclassified is the answer, so it is one row on its own and carries the weight of one. */
+.mark-default { margin-bottom: .9rem; }
+.mark-default .marking-chip { font-size: 1rem; padding: .5rem 1.1rem; font-weight: 600;
+  border-color: var(--accent-line); }
+.mark-families { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: .8rem; }
+.mark-family { border: 0; border-left: 3px solid var(--line-2); margin: 0; padding: 0 0 0 .75rem; }
+.mark-family legend { font-size: .72rem; font-weight: 700; letter-spacing: .1em;
+  text-transform: uppercase; color: var(--ink-3); padding: 0; }
+.mark-family p { margin: .1rem 0 .4rem; }
+.mark-family .marking-row { margin-bottom: 0; }
+
+.mark-advice { border-left: 3px solid var(--warn); background: var(--warn-bg);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0; padding: .7rem .85rem; margin-top: 1rem; }
+.mark-advice-head { display: flex; align-items: baseline; gap: .5rem; flex-wrap: wrap;
+  margin-bottom: .3rem; }
+.mark-advice ol.steps { padding-left: 1.2rem; }
+.mark-advice code.mono { display: inline-block; margin: .15rem 0; }
+code.mark-subject { display: block; margin: .25rem 0; }
+.mark-ack { display: flex; align-items: flex-start; gap: .4rem; font-size: .86rem; font-weight: 600;
+  margin-top: .5rem; cursor: pointer; }
+.mark-ack input { width: auto; margin-top: .25rem; }
 .marking-chip {
   display: inline-flex; align-items: center; gap: .35rem; cursor: pointer;
   border: 1px solid var(--line-2); border-radius: 999px; padding: .28rem .75rem;
@@ -789,8 +817,16 @@ button.marking-banner:hover { filter: brightness(1.25); background: #2a1414; }
   flex-wrap: wrap; padding: .5rem 0 .6rem; }
 .sticky-footer .pill { background: var(--surface); }
 .footer-score { display: flex; align-items: center; gap: .6rem; flex-wrap: wrap; }
-.saved-note { border-left: 1px solid var(--line-2); padding-left: .6rem; }
-@media (max-width: 720px) { .saved-note { display: none; } }
+.save-state { display: inline-flex; align-items: center; gap: .35rem;
+  border-left: 1px solid var(--line-2); padding-left: .6rem; color: var(--ink-3); }
+.save-state.st-online { color: var(--good); }
+.save-state.st-failed { color: var(--bad); font-weight: 600; }
+.save-state .spin { width: 9px; height: 9px; border-radius: 999px;
+  border: 1.5px solid var(--line-2); border-top-color: var(--accent);
+  animation: spin .7s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .save-state .spin { animation: none; } }
+@media (max-width: 720px) { .save-state { display: none; } }
 .footer-actions { display: flex; gap: .45rem; }
 .progress-row { display: grid; grid-template-columns: minmax(0, 14rem) minmax(0, 1fr);
   gap: .5rem 1rem; padding: .5rem 0 0; }

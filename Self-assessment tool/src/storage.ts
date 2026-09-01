@@ -22,12 +22,42 @@ export function blankAssessment(rubric: Rubric): Assessment {
   };
 }
 
+/**
+ * Where the work stands, so nobody has to wonder.
+ *
+ *   'saving'  a write is in flight
+ *   'local'   held by this browser, and nothing has been submitted yet
+ *   'online'  submitted, so later changes write through to TBS
+ *   'failed'  the last write did not land, and the reason
+ */
+export type SaveState = 'saving' | 'local' | 'online' | 'failed';
+let saveState: SaveState = 'local';
+let saveDetail = '';
+const saveWatchers = new Set<() => void>();
+
+export function onSaveStateChange(fn: () => void): () => void {
+  saveWatchers.add(fn);
+  return () => saveWatchers.delete(fn);
+}
+export function saveStatus(): { state: SaveState; detail: string } {
+  return { state: saveState, detail: saveDetail };
+}
+function setSaveState(state: SaveState, detail = '') {
+  if (state === saveState && detail === saveDetail) return;
+  saveState = state;
+  saveDetail = detail;
+  for (const fn of saveWatchers) fn();
+}
+
 export function autosave(a: Assessment): void {
   a.meta.updatedAt = new Date().toISOString();
   try {
     localStorage.setItem(KEY, JSON.stringify(a));
+    setSaveState('local');
   } catch {
-    /* private window, or storage disabled. The file save still works. */
+    // A private window, or storage turned off. Saying nothing here is how somebody loses an
+    // afternoon of work believing it was kept.
+    setSaveState('failed', 'This browser is not keeping a draft. Save a file before you close the tab.');
   }
 }
 

@@ -115,6 +115,7 @@ function paint() {
   else if (mode === 'results') renderResults(body, rubric, assessment, () => go('submit'));
   else if (mode === 'settings') renderSettings(body);
   else if (mode === 'admin') renderAdmin(body);
+  else if (mode === 'review' && !assessorName.trim()) renderSignIn(body, () => paint());
   else renderReview(body, rubric);
 
   // Header, marking and the domain tabs travel as one sticky block. Separately pinned strips
@@ -160,7 +161,11 @@ function header(): HTMLElement {
     el('div', { class: 'brand', onclick: () => go(side === 'assess' ? 'review' : 'home') }, [
       el('span', { class: 'brand-mark' }, ['EA']),
       el('strong', {}, [rubric.title]),
-      side === 'assess' ? el('span', { class: 'side-badge' }, ['Assessor']) : null,
+      side === 'assess'
+        ? el('span', { class: 'side-badge' }, [
+            assessorName.trim() ? `${assessorName.trim()} · unverified` : 'Assessor',
+          ])
+        : null,
     ]),
     el('div', { class: 'topbar-right' }, [
       side === 'assess'
@@ -330,6 +335,66 @@ function renderHome(root: HTMLElement) {
    Settings. The rubric, and how information is handled. Both matter, and neither is the
    first thing a person needs.
    ------------------------------------------------------------------------------------------ */
+
+/**
+ * Who the assessor says they are. There is no authentication anywhere in this tool and there
+ * cannot be until somebody decides how it works, so this screen is shaped like a sign-in and
+ * says plainly that it is a mockup. Getting the shape agreed now is worth more than a text
+ * field pretending to be nothing.
+ *
+ * Everything it produces is labelled unverified, in the file and on screen, so nobody can
+ * later mistake a typed name for a checked one.
+ */
+let assessorName = '';
+
+function renderSignIn(root: HTMLElement, onDone: () => void) {
+  const input = el('input', {
+    type: 'text', value: assessorName, placeholder: 'First and last name',
+    oninput: (e: Event) => { assessorName = (e.target as HTMLInputElement).value; },
+  }) as HTMLInputElement;
+
+  const go = () => {
+    if (!assessorName.trim()) { input.focus(); return; }
+    onDone();
+  };
+
+  const card = el('section', { class: 'card signin' }, [
+    el('div', { class: 'head-row' }, [
+      el('h1', {}, ['Sign in']),
+      el('span', { class: 'badge badge-warn' }, ['Mockup']),
+    ]),
+    el('p', { class: 'muted' }, [
+      'There is no sign-in yet. Nobody has decided how assessors will be verified, so this ',
+      'screen is the shape of one and nothing more.',
+    ]),
+    el('div', { class: 'signin-mock' }, [
+      el('p', { class: 'small' }, [
+        el('b', {}, ['What this will probably become. ']),
+        'Your departmental account, the same one you use for Teams, so there is no new ',
+        'password and the tool knows who you are without asking.',
+      ]),
+      el('button', { class: 'ghost', disabled: true }, ['Continue with your departmental account']),
+      el('p', { class: 'tiny dim' }, ['Not wired to anything.']),
+    ]),
+    el('hr', { class: 'q-split' }),
+    el('label', { class: 'field' }, [
+      el('span', {}, ['For now, type your full name']),
+      input,
+    ]),
+    el('p', { class: 'small warn-text' }, [
+      'This is not checked. Anything you score will be recorded as unverified, and it will say ',
+      'so beside your name.',
+    ]),
+    el('div', { class: 'actions' }, [
+      el('button', { class: 'primary', onclick: go }, ['Continue as unverified']),
+    ]),
+  ]);
+  card.addEventListener('keydown', (e) => {
+    if ((e as KeyboardEvent).key === 'Enter') { e.preventDefault(); go(); }
+  });
+  root.appendChild(card);
+  setTimeout(() => input.focus?.(), 0);
+}
 
 /**
  * The admin view. A placeholder, and labelled as one: nobody has decided what the role does

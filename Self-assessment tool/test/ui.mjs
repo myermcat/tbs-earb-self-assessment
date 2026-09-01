@@ -290,7 +290,9 @@ ok('footer counts every answer', q('.footer-score .muted').textContent.includes(
    q('.footer-score .muted').textContent);
 ok('all four domain tabs read complete', qa('.stepper .step.complete:not(:first-child)').length === 4,
    String(qa('.stepper .step.complete').length));
-ok('the questionnaire says where the answers go', view().includes('Saved locally as you type'));
+// Three save states, never silent.
+ok('the questionnaire says where the work stands', view().includes('Draft saved in browser'));
+ok('and the indicator is a live region', q('.save-state')?.getAttribute('role') === 'status');
 
 // With work in the file, the start page points at Settings and destroys nothing itself.
 {
@@ -557,6 +559,19 @@ ok('n/a counts as dealt with, so the denominator stays whole',
 const hosting = gotoQuestion('hosting environment');
 [...hosting.querySelectorAll('button')].find((b) => b.textContent === 'Add evidence').click();
 ok('an evidence row appears', hosting.querySelectorAll('.ev-item').length === 1);
+// Evidence is a link now, and an artefact that cannot be linked goes by email with a pattern.
+ok('the evidence block asks for a link', view().includes('Link to the evidence'));
+ok('and offers the email route', !!byText('.ev-alt button', 'cannot be linked'));
+{
+  byText('.ev-alt button', 'cannot be linked').click();
+  const loc = qa('.question').find((n) => n.textContent.includes('hosting environment'))
+    .querySelector('.ev-row2 input[type=text]');
+  ok('which fills in a findable subject line',
+     loc.value.startsWith('Sent by email. Subject: EARB evidence') && loc.value.includes('TE-Q1'),
+     loc.value);
+  loc.value = '';
+  fire(loc, 'input');
+}
 const just = hosting.querySelector('textarea');
 just.value = 'Diagram is current as of March and owned by the platform team.';
 fire(just, 'input');
@@ -569,7 +584,7 @@ evTitle.value = 'Current-state architecture diagram, March 2026';
 fire(evTitle, 'input');
 
 // Attach a real file, the way Dan asked - so an assessor does not have to email anybody.
-const evFileInput = qa('.ev-row2 input[type=file]')[0];
+const evFileInput = qa('.ev-alt input[type=file]')[0];
 const bytes = new Uint8Array([0x25, 0x50, 0x44, 0x46, 0x2d, 0x31, 0x2e, 0x34]);   // "%PDF-1.4"
 const fakePdf = new window.File([bytes], 'current-state.pdf', { type: 'application/pdf' });
 Object.defineProperty(evFileInput, 'files', { value: [fakePdf], configurable: true });
@@ -718,6 +733,24 @@ ok('the submitter path is gone from the assessor view',
    !qa('nav.path .tab').some((t) => /Start|Fill it in|My results/.test(t.textContent)));
 ok('and there is a way back', !!byText('button', 'Leave assessor view'));
 ok('the side is remembered', window.localStorage.getItem('gc-arch-assessment:side') === 'assess');
+
+// No authentication exists, so the assessor side opens on a screen shaped like a sign-in that
+// says it is a mockup, and everything it produces is labelled unverified.
+ok('the assessor side asks who you are first', view().includes('Sign in'));
+ok('and admits it is a mockup', view().includes('Mockup'));
+ok('and says the name is not checked', view().includes('This is not checked'));
+ok('the real route is shown but not wired',
+   !!byText('.signin-mock button', 'departmental account') &&
+   byText('.signin-mock button', 'departmental account').disabled === true);
+{
+  const nameField = q('.signin input[type=text]');
+  nameField.value = 'Allison';
+  fire(nameField, 'input');
+  byText('.signin button', 'Continue as unverified').click();
+  ok('the badge carries the name and the word unverified',
+     q('.side-badge').textContent.includes('Allison') && q('.side-badge').textContent.includes('unverified'),
+     q('.side-badge')?.textContent);
+}
 ok('reviewer dropzone rendered', view().includes('Load submissions'));
 
 const fileInput = q('.dropzone input[type=file]');

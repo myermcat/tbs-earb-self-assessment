@@ -1,7 +1,7 @@
 import { CLASSIFICATIONS, type Assessment, type EvidenceRef, type Question, type Rubric } from './types';
 import { el, clear, tone } from './dom';
 import { score, type Result, type SectionScore } from './scoring';
-import { autosave, saveAssessmentFile } from './storage';
+import { autosave, onSaveStateChange, saveAssessmentFile, saveStatus } from './storage';
 import { humanSize, openAttachment, readAttachment, totalAttachedBytes, TOTAL_LIMIT, TOTAL_WARN } from './attach';
 import { canSave, markingProblems } from './marking';
 
@@ -539,7 +539,7 @@ function footerBar(
       el('div', { class: 'footer-score' }, [
         pill,
         readout,
-        el('span', { class: 'saved-note tiny dim' }, ['Saved locally as you type']),
+        saveIndicator(),
       ]),
       el('div', { class: 'footer-actions' }, [
         (() => {
@@ -585,6 +585,32 @@ function confetti(scale: 'section' | 'whole'): void {
   }
   document.body.appendChild(burst);
   setTimeout(() => burst.remove(), scale === 'whole' ? 2600 : 1800);
+}
+
+/**
+ * Three states, and never silent. Conventional wording: a spinner while a write is in flight,
+ * a plain past tense when it lands, and a reason plus what to do when it does not.
+ */
+function saveIndicator(): HTMLElement {
+  const node = el('span', { class: 'save-state tiny', role: 'status' });
+  const paint = () => {
+    const { state, detail } = saveStatus();
+    clear(node);
+    node.className = `save-state tiny st-${state}`;
+    if (state === 'saving') {
+      node.appendChild(el('span', { class: 'spin', 'aria-hidden': true }));
+      node.appendChild(el('span', {}, ['Saving']));
+    } else if (state === 'local') {
+      node.appendChild(el('span', {}, ['Draft saved in browser']));
+    } else if (state === 'online') {
+      node.appendChild(el('span', {}, ['Saved to TBS']));
+    } else {
+      node.appendChild(el('span', {}, [detail || 'Not saved. Check your connection.']));
+    }
+  };
+  paint();
+  onSaveStateChange(paint);
+  return node;
 }
 
 function saveFile(a: Assessment) {
@@ -633,7 +659,7 @@ function aboutSection(
   r: Result,
 ): HTMLElement {
   const set = (k: keyof Assessment['initiative']) => (e: Event) => {
-    (a.initiative as Record<string, string>)[k] = (e.target as HTMLInputElement).value;
+    (a.initiative as unknown as Record<string, string>)[k] = (e.target as HTMLInputElement).value;
     autosave(a);
   };
   const settled = () => refresh();
@@ -758,22 +784,103 @@ function aboutSection(
   return card;
 }
 
+/**
+ * Nothing protected or classified goes into this tool at all, settled with Dan on 2 September.
+ * The picker stays, because somebody still has to state the marking of the evidence they are
+ * pointing at, and picking anything above unclassified is the moment to say what to do instead.
+ *
+ * The advice appears here and nowhere else. It is a once-a-year situation, so it should not
+ * follow anybody around, and this is where they will come looking for it again.
+ */
 function markingChoices(a: Assessment, rebuild: () => void): HTMLElement {
-  return el('div', { class: 'marking-row' }, CLASSIFICATIONS.map((c) =>
+  const wrap = el('div', {});
+  const panel = el('div', {});
+
+  const paintPanel = () => {
+    clear(panel);
+    const c = a.initiative.classification;
+    if (!c || c === 'Unclassified') return;
+
+    const subject = `EARB evidence - ${a.initiative.name || 'your initiative'} - [question]`;
+    panel.appendChild(el('div', { class: 'mark-advice' }, [
+      el('div', { class: 'mark-advice-head' }, [
+        el('strong', {}, [`${c} material does not go in this tool`]),
+        el('span', { class: 'badge badge-warn' }, ['Read this']),
+      ]),
+      el('p', { class: 'small' }, [
+        'Nothing above unclassified belongs in here, answers or evidence. Two ways through, and ',
+        'the first one is almost always available.',
+      ]),
+      el('ol', { class: 'steps small' }, [
+        el('li', {}, [
+          el('b', {}, ['Link to it where it already lives, ']),
+          'and make sure your assessor can open it. The link is unclassified even when the ',
+          'document is not.',
+        ]),
+        el('li', {}, [
+          el('b', {}, ['If it cannot be linked, email it to your assessor ']),
+          'and record here that you did. Use this subject line so they can find it again:',
+          el('code', { class: 'mono mark-subject' }, [subject]),
+          ' and write in the evidence field: ',
+          el('code', { class: 'mono' }, [`${c}, sent by email, subject: ...`]),
+        ]),
+      ]),
+      el('p', { class: 'small muted' }, [
+        'Describing the shape of a system is usually unclassified. A high-level answer scores ',
+        'about 5, and 5 is a fine score.',
+      ]),
+      (() => {
+        const ack = el('label', { class: 'mark-ack' }, [
+          el('input', {
+            type: 'checkbox', checked: !!a.initiative.markingAcknowledged,
+            onchange: (e: Event) => {
+              a.initiative.markingAcknowledged = (e.target as HTMLInputElement).checked;
+              autosave(a);
+            },
+          }),
+          'I understand, and I will keep this tool unclassified.',
+        ]);
+        return ack;
+      })(),
+    ]));
+  };
+
+  const families: { name: string; note: string; of: readonly string[] }[] = [
+    { name: 'Protected', note: 'Injury to a person, a company or the government.', of: ['Protected A', 'Protected B', 'Protected C'] },
+    { name: 'Classified', note: 'Injury to the national interest.', of: ['Confidential', 'Secret', 'Top Secret'] },
+  ];
+
+  const chip = (c: string) =>
     el('label', { class: `marking-chip ${a.initiative.classification === c ? 'on' : ''}` }, [
       el('input', {
         type: 'radio', name: 'filemark', value: c,
         checked: a.initiative.classification === c,
         onchange: () => {
-          a.initiative.classification = c;
+          a.initiative.classification = c as Assessment['initiative']['classification'];
+          if (c === 'Unclassified') a.initiative.markingAcknowledged = undefined;
           autosave(a);
-          if (!overviewIsWizard(a)) confetti('section');
+          if (!overviewIsWizard(a) && c === 'Unclassified') confetti('section');
+          paintPanel();
           rebuild();
         },
       }),
       c,
-    ]),
-  ));
+    ]);
+
+  // Unclassified is the answer, so it gets its own row and the weight of one.
+  wrap.appendChild(el('div', { class: 'mark-default' }, [chip('Unclassified')]));
+  const grid = el('div', { class: 'mark-families' });
+  for (const f of families) {
+    grid.appendChild(el('fieldset', { class: 'mark-family' }, [
+      el('legend', {}, [f.name]),
+      el('p', { class: 'tiny muted' }, [f.note]),
+      el('div', { class: 'marking-row' }, f.of.map(chip)),
+    ]));
+  }
+  wrap.appendChild(grid);
+  paintPanel();
+  wrap.appendChild(panel);
+  return wrap;
 }
 
 /** The stages, grouped by phase, each pointing at its own page in the guide. */
@@ -1074,9 +1181,10 @@ function evidenceEditor(a: Assessment, q: Question, list: EvidenceRef[], refresh
   const paint = () => {
     clear(box);
     box.appendChild(el('div', { class: 'ev-head' }, [
-      el('strong', {}, ['Evidence']),
+      el('strong', {}, ['Link to the evidence']),
       el('span', { class: 'muted small' }, [
-        q.evidencePrompt ? q.evidencePrompt : 'Whatever your team already holds. A cost model, a diagram, a report.',
+        'Point at where it already lives, and make sure your assessor can open it. ',
+        q.evidencePrompt ? q.evidencePrompt : '',
       ]),
     ]));
 
@@ -1098,7 +1206,7 @@ function evidenceEditor(a: Assessment, q: Question, list: EvidenceRef[], refresh
             }, ['Detach']),
           ])
         : el('label', { class: 'filelabel small' }, [
-            'Attach the file',
+            'Attach an unclassified file',
             el('input', {
               type: 'file', hidden: true,
               onchange: async (e: Event) => {
@@ -1133,13 +1241,36 @@ function evidenceEditor(a: Assessment, q: Question, list: EvidenceRef[], refresh
           el('button', { class: 'ghost small', onclick: () => { list.splice(i, 1); autosave(a); paint(); refresh(); } }, ['Remove']),
         ]),
         el('div', { class: 'ev-row2' }, [
-          attachRow,
           el('input', {
             type: 'text',
-            placeholder: ev.attachment ? 'Note (optional)' : 'Or say where it lives - a path, a URL, a system name',
-            value: ev.attachment ? (ev.note ?? '') : ev.location,
-            oninput: ev.attachment ? upd('note') : upd('location'),
+            placeholder: 'Link, or where it lives',
+            value: ev.location,
+            oninput: upd('location'),
           }),
+          el('input', {
+            type: 'text', placeholder: 'Note (optional)',
+            value: ev.note ?? '', oninput: upd('note'),
+          }),
+        ]),
+        /**
+         * Everything in this tool is unclassified, so an artefact that cannot be linked does
+         * not come in here at all. It goes to the assessor by email, and this field records
+         * that it did. The pattern is given rather than invented, because an assessor has to
+         * find it again in Outlook.
+         */
+        el('div', { class: 'ev-alt' }, [
+          ev.attachment ? null : el('button', {
+            class: 'linkish tiny',
+            onclick: () => {
+              const subject = `EARB evidence - ${a.initiative.name || 'initiative'} - ${q.id}`;
+              ev.location = `Sent by email. Subject: ${subject}`;
+              if (!ev.title) ev.title = 'Sent to the assessor by email';
+              autosave(a); paint(); refresh();
+            },
+          }, ['It cannot be linked, I will email it']),
+          // attachRow is the file chip when something is attached, and the picker when not.
+          // Skipping it while attached made the attached file invisible.
+          attachRow,
         ]),
         unmarked
           ? el('div', { class: 'small warn-text' }, ['This needs a marking before the assessment can be saved.'])
