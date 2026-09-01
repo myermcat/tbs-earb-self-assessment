@@ -408,10 +408,10 @@ code.mono { background: var(--surface-2); border: 1px solid var(--line);
 .toc-dom { font-weight: 650; color: var(--ink); font-size: .86rem; margin-top: .35rem; }
 .toc-dom.open { color: var(--accent); }
 .toc-sec { padding-left: .9rem; }
-.toc-sec .toc-bar { grid-column: 1 / -1; height: 2px; border-radius: 999px;
+.toc-sec .toc-bar, .toc-overview .toc-bar { grid-column: 1 / -1; height: 2px; border-radius: 999px;
   background: var(--surface-2); overflow: hidden; }
-.toc-sec .toc-bar i { display: block; height: 100%; background: var(--accent);
-  transition: width .3s ease; }
+.toc-sec .toc-bar i, .toc-overview .toc-bar i { display: block; height: 100%;
+  background: var(--accent); transition: width .3s ease; }
 .toc-row.on { background: var(--accent-soft); color: var(--ink); font-weight: 600;
   box-shadow: inset 2px 0 0 var(--accent); }
 .toc-row.done .toc-count { color: var(--good); }

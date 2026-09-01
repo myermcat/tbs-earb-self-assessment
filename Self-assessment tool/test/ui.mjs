@@ -103,8 +103,11 @@ ok('and warns that loading one clears the answers',
 
 pane('Your answers');
 ok('settings says where the page was loaded from', view().includes('Where your answers go'));
-ok('settings names the rule that stops it transmitting', view().includes("connect-src 'none'"));
-ok('and explains that reloading keeps the answers', view().includes('Reloading does not lose anything'));
+// Everything in the tool is unclassified now, so the copy describes that and not a
+// never-transmits tool.
+ok('settings states the unclassified-only rule', view().includes('Unclassified only'));
+ok('and explains that the browser keeps the work', view().includes('keeps your work as you type'));
+ok('and that nothing is recalled once submitted', view().includes('Nothing is recalled once submitted'));
 
 pane('Start again');
 ok('the discard control lives here, not on the start page', !!q('.set-row.danger button.danger'));
@@ -701,9 +704,16 @@ byText('.tab', 'Start').click();
 ok('the crossover is on the start page', !!q('.crossover button'));
 byText('.crossover button', 'Open the assessor view').click();
 ok('the assessor side announces itself', !!q('.side-badge'), q('.brand')?.textContent);
-ok("the assessor's path is just Submissions",
-   qa('nav.path .tab').map((t) => t.textContent).join('|') === 'Submissions',
+ok("the assessor's path is Submissions then Admin",
+   qa('nav.path .tab').map((t) => t.textContent).join('|') === 'Submissions|Admin',
    qa('nav.path .tab').map((t) => t.textContent).join('|'));
+{
+  byText('.tab', 'Admin').click();
+  ok('the admin view exists and is labelled a placeholder',
+     view().includes('Admin') && view().includes('Placeholder'));
+  ok('and it says nothing there is built', view().includes('Nothing here is built'));
+  byText('.tab', 'Submissions').click();
+}
 ok('the submitter path is gone from the assessor view',
    !qa('nav.path .tab').some((t) => /Start|Fill it in|My results/.test(t.textContent)));
 ok('and there is a way back', !!byText('button', 'Leave assessor view'));

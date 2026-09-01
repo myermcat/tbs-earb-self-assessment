@@ -271,10 +271,25 @@ function sectionRail(
 ): HTMLElement {
   const nav = el('nav', { class: 'toc', 'aria-label': 'Sections of this assessment' });
 
+  // Every other rail row carries a count and a track. Overview carried neither, which reads
+  // as a row stuck at zero.
+  const ovCount = el('span', { class: 'toc-count' });
+  const ovFill = el('i');
   const overview = el('button', {
     class: `toc-row toc-overview ${here.key === 'about' ? 'on' : ''}`,
     onclick: () => navigate('about'),
-  }, [el('span', { class: 'toc-label' }, ['Overview'])]);
+  }, [
+    el('span', { class: 'toc-label' }, ['Overview']),
+    ovCount,
+    el('span', { class: 'toc-bar' }, [ovFill]),
+  ]);
+  register(() => {
+    const [done, total] = overviewProgress(a);
+    const [fDone, fTotal] = overviewFieldProgress(a);
+    ovCount.textContent = `${done}/${total}`;
+    ovFill.style.width = fTotal > 0 ? `${Math.round((fDone / fTotal) * 100)}%` : '0%';
+    overview.classList.toggle('done', done === total);
+  }, r);
   nav.appendChild(overview);
 
   for (const d of rubric.domains) {
