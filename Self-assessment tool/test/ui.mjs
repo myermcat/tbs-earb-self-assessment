@@ -150,6 +150,9 @@ ok('the page footer has a ground of its own',
 ok('the lift arrives only once the page has scrolled',
    /\.chrome\s*\{[^}]*box-shadow:\s*none/s.test(html) &&
    /\.scrolled \.chrome\s*\{[^}]*box-shadow:/s.test(html));
+// The sentinel it watches has to outlive a render, and every render empties #app.
+ok('the scroll sentinel lives outside the part that gets rebuilt',
+   !!document.querySelector('body > .top-sentinel'));
 
 // ---- overview --------------------------------------------------------------------------
 byText('.hero-actions button', 'Fill it in').click();

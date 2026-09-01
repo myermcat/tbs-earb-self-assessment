@@ -951,10 +951,11 @@ function wireScrollLift(): void {
    * page, a programmatic scroll moved the page and fired nothing. An intersection observer
    * reports the same fact without depending on the event.
    */
-  const app = document.getElementById('app');
-  if (app && typeof IntersectionObserver === 'function') {
-    const sentinel = el('span', { class: 'top-sentinel', 'aria-hidden': true });
-    app.insertBefore(sentinel, app.firstChild);
+  // It goes in the body, not in #app: every render empties #app, which took the sentinel
+  // with it and left the frame flat for the rest of the visit.
+  const sentinel = el('span', { class: 'top-sentinel', 'aria-hidden': true });
+  document.body.insertBefore(sentinel, document.body.firstChild);
+  if (typeof IntersectionObserver === 'function') {
     new IntersectionObserver(
       ([entry]) => root.classList.toggle('scrolled', !entry.isIntersecting),
       { threshold: 0 },
