@@ -436,6 +436,9 @@ code.mono { background: var(--surface-2); border: 1px solid var(--line);
   .toc-domain { display: contents; }
   .toc-sec .toc-bar { display: none; }
   .toc-row { white-space: nowrap; }
+  /* Nothing here the domain tabs above do not already show. */
+  .toc.no-sections { display: none; }
+  .toc .toc-overview { display: none; }
 }
 
 /* The overview asks for several unrelated things, so they are visibly separate. */
