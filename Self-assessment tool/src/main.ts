@@ -944,6 +944,22 @@ function wireScrollLift(): void {
   const root = document.documentElement;
   const paint = () => root.classList.toggle('scrolled', (window.scrollY || 0) > 4);
   window.addEventListener('scroll', paint, { passive: true });
+
+  /**
+   * A sentinel above the frame, watched rather than polled. Scroll events are the obvious
+   * mechanism and they are not reliable everywhere: in the embedded browser used to check this
+   * page, a programmatic scroll moved the page and fired nothing. An intersection observer
+   * reports the same fact without depending on the event.
+   */
+  const app = document.getElementById('app');
+  if (app && typeof IntersectionObserver === 'function') {
+    const sentinel = el('span', { class: 'top-sentinel', 'aria-hidden': true });
+    app.insertBefore(sentinel, app.firstChild);
+    new IntersectionObserver(
+      ([entry]) => root.classList.toggle('scrolled', !entry.isIntersecting),
+      { threshold: 0 },
+    ).observe(sentinel);
+  }
   // The questionnaire's results view scrolls inside its own container, so it reports its own.
   document.addEventListener('scroll', (e) => {
     const t = e.target as HTMLElement | null;
