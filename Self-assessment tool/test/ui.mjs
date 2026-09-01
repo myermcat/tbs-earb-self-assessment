@@ -108,7 +108,11 @@ ok('settings says where the page was loaded from', view().includes('Where your a
 // never-transmits tool.
 ok('settings states the unclassified-only rule', view().includes('Unclassified only'));
 ok('and explains that the browser keeps the work', view().includes('keeps your work as you type'));
-ok('and that nothing is recalled once submitted', view().includes('Nothing is recalled once submitted'));
+ok('and that nothing will be recalled once submitted',
+   view().includes('Nothing will be recalled once submitted'));
+// Copy that describes a feature has to say whether the feature exists.
+ok('the copy marks the unbuilt parts as unbuilt',
+   view().includes('Nothing is sent anywhere today') && view().includes('Planned, not built'));
 
 pane('Start again');
 ok('the discard control lives here, not on the start page', !!q('.set-row.danger button.danger'));
@@ -152,6 +156,12 @@ ok('the overview tab counts the three groups', qa('.stepper .step')[0].textConte
 ok('a blank assessment has nothing to mark, so saving is allowed',
    byText('.footer-actions button', 'Save to a file').disabled === false);
 
+// Nothing has been written yet, so the indicator says nothing. It used to open at "draft
+// saved in browser" on an empty page, which is a claim ahead of the fact.
+ok('the save indicator is silent until something is written',
+   !!q('.save-state.hidden') && q('.save-state').textContent.trim() === '',
+   q('.save-state')?.className);
+
 // The bar has to move on the first field. Counting groups meant it could not move until four
 // fields were filled, which reads as the tool ignoring you.
 {
@@ -164,6 +174,15 @@ ok('a blank assessment has nothing to mark, so saving is allowed',
   ok('while the count still reads in groups',
      qa('.stepper .step')[0].textContent.includes('0 of 3'),
      qa('.stepper .step')[0].textContent);
+
+  // The footer's own left bar was pinned at zero for the whole overview: it looks for the
+  // current section, and the overview is not one. It measures the six overview fields.
+  const footBar = () => qa('.sticky-footer .pbar')[0];
+  ok('the footer bar names the overview and counts it',
+     footBar().querySelector('.pbar-label').textContent.includes('Overview 1 of 6'),
+     footBar().querySelector('.pbar-label').textContent);
+  ok('and it has actually grown', footBar().querySelector('.progress-shell i').style.width === '17%',
+     footBar().querySelector('.progress-shell i').style.width);
 }
 
 // Step one: the four plain facts.
@@ -174,6 +193,12 @@ ok('a blank assessment has nothing to mark, so saving is allowed',
   contact.value = 'nick@tc.gc.ca'; fire(contact, 'input'); fire(contact, 'change');
 }
 
+{
+  const footBar = qa('.sticky-footer .pbar')[0];
+  ok('the footer bar keeps up as more overview fields are filled',
+     footBar.querySelector('.pbar-label').textContent.includes('Overview 3 of 6'),
+     footBar.querySelector('.pbar-label').textContent);
+}
 ok('typing content blocks saving until the file is marked',
    byText('.footer-actions button', 'Save to a file').disabled === true);
 ok('the gate says what to do, briefly', view().includes('Mark this file to save it'));
@@ -208,8 +233,78 @@ ok('and the same list is offered inside the gate that demands one',
    qa('.gate-marks .mark-btn').map((b) => b.textContent).join('|') === MARKINGS,
    qa('.gate-marks .mark-btn').map((b) => b.textContent).join('|'));
 
+// Choosing a marking above unclassified takes over the screen. This is the bug she found:
+// the strip set the marking and showed nothing, so the advice below the fold was scrolled
+// past and never read.
 byText('.gate-marks .mark-btn', 'Protected B').click();
+{
+  const dlg = q('dialog.pledge');
+  ok('choosing a classified marking pops a modal', !!dlg);
+  ok('and it names the marking that triggered it',
+     dlg.querySelector('.pledge-head h2').textContent.includes('Protected B'),
+     dlg.querySelector('.pledge-head h2')?.textContent);
+  ok('it carries the email subject line, already written',
+     dlg.querySelector('.pledge-subject').textContent.startsWith('EARB evidence - '),
+     dlg.querySelector('.pledge-subject')?.textContent);
+
+  const x = dlg.querySelector('.pledge-x');
+  ok('the close control is dead until the box is ticked', x.disabled === true);
+  ok('and says so', x.getAttribute('title') === 'Tick the box first', x.getAttribute('title'));
+  ok('the way out is stated as changing the answer, not dismissing the warning',
+     !!byText('dialog.pledge button', 'unclassified after all'));
+
+  const box = dlg.querySelector('.pledge-ack input[type=checkbox]');
+  box.checked = true;
+  fire(box, 'change');
+  ok('ticking it makes the close control live', x.disabled === false && x.classList.contains('live'));
+  ok('and the hint changes with it', dlg.querySelector('.pledge-hint').textContent.includes('can close'));
+
+  x.click();
+  ok('closing it removes the modal and its scrim',
+     !q('dialog.pledge') && !q('.pledge-scrim'));
+  ok('the acknowledgement was recorded',
+     JSON.parse(window.localStorage.getItem('gc-arch-assessment:draft')).initiative.markingAcknowledged === true);
+}
 ok('marking from the gate clears the gate', !q('.gate'));
+
+// Having pledged once, switching between classified markings does not ask again. The advice
+// panel on the overview is the reference to come back to.
+byText('.gate-marks .mark-btn', 'Protected C') ? byText('.gate-marks .mark-btn', 'Protected C').click() : null;
+{
+  const chip = qa('.marking-chip input').find((i) => i.value === 'Protected C');
+  if (chip) { chip.checked = true; fire(chip, 'change'); }
+  ok('a second classified marking does not pop it again', !q('dialog.pledge'));
+}
+
+// The escape hatch, on its own terms: it changes the answer back to unclassified.
+{
+  const unclass = qa('.marking-chip input').find((i) => i.value === 'Unclassified');
+  unclass.checked = true;
+  fire(unclass, 'change');
+  ok('choosing unclassified pops nothing', !q('dialog.pledge'));
+  const pa = qa('.marking-chip input').find((i) => i.value === 'Protected A');
+  pa.checked = true;
+  fire(pa, 'change');
+  ok('and the pledge returns once the acknowledgement is cleared', !!q('dialog.pledge'));
+  byText('dialog.pledge button', 'unclassified after all').click();
+  const draft = JSON.parse(window.localStorage.getItem('gc-arch-assessment:draft'));
+  ok('the way out sets the marking back to unclassified',
+     draft.initiative.classification === 'Unclassified' && !draft.initiative.markingAcknowledged,
+     `${draft.initiative.classification} / ${draft.initiative.markingAcknowledged}`);
+  ok('and clears the modal', !q('dialog.pledge'));
+}
+
+// Back to Protected B, which the rest of this suite is written against.
+{
+  const pb = qa('.marking-chip input').find((i) => i.value === 'Protected B');
+  pb.checked = true;
+  fire(pb, 'change');
+  const box = q('dialog.pledge .pledge-ack input[type=checkbox]');
+  box.checked = true;
+  fire(box, 'change');
+  q('dialog.pledge .pledge-x').click();
+  ok('the marking is Protected B again, acknowledged', !q('dialog.pledge'));
+}
 
 // Step three, the lifecycle, with the guide beside it.
 byText('.ov-nav button', 'Next').click();
@@ -299,8 +394,14 @@ ok('footer counts every answer', q('.footer-score .muted').textContent.includes(
 ok('all four domain tabs read complete', qa('.stepper .step.complete:not(:first-child)').length === 4,
    String(qa('.stepper .step.complete').length));
 // Three save states, never silent.
-ok('the questionnaire says where the work stands', view().includes('Draft saved in browser'));
+// Where the work is kept, in the chrome, so it is on every screen rather than only the 21
+// questionnaire pages. It also has to be silent before anything has been written.
+ok('the app says where the work stands', view().includes('Draft saved in browser'));
 ok('and the indicator is a live region', q('.save-state')?.getAttribute('role') === 'status');
+ok('it lives in the chrome, not in the questionnaire footer',
+   !!q('.topbar .save-state') && !q('.sticky-footer .save-state'));
+ok('it carries a short wording for a narrow screen', !!q('.save-state .ss-short'));
+ok('and one click opens the detail', q('.save-state').tagName === 'BUTTON');
 
 // With work in the file, the start page points at Settings and destroys nothing itself.
 {
@@ -740,6 +841,11 @@ ok('csv carries a column per section', head.includes('section_data_data-architec
 // offered once, on the page a submitter arrives at.
 byText('.tab', 'Start').click();
 ok('the crossover is on the start page', !!q('.crossover button'));
+// Both assessor-side views are reachable from the home page, and both ask who you are.
+ok('the home page offers the admin view too', !!byText('.crossover button', 'Open the admin view'));
+byText('.crossover button', 'Open the admin view').click();
+ok('the admin view asks who you are first', view().includes('Sign in'));
+byText('button', 'Leave assessor view').click();
 byText('.crossover button', 'Open the assessor view').click();
 ok('the assessor side announces itself', !!q('.side-badge'), q('.brand')?.textContent);
 ok("the assessor's path is Submissions then Admin",

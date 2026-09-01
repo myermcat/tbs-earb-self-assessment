@@ -1,8 +1,9 @@
 import { CLASSIFICATIONS, type Assessment, type EvidenceRef, type Question, type Rubric } from './types';
 import { el, clear, tone } from './dom';
 import { domainRedFlags, score, sectionRedFlags, type Result, type SectionScore } from './scoring';
-import { autosave, onSaveStateChange, saveAssessmentFile, saveStatus } from './storage';
+import { autosave, clearSaveWatchers, saveAssessmentFile } from './storage';
 import { humanSize, openAttachment, readAttachment, totalAttachedBytes, TOTAL_LIMIT, TOTAL_WARN } from './attach';
+import { demandPledge } from './pledge';
 import { canSave, markingProblems } from './marking';
 
 const KINDS: EvidenceRef['kind'][] = ['document', 'diagram', 'dashboard', 'system', 'report', 'other'];
@@ -139,6 +140,7 @@ export function renderSubmit(
 ): void {
   clear(root);
   readouts = [];
+  clearSaveWatchers();          // one live indicator, not one per repaint
   const r = score(rubric, a);
 
   /**
@@ -409,6 +411,43 @@ function stepper(
   ]);
 }
 
+
+/** The subject line an assessor can search for, written for them. */
+export function evidenceSubject(a: Assessment): string {
+  return `EARB evidence - ${a.initiative.name || 'your initiative'} - [question]`;
+}
+
+/**
+ * Setting the file's marking, from wherever it was set.
+ *
+ * Choosing anything above unclassified takes over the screen once, because a panel below the
+ * fold is not a warning - it was scrolled past, which is how this bug was found. After the
+ * pledge is given, switching between classified markings does not ask again: the advice panel
+ * on the overview is the reference to come back to.
+ */
+export function setFileMarking(
+  a: Assessment,
+  c: Assessment['initiative']['classification'],
+  after: () => void,
+): void {
+  a.initiative.classification = c;
+  if (c === 'Unclassified') a.initiative.markingAcknowledged = undefined;
+  autosave(a);
+  after();
+  if (!c || c === 'Unclassified' || a.initiative.markingAcknowledged) return;
+  demandPledge({
+    marking: c,
+    subject: evidenceSubject(a),
+    onAcknowledge: () => { a.initiative.markingAcknowledged = true; autosave(a); after(); },
+    onUnclassified: () => {
+      a.initiative.classification = 'Unclassified';
+      a.initiative.markingAcknowledged = undefined;
+      autosave(a);
+      after();
+    },
+  });
+}
+
 /**
  * The overview asks for six things, so counting it as one was misleading. None of them are
  * scored; they are what an assessor needs to know before reading a score.
@@ -507,7 +546,7 @@ function footerBar(
           ? el('div', { class: 'gate-marks' }, CLASSIFICATIONS.map((c) =>
               el('button', {
                 class: 'mark-btn',
-                onclick: () => { a.initiative.classification = c; autosave(a); repaintApp(); },
+                onclick: () => setFileMarking(a, c, repaintApp),
               }, [c]),
             ))
           : null,
@@ -525,9 +564,12 @@ function footerBar(
     const cur = here.domainId
       ? rr.domains.find((x) => x.domain.id === here.domainId)?.sections.find((x) => x.section.id === here.sectionId)
       : undefined;
-    const done = cur?.answered ?? 0;
-    const total = cur?.total ?? 0;
-    secLabel.textContent = cur ? `This section ${done} of ${total}` : 'Overview';
+    const [ovDone, ovTotal] = overviewFieldProgress(a);
+    const done = cur ? cur.answered : ovDone;
+    const total = cur ? cur.total : ovTotal;
+    secLabel.textContent = cur
+      ? `This section ${done} of ${total}`
+      : `Overview ${done} of ${total}`;
     secBar.style.width = total > 0 ? `${Math.round((done / total) * 100)}%` : '0%';
 
     allLabel.textContent = `Whole assessment ${rr.answered} of ${rr.scoreable}`;
@@ -535,7 +577,9 @@ function footerBar(
 
     // The reward for finishing a section, on an element that is pinned, so it is seen however
     // far down the page the reader is.
-    const nowComplete = total > 0 && done === total;
+    // Only a scored section is celebrated. Finishing the overview is not an achievement, and
+    // she asked for no confetti there.
+    const nowComplete = !!cur && total > 0 && done === total;
     if (nowComplete && !sectionWasComplete) {
       secBar.classList.remove('celebrate');
       void secBar.offsetWidth;                     // restart the animation
@@ -556,7 +600,6 @@ function footerBar(
       el('div', { class: 'footer-score' }, [
         pill,
         readout,
-        saveIndicator(),
       ]),
       el('div', { class: 'footer-actions' }, [
         (() => {
@@ -604,32 +647,6 @@ function confetti(scale: 'section' | 'whole'): void {
   setTimeout(() => burst.remove(), scale === 'whole' ? 2600 : 1800);
 }
 
-/**
- * Three states, and never silent. Conventional wording: a spinner while a write is in flight,
- * a plain past tense when it lands, and a reason plus what to do when it does not.
- */
-function saveIndicator(): HTMLElement {
-  const node = el('span', { class: 'save-state tiny', role: 'status' });
-  const paint = () => {
-    const { state, detail } = saveStatus();
-    clear(node);
-    node.className = `save-state tiny st-${state}`;
-    if (state === 'saving') {
-      node.appendChild(el('span', { class: 'spin', 'aria-hidden': true }));
-      node.appendChild(el('span', {}, ['Saving']));
-    } else if (state === 'local') {
-      node.appendChild(el('span', {}, ['Draft saved in browser']));
-    } else if (state === 'online') {
-      node.appendChild(el('span', {}, ['Saved to TBS']));
-    } else {
-      node.appendChild(el('span', {}, [detail || 'Not saved. Check your connection.']));
-    }
-  };
-  paint();
-  onSaveStateChange(paint);
-  return node;
-}
-
 function saveFile(a: Assessment) {
   saveAssessmentFile(a);
 }
@@ -646,6 +663,18 @@ let overviewStep = 0;
 function overviewIsWizard(a: Assessment): boolean {
   const [done, total] = overviewProgress(a);
   return done < total;
+}
+
+/**
+ * Take the reader to the marking question, wherever they are.
+ *
+ * The chrome banner said "Unmarked. Set the classification" and then scrolled to an element
+ * that only exists on the overview: from any of the twenty question pages it was a dead end.
+ * The banner and the gate strip both need this.
+ */
+export function showMarkingStep(): void {
+  page = 'about';
+  overviewStep = 1;                      // the marking group, between the facts and the stage
 }
 
 /** Coming back should land on the first group still empty. */
@@ -873,12 +902,11 @@ function markingChoices(a: Assessment, rebuild: () => void): HTMLElement {
         type: 'radio', name: 'filemark', value: c,
         checked: a.initiative.classification === c,
         onchange: () => {
-          a.initiative.classification = c as Assessment['initiative']['classification'];
-          if (c === 'Unclassified') a.initiative.markingAcknowledged = undefined;
-          autosave(a);
+          setFileMarking(a, c as Assessment['initiative']['classification'], () => {
+            paintPanel();
+            rebuild();
+          });
           if (!overviewIsWizard(a) && c === 'Unclassified') confetti('section');
-          paintPanel();
-          rebuild();
         },
       }),
       c,
