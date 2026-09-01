@@ -56,17 +56,39 @@ footer{margin-top:3rem;color:var(--ink-3);font-size:.8rem}
 .done-layer{font-size:.66rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3)}
 .wait-row .t{font-weight:600}
 .done-card .leaf{opacity:.92}
+.jump{display:flex;flex-wrap:wrap;gap:.35rem;margin:0 0 1.6rem}
+.jump a{font-size:.78rem;text-decoration:none;color:var(--ink-2);background:var(--surface);
+border:1px solid var(--line);border-radius:999px;padding:.22rem .6rem}
+.jump a:hover{border-color:var(--accent-line);color:var(--accent)}
+.jump a b{font-family:var(--mono);color:var(--ink-3);font-weight:700}
+h2{scroll-margin-top:1rem}
+.h3sub{font-size:.98rem;margin:1.2rem 0 .5rem;color:var(--ink-2)}
+.kpi a{color:inherit;text-decoration:none}
 </style>
 <div class="wrap"><h1>EARB self-assessment: backlog</h1>
 <p class="sub">Layers are the spine, the three views sit inside the interface layer, and every item appears once. Finished work moves to Done at the bottom and stays there. Groups open and close. Updated 2026-09-01.</p>
 <div class="kpis">
 <div class="kpi"><b>13</b><span>next</span></div>
-<div class="kpi"><b>14</b><span>waiting on somebody</span></div>
+<div class="kpi"><b>8</b><span><a href="#waiting">waiting on somebody</a></span></div>
 <div class="kpi"><b>12</b><span>later</span></div>
-<div class="kpi"><b>27</b><span>done</span></div>
+<div class="kpi"><b>27</b><span><a href="#done">done</a></span></div>
 <div class="kpi"><b>9</b><span>open questions</span></div>
 </div>
-<h2>Waiting on somebody</h2><p class="hint">Chased, and not ours to finish. Each of these is also in its layer below.</p>
+<nav class="jump">
+<a href="#waiting">Waiting on somebody <b>8</b></a>
+<a href="#done">Done <b>27</b></a>
+<a href="#resolved">Resolved questions <b>10</b></a>
+<a href="#questions">Open questions <b>9</b></a>
+<a href="#layer-0">Question set</a>
+<a href="#layer-1">Engine</a>
+<a href="#layer-2">Interface: the submitter</a>
+<a href="#layer-3">Interface: the assessor</a>
+<a href="#layer-4">Interface: admin</a>
+<a href="#layer-5">Interface: the executive view</a>
+<a href="#layer-6">Data and hosting</a>
+<a href="#layer-7">Process, for people</a>
+</nav>
+<h2 id="waiting">Waiting on somebody</h2><p class="hint">Chased, and not ours to finish. Each of these is also in its layer below.</p>
 <div class="tw"><table><thead><tr><th>Item</th><th>Who</th><th>Layer</th><th>Meanwhile</th></tr></thead><tbody>
 <tr><td>Confirm the answer type for every question</td><td>Dan</td><td>Question set</td><td>Ten are yes/no on our reading of the wording. The other 166 are scored 0 to 10.</td></tr>
 <tr><td>Confirm which no answers matter most</td><td>Dan</td><td>Question set</td><td>Every no colours its section red today. If some should not, that is his call.</td></tr>
@@ -77,7 +99,7 @@ footer{margin-top:3rem;color:var(--ink-3);font-size:.8rem}
 <tr><td>Nick’s answer on who performs the transfer</td><td>Nick</td><td>Data and hosting</td><td>Open an issue on canada-ca/welcome is the route he named. Whether he moves it or you do is the part still unanswered.</td></tr>
 <tr><td>Decide the triggers</td><td>Dan</td><td>Data and hosting</td><td>Submission, assignment, a changed score and a reminder are four different decisions.</td></tr>
 </tbody></table></div>
-<h2>Question set <span class="owner">Dan</span></h2>
+<h2 id="layer-0">Question set <span class="owner">Dan</span></h2>
 <div class="card">
 <details class="grp" open><summary class="row">
 <span class="t">Answer types and criticality</span><span class="st st-wait">Waiting</span>
@@ -114,7 +136,7 @@ footer{margin-top:3rem;color:var(--ink-3);font-size:.8rem}
 </div>
 </div></details>
 </div>
-<h2>Engine <span class="owner">us</span></h2>
+<h2 id="layer-1">Engine <span class="owner">us</span></h2>
 <div class="card">
 <details class="grp" open><summary class="row">
 <span class="t">Storage and concurrency</span><span class="st st-next">Next</span>
@@ -138,7 +160,7 @@ footer{margin-top:3rem;color:var(--ink-3);font-size:.8rem}
 </div>
 </div></details>
 </div>
-<h2>Interface: the submitter <span class="owner">us</span></h2>
+<h2 id="layer-2">Interface: the submitter <span class="owner">us</span></h2>
 <div class="card">
 <details class="grp" open><summary class="row">
 <span class="t">Marking</span><span class="st st-next">Next</span>
@@ -151,7 +173,7 @@ footer{margin-top:3rem;color:var(--ink-3);font-size:.8rem}
 </div></details>
 <details class="grp" open><summary class="row">
 <span class="t">Submitting</span><span class="st st-next">Next</span>
-
+<span class="w">The moment work stops being private. Everything here is about the person knowing that.</span>
 </summary><div class="subs">
 <div class="leaf">
 <span class="t">First-submit confirmation</span><span class="st st-next">Next</span>
@@ -159,7 +181,7 @@ footer{margin-top:3rem;color:var(--ink-3);font-size:.8rem}
 </div>
 </div></details>
 </div>
-<h2>Interface: the assessor <span class="owner">us</span></h2>
+<h2 id="layer-3">Interface: the assessor <span class="owner">us</span></h2>
 <div class="card">
 <details class="grp" open><summary class="row">
 <span class="t">Identity</span><span class="st st-wait">Waiting</span>
@@ -171,7 +193,7 @@ footer{margin-top:3rem;color:var(--ink-3);font-size:.8rem}
 </div>
 </div></details>
 </div>
-<h2>Interface: admin <span class="owner">us</span></h2>
+<h2 id="layer-4">Interface: admin <span class="owner">us</span></h2>
 <div class="card">
 <details class="grp" open><summary class="row">
 <span class="t">Admin-only actions</span><span class="st st-later">Later</span>
@@ -191,7 +213,7 @@ footer{margin-top:3rem;color:var(--ink-3);font-size:.8rem}
 </div>
 </div></details>
 </div>
-<h2>Interface: the executive view <span class="owner">us</span></h2>
+<h2 id="layer-5">Interface: the executive view <span class="owner">us</span></h2>
 <div class="card">
 <details class="grp" open><summary class="row">
 <span class="t">Dan’s twelve-month questions</span><span class="st st-later">Later</span>
@@ -199,19 +221,19 @@ footer{margin-top:3rem;color:var(--ink-3);font-size:.8rem}
 </summary><div class="subs">
 <div class="leaf">
 <span class="t">Per-question averages and histograms</span><span class="st st-later">Later</span>
-
+<span class="w">Which questions the whole GC is weak on, which is the argument for changing a question rather than a department.</span>
 </div>
 <div class="leaf">
 <span class="t">Average by department</span><span class="st st-later">Later</span>
-
+<span class="w">Needs enough records that a department average is not one initiative.</span>
 </div>
 <div class="leaf">
 <span class="t">Best and worst evidence per question</span><span class="st st-later">Later</span>
-
+<span class="w">Gives a submitter an example of what good looks like, which is the thing people ask for first.</span>
 </div>
 </div></details>
 </div>
-<h2>Data and hosting <span class="owner">us and TBS</span></h2>
+<h2 id="layer-6">Data and hosting <span class="owner">us and TBS</span></h2>
 <div class="card">
 <details class="grp" open><summary class="row">
 <span class="t">Get into canada-ca</span><span class="st st-next">Next</span>
@@ -253,7 +275,7 @@ footer{margin-top:3rem;color:var(--ink-3);font-size:.8rem}
 </div>
 </div></details>
 </div>
-<h2>Process, for people <span class="owner">Dan and John</span></h2>
+<h2 id="layer-7">Process, for people <span class="owner">Dan and John</span></h2>
 <div class="card">
 <div class="leaf solo">
 <span class="t">How John’s team validates evidence</span><span class="st st-later">Later</span>
@@ -268,7 +290,9 @@ footer{margin-top:3rem;color:var(--ink-3);font-size:.8rem}
 <span class="w">His call. Blocks nothing we build.</span>
 </div>
 </div>
-<h2>Done</h2><p class="hint">Built and tested. Kept here so the list of what exists is one place.</p>
+<h2 id="done">Done</h2><p class="hint">Built and tested, and kept here permanently. Nothing on this list has to be remembered.</p>
+<h3 class="h3sub">Since Dan's review on 1 September &mdash; 25 items</h3>
+<p class="hint">This is the list to walk him through. Everything here came out of that conversation.</p>
 <div class="card done-card">
 <div class="leaf solo">
 <span class="t">Rail’s Overview row shows a count and a bar</span><span class="st st-done">Done</span>
@@ -301,10 +325,6 @@ footer{margin-top:3rem;color:var(--ink-3);font-size:.8rem}
 <div class="leaf solo">
 <span class="t">The store seam</span><span class="st st-done">Done</span>
 <span class="w"><span class="done-layer">Engine</span> &middot; src/store.ts. One constant from live, and the dashboard already reads through it.</span>
-</div>
-<div class="leaf solo">
-<span class="t">Submitter answers and assessor scores are separate fields</span><span class="st st-done">Done</span>
-<span class="w"><span class="done-layer">Engine</span> &middot; Which is why a submitter and an assessor cannot collide at all.</span>
 </div>
 <div class="leaf solo">
 <span class="t">Ask for a link</span><span class="st st-done">Done</span>
@@ -374,12 +394,19 @@ footer{margin-top:3rem;color:var(--ink-3);font-size:.8rem}
 <span class="t">Reply to Nick: transfer the existing repo</span><span class="st st-done">Done</span>
 <span class="w"><span class="done-layer">Data and hosting</span> &middot; Sent. 28 commits of history, all yours.</span>
 </div>
+</div>
+<h3 class="h3sub">Already there when he reviewed it</h3>
+<div class="card done-card">
+<div class="leaf solo">
+<span class="t">Submitter answers and assessor scores are separate fields</span><span class="st st-done">Done</span>
+<span class="w"><span class="done-layer">Engine</span> &middot; Which is why a submitter and an assessor cannot collide at all.</span>
+</div>
 <div class="leaf solo">
 <span class="t">Draft the email</span><span class="st st-done">Done</span>
 <span class="w"><span class="done-layer">Data and hosting</span> &middot; Opens the person’s own mail client with the message written. All a static page can do.</span>
 </div>
 </div>
-<h2>Resolved questions</h2><p class="hint">Settled, and how.</p>
+<h2 id="resolved">Resolved questions</h2><p class="hint">Settled, and how.</p>
 <div class="callout"><div class="q">Should the tool hold classified information?</div><div class="a"><b>Resolved.</b> No. Nothing protected or classified goes in at all, settled with Dan on 1 September. That removed the second deployment, the local-only engine, the theme switch, and the whole recall problem.</div></div>
 <div class="callout"><div class="q">What happens to online data when a marking rises?</div><div class="a"><b>Resolved.</b> Dropped. The tool never stores classified evidence, so the question cannot arise.</div></div>
 <div class="callout"><div class="q">Does a two-topic question count twice overall?</div><div class="a"><b>Resolved.</b> No. Once in the overall score, and at full weight inside each topic, which is where the weights genuinely differ.</div></div>
@@ -390,7 +417,7 @@ footer{margin-top:3rem;color:var(--ink-3);font-size:.8rem}
 <div class="callout"><div class="q">Org access to canada-ca</div><div class="a"><b>Resolved.</b> Done. Nick invited you, and the TBS-OCIO-ESP team gives push access to canada-ca/TBS-OCIO-ESP.</div></div>
 <div class="callout"><div class="q">Who may replace the question set?</div><div class="a"><b>Resolved.</b> The assessor and admin side only. Loading one clears every answer, so a submitter is told where it lives and not handed the control.</div></div>
 <div class="callout"><div class="q">How does the dashboard stay current?</div><div class="a"><b>Resolved.</b> By storing nothing. It recalculates each record from its answers as the page draws, so there is no roll-up that can go stale.</div></div>
-<h2>Open questions</h2><p class="hint">Not work. Somebody owes an answer.</p>
+<h2 id="questions">Open questions</h2><p class="hint">Not work. Somebody owes an answer.</p>
 <div class="tw"><table><thead><tr><th>Question</th><th>Who owes it</th><th>Blocks</th><th>Meanwhile</th></tr></thead><tbody>
 <tr><td>Who may edit a stored assessment, and how it is checked</td><td>Dan</td><td>Real authentication</td><td>Mockup screen, everything labelled unverified</td></tr>
 <tr><td>Verifying an assessor’s identity</td><td>Dan</td><td>Real sign-in</td><td>Typed name, labelled unverified on every change it records</td></tr>

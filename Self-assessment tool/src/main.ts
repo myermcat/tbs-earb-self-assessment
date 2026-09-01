@@ -1,10 +1,11 @@
 import type { Assessment, Rubric } from './types';
 import { el, clear } from './dom';
 import { validate } from './rubric';
-import { goToFirstGap, renderSubmit, resetOverviewToFirstGap, setRepaint, setStopKey, takeSubmitTabs } from './views-submit';
+import { goToFirstGap, renderSubmit, resetOverviewToFirstGap, setRepaint, setStopKey, showMarkingStep, takeSubmitTabs } from './views-submit';
 import { renderResults } from './views-results';
 import { openedThisSession, renderReview, setAuditor } from './views-review';
 import { renderDashboard } from './views-dashboard';
+import { saveBadge } from './save-badge';
 import { answeredCount, APP_VERSION, blankAssessment, clearDraft, hasWork, lastSaveInfo,
   loadDraft, readJsonFiles, saveAssessmentFile } from './storage';
 import { bannerFor } from './marking';
@@ -80,7 +81,7 @@ function go(next: Mode) {
 }
 
 /** Cross between the two sides, and remember which one, so a return visit opens the same door. */
-function setSide(next: Side, move = true) {
+function setSide(next: Side, move = true, target?: Mode) {
   side = next;
   try {
     localStorage.setItem(SIDE_KEY, next);
@@ -88,7 +89,7 @@ function setSide(next: Side, move = true) {
   } catch {
     /* storage or history unavailable. The side still holds for this visit. */
   }
-  if (move) go(next === 'assess' ? 'review' : 'home');
+  if (move) go(target ?? (next === 'assess' ? 'review' : 'home'));
 }
 
 const GEAR =
@@ -115,8 +116,8 @@ function paint() {
   else if (mode === 'submit') renderSubmit(body, rubric, assessment, () => go('results'));
   else if (mode === 'results') renderResults(body, rubric, assessment, () => go('submit'));
   else if (mode === 'settings') renderSettings(body);
+  else if ((mode === 'admin' || mode === 'review') && !assessorName.trim()) renderSignIn(body, () => paint());
   else if (mode === 'admin') renderAdmin(body);
-  else if (mode === 'review' && !assessorName.trim()) renderSignIn(body, () => paint());
   else renderReview(body, rubric);
 
   // Header, marking and the domain tabs travel as one sticky block. Separately pinned strips
@@ -169,6 +170,8 @@ function header(): HTMLElement {
         : null,
     ]),
     el('div', { class: 'topbar-right' }, [
+      // Where the work is kept, on every screen, and one click from the detail.
+      saveBadge(() => openSettings('answers')),
       side === 'assess'
         ? el('nav', { class: 'path', 'aria-label': 'Where you are' }, [
             tab('Submissions', 'review'), chev(), tab('Admin', 'admin'),
@@ -212,6 +215,9 @@ function banner(extra = ''): HTMLElement {
   return el('button', {
     class: 'marking-banner unmarked',
     onclick: () => {
+      // The marking question lives on the overview, so go there first. Without this the
+      // banner did nothing at all from any of the twenty question pages.
+      showMarkingStep();
       go('submit');
       const heading = document.getElementById('marking-control');
       if (heading && typeof heading.scrollIntoView === 'function') heading.scrollIntoView({ block: 'center' });
@@ -311,6 +317,12 @@ function renderHome(root: HTMLElement) {
   root.appendChild(el('p', { class: 'crossover tiny dim' }, [
     'Reviewing submissions for TBS? ',
     el('button', { class: 'linkish', onclick: () => setSide('assess') }, ['Open the assessor view']),
+  ]));
+  // The portfolio view has no other way in from here, and somebody who runs the programme
+  // should not have to find it through the assessor side.
+  root.appendChild(el('p', { class: 'crossover tiny dim' }, [
+    'Running the programme? ',
+    el('button', { class: 'linkish', onclick: () => setSide('assess', true, 'admin') }, ['Open the admin view']),
   ]));
 
   root.appendChild(el('section', { class: 'note' }, [
@@ -572,8 +584,8 @@ function paneAnswers(pane: HTMLElement) {
     null,
   ));
   pane.appendChild(setRow(
-    'Submitting is one deliberate act',
-    'Nothing is sent while you are filling this in. You submit when you are finished, and the tool tells you what is about to go before it goes.',
+    'Nothing is sent anywhere today',
+    'There is no submit button yet, and this page cannot reach the network at all: it carries a browser rule that blocks every outbound request. When submitting is built it will be one deliberate act, and it will name what is about to go before it goes.',
     null,
   ));
   pane.appendChild(setRow(
@@ -582,8 +594,8 @@ function paneAnswers(pane: HTMLElement) {
     null,
   ));
   pane.appendChild(setRow(
-    'Nothing is recalled once submitted',
-    'A submitted assessment is not deleted. It can be withdrawn and left out of the statistics, which is a different thing. A copy may already exist in a backup or in somebody else\'s download, so nothing here claims to erase it.',
+    'Nothing will be recalled once submitted',
+    'Planned, not built. A submitted assessment will not be deleted. It will be withdrawn and left out of the statistics, which is a different thing: a copy may already exist in a backup or in somebody else\'s download, so nothing here will claim to erase it.',
     null,
   ));
 }

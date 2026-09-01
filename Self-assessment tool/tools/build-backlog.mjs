@@ -73,6 +73,14 @@ footer{margin-top:3rem;color:var(--ink-3);font-size:.8rem}
 .done-layer{font-size:.66rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3)}
 .wait-row .t{font-weight:600}
 .done-card .leaf{opacity:.92}
+.jump{display:flex;flex-wrap:wrap;gap:.35rem;margin:0 0 1.6rem}
+.jump a{font-size:.78rem;text-decoration:none;color:var(--ink-2);background:var(--surface);
+border:1px solid var(--line);border-radius:999px;padding:.22rem .6rem}
+.jump a:hover{border-color:var(--accent-line);color:var(--accent)}
+.jump a b{font-family:var(--mono);color:var(--ink-3);font-weight:700}
+h2{scroll-margin-top:1rem}
+.h3sub{font-size:.98rem;margin:1.2rem 0 .5rem;color:var(--ink-2)}
+.kpi a{color:inherit;text-decoration:none}
 </style>`;
 
 const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
@@ -137,6 +145,19 @@ function count(status) {
   return n;
 }
 
+const done = doneItems();
+// `seen: true` marks work Dan had already seen on 1 September. Everything else is the
+// changelog since that review, which is the list he should be walked through.
+const doneNew = done.filter((r) => !r.item.seen);
+const doneSeen = done.filter((r) => r.item.seen);
+const doneRow = ({ layer, item }) => [
+  '<div class="leaf solo">',
+  `<span class="t">${esc(item.t)}</span><span class="st st-done">Done</span>`,
+  `<span class="w"><span class="done-layer">${esc(layer)}</span> &middot; ${esc(item.why ?? '')}</span>`,
+  '</div>',
+].join('\n');
+const openQuick = quick.items.filter((i) => i.status !== 'done');
+
 const waiting = [];
 for (const l of layers) {
   for (const g of l.groups) {
@@ -146,8 +167,6 @@ for (const l of layers) {
   }
 }
 
-const done = doneItems();
-const openQuick = quick.items.filter((i) => i.status !== 'done');
 
 const html = [
   '<title>EARB tool backlog</title>',
@@ -156,49 +175,62 @@ const html = [
   `<p class="sub">Layers are the spine, the three views sit inside the interface layer, and every item appears once. Finished work moves to Done at the bottom and stays there. Groups open and close. Updated ${esc(updated)}.</p>`,
   '<div class="kpis">',
   `<div class="kpi"><b>${count('next')}</b><span>next</span></div>`,
-  `<div class="kpi"><b>${count('wait')}</b><span>waiting on somebody</span></div>`,
+  `<div class="kpi"><b>${waiting.length}</b><span><a href="#waiting">waiting on somebody</a></span></div>`,
   `<div class="kpi"><b>${count('later')}</b><span>later</span></div>`,
-  `<div class="kpi"><b>${done.length}</b><span>done</span></div>`,
+  `<div class="kpi"><b>${done.length}</b><span><a href="#done">done</a></span></div>`,
   `<div class="kpi"><b>${questions.length}</b><span>open questions</span></div>`,
   '</div>',
+  '<nav class="jump">',
+  [
+    openQuick.length ? ['#quick', 'Quick actions', openQuick.length] : null,
+    waiting.length ? ['#waiting', 'Waiting on somebody', waiting.length] : null,
+    ['#done', 'Done', done.length],
+    ['#resolved', 'Resolved questions', resolved.length],
+    ['#questions', 'Open questions', questions.length],
+  ].filter(Boolean).map(([href, label, n]) => `<a href="${href}">${esc(label)} <b>${n}</b></a>`).join('\n'),
+  layers.map((l, i) => `<a href="#layer-${i}">${esc(l.title)}</a>`).join('\n'),
+  '</nav>',
 
   openQuick.length ? [
-    `<h2>${esc(quick.title)}</h2><p class="hint">${esc(quick.hint)}</p>`,
+    `<h2 id="quick">${esc(quick.title)}</h2><p class="hint">${esc(quick.hint)}</p>`,
     '<div class="card quick">',
     openQuick.map((i) => leaf(i, true)).join('\n'),
     '</div>',
   ].join('\n') : '',
 
   waiting.length ? [
-    '<h2>Waiting on somebody</h2><p class="hint">Chased, and not ours to finish. Each of these is also in its layer below.</p>',
+    '<h2 id="waiting">Waiting on somebody</h2><p class="hint">Chased, and not ours to finish. Each of these is also in its layer below.</p>',
     '<div class="tw"><table><thead><tr><th>Item</th><th>Who</th><th>Layer</th><th>Meanwhile</th></tr></thead><tbody>',
     waiting.map((w) => `<tr><td>${esc(w.item.t)}</td><td>${esc(w.owner)}</td><td>${esc(w.layer)}</td><td>${esc(w.item.why ?? '')}</td></tr>`).join('\n'),
     '</tbody></table></div>',
   ].join('\n') : '',
 
-  ...layers.map((l) => {
+  ...layers.map((l, i) => {
     const body = l.groups.map(group).filter(Boolean).join('\n');
     if (!body) return '';
     return [
-      `<h2>${esc(l.title)} <span class="owner">${esc(l.owner)}</span></h2>`,
+      `<h2 id="layer-${i}">${esc(l.title)} <span class="owner">${esc(l.owner)}</span></h2>`,
       '<div class="card">', body, '</div>',
     ].join('\n');
   }),
 
-  '<h2>Done</h2><p class="hint">Built and tested. Kept here so the list of what exists is one place.</p>',
+  '<h2 id="done">Done</h2><p class="hint">Built and tested, and kept here permanently. Nothing on this list has to be remembered.</p>',
+  `<h3 class="h3sub">Since Dan's review on 1 September &mdash; ${doneNew.length} items</h3>`,
+  '<p class="hint">This is the list to walk him through. Everything here came out of that conversation.</p>',
   '<div class="card done-card">',
-  done.map(({ layer, item }) => [
-    '<div class="leaf solo">',
-    `<span class="t">${esc(item.t)}</span><span class="st st-done">Done</span>`,
-    `<span class="w"><span class="done-layer">${esc(layer)}</span> &middot; ${esc(item.why ?? '')}</span>`,
-    '</div>',
-  ].join('\n')).join('\n'),
+  doneNew.map(doneRow).join('\n'),
   '</div>',
+  doneSeen.length ? [
+    '<h3 class="h3sub">Already there when he reviewed it</h3>',
+    '<div class="card done-card">',
+    doneSeen.map(doneRow).join('\n'),
+    '</div>',
+  ].join('\n') : '',
 
-  '<h2>Resolved questions</h2><p class="hint">Settled, and how.</p>',
+  '<h2 id="resolved">Resolved questions</h2><p class="hint">Settled, and how.</p>',
   resolved.map((r) => `<div class="callout"><div class="q">${esc(r.q)}</div><div class="a"><b>Resolved.</b> ${esc(r.a)}</div></div>`).join('\n'),
 
-  '<h2>Open questions</h2><p class="hint">Not work. Somebody owes an answer.</p>',
+  '<h2 id="questions">Open questions</h2><p class="hint">Not work. Somebody owes an answer.</p>',
   '<div class="tw"><table><thead><tr><th>Question</th><th>Who owes it</th><th>Blocks</th><th>Meanwhile</th></tr></thead><tbody>',
   questions.map((q) => `<tr><td>${esc(q.q)}</td><td>${esc(q.who)}</td><td>${esc(q.blocks)}</td><td>${esc(q.meanwhile)}</td></tr>`).join('\n'),
   '</tbody></table></div>',
@@ -207,4 +239,4 @@ const html = [
 ].filter(Boolean).join('\n');
 
 writeFileSync(out, html + '\n');
-console.log(`backlog.html  ${count('next')} next, ${count('wait')} waiting, ${count('later')} later, ${done.length} done`);
+console.log(`backlog.html  ${count('next')} next, ${waiting.length} waiting, ${count('later')} later, ${done.length} done`);

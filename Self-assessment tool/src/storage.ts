@@ -25,13 +25,17 @@ export function blankAssessment(rubric: Rubric): Assessment {
 /**
  * Where the work stands, so nobody has to wonder.
  *
+ *   'idle'    nothing has been written yet this visit
  *   'saving'  a write is in flight
  *   'local'   held by this browser, and nothing has been submitted yet
  *   'online'  submitted, so later changes write through to TBS
  *   'failed'  the last write did not land, and the reason
+ *
+ * It starts idle. Starting at 'local' meant a page with nothing on it announced "draft saved
+ * in browser" before anything had been saved, which is a claim ahead of the fact.
  */
-export type SaveState = 'saving' | 'local' | 'online' | 'failed';
-let saveState: SaveState = 'local';
+export type SaveState = 'idle' | 'saving' | 'local' | 'online' | 'failed';
+let saveState: SaveState = 'idle';
 let saveDetail = '';
 const saveWatchers = new Set<() => void>();
 
@@ -39,6 +43,22 @@ export function onSaveStateChange(fn: () => void): () => void {
   saveWatchers.add(fn);
   return () => saveWatchers.delete(fn);
 }
+
+/**
+ * Every watcher is a closure over a DOM node, and the questionnaire rebuilds its footer on
+ * every repaint, so without this the set grew by one detached closure per repaint. The render
+ * that owns the indicator clears them the way it clears its other readouts.
+ */
+export function clearSaveWatchers(): void { saveWatchers.clear(); }
+
+/**
+ * The three calls a real write needs. Nothing drives them yet: there is no endpoint, so the
+ * only reachable states are idle, local and failed. They exist so the seam in src/store.ts has
+ * something to call, and so the indicator's wording is settled before the write is built.
+ */
+export function beginWrite(): void { setSaveState('saving'); }
+export function writeLanded(): void { setSaveState('online'); }
+export function writeFailed(reason: string): void { setSaveState('failed', reason); }
 export function saveStatus(): { state: SaveState; detail: string } {
   return { state: saveState, detail: saveDetail };
 }
