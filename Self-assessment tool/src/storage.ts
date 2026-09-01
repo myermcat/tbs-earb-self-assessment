@@ -118,9 +118,22 @@ export function answeredCount(a: Assessment): number {
 }
 
 /** Anything at all in the file: an answer, or a fact about the initiative. */
+/**
+ * Whether there is anything here worth protecting from a swap or a discard.
+ *
+ * It used to count scores and the overview fields only, so somebody who had written
+ * justifications and gathered evidence without scoring anything registered as empty: both
+ * confirmations were skipped for them, and the discard button was disabled. This counts what
+ * marking.ts has always counted for the same question.
+ */
 export function hasWork(a: Assessment): boolean {
   if (answeredCount(a) > 0) return true;
-  return Object.values(a.initiative).some((v) => typeof v === 'string' && v.trim() !== '');
+  if (Object.values(a.initiative).some((v) => typeof v === 'string' && v.trim() !== '')) return true;
+  return Object.values(a.answers).some(
+    (ans) => (ans.justification ?? '').trim() !== ''
+      || (ans.evidence ?? []).length > 0
+      || ans.na === true,
+  );
 }
 
 /**

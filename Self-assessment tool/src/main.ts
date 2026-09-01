@@ -8,8 +8,8 @@ import { renderDashboard } from './views-dashboard';
 import { addToLibrary, currentId, currentRubric, libraryList, removeFromLibrary, setCurrentId } from './library';
 import { confirmStep } from './confirm';
 import { saveBadge } from './save-badge';
-import { answeredCount, APP_VERSION, blankAssessment, clearDraft, download, hasWork, lastSaveInfo,
-  loadDraft, readJsonFiles, saveAssessmentFile, slug } from './storage';
+import { answeredCount, APP_VERSION, autosave, blankAssessment, clearDraft, download, hasWork,
+  lastSaveInfo, loadDraft, readJsonFiles, saveAssessmentFile, slug } from './storage';
 import { bannerFor, evidenceNote } from './marking';
 import BUILTIN from '../rubric/rubric.v1-dan.json';
 
@@ -304,8 +304,23 @@ function renderHome(root: HTMLElement) {
               if (!f?.length) return;
               const [item] = await readJsonFiles(f);
               const a = item.data as Assessment;
-              if (a?.fileType === 'gc-arch-assessment') { assessment = a; go('submit'); }
-              else alert(`${item.file} is not a self-assessment file.`);
+              if (a?.fileType !== 'gc-arch-assessment') {
+                alert(`${item.file} is not a self-assessment file.`);
+                return;
+              }
+              const open = () => { assessment = a; autosave(assessment); go('submit'); };
+              // Opening a file overwrites whatever this browser is holding, which is the same
+              // destruction as a discard and used to happen on one click with no warning.
+              if (!hasWork(assessment)) { open(); return; }
+              confirmDestructive({
+                tier: 'caution',
+                title: `Open ${item.file} over ${answeredCount(assessment)} answers?`,
+                body: 'The file you open replaces what this browser is holding. Anything here that is not in a file of its own is gone.',
+                saveLabel: 'Save this one first',
+                commitLabel: 'Open the file anyway',
+                cancelLabel: 'Keep what I have',
+                onCommit: open,
+              });
             },
           }),
         ]),
@@ -541,6 +556,7 @@ function paneQuestions(pane: HTMLElement) {
         const swap = () => {
           setCurrentId(added.id);
           rubric = v.rubric;
+          clearDraft();
           assessment = blankAssessment(rubric);
           resetOverviewToFirstGap(rubric, assessment);
           settingsPane = 'questions';
@@ -592,6 +608,7 @@ function paneQuestions(pane: HTMLElement) {
           const swap = () => {
             setCurrentId(entry.id);
             rubric = entry.rubric;
+            clearDraft();
             assessment = blankAssessment(rubric);
             resetOverviewToFirstGap(rubric, assessment);
             go('settings');
@@ -720,14 +737,43 @@ function paneDanger(pane: HTMLElement) {
         ]),
       ]),
       el('button', { class: 'ghost small', onclick: () => {
-        assessment = rescued as Assessment;
-        rescued = null;
-        resetOverviewToFirstGap(rubric, assessment);
-        go('settings');
+        // Coming back to this pane after answering more questions, Undo would have replaced
+        // the newer work with the older copy and thrown the newer away silently.
+        const restore = () => {
+          assessment = rescued as Assessment;
+          rescued = null;
+          autosave(assessment);
+          resetOverviewToFirstGap(rubric, assessment);
+          go('settings');
+        };
+        if (!hasWork(assessment)) { restore(); return; }
+        confirmStep({
+          tier: 'danger',
+          title: `Put the discarded copy back over ${answeredCount(assessment)} answers?`,
+          body: 'You have answered questions since that discard. Restoring the old copy replaces them, and they are not held anywhere else.',
+          stake: 'The newer answers cannot be recovered afterwards.',
+          commitLabel: 'Restore the old copy',
+          cancelLabel: 'Keep what I have now',
+          onCommit: restore,
+        });
       } }, ['Undo']),
-      el('button', { class: 'primary small', onclick: () => { rescued = null; go('submit'); } }, [
-        'Start filling it in',
-      ]),
+      el('button', {
+        class: 'primary small',
+        // This is the only copy of what was just discarded, so letting it go is a decision.
+        onclick: () => confirmStep({
+          tier: 'caution',
+          title: 'Let the discarded copy go?',
+          body: 'This is the last moment it can be brought back. After this it is gone from the browser as well.',
+          stake: `${answeredCount(rescued as Assessment)} answers were in it.`,
+          offer: {
+            label: 'Save it as a file first',
+            run: () => `Saving as ${saveAssessmentFile(rescued as Assessment)}. Check your Downloads folder.`,
+          },
+          commitLabel: 'Let it go',
+          cancelLabel: 'Keep the undo for now',
+          onCommit: () => { rescued = null; go('submit'); },
+        }),
+      }, ['Start filling it in']),
     ]));
   }
 
@@ -886,8 +932,29 @@ function wireHistory(): void {
   });
 }
 
+/**
+ * The frame lifts once the page has scrolled under it.
+ *
+ * A border is the separation at rest, and a shadow is what tells you content is passing
+ * beneath. Showing the shadow at the top of the page as well leaves nothing to distinguish the
+ * two states, which is the state the tool was in when the frame read as part of the page.
+ */
+function wireScrollLift(): void {
+  if (typeof window.addEventListener !== 'function') return;
+  const root = document.documentElement;
+  const paint = () => root.classList.toggle('scrolled', (window.scrollY || 0) > 4);
+  window.addEventListener('scroll', paint, { passive: true });
+  // The questionnaire's results view scrolls inside its own container, so it reports its own.
+  document.addEventListener('scroll', (e) => {
+    const t = e.target as HTMLElement | null;
+    if (t && t.classList?.contains('body-results')) root.classList.toggle('scrolled', t.scrollTop > 4);
+  }, true);
+  paint();
+}
+
 openEverythingForPrint();
 wireHistory();
+wireScrollLift();
 setRepaint(() => paint());
 
 const check = validate(rubric);

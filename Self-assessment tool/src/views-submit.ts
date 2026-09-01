@@ -4,6 +4,7 @@ import { domainRedFlags, score, sectionRedFlags, type Result, type SectionScore 
 import { autosave, clearSaveWatchers, saveAssessmentFile } from './storage';
 import { humanSize, openAttachment, readAttachment, totalAttachedBytes, TOTAL_LIMIT, TOTAL_WARN } from './attach';
 import { demandPledge } from './pledge';
+import { confirmStep } from './confirm';
 import { canSave, markingProblems } from './marking';
 
 const KINDS: EvidenceRef['kind'][] = ['document', 'diagram', 'dashboard', 'system', 'report', 'other'];
@@ -1052,7 +1053,8 @@ function questionBlock(rubric: Rubric, a: Assessment, q: Question, refresh: () =
     type: 'checkbox',
     onchange: (e: Event) => {
       ans.na = (e.target as HTMLInputElement).checked;
-      if (ans.na) ans.score = null;
+      // The score is kept while a question is not applicable. Scoring already leaves n/a out
+      // of every total, and unticking the box used to leave the answer erased.
       autosave(a); paintScores(); paintChosen(); refresh();
     },
   }) as HTMLInputElement;
@@ -1294,8 +1296,23 @@ function evidenceEditor(a: Assessment, q: Question, list: EvidenceRef[], refresh
             el('span', { class: 'muted small' }, [humanSize(ev.attachment.size)]),
             el('button', { class: 'ghost small', onclick: () => openAttachment(ev.attachment!) }, ['Open']),
             el('button', {
-              class: 'ghost small',
-              onclick: () => { delete ev.attachment; autosave(a); paint(); refresh(); },
+              class: 'ghost small danger-text',
+              onclick: () => {
+                const att = ev.attachment!;
+                confirmStep({
+                  tier: 'danger',
+                  title: `Detach ${att.name}?`,
+                  body: 'The copy inside this assessment is removed. If the original is no longer on your machine, there is no other copy.',
+                  stake: `${humanSize(att.size)}, held only here.`,
+                  offer: {
+                    label: 'Open it first, so you can save it',
+                    run: () => { openAttachment(att); return `Opened ${att.name} in a new tab. Save it from there before detaching.`; },
+                  },
+                  commitLabel: 'Detach it',
+                  cancelLabel: 'Keep it attached',
+                  onCommit: () => { delete ev.attachment; autosave(a); paint(); refresh(); },
+                });
+              },
             }, ['Detach']),
           ])
         : el('label', { class: 'filelabel small' }, [
@@ -1331,7 +1348,25 @@ function evidenceEditor(a: Assessment, q: Question, list: EvidenceRef[], refresh
             el('option', { value: '', selected: !ev.classification }, ['- marking required -']),
             ...CLASSIFICATIONS.map((c) => el('option', { value: c, selected: ev.classification === c }, [c])),
           ]),
-          el('button', { class: 'ghost small', onclick: () => { list.splice(i, 1); autosave(a); paint(); refresh(); } }, ['Remove']),
+          el('button', {
+            class: 'ghost small danger-text',
+            onclick: () => {
+              const drop = () => { list.splice(i, 1); autosave(a); paint(); refresh(); };
+              const holds = !!(ev.title || ev.location || ev.note || ev.attachment || ev.classification);
+              if (!holds) { drop(); return; }
+              confirmStep({
+                tier: 'danger',
+                title: `Remove "${ev.title || ev.attachment?.name || 'this evidence'}"?`,
+                body: 'The row goes, with its marking, its link and its note. Nothing else on the question changes.',
+                stake: ev.attachment
+                  ? `It has ${ev.attachment.name} attached, ${humanSize(ev.attachment.size)}, held only here.`
+                  : 'There is no undo for this.',
+                commitLabel: 'Remove it',
+                cancelLabel: 'Keep it',
+                onCommit: drop,
+              });
+            },
+          }, ['Remove']),
         ]),
         el('div', { class: 'ev-row2' }, [
           el('input', {

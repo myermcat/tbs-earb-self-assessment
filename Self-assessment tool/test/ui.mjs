@@ -129,11 +129,27 @@ ok('no network call is even possible (CSP)', html.includes("connect-src 'none'")
 // the page follows the media query, and a light page renders dark controls.
 ok('color-scheme is declared for both themes',
    /:root\s*\{[^}]*color-scheme:\s*light/.test(html) && /prefers-color-scheme:\s*dark[^}]*\{[^}]*color-scheme:\s*dark/s.test(html));
-// The sticky footer floats over cards that would otherwise look identical to it.
-ok('the sticky footer is pinned to the edge and reads as chrome, not as a floating card',
+// The frame and the page were within 1.13:1 of each other in light and 1.08:1 in dark, so
+// they read as one surface. The frame has its own edge token, the page footer has a ground of
+// its own, and the dark frame is lighter than the page instead of darker.
+ok('the sticky footer is pinned to the edge and carries the frame edge',
    /\.sticky-footer\s*\{[^}]*bottom:\s*0/s.test(html) &&
-   /\.sticky-footer\s*\{[^}]*border-top:\s*1px solid var\(--line-2\)/s.test(html) &&
+   /\.sticky-footer\s*\{[^}]*border-top:\s*1px solid var\(--chrome-line\)/s.test(html) &&
    !/\.sticky-footer\s*\{[^}]*backdrop-filter/s.test(html));
+ok('the frame has an edge token of its own in both schemes',
+   /:root\s*\{[^}]*--chrome-line:/s.test(html) &&
+   /prefers-color-scheme:\s*dark[^}]*\{[\s\S]{0,900}--chrome-line:/.test(html));
+ok('the header and the tab strip use it too',
+   /\.topbar\s*\{[^}]*border-bottom:\s*1px solid var\(--chrome-line\)/s.test(html) &&
+   /\.chrome \.stepper\s*\{[^}]*border-bottom:\s*1px solid var\(--chrome-line\)/s.test(html));
+ok('the dark frame is lighter than the dark page, not darker',
+   /prefers-color-scheme:\s*dark[\s\S]{0,900}--chrome-bg:\s*#1e222a/.test(html));
+ok('the page footer has a ground of its own',
+   /\.sitefoot\s*\{[^}]*background:\s*var\(--surface-2\)/s.test(html) &&
+   /\.sitefoot\s*\{[^}]*border-top:\s*1px solid var\(--line\)/s.test(html));
+ok('the lift arrives only once the page has scrolled',
+   /\.chrome\s*\{[^}]*box-shadow:\s*none/s.test(html) &&
+   /\.scrolled \.chrome\s*\{[^}]*box-shadow:/s.test(html));
 
 // ---- overview --------------------------------------------------------------------------
 byText('.hero-actions button', 'Fill it in').click();
@@ -514,11 +530,13 @@ ok('and one click opens the detail', q('.save-state').tagName === 'BUTTON');
      railCounts().join(' '));
   ok('the page still was not rebuilt', document.contains(probeQuestion) && probeLadder.open === true);
 
-  // Put it back, so the rest of the run sees a fully answered assessment.
+  // Put it back, so the rest of the run sees a fully answered assessment. Unticking is enough:
+  // marking a question not applicable keeps the score it had, and used to erase it.
   naBox.checked = false;
   fire(naBox, 'change');
-  [...naQ.querySelectorAll('.score-btn')].find((b) => b.textContent === '7').click();
-  [...target.querySelectorAll('.score-btn')].find((b) => b.textContent === '7').click();
+  ok('unticking not applicable gives the score back',
+     naQ.querySelectorAll('.score-btn')[7].getAttribute('aria-checked') === 'true',
+     [...naQ.querySelectorAll('.score-btn')].map((b) => b.getAttribute('aria-checked')).join(''));
   probeTextarea.value = '';
   fire(probeTextarea, 'input');
   ok('restored to fully answered', footerCount().includes(`${TOTAL} of ${TOTAL}`), footerCount());
