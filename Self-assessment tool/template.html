@@ -8,9 +8,11 @@
   anywhere: no script, no stylesheet, no image, no font. Everything it needs is inlined below,
   so it works with the network cable pulled out.
 
-  connect-src is the part that decides whether it can talk to anything. Built with no
-  endpoint it is 'none', and the page cannot fetch, XHR or open a socket at all. Built with
-  EARB_ENDPOINT set it names that one origin, and nothing else is reachable.
+  connect-src is the part that decides whether it can talk to anything. Built with no store it
+  is 'none', and the page cannot fetch, XHR or open a socket at all. Built with EARB_ENDPOINT
+  set it names that one origin. Built with EARB_FIREBASE set it names the three Google hosts a
+  Firestore build needs: sign-in, the token exchange, and the documents. Nothing else is
+  reachable in any of the three cases, which is why an SDK loaded from a CDN has no place here.
 -->
 <meta http-equiv="Content-Security-Policy"
       content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data:; connect-src __CONNECT__; form-action 'none'; base-uri 'none'">

@@ -2,6 +2,7 @@
 import { allQuestionScores, score, weakest, nextAnchor } from '../src/scoring';
 import { flags } from '../src/flags';
 import { csvHeader, csvRow, toCsv } from '../src/csv';
+import { fromFields, fromValue, toFields, toValue } from '../src/firebase';
 import { validate } from '../src/rubric';
 import type { Assessment, Rubric } from '../src/types';
 import BUILTIN from '../rubric/rubric.v1-dan.json';
@@ -254,6 +255,126 @@ ok('1 -> Critical Risk', mat(1) === 'Critical Risk', String(mat(1)));
   const back = JSON.parse(JSON.stringify(a)) as Assessment;
   ok('round-trips through a file', score(rubric, back).overall === score(rubric, a).overall);
   ok('awkward text survives', back.answers[target].justification === a.answers[target].justification);
+}
+
+/* ------------------------------------------------------------------------------------------
+   The Firestore value mapping.
+
+   Firestore wraps every field, so an assessment goes out as a tree of { stringValue },
+   { integerValue }, { mapValue } and { arrayValue } and has to come back as itself. This is
+   where an integration like this breaks: an empty evidence array arrives with no `values` key
+   at all, an integer arrives as a string, and a null score arrives under a key of its own.
+   ------------------------------------------------------------------------------------------ */
+
+/** Key order is not part of the data, so a comparison sorts the keys on the way past. */
+function stable(x: unknown): string {
+  if (x === null || typeof x !== 'object') return JSON.stringify(x) ?? 'undefined';
+  if (Array.isArray(x)) return `[${x.map(stable).join(',')}]`;
+  const o = x as Record<string, unknown>;
+  return `{${Object.keys(o).sort().map((k) => `${JSON.stringify(k)}:${stable(o[k])}`).join(',')}}`;
+}
+
+{
+  // Every awkward shape an assessment can hold, in one record: a null score, a boolean, an
+  // n/a with no evidence key at all, an empty evidence array, two evidence items of which one
+  // carries an attachment, a double, and an audit history.
+  const a = blank('beta');
+  a.ref = 'QK7M';
+  a.ownerEmail = 'someone@example.gc.ca';
+  a.initiative.classification = 'Unclassified';
+  a.initiative.markingAcknowledged = 'Unclassified';
+  a.answers['q-null'] = { score: null, justification: '' };
+  a.answers['q-na'] = { score: null, na: true };
+  a.answers['q-empty'] = { score: 0, evidence: [] };
+  a.answers['q-full'] = {
+    score: 7,
+    picklist: 'other',
+    picklistOther: 'a case the list does not carry',
+    justification: 'commas, "quotes" and \nnewlines',
+    evidence: [
+      { title: 'Current state pack', kind: 'document', location: 'GCdocs', classification: 'Unclassified' },
+      {
+        title: 'Cost model',
+        kind: 'report',
+        location: 'sent by email',
+        classification: 'Protected B',
+        emailed: true,
+        emailSubject: 'EARB QK7M evidence 2',
+        attachment: { name: 'costs.csv', type: 'text/csv', size: 4096, data: 'YSxiLGMK' },
+      },
+    ],
+  };
+  a.audit = {
+    reviewer: 'An assessor',
+    reviewedAt: '2026-09-03T12:00:00.000Z',
+    overallNote: '',
+    perQuestion: {
+      'q-full': {
+        auditedScore: 6.5,
+        verdict: 'adjust',
+        note: 'the pack covers one system of three',
+        by: 'An assessor',
+        at: '2026-09-03T12:00:00.000Z',
+        history: [
+          { by: 'An assessor', at: '2026-09-03T11:00:00.000Z', score: 5, note: 'first pass', unverified: true },
+          { by: 'Another assessor', at: '2026-09-03T11:30:00.000Z', score: 6.5, note: 'on reflection', unverified: true },
+        ],
+      },
+    },
+  };
+
+  const wire = toFields({ ...a });
+  const back = fromFields(wire) as unknown as Assessment;
+
+  ok('an assessment round-trips through the Firestore mapping', stable(back) === stable(a),
+     stable(back) === stable(a) ? '' : stable(back));
+  ok('a null score comes back as null', back.answers['q-null'].score === null);
+  ok('an n/a boolean survives', back.answers['q-na'].na === true);
+  ok('an empty evidence array stays an empty array',
+     Array.isArray(back.answers['q-empty'].evidence) && back.answers['q-empty'].evidence.length === 0,
+     JSON.stringify(back.answers['q-empty'].evidence));
+  ok('nested evidence keeps both items and their order',
+     (back.answers['q-full'].evidence ?? []).map((e) => e.title).join('|') === 'Current state pack|Cost model');
+  ok('an attachment inside evidence survives',
+     (back.answers['q-full'].evidence ?? [])[1]?.attachment?.data === 'YSxiLGMK');
+  ok('a whole number reads back as a number', back.answers['q-full'].score === 7);
+  ok('a fractional audit score keeps its fraction', back.audit?.perQuestion['q-full']?.auditedScore === 6.5);
+  ok('the audit history stays two moves long', (back.audit?.perQuestion['q-full']?.history ?? []).length === 2);
+  ok('awkward text survives the wrapping',
+     back.answers['q-full'].justification === a.answers['q-full'].justification);
+  ok('an empty answers map on a fresh assessment stays a map',
+     stable(fromFields(toFields({ ...blank('beta') })).answers) === '{}');
+}
+
+{
+  // The wire form itself, because a mapping that round-trips through its own reader can still
+  // be writing something Firestore refuses.
+  ok('a whole number goes as an int64 in a string', stable(toValue(7)) === '{"integerValue":"7"}', stable(toValue(7)));
+  ok('zero goes as an integer', stable(toValue(0)) === '{"integerValue":"0"}');
+  ok('a fraction goes as a double', stable(toValue(6.5)) === '{"doubleValue":6.5}', stable(toValue(6.5)));
+  ok('null goes as nullValue', stable(toValue(null)) === '{"nullValue":null}');
+  ok('false goes as a boolean', stable(toValue(false)) === '{"booleanValue":false}');
+  ok('an empty string is a string', stable(toValue('')) === '{"stringValue":""}');
+  ok('a number past 2^53 goes as a double, because an int64 in a string would be refused',
+     stable(toValue(2 ** 60)) === `{"doubleValue":${2 ** 60}}`, stable(toValue(2 ** 60)));
+  ok('an undefined field is left out, the way JSON.stringify leaves it out',
+     stable(toFields({ note: undefined, title: 'x' })) === '{"title":{"stringValue":"x"}}',
+     stable(toFields({ note: undefined, title: 'x' })));
+
+  // Forms Firestore sends that this module never writes.
+  ok('an array with no values key reads as an empty array', stable(fromValue({ arrayValue: {} })) === '[]');
+  ok('a map with no fields key reads as an empty object', stable(fromValue({ mapValue: {} })) === '{}');
+  ok('an integer in a string reads as a number', fromValue({ integerValue: '10' }) === 10);
+  ok('a timestamp reads as the string it was written as',
+     fromValue({ timestampValue: '2026-09-03T12:00:00Z' }) === '2026-09-03T12:00:00Z');
+  ok('NaN in its string form reads as NaN', Number.isNaN(fromValue({ doubleValue: 'NaN' })));
+  ok('a value form nobody here knows reads as absent, so one field cannot lose a record',
+     fromValue({ someLaterValue: 1 }) === null);
+
+  // Firestore stores no array inside an array, and the 400 it answers with names nothing.
+  let refused = false;
+  try { toValue([[1]]); } catch { refused = true; }
+  ok('an array inside an array is refused before the request goes', refused);
 }
 
 // A rubric that is wrong should be refused, not silently half-loaded.

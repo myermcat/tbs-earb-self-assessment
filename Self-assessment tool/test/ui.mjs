@@ -941,6 +941,13 @@ ok('the bulky native scrollbar is hidden, since the dots do that job',
 ok('with a fallback for short viewports and reduced motion',
    /max-height:\s*620px[^{]*\{[\s\S]{0,400}scroll-snap-type:\s*none/.test(html) &&
    /prefers-reduced-motion[^{]*\{[\s\S]{0,300}scroll-snap-type:\s*none/.test(html));
+// Submitting is one deliberate act, and with no store there is nothing to press. The block
+// says which of those two it is rather than showing a button that cannot work.
+ok('the results page has a submit block', !!q('.submit-box'));
+ok('and with no store it says so and points at the file',
+   view().includes('Not hosted yet') && view().includes('nowhere to send it yet'));
+ok('with no button that cannot work', !byText('.submit-box button', 'Send it to TBS'));
+
 ok('backlog section present', view().includes('weakest five'));
 ok('assessor questions previewed to the submitter', view().includes('What an assessor will probably ask'));
 // One card when it is rare, one aggregate line when it is not; the sweep makes it common.

@@ -82,16 +82,45 @@ function setSaveState(state: SaveState, detail = '') {
   for (const fn of saveWatchers) fn();
 }
 
-export function autosave(a: Assessment): void {
-  a.meta.updatedAt = new Date().toISOString();
+/**
+ * Put the draft in the browser's store and answer whether it went in, leaving the save
+ * indicator where it is.
+ *
+ * A store names a record on its first write, and that name has to come back into the draft or
+ * the next write makes a second document for the same assessment. Doing that through `autosave`
+ * would announce a local save in the middle of a successful online one, which is the wrong
+ * thing to tell somebody who is watching the badge.
+ */
+export function keepDraft(a: Assessment): boolean {
   try {
     localStorage.setItem(KEY, JSON.stringify(a));
-    setSaveState('local');
+    return true;
   } catch {
-    // A private window, or storage turned off. Saying nothing here is how somebody loses an
-    // afternoon of work believing it was kept.
-    setSaveState('failed', 'This browser is not keeping a draft. Save a file before you close the tab.');
+    return false;
   }
+}
+
+/**
+ * What happens after a draft is kept, once there is somewhere else for it to go.
+ *
+ * The store registers itself here rather than storage.ts importing it, because store.ts
+ * already imports this module and a circle between the two would be a build error waiting for
+ * whoever adds the next function.
+ */
+type AfterSave = (a: Assessment) => void;
+let afterSave: AfterSave | null = null;
+export function registerAfterSave(fn: AfterSave): void { afterSave = fn; }
+
+export function autosave(a: Assessment): void {
+  a.meta.updatedAt = new Date().toISOString();
+  if (keepDraft(a)) {
+    setSaveState('local');
+    afterSave?.(a);
+    return;
+  }
+  // A private window, or storage turned off. Saying nothing here is how somebody loses an
+  // afternoon of work believing it was kept.
+  setSaveState('failed', 'This browser is not keeping a draft. Save a file before you close the tab.');
 }
 
 /**

@@ -1,0 +1,644 @@
+import type { Assessment } from './types';
+
+/**
+ * Cloud Firestore and Firebase Authentication, over their REST APIs.
+ *
+ * There is no SDK here and no script tag. The page inlines everything it runs and carries
+ * `default-src 'none'`, so a library that pulls its own pieces off a CDN would need the policy
+ * opened to hosts the security story does not name. Three Google origins reached with `fetch`
+ * is the whole dependency, and the policy can list them by name.
+ *
+ * The project is a build input, the same way the endpoint in src/store.ts is:
+ *
+ *   EARB_FIREBASE='{"apiKey":"...","projectId":"..."}' npm run build
+ *
+ * That one value sets this config and the page's `connect-src` together. With nothing set,
+ * `isConfigured()` is false, every call below refuses before it reaches the network, and the
+ * page keeps `connect-src 'none'`, so it cannot make a request at all.
+ *
+ * deploy/firestore.rules is the other half. It goes in the project's Rules tab, and from then
+ * on Google decides who may read and write each document. There is no program of ours in the
+ * middle, which is what makes "read your own and nobody else's" enforceable.
+ */
+declare const __EARB_FIREBASE__: string;
+
+const IDENTITY = 'https://identitytoolkit.googleapis.com/v1';
+const SECURE_TOKEN = 'https://securetoken.googleapis.com/v1';
+const FIRESTORE = 'https://firestore.googleapis.com/v1';
+
+export interface FirebaseConfig {
+  apiKey: string;
+  projectId: string;
+}
+
+function isRecord(v: unknown): v is Record<string, unknown> {
+  return typeof v === 'object' && v !== null && !Array.isArray(v);
+}
+
+function text(v: unknown): string {
+  return typeof v === 'string' ? v : '';
+}
+
+function readConfig(): FirebaseConfig | null {
+  const raw = typeof __EARB_FIREBASE__ === 'string' ? __EARB_FIREBASE__ : '';
+  if (!raw) return null;
+  try {
+    const parsed: unknown = JSON.parse(raw);
+    if (!isRecord(parsed)) return null;
+    const apiKey = text(parsed.apiKey);
+    const projectId = text(parsed.projectId);
+    return apiKey && projectId ? { apiKey, projectId } : null;
+  } catch {
+    // build.mjs refuses a config it cannot parse, so getting here means the define was edited
+    // by hand in a built file. Behaving as an unconfigured build beats throwing on load and
+    // leaving somebody with a blank page.
+    return null;
+  }
+}
+
+const CONFIG = readConfig();
+
+export function isConfigured(): boolean { return CONFIG !== null; }
+
+/** Where the records are, for a page that has to say so. */
+export function storeHost(): string { return 'firestore.googleapis.com'; }
+
+function config(): FirebaseConfig {
+  if (!CONFIG) throw new Error('This build has no Firebase project, so there is nothing to sign in to.');
+  return CONFIG;
+}
+
+/* ------------------------------------------------------------------------------------------
+   The wire form of a value.
+
+   Firestore wraps every field: a string arrives as { stringValue }, a number as either
+   { integerValue } or { doubleValue }, an absent value as { nullValue }. Nesting is the same
+   idea repeated, so a map holds fields holding values holding fields.
+
+   Two directions and two levels of trust. What this module produces is typed, because it is
+   built here. What arrives is `unknown` until each key has been checked, because a document
+   can be written by an admin in the console, by an older build, or by a future one.
+   ------------------------------------------------------------------------------------------ */
+
+export interface FirestoreValue {
+  nullValue?: null;
+  booleanValue?: boolean;
+  integerValue?: string;
+  /** A string carries NaN and the infinities, which is how proto3 writes them in JSON. */
+  doubleValue?: number | string;
+  timestampValue?: string;
+  stringValue?: string;
+  bytesValue?: string;
+  referenceValue?: string;
+  geoPointValue?: { latitude: number; longitude: number };
+  arrayValue?: { values?: FirestoreValue[] };
+  mapValue?: { fields?: Record<string, FirestoreValue> };
+}
+
+function numberValue(n: number): FirestoreValue {
+  if (Number.isNaN(n)) return { doubleValue: 'NaN' };
+  if (n === Infinity) return { doubleValue: 'Infinity' };
+  if (n === -Infinity) return { doubleValue: '-Infinity' };
+  // integerValue is an int64 carried as a string, so a whole number past 2^53 would be written
+  // in exponent form and refused. Anything that large goes as a double and keeps its value to
+  // the precision JavaScript held it at anyway.
+  if (Number.isInteger(n) && Math.abs(n) <= Number.MAX_SAFE_INTEGER) return { integerValue: String(n) };
+  return { doubleValue: n };
+}
+
+function arrayElement(x: unknown): FirestoreValue {
+  if (Array.isArray(x)) {
+    // Firestore refuses this, and the 400 it answers with names neither the field nor the
+    // document. Nothing in an assessment nests arrays; a shape change that does should fail
+    // where it can be read.
+    throw new Error('Firestore stores no array inside an array, and one was about to be written.');
+  }
+  // A hole in an array has no wire form, and JSON.stringify writes null for one, so a file
+  // saved and a document written agree.
+  if (x === undefined) return { nullValue: null };
+  return toValue(x);
+}
+
+export function toValue(x: unknown): FirestoreValue {
+  if (x === null) return { nullValue: null };
+  if (typeof x === 'boolean') return { booleanValue: x };
+  if (typeof x === 'string') return { stringValue: x };
+  if (typeof x === 'number') return numberValue(x);
+  if (Array.isArray(x)) return { arrayValue: { values: x.map(arrayElement) } };
+  if (isRecord(x)) return { mapValue: { fields: toFields(x) } };
+  throw new Error(`An assessment cannot hold a ${typeof x}, and one was about to be written.`);
+}
+
+export function toFields(data: Record<string, unknown>): Record<string, FirestoreValue> {
+  const out: Record<string, FirestoreValue> = {};
+  for (const [key, value] of Object.entries(data)) {
+    // Firestore has no undefined. An optional field left unset is absent, which is how
+    // JSON.stringify treats it too, so the file and the document hold the same thing.
+    if (value === undefined) continue;
+    out[key] = toValue(value);
+  }
+  return out;
+}
+
+export function fromValue(v: unknown): unknown {
+  if (!isRecord(v)) return null;
+  if ('nullValue' in v) return null;
+  if (typeof v.booleanValue === 'boolean') return v.booleanValue;
+  if (typeof v.stringValue === 'string') return v.stringValue;
+  if (typeof v.integerValue === 'string' || typeof v.integerValue === 'number') return Number(v.integerValue);
+  if (typeof v.doubleValue === 'number') return v.doubleValue;
+  if (typeof v.doubleValue === 'string') return Number(v.doubleValue);
+  // An assessment keeps its own times as ISO strings, so a timestamp reads back as the string
+  // it was written as and the scoring code never has to know which form it came in.
+  if (typeof v.timestampValue === 'string') return v.timestampValue;
+  if (typeof v.bytesValue === 'string') return v.bytesValue;
+  if (typeof v.referenceValue === 'string') return v.referenceValue;
+  if (isRecord(v.geoPointValue)) {
+    const g = v.geoPointValue;
+    return {
+      latitude: typeof g.latitude === 'number' ? g.latitude : 0,
+      longitude: typeof g.longitude === 'number' ? g.longitude : 0,
+    };
+  }
+  // An empty array and an empty map arrive with no `values` and no `fields` at all, so both
+  // have to survive as an empty array and an empty object. Reading them as null was the first
+  // bug this mapping had.
+  if (isRecord(v.arrayValue)) {
+    const values = v.arrayValue.values;
+    return Array.isArray(values) ? values.map(fromValue) : [];
+  }
+  if (isRecord(v.mapValue)) return fromFields(v.mapValue.fields);
+  // A form the API adds later reads as absent, so one unfamiliar field cannot throw away the
+  // record it appeared in.
+  return null;
+}
+
+export function fromFields(fields: unknown): Record<string, unknown> {
+  const out: Record<string, unknown> = {};
+  if (!isRecord(fields)) return out;
+  for (const [key, value] of Object.entries(fields)) out[key] = fromValue(value);
+  return out;
+}
+
+/* ------------------------------------------------------------------------------------------
+   Requests.
+   ------------------------------------------------------------------------------------------ */
+
+interface Reply { status: number; body: unknown }
+
+async function call(url: string, init: RequestInit): Promise<Reply> {
+  const res = await fetch(url, init);
+  // The body is read as text first. A failure is not always JSON, and res.json() throwing on
+  // an HTML error page hides the status code that would have explained the failure.
+  const raw = await res.text();
+  let body: unknown = null;
+  if (raw) {
+    try { body = JSON.parse(raw); } catch { body = raw; }
+  }
+  return { status: res.status, body };
+}
+
+/**
+ * What went wrong, in something a person can read.
+ *
+ * Google answers with `{ error: { message } }` and the message is a code in capitals, so the
+ * status goes alongside it: INVALID_IDP_RESPONSE with a 400 beside it at least tells whoever
+ * is looking whether the request or the account was refused.
+ */
+function problemFrom(reply: Reply): string {
+  const b = reply.body;
+  if (isRecord(b) && isRecord(b.error) && typeof b.error.message === 'string') {
+    return `${b.error.message} (${reply.status})`;
+  }
+  return `the store answered ${reply.status}`;
+}
+
+function postJson(url: string, payload: unknown): Promise<Reply> {
+  return call(url, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', accept: 'application/json' },
+    body: JSON.stringify(payload),
+  });
+}
+
+/* ------------------------------------------------------------------------------------------
+   Sign-in.
+
+   The redirect flow, which is the one a page with this policy can use. A popup needs a second
+   window talking back to this one; a redirect is a plain navigation, and navigation is not
+   what connect-src governs.
+
+   Three steps: accounts:createAuthUri says where to send the person, the provider sends them
+   back here with an answer in the address, and accounts:signInWithIdp turns that answer into a
+   token. The sessionId from the first step has to come back with the third, which is the only
+   reason anything is held between them.
+   ------------------------------------------------------------------------------------------ */
+
+export type Provider = 'google.com' | 'microsoft.com';
+export interface CurrentUser { email: string; idToken: string }
+
+const SESSION_KEY = 'gc-arch-assessment:firebase-session';
+const PENDING_KEY = 'gc-arch-assessment:firebase-signin';
+
+/** A token is good for an hour. The minute of margin is for a clock that runs slow. */
+const CLOCK_MARGIN_MS = 60_000;
+
+interface Session {
+  email: string;
+  idToken: string;
+  refreshToken: string;
+  expiresAt: number;
+}
+
+/**
+ * The token is kept where the browser already keeps the draft, so reloading the page does not
+ * ask somebody to sign in again halfway through 176 questions. It expires on its own after an
+ * hour whatever happens to it here.
+ */
+function readSession(): Session | null {
+  try {
+    const raw = localStorage.getItem(SESSION_KEY);
+    if (!raw) return null;
+    const s: unknown = JSON.parse(raw);
+    if (!isRecord(s)) return null;
+    const email = text(s.email);
+    const idToken = text(s.idToken);
+    if (!email || !idToken) return null;
+    return {
+      email,
+      idToken,
+      refreshToken: text(s.refreshToken),
+      expiresAt: typeof s.expiresAt === 'number' ? s.expiresAt : 0,
+    };
+  } catch {
+    return null;
+  }
+}
+
+function writeSession(s: Session): void {
+  try {
+    localStorage.setItem(SESSION_KEY, JSON.stringify(s));
+  } catch {
+    /* a private window. The session holds for this page load. */
+  }
+}
+
+function clearSession(): void {
+  try { localStorage.removeItem(SESSION_KEY); } catch { /* nothing to remove from */ }
+}
+
+/**
+ * Who is signed in, or nobody.
+ *
+ * A build with no project answers nobody whatever the browser is holding. Somebody who signed
+ * in on a configured build and is then handed one without a project has a token for a place
+ * this page cannot reach, and reporting them as signed in would offer them a store that is
+ * not there.
+ */
+export function currentUser(): CurrentUser | null {
+  if (!CONFIG) return null;
+  const s = readSession();
+  return s ? { email: s.email, idToken: s.idToken } : null;
+}
+
+/**
+ * Forgetting the token is what sign-out means here. Identity Toolkit has no call that cancels
+ * an ID token already issued: it stops working an hour after it was made, and dropping the
+ * refresh token is what stops a new one being had.
+ */
+export function signOut(): void {
+  clearSession();
+  clearPending();
+}
+
+let signInProblem = '';
+
+/** The last sign-in failure, for the screen that offers to try again. */
+export function lastSignInProblem(): string { return signInProblem; }
+
+interface Pending { providerId: string; sessionId: string }
+
+function readPending(): Pending | null {
+  try {
+    const raw = sessionStorage.getItem(PENDING_KEY);
+    if (!raw) return null;
+    const p: unknown = JSON.parse(raw);
+    if (!isRecord(p)) return null;
+    return { providerId: text(p.providerId), sessionId: text(p.sessionId) };
+  } catch {
+    return null;
+  }
+}
+
+function clearPending(): void {
+  try { sessionStorage.removeItem(PENDING_KEY); } catch { /* nothing to remove from */ }
+}
+
+/**
+ * The address the provider returns to, which is this page without its query or its fragment.
+ *
+ * It has to be on the project's authorised domains list, and a page opened from a USB stick has
+ * no address at all, so that case is refused with a reason somebody can act on.
+ */
+function returnAddress(): string {
+  if (!/^https?:$/.test(window.location.protocol)) {
+    throw new Error(
+      'Signing in needs this page served over http or https. Opened from a file, there is no address for the provider to return to.',
+    );
+  }
+  return `${window.location.origin}${window.location.pathname}`;
+}
+
+/** Whether this page load is a provider answering, in the query or in the fragment. */
+function answerInAddress(): boolean {
+  return [window.location.search, window.location.hash].some((part) => {
+    const q = new URLSearchParams(part.replace(/^[?#]/, ''));
+    return q.has('code') || q.has('id_token') || q.has('access_token') || q.has('error');
+  });
+}
+
+/**
+ * The provider's answer carries a credential, and an address bar goes into history, into a
+ * bookmark and into anything somebody pastes into a ticket. So it is taken out of the address
+ * as soon as it has been exchanged.
+ */
+function scrubAddress(): void {
+  try {
+    window.history.replaceState(null, '', `${window.location.origin}${window.location.pathname}`);
+  } catch {
+    /* no history API. The credential is spent either way. */
+  }
+}
+
+async function startSignIn(providerId: Provider): Promise<void> {
+  const cfg = config();
+  const continueUri = returnAddress();
+  const reply = await postJson(
+    `${IDENTITY}/accounts:createAuthUri?key=${encodeURIComponent(cfg.apiKey)}`,
+    { providerId, continueUri, authFlowType: 'CODE_FLOW' },
+  );
+  if (reply.status !== 200 || !isRecord(reply.body)) throw new Error(problemFrom(reply));
+
+  const authUri = text(reply.body.authUri);
+  if (!authUri) throw new Error('The sign-in service gave no address to send you to.');
+
+  // The sessionId has to come back with the provider's answer. It is held per tab, because a
+  // redirect returns to the tab it left from, so closing the tab abandons the attempt and
+  // leaves nothing behind.
+  try {
+    const pending: Pending = { providerId, sessionId: text(reply.body.sessionId) };
+    sessionStorage.setItem(PENDING_KEY, JSON.stringify(pending));
+  } catch {
+    throw new Error('This browser is keeping nothing for this tab, so a sign-in cannot be finished.');
+  }
+
+  window.location.assign(authUri);
+}
+
+export function signInWithGoogle(): Promise<void> { return startSignIn('google.com'); }
+export function signInWithMicrosoft(): Promise<void> { return startSignIn('microsoft.com'); }
+
+/**
+ * The last step of a redirect sign-in, which belongs in the boot sequence because the page
+ * that has to finish it is a fresh load of this one.
+ *
+ * The answer is whether this page load was a sign-in coming back, so a caller knows to
+ * repaint. Whether it worked is in `currentUser()`, and why it did not is in
+ * `lastSignInProblem()`. Nothing throws: this runs before the first paint, and an exception
+ * there would take the whole page with it.
+ */
+export async function resumeSignIn(): Promise<boolean> {
+  if (!CONFIG || typeof window === 'undefined') return false;
+  const pending = readPending();
+  if (!pending || !answerInAddress()) return false;
+
+  clearPending();
+  const requestUri = window.location.href;
+  try {
+    const reply = await postJson(
+      `${IDENTITY}/accounts:signInWithIdp?key=${encodeURIComponent(CONFIG.apiKey)}`,
+      { requestUri, sessionId: pending.sessionId, returnSecureToken: true },
+    );
+    scrubAddress();
+    if (reply.status !== 200 || !isRecord(reply.body)) {
+      signInProblem = `Signing in with ${pending.providerId} did not go through: ${problemFrom(reply)}`;
+      return true;
+    }
+    const email = text(reply.body.email);
+    const idToken = text(reply.body.idToken);
+    if (!email || !idToken) {
+      signInProblem = 'The sign-in service returned no address and no token for this account.';
+      return true;
+    }
+    const seconds = Number(text(reply.body.expiresIn)) || 3600;
+    writeSession({
+      email,
+      idToken,
+      refreshToken: text(reply.body.refreshToken),
+      expiresAt: Date.now() + seconds * 1000,
+    });
+    signInProblem = '';
+    return true;
+  } catch (err) {
+    scrubAddress();
+    signInProblem = `Signing in with ${pending.providerId} did not go through: ${(err as Error).message}`;
+    return true;
+  }
+}
+
+/**
+ * A token this request can use, refreshing it first if it has run out.
+ *
+ * The exchange goes to securetoken.googleapis.com, which is the third host in the policy and
+ * the reason there are three. Identity Toolkit has no endpoint for it, and without a refresh a
+ * person filling in an assessment is signed out after an hour with a write in their hand.
+ */
+export async function freshToken(): Promise<string | null> {
+  if (!CONFIG) return null;
+  const s = readSession();
+  if (!s) return null;
+  if (Date.now() < s.expiresAt - CLOCK_MARGIN_MS) return s.idToken;
+  if (!s.refreshToken) { clearSession(); return null; }
+
+  const reply = await call(`${SECURE_TOKEN}/token?key=${encodeURIComponent(config().apiKey)}`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/x-www-form-urlencoded', accept: 'application/json' },
+    body: new URLSearchParams({ grant_type: 'refresh_token', refresh_token: s.refreshToken }).toString(),
+  });
+  if (reply.status !== 200 || !isRecord(reply.body)) {
+    // A refresh token is refused when it has been revoked or the account has been turned off.
+    // Both mean the same thing from here: this browser has to sign in again.
+    clearSession();
+    return null;
+  }
+  // This endpoint answers in snake_case, which the rest of the API does not.
+  const idToken = text(reply.body.id_token);
+  if (!idToken) { clearSession(); return null; }
+  const seconds = Number(text(reply.body.expires_in)) || 3600;
+  const next: Session = {
+    email: s.email,
+    idToken,
+    refreshToken: text(reply.body.refresh_token) || s.refreshToken,
+    expiresAt: Date.now() + seconds * 1000,
+  };
+  writeSession(next);
+  return idToken;
+}
+
+/* ------------------------------------------------------------------------------------------
+   Documents.
+   ------------------------------------------------------------------------------------------ */
+
+/** One request per page, and 300 records is more than the whole programme will hold for years. */
+const PAGE_SIZE = 300;
+/** A page token that keeps coming back would loop for as long as the tab is open. */
+const PAGE_CAP = 20;
+
+function docsRoot(): string {
+  return `${FIRESTORE}/projects/${encodeURIComponent(config().projectId)}/databases/(default)/documents`;
+}
+
+async function authorized(url: string, init: RequestInit = {}): Promise<Reply> {
+  const token = await freshToken();
+  if (!token) throw new Error('Sign in before reading or writing the shared store.');
+  const headers: Record<string, string> = {
+    accept: 'application/json',
+    authorization: `Bearer ${token}`,
+  };
+  if (init.body !== undefined) headers['content-type'] = 'application/json';
+  return call(url, { ...init, headers });
+}
+
+const ID_ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+
+/**
+ * A name for a record going online for the first time.
+ *
+ * Twenty characters, the same shape Firestore mints for itself. Letting Firestore name it would
+ * take a second request to find out what it chose, and the name has to be known before the
+ * write so the browser's own copy can be matched to it afterwards.
+ */
+function newDocId(): string {
+  const bytes = new Uint8Array(20);
+  if (typeof crypto !== 'undefined' && typeof crypto.getRandomValues === 'function') {
+    crypto.getRandomValues(bytes);
+  } else {
+    for (let i = 0; i < bytes.length; i++) bytes[i] = Math.floor(Math.random() * 256);
+  }
+  let out = '';
+  for (let i = 0; i < bytes.length; i++) out += ID_ALPHABET[bytes[i] % ID_ALPHABET.length];
+  return out;
+}
+
+function assessmentFrom(doc: unknown): Assessment | null {
+  if (!isRecord(doc)) return null;
+  const name = text(doc.name);
+  const data = fromFields(doc.fields);
+  // A collection can hold a document nobody here wrote: a test row from the console, or one
+  // from a build with a different format. Skipping it keeps one strange row from emptying the
+  // dashboard for everybody.
+  if (data.fileType !== 'gc-arch-assessment') return null;
+  // Past the file type the shape is taken on trust, which is how main.ts already treats an
+  // assessment somebody opens from disk, and for the same reason: the scoring code reads every
+  // field through an optional chain and a missing one shows as unanswered.
+  //
+  // The path is where the id comes from, so a copy of it in the fields can never disagree.
+  return { ...data, id: name.slice(name.lastIndexOf('/') + 1) } as unknown as Assessment;
+}
+
+/**
+ * Every assessment the signed-in person may read.
+ *
+ * Listing the collection is an assessor's and an admin's right in deploy/firestore.rules, so a
+ * submitter's request is refused with a 403 and the message says so. A submitter reads the one
+ * record they own by its id, which is what `getAssessment` is for.
+ */
+export async function listAssessments(): Promise<Assessment[]> {
+  const out: Assessment[] = [];
+  let token = '';
+  for (let page = 0; page < PAGE_CAP; page++) {
+    const query = `pageSize=${PAGE_SIZE}${token ? `&pageToken=${encodeURIComponent(token)}` : ''}`;
+    const reply = await authorized(`${docsRoot()}/assessments?${query}`);
+    if (reply.status !== 200 || !isRecord(reply.body)) throw new Error(problemFrom(reply));
+    const docs = Array.isArray(reply.body.documents) ? reply.body.documents : [];
+    for (const doc of docs) {
+      const a = assessmentFrom(doc);
+      if (a) out.push(a);
+    }
+    token = text(reply.body.nextPageToken);
+    if (!token) break;
+  }
+  return out;
+}
+
+/** One record by its id. Null means there is no such document, which an admin delete produces. */
+export async function getAssessment(id: string): Promise<Assessment | null> {
+  const reply = await authorized(`${docsRoot()}/assessments/${encodeURIComponent(id)}`);
+  if (reply.status === 404) return null;
+  if (reply.status !== 200) throw new Error(problemFrom(reply));
+  return assessmentFrom(reply.body);
+}
+
+/**
+ * Write one assessment, and answer with the id it was written under.
+ *
+ * PATCH with no updateMask replaces the whole document, which is what saving an assessment
+ * means here: a justification somebody deleted has to go from the record as well, and a mask
+ * would leave the old one behind.
+ *
+ * `ownerEmail` is set from the signed-in address because the rules compare the two on create
+ * and refuse a change to it on update. Checking it here as well is so the message names the
+ * person the record belongs to, which a 403 from Google does not.
+ */
+export async function putAssessment(a: Assessment): Promise<string> {
+  const me = currentUser();
+  if (!me) throw new Error('Sign in before saving to the shared store.');
+  const owner = a.ownerEmail ?? me.email;
+  if (owner !== me.email) {
+    throw new Error(`This assessment belongs to ${owner}, and you are signed in as ${me.email}.`);
+  }
+
+  const id = a.id ?? newDocId();
+  const body: Record<string, unknown> = { ...a, ownerEmail: owner };
+  // The id is the document's path. Keeping a second copy of it in the fields gives two answers
+  // to one question the first time a record is copied.
+  delete body.id;
+
+  const reply = await authorized(`${docsRoot()}/assessments/${encodeURIComponent(id)}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ fields: toFields(body) }),
+  });
+  if (reply.status !== 200) throw new Error(problemFrom(reply));
+  return id;
+}
+
+/**
+ * Remove one record. Admin only, and the rules enforce that.
+ *
+ * Firestore answers 200 for a document that was already gone, so deleting the same record
+ * twice is not a failure anybody needs to hear about.
+ */
+export async function deleteAssessment(id: string): Promise<void> {
+  const reply = await authorized(
+    `${docsRoot()}/assessments/${encodeURIComponent(id)}`,
+    { method: 'DELETE' },
+  );
+  if (reply.status !== 200) throw new Error(problemFrom(reply));
+}
+
+export type Role = 'submitter' | 'assessor' | 'admin';
+
+/**
+ * What this person may do, from roles/{email}.
+ *
+ * The rules let somebody read their own roles document and nobody else's, so this answers for
+ * the signed-in address and a 403 for any other one. No document means no grant has been made,
+ * and everybody starts there.
+ */
+export async function roleOf(email: string): Promise<Role> {
+  const reply = await authorized(`${docsRoot()}/roles/${encodeURIComponent(email)}`);
+  if (reply.status === 404) return 'submitter';
+  if (reply.status !== 200) throw new Error(problemFrom(reply));
+  const role = fromFields(isRecord(reply.body) ? reply.body.fields : null).role;
+  return role === 'assessor' || role === 'admin' ? role : 'submitter';
+}

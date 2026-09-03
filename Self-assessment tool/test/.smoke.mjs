@@ -390,6 +390,90 @@ function toCsv(rows) {
   return rows.map((r) => r.map(cell).join(",")).join("\r\n");
 }
 
+// src/firebase.ts
+function isRecord(v2) {
+  return typeof v2 === "object" && v2 !== null && !Array.isArray(v2);
+}
+function text(v2) {
+  return typeof v2 === "string" ? v2 : "";
+}
+function readConfig() {
+  const raw = typeof __EARB_FIREBASE__ === "string" ? __EARB_FIREBASE__ : "";
+  if (!raw) return null;
+  try {
+    const parsed = JSON.parse(raw);
+    if (!isRecord(parsed)) return null;
+    const apiKey = text(parsed.apiKey);
+    const projectId = text(parsed.projectId);
+    return apiKey && projectId ? { apiKey, projectId } : null;
+  } catch {
+    return null;
+  }
+}
+var CONFIG = readConfig();
+function numberValue(n) {
+  if (Number.isNaN(n)) return { doubleValue: "NaN" };
+  if (n === Infinity) return { doubleValue: "Infinity" };
+  if (n === -Infinity) return { doubleValue: "-Infinity" };
+  if (Number.isInteger(n) && Math.abs(n) <= Number.MAX_SAFE_INTEGER) return { integerValue: String(n) };
+  return { doubleValue: n };
+}
+function arrayElement(x) {
+  if (Array.isArray(x)) {
+    throw new Error("Firestore stores no array inside an array, and one was about to be written.");
+  }
+  if (x === void 0) return { nullValue: null };
+  return toValue(x);
+}
+function toValue(x) {
+  if (x === null) return { nullValue: null };
+  if (typeof x === "boolean") return { booleanValue: x };
+  if (typeof x === "string") return { stringValue: x };
+  if (typeof x === "number") return numberValue(x);
+  if (Array.isArray(x)) return { arrayValue: { values: x.map(arrayElement) } };
+  if (isRecord(x)) return { mapValue: { fields: toFields(x) } };
+  throw new Error(`An assessment cannot hold a ${typeof x}, and one was about to be written.`);
+}
+function toFields(data) {
+  const out = {};
+  for (const [key, value] of Object.entries(data)) {
+    if (value === void 0) continue;
+    out[key] = toValue(value);
+  }
+  return out;
+}
+function fromValue(v2) {
+  if (!isRecord(v2)) return null;
+  if ("nullValue" in v2) return null;
+  if (typeof v2.booleanValue === "boolean") return v2.booleanValue;
+  if (typeof v2.stringValue === "string") return v2.stringValue;
+  if (typeof v2.integerValue === "string" || typeof v2.integerValue === "number") return Number(v2.integerValue);
+  if (typeof v2.doubleValue === "number") return v2.doubleValue;
+  if (typeof v2.doubleValue === "string") return Number(v2.doubleValue);
+  if (typeof v2.timestampValue === "string") return v2.timestampValue;
+  if (typeof v2.bytesValue === "string") return v2.bytesValue;
+  if (typeof v2.referenceValue === "string") return v2.referenceValue;
+  if (isRecord(v2.geoPointValue)) {
+    const g = v2.geoPointValue;
+    return {
+      latitude: typeof g.latitude === "number" ? g.latitude : 0,
+      longitude: typeof g.longitude === "number" ? g.longitude : 0
+    };
+  }
+  if (isRecord(v2.arrayValue)) {
+    const values = v2.arrayValue.values;
+    return Array.isArray(values) ? values.map(fromValue) : [];
+  }
+  if (isRecord(v2.mapValue)) return fromFields(v2.mapValue.fields);
+  return null;
+}
+function fromFields(fields) {
+  const out = {};
+  if (!isRecord(fields)) return out;
+  for (const [key, value] of Object.entries(fields)) out[key] = fromValue(value);
+  return out;
+}
+
 // src/rubric.ts
 var REQUIRED_FORMAT = 2;
 function validate(x) {
@@ -2724,9 +2808,9 @@ var fill = (a, s) => {
   for (const q of allQ) a.answers[q.id] = { score: s, evidence: [], justification: "because" };
   return a;
 };
-var qid = (text) => {
-  const q = allQ.find((x) => x.text.toLowerCase().includes(text.toLowerCase()));
-  if (!q) throw new Error(`No question matching "${text}"`);
+var qid = (text2) => {
+  const q = allQ.find((x) => x.text.toLowerCase().includes(text2.toLowerCase()));
+  if (!q) throw new Error(`No question matching "${text2}"`);
   return q.id;
 };
 for (const st of rubric.lifecycleStages) {
@@ -2912,8 +2996,8 @@ ok("1 -> Critical Risk", mat(1) === "Critical Risk", String(mat(1)));
   ok("csv row matches header width", header.length === row.length, `${header.length} vs ${row.length}`);
   ok("csv has a column per question score", allQ.every((q) => header.includes(`${q.id}_score`)));
   ok("csv has a column per section", rubric.domains.every((d) => d.sections.every((s) => header.includes(`section_${d.id}_${s.id}`))));
-  const text = toCsv([header, row]);
-  ok("csv quotes and escapes safely", !text.split("\r\n")[1].includes("\n"));
+  const text2 = toCsv([header, row]);
+  ok("csv quotes and escapes safely", !text2.split("\r\n")[1].includes("\n"));
 }
 {
   const a = fill(blank("sunset"), 6);
@@ -2922,6 +3006,128 @@ ok("1 -> Critical Risk", mat(1) === "Critical Risk", String(mat(1)));
   const back = JSON.parse(JSON.stringify(a));
   ok("round-trips through a file", score(rubric, back).overall === score(rubric, a).overall);
   ok("awkward text survives", back.answers[target].justification === a.answers[target].justification);
+}
+function stable(x) {
+  if (x === null || typeof x !== "object") return JSON.stringify(x) ?? "undefined";
+  if (Array.isArray(x)) return `[${x.map(stable).join(",")}]`;
+  const o = x;
+  return `{${Object.keys(o).sort().map((k) => `${JSON.stringify(k)}:${stable(o[k])}`).join(",")}}`;
+}
+{
+  const a = blank("beta");
+  a.ref = "QK7M";
+  a.ownerEmail = "someone@example.gc.ca";
+  a.initiative.classification = "Unclassified";
+  a.initiative.markingAcknowledged = "Unclassified";
+  a.answers["q-null"] = { score: null, justification: "" };
+  a.answers["q-na"] = { score: null, na: true };
+  a.answers["q-empty"] = { score: 0, evidence: [] };
+  a.answers["q-full"] = {
+    score: 7,
+    picklist: "other",
+    picklistOther: "a case the list does not carry",
+    justification: 'commas, "quotes" and \nnewlines',
+    evidence: [
+      { title: "Current state pack", kind: "document", location: "GCdocs", classification: "Unclassified" },
+      {
+        title: "Cost model",
+        kind: "report",
+        location: "sent by email",
+        classification: "Protected B",
+        emailed: true,
+        emailSubject: "EARB QK7M evidence 2",
+        attachment: { name: "costs.csv", type: "text/csv", size: 4096, data: "YSxiLGMK" }
+      }
+    ]
+  };
+  a.audit = {
+    reviewer: "An assessor",
+    reviewedAt: "2026-09-03T12:00:00.000Z",
+    overallNote: "",
+    perQuestion: {
+      "q-full": {
+        auditedScore: 6.5,
+        verdict: "adjust",
+        note: "the pack covers one system of three",
+        by: "An assessor",
+        at: "2026-09-03T12:00:00.000Z",
+        history: [
+          { by: "An assessor", at: "2026-09-03T11:00:00.000Z", score: 5, note: "first pass", unverified: true },
+          { by: "Another assessor", at: "2026-09-03T11:30:00.000Z", score: 6.5, note: "on reflection", unverified: true }
+        ]
+      }
+    }
+  };
+  const wire = toFields({ ...a });
+  const back = fromFields(wire);
+  ok(
+    "an assessment round-trips through the Firestore mapping",
+    stable(back) === stable(a),
+    stable(back) === stable(a) ? "" : stable(back)
+  );
+  ok("a null score comes back as null", back.answers["q-null"].score === null);
+  ok("an n/a boolean survives", back.answers["q-na"].na === true);
+  ok(
+    "an empty evidence array stays an empty array",
+    Array.isArray(back.answers["q-empty"].evidence) && back.answers["q-empty"].evidence.length === 0,
+    JSON.stringify(back.answers["q-empty"].evidence)
+  );
+  ok(
+    "nested evidence keeps both items and their order",
+    (back.answers["q-full"].evidence ?? []).map((e) => e.title).join("|") === "Current state pack|Cost model"
+  );
+  ok(
+    "an attachment inside evidence survives",
+    (back.answers["q-full"].evidence ?? [])[1]?.attachment?.data === "YSxiLGMK"
+  );
+  ok("a whole number reads back as a number", back.answers["q-full"].score === 7);
+  ok("a fractional audit score keeps its fraction", back.audit?.perQuestion["q-full"]?.auditedScore === 6.5);
+  ok("the audit history stays two moves long", (back.audit?.perQuestion["q-full"]?.history ?? []).length === 2);
+  ok(
+    "awkward text survives the wrapping",
+    back.answers["q-full"].justification === a.answers["q-full"].justification
+  );
+  ok(
+    "an empty answers map on a fresh assessment stays a map",
+    stable(fromFields(toFields({ ...blank("beta") })).answers) === "{}"
+  );
+}
+{
+  ok("a whole number goes as an int64 in a string", stable(toValue(7)) === '{"integerValue":"7"}', stable(toValue(7)));
+  ok("zero goes as an integer", stable(toValue(0)) === '{"integerValue":"0"}');
+  ok("a fraction goes as a double", stable(toValue(6.5)) === '{"doubleValue":6.5}', stable(toValue(6.5)));
+  ok("null goes as nullValue", stable(toValue(null)) === '{"nullValue":null}');
+  ok("false goes as a boolean", stable(toValue(false)) === '{"booleanValue":false}');
+  ok("an empty string is a string", stable(toValue("")) === '{"stringValue":""}');
+  ok(
+    "a number past 2^53 goes as a double, because an int64 in a string would be refused",
+    stable(toValue(2 ** 60)) === `{"doubleValue":${2 ** 60}}`,
+    stable(toValue(2 ** 60))
+  );
+  ok(
+    "an undefined field is left out, the way JSON.stringify leaves it out",
+    stable(toFields({ note: void 0, title: "x" })) === '{"title":{"stringValue":"x"}}',
+    stable(toFields({ note: void 0, title: "x" }))
+  );
+  ok("an array with no values key reads as an empty array", stable(fromValue({ arrayValue: {} })) === "[]");
+  ok("a map with no fields key reads as an empty object", stable(fromValue({ mapValue: {} })) === "{}");
+  ok("an integer in a string reads as a number", fromValue({ integerValue: "10" }) === 10);
+  ok(
+    "a timestamp reads as the string it was written as",
+    fromValue({ timestampValue: "2026-09-03T12:00:00Z" }) === "2026-09-03T12:00:00Z"
+  );
+  ok("NaN in its string form reads as NaN", Number.isNaN(fromValue({ doubleValue: "NaN" })));
+  ok(
+    "a value form nobody here knows reads as absent, so one field cannot lose a record",
+    fromValue({ someLaterValue: 1 }) === null
+  );
+  let refused = false;
+  try {
+    toValue([[1]]);
+  } catch {
+    refused = true;
+  }
+  ok("an array inside an array is refused before the request goes", refused);
 }
 {
   ok("rejects a non-rubric", validate({ hello: "world" }).ok === false);

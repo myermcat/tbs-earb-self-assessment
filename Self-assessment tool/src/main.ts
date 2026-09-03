@@ -12,6 +12,10 @@ import { closeMenusOnOutsideClick, closeOnOutsideClick, confirmStep, openDialog 
 import { saveBadge } from './save-badge';
 import { bootLang, coverage, lang, setLang } from './i18n';
 import { endpointHost, goneFromStore, isHosted, listRecords, putRecord } from './store';
+import { currentUser, isConfigured as firebaseConfigured, lastSignInProblem, signInWithGoogle,
+  signInWithMicrosoft } from './firebase';
+import { t } from './i18n';
+import { resumeSignIn } from './firebase';
 import { answeredCount, APP_VERSION, autosave, blankAssessment, clearDraft, download, ensureRef,
   hasWork, lastSaveInfo, loadDraft, readJsonFiles, saveAssessmentFile, slug } from './storage';
 import { bannerFor, evidenceNote } from './marking';
@@ -472,7 +476,59 @@ function renderHome(root: HTMLElement) {
  */
 let assessorName = '';
 
+/**
+ * The real sign-in, when there is a store to sign in to.
+ *
+ * Two providers, because Google works for anybody today and Microsoft is how somebody uses
+ * their departmental account. Which one a person picks changes nothing downstream: the store's
+ * rules key off the address, and a role is a document an admin writes.
+ */
+function renderRealSignIn(root: HTMLElement, onDone: () => void) {
+  const problem = lastSignInProblem();
+  const user = currentUser();
+
+  if (user) {
+    // Already signed in, which happens on the way back from the provider.
+    setAuditor(user.email);
+    onDone();
+    return;
+  }
+
+  const card = el('section', { class: 'card signin' }, [
+    el('div', { class: 'head-row' }, [
+      el('h1', {}, [t('Sign in', 'Connexion')]),
+      el('span', { class: 'badge' }, [t('Prototype', 'Prototype')]),
+    ]),
+    el('p', { class: 'muted' }, [
+      t('The tool needs to know who you are before it can show you anything. It reads your name and address from whichever account you use, and it never sees a password.',
+        'L\u2019outil doit savoir qui vous êtes avant de pouvoir vous montrer quoi que ce soit. Il lit votre nom et votre adresse dans le compte que vous utilisez, et il ne voit jamais de mot de passe.'),
+    ]),
+    problem
+      ? el('div', { class: 'card warn tight' }, [
+          el('strong', { class: 'small' }, [t('That sign-in did not finish', 'Cette connexion n\u2019a pas abouti')]),
+          el('p', { class: 'small' }, [problem]),
+        ])
+      : null,
+    el('div', { class: 'actions signin-providers' }, [
+      el('button', { class: 'primary', onclick: () => { void signInWithGoogle(); } }, [
+        t('Continue with Google', 'Continuer avec Google'),
+      ]),
+      el('button', { class: 'ghost', onclick: () => { void signInWithMicrosoft(); } }, [
+        t('Continue with your Microsoft or departmental account', 'Continuer avec votre compte Microsoft ou ministériel'),
+      ]),
+    ]),
+    el('p', { class: 'tiny dim' }, [
+      t('A departmental account may need somebody at TBS to allow this application first. Google works either way while that is being arranged.',
+        'Un compte ministériel peut nécessiter l\u2019autorisation préalable de quelqu\u2019un au SCT. Google fonctionne entre-temps.'),
+    ]),
+  ]);
+  root.appendChild(card);
+}
+
 function renderSignIn(root: HTMLElement, onDone: () => void) {
+  // With a store configured, the mockup has nothing to do: a real sign-in exists.
+  if (firebaseConfigured()) { renderRealSignIn(root, onDone); return; }
+
   const input = el('input', {
     type: 'text', value: assessorName, placeholder: 'First and last name',
     oninput: (e: Event) => { assessorName = (e.target as HTMLInputElement).value; },
@@ -1125,3 +1181,10 @@ if (!check.ok) {
 } else {
   paint();
 }
+
+/**
+ * A redirect sign-in comes back to a fresh load of this page with the provider's answer in the
+ * address, so the last step of it belongs in the boot sequence. A build with no Firebase
+ * project answers false before it touches the network, and nothing here runs.
+ */
+void resumeSignIn().then((came) => { if (came) paint(); });

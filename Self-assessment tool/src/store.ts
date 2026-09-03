@@ -1,5 +1,7 @@
 import type { Assessment } from './types';
-import { beginWrite, loadDraft, writeFailed, writeLanded } from './storage';
+import { beginWrite, keepDraft, loadDraft, registerAfterSave, writeFailed, writeLanded } from './storage';
+import { currentUser, deleteAssessment, getAssessment, isConfigured, listAssessments,
+  putAssessment, storeHost } from './firebase';
 
 /**
  * The store, and how to point at one.
@@ -15,6 +17,18 @@ import { beginWrite, loadDraft, writeFailed, writeLanded } from './storage';
  * endpoint genuinely cannot make a request and a build with one can reach that origin and
  * nothing else. `deploy/worker.js` is the other half: paste it into a Cloudflare Worker, bind
  * a KV namespace called STORE, and this works.
+ *
+ * There is a second answer, built the same way and preferred once sign-in matters:
+ *
+ *   EARB_FIREBASE='{"apiKey":"...","projectId":"..."}' npm run build
+ *
+ * That one goes to Cloud Firestore, which can be created in Montreal and which enforces
+ * deploy/firestore.rules on every request, so a person reads their own record and an assessor
+ * reads the submitted ones. src/firebase.ts holds it. When both are set, Firestore wins,
+ * because it is the one that knows who is asking.
+ *
+ * A build with neither behaves as it always has: this browser and the files opened this
+ * session, and no request possible from the page at all.
  */
 declare const __EARB_ENDPOINT__: string;
 const ENDPOINT: string = typeof __EARB_ENDPOINT__ === 'string' ? __EARB_ENDPOINT__ : '';
@@ -30,10 +44,11 @@ export interface StoredRecord {
   assessment: Assessment;
 }
 
-export function isHosted(): boolean { return ENDPOINT !== ''; }
+export function isHosted(): boolean { return isConfigured() || ENDPOINT !== ''; }
 
 /** Where the records are, for a page that has to say so. */
 export function endpointHost(): string {
+  if (isConfigured()) return storeHost();
   try {
     return ENDPOINT ? new URL(ENDPOINT).host : '';
   } catch {
@@ -54,13 +69,42 @@ function recordOf(a: Assessment, source: StoreSource, id: string): StoredRecord 
 }
 
 /**
+ * What Firestore will show this person, or null when it has nothing to say and the local
+ * sources should answer.
+ *
+ * Two requests, because the rules give two different rights. An assessor or an admin may list
+ * the collection. A submitter may not, and their request comes back 403, so the one record
+ * they own is fetched by the id their own copy carries.
+ */
+async function firestoreRecords(): Promise<StoredRecord[] | null> {
+  if (!currentUser()) return null;
+  try {
+    const rows = await listAssessments();
+    return rows.map((a, i) => recordOf(a, 'hosted', a.id ?? `hosted-${i}`));
+  } catch {
+    /* refused, or offline. A submitter's own record is the next thing to try. */
+  }
+  const id = loadDraft()?.id;
+  if (!id) return null;
+  try {
+    const mine = await getAssessment(id);
+    return mine ? [recordOf(mine, 'hosted', mine.id ?? id)] : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Every record the dashboard can currently see: the draft in this browser, plus anything the
  * assessor opened this session. With a hosted store this becomes one request and the two local
  * sources become a fallback for working offline.
  */
 export async function listRecords(sessionFiles: Assessment[] = []): Promise<StoredRecord[]> {
   const out: StoredRecord[] = [];
-  if (ENDPOINT) {
+  if (isConfigured()) {
+    const rows = await firestoreRecords();
+    if (rows) return rows;
+  } else if (ENDPOINT) {
     try {
       const res = await fetch(`${ENDPOINT}/assessments`, { headers: { accept: 'application/json' } });
       if (!res.ok) throw new Error(`store answered ${res.status}`);
@@ -78,12 +122,46 @@ export async function listRecords(sessionFiles: Assessment[] = []): Promise<Stor
 }
 
 /**
+ * Why a write did not go through, in the words the save badge shows.
+ *
+ * A browser that knows it is offline gets the plain version. Everything else carries the
+ * reason, because "check your connection" to somebody whose connection is fine wastes the one
+ * chance the page has to say what happened.
+ */
+function notSaved(err: unknown): string {
+  return typeof navigator !== 'undefined' && navigator.onLine === false
+    ? 'Not saved. Check your connection.'
+    : `Not saved: ${(err as Error).message}`;
+}
+
+/**
  * Send one assessment to the store.
  *
  * The three save states are driven from here, so the badge in the header tells the truth
  * whether the write worked, is in flight, or failed with a reason.
+ *
+ * Firestore names the record, and the id comes back onto the assessment this browser holds so
+ * a later change goes to the same document and `goneFromStore` has something to match on.
  */
 export async function putRecord(a: Assessment): Promise<{ ok: true } | { ok: false; problem: string }> {
+  if (isConfigured()) {
+    if (!currentUser()) return { ok: false, problem: 'Sign in before saving to the shared store.' };
+    beginWrite();
+    try {
+      a.id = await putAssessment(a);
+      // Only the browser's own draft goes back into storage. This is also the way a record
+      // opened from a file is written, and that one must never replace somebody's draft, so
+      // the reference code decides: it is made once and never changes.
+      if (a.ref && loadDraft()?.ref === a.ref) keepDraft(a);
+      writeLanded();
+      return { ok: true };
+    } catch (err) {
+      const problem = notSaved(err);
+      writeFailed(problem);
+      return { ok: false, problem };
+    }
+  }
+
   if (!ENDPOINT) return { ok: false, problem: 'This build has no store to write to.' };
   beginWrite();
   try {
@@ -96,11 +174,27 @@ export async function putRecord(a: Assessment): Promise<{ ok: true } | { ok: fal
     writeLanded();
     return { ok: true };
   } catch (err) {
-    const problem = typeof navigator !== 'undefined' && navigator.onLine === false
-      ? 'Not saved. Check your connection.'
-      : `Not saved: ${(err as Error).message}`;
+    const problem = notSaved(err);
     writeFailed(problem);
     return { ok: false, problem };
+  }
+}
+
+/**
+ * Remove one record from the store. Admin only, and Firestore enforces that whatever this
+ * page believes.
+ *
+ * The seam for the dashboard's delete, which asks the admin to type the initiative name out
+ * before it calls anything. Without a Firestore build there is nowhere to delete from, and
+ * saying so beats a button that appears to work.
+ */
+export async function deleteRecord(id: string): Promise<{ ok: true } | { ok: false; problem: string }> {
+  if (!isConfigured()) return { ok: false, problem: 'This build has no shared store to delete from.' };
+  try {
+    await deleteAssessment(id);
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, problem: `Not deleted: ${(err as Error).message}` };
   }
 }
 
@@ -133,3 +227,26 @@ export function goneFromStore(records: StoredRecord[], local: Assessment): boole
     (local.id && r.assessment.id === local.id) || (local.ref && r.assessment.ref === local.ref)
   ));
 }
+
+/**
+ * Once an assessment has been submitted, later changes go to the store on their own.
+ *
+ * Before the first submit nothing leaves the browser, which is the whole point of submitting
+ * being one deliberate act. After it, a person who edits an answer expects their assessor to
+ * see the edit, and asking them to press something again for every keystroke is not a design.
+ *
+ * Debounced, because typing a justification is thirty keystrokes and a key-value store counts
+ * every write. The wait is generous for that reason.
+ */
+const WRITE_THROUGH_WAIT = 4000;
+let pending: ReturnType<typeof setTimeout> | null = null;
+
+registerAfterSave((a: Assessment) => {
+  if (!isHosted()) return;
+  if (!a.meta?.submittedAt) return;
+  if (pending) clearTimeout(pending);
+  pending = setTimeout(() => {
+    pending = null;
+    void putRecord(a);
+  }, WRITE_THROUGH_WAIT);
+});

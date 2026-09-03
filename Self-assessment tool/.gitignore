@@ -2,3 +2,4 @@ node_modules/
 .DS_Store
 test/.smoke.mjs
 test/.measure.mjs
+test/.firestore.mjs
