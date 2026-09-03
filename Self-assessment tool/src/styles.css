@@ -178,6 +178,9 @@ li { margin-bottom: .22rem; }
 .chev { color: var(--ink-3); font-size: .9rem; padding: 0 .05rem; user-select: none; }
 
 .signin { max-width: 34rem; margin: 2rem auto; }
+.signin-providers { flex-direction: column; align-items: stretch; gap: .5rem; }
+.signin-providers button { width: 100%; justify-content: center; }
+
 .signin-mock { background: var(--surface-2); border: 1px dashed var(--line-2);
   border-radius: var(--radius-sm); padding: .7rem .85rem; margin-top: .8rem; }
 .signin-mock button { margin: .3rem 0 .2rem; }

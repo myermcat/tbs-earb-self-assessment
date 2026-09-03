@@ -5,7 +5,7 @@ import { csvHeader, csvRow, toCsv } from './csv';
 import { confirmTyped } from './confirm';
 import { flags } from './flags';
 import { download } from './storage';
-import { isHosted, listRecords, sourceLine, type StoredRecord } from './store';
+import { deleteRecord, isHosted, listRecords, sourceLine, type StoredRecord } from './store';
 
 /**
  * Dan's view. One page over every record, so nobody has to collect files to see how the
@@ -179,9 +179,17 @@ function paint(
             phraseLabel: a.initiative.name ? 'the initiative name' : 'the reference',
             commitLabel: 'Delete this assessment',
             onCommit: () => {
-              // Nothing to delete from until there is a store. Withdrawing is the shape that
-              // survives one, and it is what the rules allow an admin to do.
-              alert('Deleting from the shared store needs the store. Nothing has been removed.');
+              const id = a.id;
+              if (!isHosted() || !id) {
+                // A record that never went to a store cannot be removed from one. This is the
+                // draft in somebody's browser, and only they can discard that.
+                alert('This record is not in a shared store, so there is nothing to remove. A draft can only be discarded by the person who has it.');
+                return;
+              }
+              void deleteRecord(id).then((res) => {
+                if (!res.ok) { alert(res.problem); return; }
+                renderDashboard(root, rubric, sessionFiles);
+              });
             },
           }),
         }, ['Delete this assessment']),

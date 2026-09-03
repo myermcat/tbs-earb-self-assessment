@@ -11,16 +11,54 @@ const OUT_FILE = `${OUT_DIR}/index.html`;
 const watch = process.argv.includes('--watch');
 
 /**
- * Where submissions go, if anywhere.
+ * Where submissions go, if anywhere. Two answers, and one environment variable picks each:
  *
  *   EARB_ENDPOINT=https://earb-store.example.workers.dev npm run build
+ *   EARB_FIREBASE='{"apiKey":"...","projectId":"..."}' npm run build
  *
- * With no endpoint the page keeps its `connect-src 'none'`, which means it cannot make a
- * request at all. With one, exactly that origin is allowed and nothing else: the security
- * story stays a story about one host rather than a story about the internet.
+ * With neither the page keeps its `connect-src 'none'`, which means it cannot make a request
+ * at all. With one, exactly the origins that answer belong in the policy and nothing else: the
+ * security story stays a story about named hosts and never a story about the internet.
  */
 const ENDPOINT = (process.env.EARB_ENDPOINT ?? '').trim().replace(/\/$/, '');
 const ORIGIN = ENDPOINT ? new URL(ENDPOINT).origin : '';
+
+/**
+ * The Firebase project, carried as one JSON value so the key and the project id arrive
+ * together. Two variables would let a build have half a config and say nothing about it.
+ *
+ * It is checked here because the alternative is a page that builds, loads, looks right, and
+ * has no store behind it. A shell that mangles the quoting is the ordinary way this goes wrong.
+ */
+const FIREBASE = (process.env.EARB_FIREBASE ?? '').trim();
+if (FIREBASE) {
+  // A stack trace would bury the one sentence that helps, so the refusal is the whole output.
+  const refuse = (why) => { console.error(`Build refused: ${why}`); process.exit(1); };
+  let parsed;
+  try {
+    parsed = JSON.parse(FIREBASE);
+  } catch {
+    refuse('EARB_FIREBASE is not JSON. Expected \'{"apiKey":"...","projectId":"..."}\' in single quotes.');
+  }
+  if (!parsed?.apiKey || !parsed?.projectId) {
+    refuse('EARB_FIREBASE needs both apiKey and projectId. With one of them missing there is no store to reach.');
+  }
+}
+
+/**
+ * The three hosts a Firestore build talks to. Identity Toolkit signs a person in, Firestore
+ * holds the documents, and the token host is the only place a refresh token can be exchanged,
+ * so an hour into an assessment nobody is thrown out mid-answer.
+ */
+const FIREBASE_ORIGINS = FIREBASE
+  ? [
+      'https://identitytoolkit.googleapis.com',
+      'https://securetoken.googleapis.com',
+      'https://firestore.googleapis.com',
+    ]
+  : [];
+
+const CONNECT = [ORIGIN, ...FIREBASE_ORIGINS].filter(Boolean).join(' ') || "'none'";
 
 async function once() {
   const result = await build({
@@ -31,7 +69,10 @@ async function once() {
     target: ['es2020'],
     minify: !watch,
     loader: { '.json': 'json' },
-    define: { __EARB_ENDPOINT__: JSON.stringify(ENDPOINT) },
+    define: {
+      __EARB_ENDPOINT__: JSON.stringify(ENDPOINT),
+      __EARB_FIREBASE__: JSON.stringify(FIREBASE),
+    },
     logLevel: 'warning',
   });
 
@@ -42,14 +83,17 @@ async function once() {
 
   const html = template
     .replace('__TITLE__', rubric.title)
-    .replace('__CONNECT__', ORIGIN || "'none'")
+    .replace('__CONNECT__', CONNECT)
     .replace('__CSS__', () => css)
     .replace('__JS__', () => js);
 
   await mkdir(OUT_DIR, { recursive: true });
   await writeFile(OUT_FILE, html);
   const kb = (Buffer.byteLength(html) / 1024).toFixed(1);
-  console.log(`${OUT_FILE}  ${kb} KB  (rubric ${rubric.version}, ${rubric.status})`);
+  // The store is named on the line every build prints, because the way this goes wrong is a
+  // build that was meant to have one and does not.
+  const store = FIREBASE ? 'Firestore' : ORIGIN ? new URL(ORIGIN).host : 'none';
+  console.log(`${OUT_FILE}  ${kb} KB  (rubric ${rubric.version}, ${rubric.status}, store ${store})`);
 }
 
 await once();

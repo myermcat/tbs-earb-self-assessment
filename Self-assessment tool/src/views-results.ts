@@ -1,11 +1,14 @@
 import type { Assessment, Rubric } from './types';
 import { el, clear, tone, bar } from './dom';
-import { nextAnchor, score, strongest, weakest } from './scoring';
+import { nextAnchor, score, strongest, weakest, type Result } from './scoring';
 import { flags } from './flags';
 import { csvHeader, csvRow, toCsv } from './csv';
-import { download, slug } from './storage';
+import { autosave, download, slug } from './storage';
 import { humanSize, totalAttachedBytes } from './attach';
 import { markingProblems } from './marking';
+import { t } from './i18n';
+import { isHosted, putRecord } from './store';
+import { confirmStep } from './confirm';
 
 /**
  * What the submitter sees. Deliberately ordered: the number, then the routing,
@@ -21,13 +24,13 @@ export function renderResults(root: HTMLElement, rubric: Rubric, a: Assessment, 
   root.appendChild(el('section', { class: 'card headline' }, [
     el('div', { class: `bigscore ${tone(r.overall)}` }, [
       el('span', { class: 'num' }, [r.overall === null ? '--' : r.overall.toFixed(1)]),
-      el('span', { class: 'outof' }, ['out of 10']),
+      el('span', { class: 'outof' }, [t('out of 10', 'sur 10')]),
     ]),
     el('div', { class: 'headline-text' }, [
-      el('h1', {}, [a.initiative.name || 'Untitled initiative']),
+      el('h1', {}, [a.initiative.name || t('Untitled initiative', 'Initiative sans titre')]),
       el('p', { class: 'muted' }, [
         [a.initiative.department, rubric.lifecycleStages.find((s) => s.id === a.initiative.lifecycleStage)?.label]
-          .filter(Boolean).join(' - ') || 'No department or stage set',
+          .filter(Boolean).join(' - ') || t('No department or stage set', 'Aucun ministère ni étape indiqué'),
         // The reference travels with the score, because this is the page somebody prints and
         // sends on, and it is what an assessor matches an email to.
         a.ref ? el('span', { class: 'ref-chip' }, [a.ref]) : null,
@@ -222,11 +225,21 @@ export function renderResults(root: HTMLElement, rubric: Rubric, a: Assessment, 
   const problems = markingProblems(a);
   if (problems.length) {
     root.appendChild(el('section', { class: 'card warn' }, [
-      el('strong', {}, ['You cannot save this yet']),
+      el('strong', {}, [t('You cannot save this yet', 'Vous ne pouvez pas encore enregistrer')]),
       el('ul', { class: 'small' }, problems.slice(0, 8).map((p) => el('li', {}, [p.message]))),
-      el('button', { class: 'ghost', onclick: onBack }, ['Go back and fix it']),
+      el('button', { class: 'ghost', onclick: onBack }, [t('Go back and fix it', 'Revenir et corriger')]),
     ]));
   }
+
+  /**
+   * Submitting, which is one deliberate act.
+   *
+   * Nothing goes anywhere while an assessment is being filled in, so this is the moment work
+   * becomes visible to TBS, and the moment somebody confirms what they are sending. After the
+   * first submit, later edits write through on their own, which is why the button changes
+   * rather than disappearing.
+   */
+  root.appendChild(submitBlock(rubric, a, r, problems.length > 0));
 
   const attached = totalAttachedBytes(a.answers);
   root.appendChild(el('section', { class: 'card actions' }, [
@@ -234,16 +247,87 @@ export function renderResults(root: HTMLElement, rubric: Rubric, a: Assessment, 
       class: 'primary', disabled: problems.length > 0,
       onclick: () => sendPackage(rubric, a, { high: highs, total: fs.length }),
     }, [
-      attached ? `Save the file to send to TBS (${humanSize(attached)} of evidence attached)` : 'Save the file to send to TBS',
+      attached ? `Save the file to send to TBS (${humanSize(attached)} of evidence attached)` : t('Save the file to send to TBS', 'Enregistrer le fichier à envoyer au SCT'),
     ]),
     el('button', {
       class: 'ghost', disabled: problems.length > 0,
       onclick: () => handOff(a, r.overall, r.band?.label ?? ''),
-    }, ['Draft the email']),
-    el('button', { class: 'ghost', onclick: () => saveCsv(rubric, a, { high: highs, total: fs.length }) }, ['Save a CSV row']),
-    el('button', { class: 'ghost', onclick: () => window.print() }, ['Print or save as PDF']),
-    el('button', { class: 'ghost', onclick: onBack }, ['Back to the questions']),
+    }, [t('Draft the email', 'Rédiger le courriel')]),
+    el('button', { class: 'ghost', onclick: () => saveCsv(rubric, a, { high: highs, total: fs.length }) }, [t('Save a CSV row', 'Enregistrer une ligne CSV')]),
+    el('button', { class: 'ghost', onclick: () => window.print() }, [t('Print or save as PDF', 'Imprimer ou enregistrer en PDF')]),
+    el('button', { class: 'ghost', onclick: onBack }, [t('Back to the questions', 'Retour aux questions')]),
   ]));
+}
+
+function submitBlock(rubric: Rubric, a: Assessment, r: Result, blocked: boolean): HTMLElement {
+  const box = el('section', { class: 'card submit-box' });
+  const submitted = !!a.meta.submittedAt;
+
+  if (!isHosted()) {
+    box.appendChild(el('div', { class: 'head-row' }, [
+      el('h2', {}, [t('Sending it to TBS', 'L\u2019envoi au SCT')]),
+      el('span', { class: 'badge badge-warn' }, [t('Not hosted yet', 'Pas encore hébergé')]),
+    ]));
+    box.appendChild(el('p', { class: 'muted' }, [
+      t('There is nowhere to send it yet. Save the file below and pass it on the way you would pass on any document, and the moment a shared store exists this becomes one button.', 'Il n\u2019y a encore nulle part où l\u2019envoyer. Enregistrez le fichier ci-dessous et transmettez-le comme n\u2019importe quel document; dès qu\u2019un dépôt partagé existera, ce sera un seul bouton.'),
+    ]));
+    return box;
+  }
+
+  box.appendChild(el('div', { class: 'head-row' }, [
+    el('h2', {}, [submitted ? t('Submitted to TBS', 'Soumis au SCT') : t('Send it to TBS', 'Envoyer au SCT')]),
+    submitted ? el('span', { class: 'badge' }, [t('Submitted', 'Soumis')]) : null,
+  ]));
+
+  if (submitted) {
+    const when = new Date(a.meta.submittedAt as string);
+    box.appendChild(el('p', { class: 'muted' }, [
+      `Sent on ${Number.isNaN(when.getTime()) ? 'an earlier visit' : when.toLocaleString()}. `,
+      t('Every change you make now goes through on its own, so there is nothing else to press.', 'Chaque modification que vous faites maintenant part d\u2019elle-même; il n\u2019y a rien d\u2019autre à cliquer.'),
+    ]));
+    return box;
+  }
+
+  box.appendChild(el('p', { class: 'muted' }, [
+    t('Nothing has been sent yet. Your answers are in this browser and nowhere else.', 'Rien n\u2019a encore été envoyé. Vos réponses sont dans ce navigateur et nulle part ailleurs.'),
+  ]));
+
+  const go = el('button', {
+    class: 'primary', disabled: blocked,
+    title: blocked
+      ? t('Fix what is listed above first', 'Corrigez d\u2019abord ce qui est indiqué ci-dessus')
+      : t('Send this assessment to TBS', 'Envoyer cette évaluation au SCT'),
+    onclick: () => {
+      const ev = Object.values(a.answers).reduce((n, x) => n + (x.evidence ?? []).length, 0);
+      confirmStep({
+        tier: 'caution',
+        title: t('Send this assessment to TBS?', 'Envoyer cette évaluation au SCT?'),
+        body: `${r.answered} of ${r.scoreable} answers, ${ev} piece${ev === 1 ? '' : 's'} of evidence, and everything you wrote about the initiative. Your assessor sees all of it.`,
+        stake: t('Everything in this tool is unclassified. By sending it you are saying this is too.', 'Tout dans cet outil est non classifié. En l\u2019envoyant, vous affirmez que ceci l\u2019est aussi.'),
+        commitLabel: t('It is unclassified. Send it', 'C\u2019est non classifié. Envoyer'),
+        cancelLabel: t('Not yet', 'Pas encore'),
+        onCommit: () => {
+          a.meta.submittedAt = new Date().toISOString();
+          autosave(a);
+          void putRecord(a).then((res) => {
+            if (!res.ok) {
+              // The submitted stamp comes back off, because it did not go.
+              delete a.meta.submittedAt;
+              autosave(a);
+            }
+            const fresh = submitBlock(rubric, a, r, blocked);
+            box.replaceWith(fresh);
+          });
+        },
+      });
+    },
+  }, [t('Send it to TBS', 'Envoyer au SCT')]);
+
+  box.appendChild(el('div', { class: 'actions' }, [go]));
+  box.appendChild(el('p', { class: 'tiny dim' }, [
+    t('It asks you to confirm before anything goes.', 'Une confirmation est demandée avant tout envoi.'),
+  ]));
+  return box;
 }
 
 /**

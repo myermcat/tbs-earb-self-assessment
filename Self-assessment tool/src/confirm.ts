@@ -1,4 +1,5 @@
 import { el, clear } from './dom';
+import { t } from './i18n';
 
 /**
  * The confirmation every destroying action goes through. Her rule, stated twice: nothing is
@@ -105,7 +106,9 @@ export function confirmStep(o: ConfirmStep): void {
     actions.appendChild(el('button', {
       class: `${o.tier === 'danger' ? 'danger-solid' : 'danger'} cf-wide`,
       onclick: () => { close(); o.onCommit(); },
-    }, [kept && o.offer ? `I have the copy. ${o.commitLabel.toLowerCase()}` : o.commitLabel]));
+    }, [kept && o.offer
+      ? t(`I have the copy. ${o.commitLabel.toLowerCase()}`, `J\u2019ai la copie. ${o.commitLabel.toLowerCase()}`)
+      : o.commitLabel]));
 
     // The safe control takes focus, so Enter and Escape both mean cancel.
     const cancel = el('button', { class: 'cf-wide', onclick: close }, [o.cancelLabel]);
@@ -155,7 +158,7 @@ export function confirmTyped(o: ConfirmTyped): void {
     class: 'typed-field',
     autocomplete: 'off',
     spellcheck: false,
-    'aria-label': `Type ${o.phraseLabel} to confirm`,
+    'aria-label': t(`Type ${o.phraseLabel} to confirm`, `Saisissez ${o.phraseLabel} pour confirmer`),
     oninput: (e: Event) => {
       const typed = (e.target as HTMLInputElement).value.trim();
       go.disabled = typed !== o.phrase;
@@ -166,17 +169,17 @@ export function confirmTyped(o: ConfirmTyped): void {
 
   dlg.appendChild(el('div', { class: 'cf-head' }, [el('h2', { class: 'cf-title' }, [o.title])]));
   dlg.appendChild(el('div', { class: 'cf-body' }, [
-    el('p', {}, ['This cannot be undone. It removes:']),
+    el('p', {}, [t('This cannot be undone. It removes:', 'Cette action est irréversible. Elle supprime :')]),
     el('ul', { class: 'typed-list' }, o.consequences.map((c) => el('li', {}, [c]))),
     el('p', { class: 'typed-ask' }, [
-      `To confirm, type ${o.phraseLabel}: `,
+      t(`To confirm, type ${o.phraseLabel}: `, `Pour confirmer, saisissez ${o.phraseLabel} : `),
       el('code', { class: 'mono' }, [o.phrase]),
     ]),
     field,
   ]));
   dlg.appendChild(el('div', { class: 'cf-actions' }, [
     go,
-    el('button', { class: 'cf-wide', onclick: close }, ['Cancel']),
+    el('button', { class: 'cf-wide', onclick: close }, [t('Cancel', 'Annuler')]),
   ]));
   dlg.addEventListener('close', () => dlg.remove());
   document.body.appendChild(dlg);
