@@ -793,8 +793,8 @@ function paneBuild(pane: HTMLElement) {
   ]));
 
   pane.appendChild(setRow(
-    'What this tool has to do',
-    'Every requirement, numbered, with its state and whoever owes an answer. Decisions are written here the day they are made.',
+    'The requirements specification',
+    'Every requirement, numbered, with its state and whoever owes an answer. Decisions are written here the day they are made, and the open ones are listed at the top.',
     el('a', {
       class: 'ghost',
       href: 'https://myermcat.github.io/tbs-earb-self-assessment-preview/requirements.html',

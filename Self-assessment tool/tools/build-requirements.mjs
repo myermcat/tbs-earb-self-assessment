@@ -76,6 +76,9 @@ padding:.6rem .1rem;border-bottom:1px solid var(--line)}
 text-transform:uppercase;color:var(--warn)}
 .req-note{grid-column:2;font-size:.85rem;color:var(--ink-2)}
 .lead{font-size:1rem;color:var(--ink-2);max-width:74ch;margin:.2rem 0 .8rem}
+.std-p{margin:0 0 .6rem;font-size:.9rem;color:var(--ink-2);max-width:80ch}
+.std-p:last-child{margin-bottom:0}
+.std-p b{color:var(--ink)}
 .legend{display:flex;align-items:center;gap:.4rem;flex-wrap:wrap;margin:0 0 1.4rem;
 padding:.5rem .7rem;background:var(--surface);border:1px solid var(--line);border-radius:10px}
 .legend .muted{font-size:.8rem}
@@ -121,7 +124,7 @@ background:var(--surface);border:1px solid var(--line);border-radius:10px;list-s
 import { writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
-import { intro, sections, updated } from '../NOTES/requirements.data.mjs';
+import { intro, sections, standard, updated, verification } from '../NOTES/requirements.data.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const out = join(here, '..', 'NOTES', 'requirements.html');
@@ -151,7 +154,7 @@ function req(r) {
 }
 
 const html = [
-  '<title>EARB tool requirements</title>',
+  '<title>EARB tool requirements specification</title>',
   '<link rel="icon" href="data:image/svg+xml,' +
     encodeURIComponent(
       '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">' +
@@ -161,8 +164,8 @@ const html = [
       '</svg>',
     ) + '">',
   STYLE,
-  '<div class="head"><div class="head-in"><h1>EARB self-assessment: requirements</h1>',
-  `<p class="sub">Updated ${esc(updated)}. ${total} requirements.</p></div></div>`,
+  '<div class="head"><div class="head-in"><h1>GC EA self-assessment: requirements specification</h1>',
+  `<p class="sub">Living document, updated ${esc(updated)}. ${total} requirements, baselined at each release. Following ISO/IEC/IEEE 29148:2018, tailored.</p></div></div>`,
 
   '<nav class="topnav"><div class="topnav-in">',
   [
@@ -172,7 +175,9 @@ const html = [
     ['open', 'open'],
   ].map(([st, label]) => `<span class="nav-kpi"><b>${count(st)}</b><span>${label}</span></span>`).join('\n'),
   '<span class="nav-sep"></span>',
+  '<a class="nav-lay" href="#open">Open decisions</a>',
   sections.map((s) => `<a class="nav-lay" href="#${s.id}">${esc(s.title)}</a>`).join('\n'),
+  '<a class="nav-lay" href="#verify">How it is checked</a>',
   '</div></nav>',
 
   '<div class="wrap">',
@@ -182,6 +187,23 @@ const html = [
   '<span class="muted">Built is in the tool today. Agreed is decided and not built. Proposed is our reading, waiting on somebody. Open is undecided.</span>',
   '</div>',
 
+  (() => {
+    const open = sections.flatMap((s) => s.reqs.filter((r) => r.state === 'open').map((r) => ({ r, s })));
+    if (!open.length) return '';
+    return [
+      `<h2 id="open">Open decisions <span class="muted small">${open.length}</span></h2>`,
+      '<p class="hint">Every requirement below that nobody has decided, in one place. Each is also in its own section.</p>',
+      '<div class="tw"><table><thead><tr><th>Number</th><th>Decision</th><th>Who owes it</th><th>Section</th></tr></thead><tbody>',
+      open.map(({ r, s }) => `<tr><td class="mono">${esc(r.id)}</td><td>${esc(r.text)}</td><td>${esc(r.owner === 'ours' ? 'ours' : r.owner ?? 'unassigned')}</td><td>${esc(s.title)}</td></tr>`).join('\n'),
+      '</tbody></table></div>',
+    ].join('\n');
+  })(),
+
+  `<h2 id="standard">${esc(standard.title)}</h2>`,
+  '<div class="card">',
+  standard.points.map(([k, v]) => `<p class="std-p"><b>${esc(k)}.</b> ${esc(v)}</p>`).join('\n'),
+  '</div>',
+
   ...sections.map((s, i) => [
     `<h2 id="${s.id}">${i + 1}. ${esc(s.title)}</h2>`,
     `<p class="hint">${esc(s.lead)}</p>`,
@@ -189,6 +211,13 @@ const html = [
     s.reqs.map(req).join('\n'),
     '</div>',
   ].join('\n')),
+
+  `<h2 id="verify">${esc(verification.title)}</h2>`,
+  `<p class="hint">${esc(verification.lead)}</p>`,
+  '<div class="card">',
+  verification.gates.map(([k, v]) => `<p class="std-p"><b>${esc(k)}.</b> ${esc(v)}</p>`).join('\n'),
+  `<p class="std-p muted">${esc(verification.note)}</p>`,
+  '</div>',
 
   `<footer>Generated from NOTES/requirements.data.mjs by tools/build-requirements.mjs. The backlog is <a href="backlog.html">next door</a>.</footer></div>`,
 ].join('\n');

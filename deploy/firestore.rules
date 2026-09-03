@@ -27,6 +27,14 @@
 //   6. Firestore Database > Data, create a document at roles/<your-email> with
 //      { "role": "admin" }. That is the first admin, and from then on an admin makes the rest.
 //
+// WHAT EVERY RULE COSTS
+//
+// An exists() or a get() inside a rule is a billable document read, even when the request is
+// then denied. So the common path is written to need neither: isOwner() compares the signed-in
+// email against a field already in the document being read, and the || short-circuits, so a
+// submitter reading their own assessment triggers no lookup at all. Only the assessor and
+// admin paths call get() on the roles document.
+//
 // THE RULES BELOW, IN WORDS
 //
 //   A signed-in person may create an assessment and read and change their own.

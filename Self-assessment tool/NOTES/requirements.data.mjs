@@ -17,8 +17,18 @@ export const updated = '2026-09-01';
 
 export const intro = [
   'This is the standing record of what the GC Enterprise Architecture self-assessment tool has to do. It accumulates: a decision made in a meeting is written here the same day, with who made it.',
-  'Each requirement carries a number so it can be quoted, a state, and an owner where somebody owes an answer. Nothing is deleted when it changes. The state changes and the reason goes in the note.',
+  'Each requirement carries a number so it can be quoted, a state, and an owner where somebody owes an answer. Numbers are never reused and never renumbered. Nothing is deleted when a requirement changes: the state changes and the reason goes in the note.',
 ];
+
+/** Shown under the intro, because a reader will ask what standard this follows. */
+export const standard = {
+  title: 'What this follows, and where it departs',
+  points: [
+    ['The standard', 'ISO/IEC/IEEE 29148:2018, Systems and software engineering, life cycle processes, requirements engineering. It replaced IEEE 830, which is withdrawn and still the thing most people picture when they hear the words requirements specification.'],
+    ['Tailored, which the standard allows', 'Clause 4.5 permits tailoring. Two departures are deliberate. The document carries a status line where a signature block would go, because it is living and gets baselined at each release. And requirements are written in plain present tense, leaving out the "shall" convention in clause 5.2.7, because the people who read this are two colleagues and a director, and "the tool shall keep work as it is typed" is harder to read than the same sentence without it.'],
+    ['States', 'Proposed is the standard word. Agreed means analysed, agreed by whoever owns the decision, and committed to. Built means it is in the tool. Open marks a decision nobody has made, and every open item is also listed in one place at the top.'],
+  ],
+};
 
 export const sections = [
   {
@@ -67,8 +77,8 @@ export const sections = [
         note: 'The no-sign-in design came from the assumption that the tool would hold classified evidence and therefore could not be online at all. P3 removed that assumption, so the constraint went with it.' },
       { id: 'S2', state: 'agreed', text: 'For the real thing, the departmental account: the same one used for Teams.',
         note: 'Microsoft Entra. No new password, and the tool knows the person and their department from the sign-in.' },
-      { id: 'S3', state: 'proposed', text: 'For the prototype, a link sent to a work email address. Clicking it signs the person in, and no password exists.',
-        note: 'Works with a gc.ca address today and needs no departmental approval. It maps onto S2 without changing how the tool reads a role.' },
+      { id: 'S3', state: 'proposed', text: 'For the prototype, sign in with a Google account, which sends no email and needs no password.',
+        note: 'The first plan was a link sent to a work address. Firebase caps that at five sign-in emails a day for the whole project on the free plan, which is three testers, so it cannot be the prototype route. Google sign-in has no such cap, works from a static page, and the rules key off the address either way. Attaching a billing account lifts the cap to 25,000 a day and is the other way out.' },
       { id: 'S4', state: 'built', text: 'Until sign-in exists, the assessor side opens on a screen shaped like a sign-in that says it is a mockup, and everything it produces is labelled unverified.' },
       { id: 'S5', state: 'agreed', text: 'A submitter may read and change their own submission, and no other.',
         note: 'And any submission they have been added to.' },
@@ -168,7 +178,11 @@ export const sections = [
       { id: 'H4', state: 'proposed', text: 'For the prototype: a database with sign-in, in a Canadian region, with rules that let somebody read and write their own records and nothing else.',
         note: 'Cloud Firestore in Montreal is the concrete version, and deploy/firestore.rules is written. A key-value store behind a small program of our own is the alternative, and it has no Canadian region.' },
       { id: 'H10', state: 'agreed', text: 'Attached files do not go into the store as part of the assessment.',
-        note: 'A document in the store caps at about a megabyte, and the tool allows 15 MB per attachment. Evidence is a link for exactly this reason; an attachment is the fallback for something unclassified that cannot be linked, and where it goes in a hosted world is still to be decided.' },
+        note: 'A document in Firestore caps at one mebibyte and the tool allows 15 MB per attachment, so the design does not fit by a factor of twenty. Base64 makes it worse by a third. Evidence is a link for exactly this reason; an attachment stays in the file somebody saves, and it does not travel to the store.' },
+      { id: 'H11', state: 'open', owner: 'ours, then Dan', text: 'Whether the prototype store runs on the free plan or has a billing account attached.',
+        note: 'The free plan costs nothing and rules out file storage and email sign-in. A billing account at this volume bills a couple of dollars a month. The obstacle is attaching a personal card to government work. That is a procurement conversation, and no amount of engineering settles it.' },
+      { id: 'H12', state: 'built', text: 'The store rules are written so that reading your own record costs no extra lookup.',
+        note: 'Every exists() or get() inside a rule is a billable read even when the request is denied. Only the assessor and admin paths look a role up.' },
       { id: 'H5', state: 'agreed', text: 'The prototype store has a named owner and a date it gets deleted, both written down before anybody asks.' },
       { id: 'H6', state: 'agreed', text: 'The page says what it is whenever it is writing to a prototype store: unclassified drafts only, and not a record of decision.' },
       { id: 'H7', state: 'open', owner: 'TBS', text: 'What the production store is.' },
@@ -206,7 +220,23 @@ export const sections = [
       { id: 'X8', state: 'agreed', text: 'Where a decision about how something should behave is not obvious, copy what GitHub does.',
         note: 'Her instruction on 1 September, after the typed-name delete. GitHub has already argued these out in public and its patterns are familiar to the people who will use this.' },
       { id: 'X7', state: 'open', owner: 'ours', text: 'French.',
-        note: 'A Government of Canada tool is bilingual. Nothing about the structure prevents it and none of it is written.' },
+        note: 'A Government of Canada tool is bilingual. Nothing about the structure prevents it and none of it is written. Ours means this team. It is work, and nobody owes a decision about it.' },
     ],
   },
 ];
+
+/**
+ * How a requirement gets checked, which is the section ISO 29148 expects and the one most
+ * requirements documents leave out. It is worth having because the answer here is mechanical.
+ */
+export const verification = {
+  title: 'How each requirement gets checked',
+  lead: 'Four gates run on every change, and a requirement is not built until the gate that covers it passes.',
+  gates: [
+    ['The prose gate', 'Every word the reader sees is checked against the writing rules: no em dashes, no antithesis, no banned words. It runs before the tests and fails the build.'],
+    ['The logic gate', 'Scoring, banding, weighting, the flags, the CSV round trip. It runs against the modules directly.'],
+    ['The interface gate', 'The built page is driven in a real document object model, end to end: 21 pages of questions answered, evidence attached, markings set, dialogs opened and their buttons pressed. Around 500 assertions, and this is where a requirement about behaviour is actually held.'],
+    ['The print gate', 'A printed assessment is checked for the things that vanish on paper: the scores, the reasoning, the marking, and every folded section.'],
+  ],
+  note: 'What no gate covers: anything needing a store, a sign-in or a second person. Those requirements are marked agreed, and they say so.',
+};
