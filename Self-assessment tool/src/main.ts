@@ -209,9 +209,9 @@ function header(): HTMLElement {
             tab('Submissions', 'review'), chev(), tab('Admin', 'admin'),
           ])
         : el('nav', { class: 'path', 'aria-label': 'Where you are' }, [
-            tab('Start', 'home'), chev(),
-            tab('Fill it in', 'submit'), chev(),
-            tab('My results', 'results'),
+            tab(t('Start', 'Début'), 'home'), chev(),
+            tab(t('Fill it in', 'Remplir'), 'submit'), chev(),
+            tab(t('My results', 'Mes résultats'), 'results'),
           ]),
       side === 'assess'
         ? el('button', { class: 'linkish small', onclick: () => setSide('submit') }, ['Leave assessor view'])
@@ -347,11 +347,11 @@ function renderHome(root: HTMLElement) {
 
   root.appendChild(el('section', { class: 'hero' }, [
     el('div', { class: 'hero-text' }, [
-      el('p', { class: 'eyebrow' }, ['Government of Canada Enterprise Architecture']),
-      el('h1', {}, ['Assess your own architecture']),
+      el('p', { class: 'eyebrow' }, [t('Government of Canada Enterprise Architecture', 'Architecture intégrée du gouvernement du Canada')]),
+      el('h1', {}, [t('Assess your own architecture', 'Évaluez votre propre architecture')]),
       el('p', { class: 'lead' }, [
-        'You answer questions about the work you already run, score yourself against a published scale, ',
-        'and point to evidence you already have. Nothing new has to be written for it.',
+        t('You answer questions about the work you already run, score yourself against a published scale, and point to evidence you already have. Nothing new has to be written for it.',
+          'Vous répondez à des questions sur le travail que vous menez déjà, vous vous notez selon une échelle publiée et vous renvoyez à des preuves que vous avez déjà. Rien de nouveau n\u2019a à être rédigé pour cela.'),
       ]),
       el('div', { class: 'hero-actions' }, [
         el('button', {
@@ -363,10 +363,10 @@ function renderHome(root: HTMLElement) {
             go('submit');
           },
         }, [
-          started ? 'Continue' : 'Fill it in',
+          started ? t('Continue', 'Continuer') : t('Fill it in', 'Remplir le questionnaire'),
           el('span', { class: 'arrow', 'aria-hidden': true }, ['\u2192']),
         ]),
-        el('span', { class: 'or' }, ['or']),
+        el('span', { class: 'or' }, [t('or', 'ou')]),
         /**
          * Opening a file replaces whatever this browser is holding, so the question comes
          * before the file picker rather than after it: being asked once a file is chosen
@@ -384,7 +384,7 @@ function renderHome(root: HTMLElement) {
               input.value = '';
               const a = item.data as Assessment;
               if (a?.fileType !== 'gc-arch-assessment') {
-                alert(`${item.file} is not a self-assessment file.`);
+                alert(t(`${item.file} is not a self-assessment file.`, `${item.file} n\u2019est pas un fichier d\u2019auto-évaluation.`));
                 return;
               }
               assessment = ensureRef(a);
@@ -416,7 +416,7 @@ function renderHome(root: HTMLElement) {
                   onCommit: open,
                 });
               },
-            }, ['open a saved assessment']),
+            }, [t('open a saved assessment', 'ouvrir une évaluation enregistrée')]),
             picker,
           ]);
         })(),
@@ -431,30 +431,33 @@ function renderHome(root: HTMLElement) {
   ]));
 
   root.appendChild(el('p', { class: 'crossover tiny dim' }, [
-    'Reviewing submissions for TBS? ',
-    el('button', { class: 'linkish', onclick: () => setSide('assess') }, ['Open the assessor view']),
+    t('Reviewing submissions for TBS? ', 'Vous examinez des soumissions pour le SCT? '),
+    el('button', { class: 'linkish', onclick: () => setSide('assess') }, [t('Open the assessor view', 'Ouvrir la vue de l\u2019évaluateur')]),
   ]));
   // The portfolio view has no other way in from here, and somebody who runs the programme
   // should not have to find it through the assessor side.
   root.appendChild(el('p', { class: 'crossover tiny dim' }, [
-    'Running the programme? ',
-    el('button', { class: 'linkish', onclick: () => setSide('assess', true, 'admin') }, ['Open the admin view']),
+    t('Running the programme? ', 'Vous dirigez le programme? '),
+    el('button', { class: 'linkish', onclick: () => setSide('assess', true, 'admin') }, [t('Open the admin view', 'Ouvrir la vue de l\u2019administrateur')]),
   ]));
 
   root.appendChild(el('section', { class: 'note' }, [
-    el('h2', {}, ['What to expect']),
+    el('h2', {}, [t('What to expect', 'À quoi s\u2019attendre')]),
     el('ul', {}, [
       el('li', {}, [
-        el('b', {}, [`${total} questions, across ${spell(rubric.domains.length)} architecture domains. `]),
-        'You do not have to finish in one sitting. Your progress is kept as you go, and you can save a file and come back to it.',
+        el('b', {}, [t(`${total} questions, across ${spell(rubric.domains.length)} architecture domains. `, `${total} questions, réparties sur ${rubric.domains.length} domaines d\u2019architecture. `)]),
+        t('You do not have to finish in one sitting. Your progress is kept as you go, and you can save a file and come back to it.',
+          'Vous n\u2019avez pas à tout terminer d\u2019un seul coup. Votre progression est conservée à mesure, et vous pouvez enregistrer un fichier pour y revenir.'),
       ]),
       el('li', {}, [
-        el('b', {}, ['The scale explains itself. ']),
-        'Every score from 0 to 10 has a description, so a low score comes with a plain account of what would improve it.',
+        el('b', {}, [t('The scale explains itself. ', 'L\u2019échelle s\u2019explique d\u2019elle-même. ')]),
+        t('Every score from 0 to 10 has a description, so a low score comes with a plain account of what would improve it.',
+          'Chaque note de 0 à 10 est accompagnée d\u2019une description, de sorte qu\u2019une note faible dit clairement ce qui l\u2019améliorerait.'),
       ]),
       el('li', {}, [
-        el('b', {}, ['You decide who sees it. ']),
-        'Saving produces a file on your machine. Sending it is a separate step, through whatever channel your department already uses.',
+        el('b', {}, [t('You decide who sees it. ', 'Vous décidez qui la voit. ')]),
+        t('Saving produces a file on your machine. Sending it is a separate step, through whatever channel your department already uses.',
+          'L\u2019enregistrement produit un fichier sur votre ordinateur. L\u2019envoi est une étape distincte, par le canal que votre ministère utilise déjà.'),
       ]),
     ]),
   ]));
