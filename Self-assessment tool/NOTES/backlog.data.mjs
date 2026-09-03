@@ -20,7 +20,11 @@ export const quick = {
   items: [
     { t: 'What each assessor sees of the pool', status: 'wait', owes: 'Dan or Chris',
       why: 'Everything, for now. Chris says departments know who their assessor is, so they could pick one at submission, and an assessor could share a file or hand it on. Until that is decided, every assessor sees the whole pool, and a My assessments tab is the filter to add when the rule exists.' },
-    { t: 'Stand up the store', status: 'next',
+    { t: 'Sign in, and a store with rules', status: 'next',
+      why: 'The no-sign-in design came from the assumption that the tool would hold classified evidence. That went on 1 September, and the constraint should have gone with it. deploy/firestore.rules is the store with sign-in: a Canadian region, nothing publicly readable, roles an admin grants, and no delete for anybody. Six one-time steps, all in a browser, and only you can do them because the account is yours.' },
+    { t: 'Write the requirements down as they are decided', status: 'done',
+      why: 'NOTES/requirements.html, 75 numbered requirements with a state and an owner each, generated from a data file so ids and states cannot drift. Linked from Settings and published beside the backlog.' },
+    { t: 'Stand up the store', status: 'later',
       why: 'The Worker is written and waiting in deploy/worker.js, and the page takes its address as a build input. What is left is a Cloudflare account, which only you can create: sign in, paste the file, bind a KV namespace, then build with EARB_ENDPOINT set. 1,000 writes a day on the free plan, no card, and no Canadian region.' },
     { t: 'Name an owner and a delete date for the prototype store', status: 'next',
       why: 'The objection to a store on a personal account is not the account. It is a store with no owner, no end date and no plan for handing it over. Written down before anybody asks, it stops being an objection. The page already says it is a prototype holding unclassified drafts.' },

@@ -97,7 +97,7 @@ background:var(--surface);border:1px solid var(--line);border-radius:10px;list-s
 <nav class="topnav"><div class="topnav-in">
 <a class="nav-kpi" href="#quick"><b>18</b><span>next</span></a>
 <a class="nav-kpi" href="#waiting"><b>8</b><span>waiting on somebody</span></a>
-<a class="nav-kpi" href="#done"><b>70</b><span>done</span></a>
+<a class="nav-kpi" href="#done"><b>71</b><span>done</span></a>
 <a class="nav-kpi" href="#questions"><b>12</b><span>open questions</span></a>
 <span class="nav-sep"></span>
 <a class="nav-lay" href="#layer-0">Question set</a>
@@ -118,7 +118,11 @@ background:var(--surface);border:1px solid var(--line);border-radius:10px;list-s
 <span class="w">Everything, for now. Chris says departments know who their assessor is, so they could pick one at submission, and an assessor could share a file or hand it on. Until that is decided, every assessor sees the whole pool, and a My assessments tab is the filter to add when the rule exists.</span>
 </div>
 <div class="leaf solo">
-<span class="t">Stand up the store</span><span class="st st-next">Next</span>
+<span class="t">Sign in, and a store with rules</span><span class="st st-next">Next</span>
+<span class="w">The no-sign-in design came from the assumption that the tool would hold classified evidence. That went on 1 September, and the constraint should have gone with it. deploy/firestore.rules is the store with sign-in: a Canadian region, nothing publicly readable, roles an admin grants, and no delete for anybody. Six one-time steps, all in a browser, and only you can do them because the account is yours.</span>
+</div>
+<div class="leaf solo">
+<span class="t">Stand up the store</span><span class="st st-later">Later</span>
 <span class="w">The Worker is written and waiting in deploy/worker.js, and the page takes its address as a build input. What is left is a Cloudflare account, which only you can create: sign in, paste the file, bind a KV namespace, then build with EARB_ENDPOINT set. 1,000 writes a day on the free plan, no card, and no Canadian region.</span>
 </div>
 <div class="leaf solo">
@@ -337,11 +341,11 @@ background:var(--surface);border:1px solid var(--line);border-radius:10px;list-s
 </div>
 </div>
 <h2 id="done">Done</h2>
-<p class="hint">Built and tested, kept for good, newest first. 68 items since Dan's review on 1 September.</p>
+<p class="hint">Built and tested, kept for good, newest first. 69 items since Dan's review on 1 September.</p>
 <details class="done-fold"><summary class="done-summary">
-<span class="section-title">Everything done</span><span class="muted small">70 items, by layer</span>
+<span class="section-title">Everything done</span><span class="muted small">71 items, by layer</span>
 </summary>
-<h3 class="h3sub">Quick action <span class="muted small">35</span></h3>
+<h3 class="h3sub">Quick action <span class="muted small">36</span></h3>
 <div class="card done-card">
 <div class="leaf solo">
 <span class="t">Settings marks the unbuilt parts as unbuilt</span><span class="st st-done">Done</span>
@@ -482,6 +486,10 @@ background:var(--surface);border:1px solid var(--line);border-radius:10px;list-s
 <div class="leaf solo">
 <span class="t">The marking question is about the evidence</span><span class="st st-done">Done</span>
 <span class="w">The assessment is always unclassified, so asking how the assessment is marked was the wrong question. It asks for the highest marking of the artefacts the answers point at, which is what an assessor needs access to.</span>
+</div>
+<div class="leaf solo">
+<span class="t">Write the requirements down as they are decided</span><span class="st st-done">Done</span>
+<span class="w">NOTES/requirements.html, 75 numbered requirements with a state and an owner each, generated from a data file so ids and states cannot drift. Linked from Settings and published beside the backlog.</span>
 </div>
 </div>
 <h3 class="h3sub">Engine <span class="muted small">6</span></h3>
@@ -669,4 +677,4 @@ background:var(--surface);border:1px solid var(--line);border-radius:10px;list-s
 <tr><td>Who performs the canada-ca transfer</td><td>Nick</td><td>The repo move</td><td>Asked. An issue on canada-ca/welcome is the route he named</td></tr>
 <tr><td>What the production intake should be</td><td>TBS</td><td>Production only</td><td>The prototype answer is an Azure Function plus one CSP line</td></tr>
 </tbody></table></div>
-<footer>44 open, 70 done. Generated from NOTES/backlog.data.mjs by tools/build-backlog.mjs.</footer></div>
+<footer>45 open, 71 done. Generated from NOTES/backlog.data.mjs by tools/build-backlog.mjs.</footer></div>

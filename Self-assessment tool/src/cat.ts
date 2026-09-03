@@ -38,4 +38,10 @@ export const SAD_CAT = `
   <path d="M117 78h6l-3 3z" fill="currentColor" opacity=".5"/>
   <path d="M112 88q8-6 16 0" fill="none" stroke="currentColor" stroke-opacity=".5"
         stroke-width="2.4" stroke-linecap="round"/>
+  <g fill="none" stroke="currentColor" stroke-opacity=".40" stroke-width="1.8" stroke-linecap="round">
+    <path d="M112 79L86 74"/>
+    <path d="M112 82L87 84"/>
+    <path d="M128 79l26-5"/>
+    <path d="M128 82l25 2"/>
+  </g>
 </svg>`;

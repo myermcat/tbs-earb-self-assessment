@@ -323,6 +323,7 @@ function cell(v2) {
 }
 function csvHeader(rubric2) {
   const cols = [
+    "ref",
     "initiative",
     "department",
     "contact",
@@ -349,6 +350,7 @@ function csvHeader(rubric2) {
 function csvRow(rubric2, a, flagCounts) {
   const r = score(rubric2, a);
   const row = [
+    a.ref ?? "",
     a.initiative.name,
     a.initiative.department,
     a.initiative.contact,
