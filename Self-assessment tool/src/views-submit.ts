@@ -428,7 +428,8 @@ function stepper(
  */
 export function evidenceSubject(a: Assessment, questionId: string): string {
   const who = a.initiative.name.trim() || 'your initiative';
-  return `EARB self-assessment evidence for ${who}, question ${questionId}`;
+  // The initiative name is quoted and labelled. Unquoted it read as a typo: "evidence for m".
+  return `EARB self-assessment evidence: initiative "${who}", question ${questionId}`;
 }
 
 /**
@@ -1298,6 +1299,15 @@ function evidenceEditor(a: Assessment, q: Question, list: EvidenceRef[], refresh
         if (k === 'classification') { paint(); refresh(); }
       };
 
+      /**
+       * Attaching is for an unclassified artefact that cannot be linked. Two states remove it
+       * from the row entirely: a marking above unclassified, where the file must never come in
+       * here, and a row already recorded as emailed, where the attach control sitting there
+       * invited a second, unmarked copy of the same thing.
+       */
+      const emailed = (ev.location ?? '').startsWith('Emailed to the assessor');
+      const noAttaching = !!ev.classification && ev.classification !== 'Unclassified';
+
       const attachRow = ev.attachment
         ? el('div', { class: 'att' }, [
             el('span', { class: 'att-name' }, [ev.attachment.name]),
@@ -1419,7 +1429,12 @@ function evidenceEditor(a: Assessment, q: Question, list: EvidenceRef[], refresh
           }, ['It cannot be linked, I will email it']),
           // attachRow is the file chip when something is attached, and the picker when not.
           // Skipping it while attached made the attached file invisible.
-          attachRow,
+          ev.attachment || !(noAttaching || emailed) ? attachRow : null,
+          noAttaching && !ev.attachment
+            ? el('span', { class: 'tiny dim' }, [
+                `${ev.classification} cannot come into this tool. Link to it, or email it to your assessor.`,
+              ])
+            : null,
         ]),
         // Once they say they will email it, the exact subject line is here to copy. Retyping
         // it by hand is how an assessor ends up unable to find the message.

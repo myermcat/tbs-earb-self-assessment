@@ -158,6 +158,19 @@ ok('the lift arrives only once the page has scrolled',
 // The sentinel it watches has to outlive a render, and every render empties #app.
 ok('the scroll sentinel lives outside the part that gets rebuilt',
    !!document.querySelector('body > .top-sentinel'));
+// A short screen used to leave the footer floating in the middle of it. The shell fills the
+// viewport and the footer rests on the bottom edge.
+ok('the shell fills the viewport so the footer rests at the bottom',
+   /#app\s*\{[^}]*min-height:\s*100dvh/s.test(html) &&
+   /\.body\s*\{[^}]*flex:\s*1 0 auto/s.test(html) &&
+   /\.sitefoot\s*\{[^}]*flex:\s*none/s.test(html));
+// ...without an id selector, which would outrank the results view's own scroll container.
+ok('and does it without an id selector that would beat .body-results',
+   !/#app\s*>\s*\.body/.test(html));
+ok('sign in is one screen, scrolling inside the body if the window is short',
+   /\.app-signin\s*\{[^}]*height:\s*100dvh/s.test(html) &&
+   /\.app-signin \.body\s*\{[^}]*overflow-y:\s*auto/s.test(html) &&
+   /max-height:\s*620px[\s\S]{0,400}\.app-signin\s*\{[^}]*height:\s*auto/.test(html));
 
 // ---- overview --------------------------------------------------------------------------
 byText('.hero-actions button', 'Fill it in').click();
@@ -272,9 +285,9 @@ byText('.gate-marks .mark-btn', 'Protected B').click();
      dlg.querySelector('.pledge-head h2')?.textContent);
   // The first version of this line read "EARB evidence - m - [question]", which meant
   // nothing to anybody. It names what it is, which initiative, and which question.
-  ok('it shows a subject line somebody could read',
+  ok('it shows a subject line somebody could read, with the initiative labelled',
      dlg.querySelector('.pledge-subject').textContent
-       .startsWith('EARB self-assessment evidence for '),
+       .startsWith('EARB self-assessment evidence: initiative "'),
      dlg.querySelector('.pledge-subject')?.textContent);
   ok('and says the real one is written for them per question',
      dlg.textContent.includes('That is an example'));
@@ -721,6 +734,11 @@ ok('n/a counts as dealt with, so the denominator stays whole',
 const hosting = gotoQuestion('hosting environment');
 [...hosting.querySelectorAll('button')].find((b) => b.textContent === 'Add evidence').click();
 ok('an evidence row appears', hosting.querySelectorAll('.ev-item').length === 1);
+// Add evidence used to block saving the instant it was clicked, because the row it creates
+// carries no marking. An empty row is nothing to mark.
+ok('a brand-new empty row blocks nothing',
+   byText('.footer-actions button', 'Save to a file').disabled === false,
+   byText('.footer-actions button', 'Save to a file').getAttribute('title'));
 // Evidence is a link now, and an artefact that cannot be linked goes by email with a pattern.
 ok('the evidence block asks for a link', view().includes('Link to the evidence'));
 ok('and offers the email route', !!byText('.ev-alt button', 'cannot be linked'));
@@ -729,7 +747,7 @@ ok('and offers the email route', !!byText('.ev-alt button', 'cannot be linked'))
   const loc = qa('.question').find((n) => n.textContent.includes('hosting environment'))
     .querySelector('.ev-row2 input[type=text]');
   ok('which fills in a findable subject line',
-     loc.value.startsWith('Emailed to the assessor. Subject: EARB self-assessment evidence for')
+     loc.value.startsWith('Emailed to the assessor. Subject: EARB self-assessment evidence: initiative "')
        && loc.value.includes('question T-Q1'),
      loc.value);
   {
@@ -742,6 +760,10 @@ ok('and offers the email route', !!byText('.ev-alt button', 'cannot be linked'))
     ok('and the button confirms it copied', byText('.ev-subject button', 'Copied')
        || row.textContent.includes('Copied'));
   }
+  // A row recorded as emailed does not also offer attaching: the attach control sitting
+  // there invited a second, unmarked copy of the same artefact.
+  ok('an emailed row does not offer attaching', !q('.ev-alt input[type=file]'));
+
   loc.value = '';
   fire(loc, 'input');
 }
@@ -749,12 +771,31 @@ const just = hosting.querySelector('textarea');
 just.value = 'Diagram is current as of March and owned by the platform team.';
 fire(just, 'input');
 
-ok('a new evidence row starts unmarked and blocks saving',
-   byText('.footer-actions button', 'Save to a file').disabled === true && view().includes('mark'));
+// An empty row holds nothing and blocks nothing. It blocks once it carries something and has
+// no marking, which is the state that actually needs a decision.
+
 
 const evTitle = hosting.querySelector('.ev-row input[type=text]');
 evTitle.value = 'Current-state architecture diagram, March 2026';
 fire(evTitle, 'input');
+
+ok('a row with something in it and no marking blocks saving',
+   byText('.footer-actions button', 'Save to a file').disabled === true && view().includes('mark'));
+
+// Marking it unclassified brings the attach control back, and a classified marking takes it
+// away again: the artefact itself must never come into the tool.
+{
+  const live = qa('.question').find((n) => n.textContent.includes('hosting environment'));
+  const sel = [...live.querySelectorAll('.ev-row select')][1];
+  sel.value = 'Secret';
+  fire(sel, 'change');
+  const row = qa('.question').find((n) => n.textContent.includes('hosting environment'));
+  ok('a classified evidence row cannot be attached to', !row.querySelector('.ev-alt input[type=file]'));
+  ok('and says what to do instead', row.textContent.includes('cannot come into this tool'));
+  const sel2 = [...row.querySelectorAll('.ev-row select')][1];
+  sel2.value = 'Unclassified';
+  fire(sel2, 'change');
+}
 
 // Attach a real file, the way Dan asked - so an assessor does not have to email anybody.
 const evFileInput = qa('.ev-alt input[type=file]')[0];
@@ -940,7 +981,13 @@ ok('the real route is shown but not wired',
      q('.side-badge').textContent.includes('Allison') && q('.side-badge').textContent.includes('unverified'),
      q('.side-badge')?.textContent);
 }
-ok('reviewer dropzone rendered', view().includes('Load submissions'));
+// The screen says why there is nothing from the shared store, and leaves a way to work.
+ok('the empty pool explains itself', view().includes('No shared pool yet'));
+ok('and offers the file route as the alternative',
+   view().includes('Load submissions from files instead'));
+ok('with a picture that belongs to the page rather than a request',
+   !!q('.pool-art svg') && q('.pool-art svg').innerHTML.includes('currentColor'));
+ok('and an empty screen centres its one card', !!q('main.body-empty'));
 {
   // ...and the assessor gets a library of them.
   q('.icon-btn[aria-label="Settings"]').click();

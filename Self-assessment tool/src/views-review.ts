@@ -6,6 +6,8 @@ import { csvHeader, csvRow, toCsv } from './csv';
 import { download, readJsonFiles, slug } from './storage';
 import { humanSize, openAttachment } from './attach';
 import { rubricFor } from './library';
+import { SAD_CAT } from './cat';
+import { isHosted } from './store';
 import BUILTIN from '../rubric/rubric.v1-dan.json';
 
 /**
@@ -29,6 +31,36 @@ let loaded: Loaded[] = [];
 /** What the dashboard can see of this session: the files the assessor opened. */
 export function openedThisSession(): Assessment[] { return loaded.map((l) => l.a); }
 
+/**
+ * Why there is nothing from the shared store. Three different situations, and an assessor
+ * should be able to tell them apart: it does not exist yet, this machine cannot reach it, or
+ * it is reachable and empty.
+ */
+function poolState(): { title: string; detail: string; badge: string; tone: string } {
+  if (!isHosted()) {
+    return {
+      title: 'No shared pool yet',
+      detail: 'Submissions are meant to arrive in one place that you and the departments both see. That store is not built, so there is nothing to fetch.',
+      badge: 'Not hosted yet',
+      tone: 'badge-warn',
+    };
+  }
+  if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+    return {
+      title: 'Cannot reach the pool',
+      detail: 'This machine is offline. Your submissions are still there and will appear when the connection is back.',
+      badge: 'Offline',
+      tone: 'badge-warn',
+    };
+  }
+  return {
+    title: 'Nothing assigned to you yet',
+    detail: 'The pool is reachable and holds nothing for you. A submission appears here as soon as a department sends one.',
+    badge: 'Up to date',
+    tone: '',
+  };
+}
+
 /** The name typed on the mockup sign-in. Never verified, and labelled so everywhere. */
 let auditor = '';
 /** What the last Agree-with-all did, so the button reports itself instead of going quiet. */
@@ -37,11 +69,29 @@ export function setAuditor(name: string): void { auditor = name; }
 
 export function renderReview(root: HTMLElement, rubric: Rubric): void {
   clear(root);
+  // With nothing loaded this screen is one card, and it centres. A toggle, because clear()
+  // empties children and leaves classes, and loading a file re-enters here.
+  root.classList.toggle('body-empty', loaded.length === 0);
+
+  /**
+   * Submissions are meant to arrive from the shared store. There is no store yet, and even
+   * once there is, an assessor can be offline or locked out of it. Either way this screen has
+   * to say so and leave a way to work: the files people sent, read here in the browser.
+   */
+  const pool = poolState();
 
   const drop = el('section', { class: 'card dropzone' }, [
-    el('h2', {}, ['Load submissions']),
-    el('p', { class: 'muted' }, [
-      'Drop the .json files people sent you, or pick them. They are read here in your browser - nothing is uploaded.',
+    el('div', { class: 'pool-out' }, [
+      el('div', { class: 'pool-art', html: SAD_CAT }),
+      el('div', {}, [
+        el('h2', {}, [pool.title]),
+        el('p', { class: 'muted' }, [pool.detail]),
+        el('span', { class: `badge ${pool.tone}` }, [pool.badge]),
+      ]),
+    ]),
+    el('h3', { class: 'pool-alt-h' }, ['Load submissions from files instead']),
+    el('p', { class: 'muted small' }, [
+      'Drop the .json files people sent you, or pick them. They are read here in your browser, and nothing is uploaded.',
     ]),
     el('input', {
       type: 'file', accept: '.json', multiple: true,

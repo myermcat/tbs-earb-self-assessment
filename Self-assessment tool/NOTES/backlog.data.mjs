@@ -18,6 +18,8 @@ export const quick = {
   title: 'Quick actions',
   hint: 'No discussion needed.',
   items: [
+    { t: 'What each assessor sees of the pool', status: 'wait', owes: 'Dan or Chris',
+      why: 'Everything, for now. Chris says departments know who their assessor is, so they could pick one at submission, and an assessor could share a file or hand it on. Until that is decided, every assessor sees the whole pool, and a My assessments tab is the filter to add when the rule exists.' },
     { t: 'The assessor side keeps nothing between reloads', status: 'next',
       why: 'Every audited score, verdict, note and history entry lives in memory only until the file is saved. A reload, a crash or a stray click on Clear takes the afternoon with it. The submitter side has autosaved to the browser since the start.' },
     { t: 'Decide where the tool is published', status: 'next',
@@ -31,7 +33,15 @@ export const quick = {
     { t: 'The save badge says there is no online copy', status: 'done',
       why: 'She asked where to save online. There is nowhere, and the badge now says so on hover instead of leaving "draft saved" to be read as the whole story.' },
     { t: 'A library of question sets', status: 'done',
-      why: 'Sets accumulate now. Settings lists every one this browser holds, marks the one in use, and takes another. Adding one keeps the old ones and becomes current. Deleting is two steps, offers the file back first, and is refused on the built-in set and on the set in use.' },
+      why: 'Sets accumulate. Settings lists every one this browser holds and marks the one in use. Adding one changes nothing on its own, and each row has a menu: preview the questions, make it active, delete it, and who added it. Deleting is two steps and refused only on the set in use and on the last remaining set.' },
+    { t: 'Each submission is scored against its own question set', status: 'done',
+      why: 'Twenty submissions answered against set 1 are untouched when set 2 becomes active, but the assessor page used to recompute them with whichever set was active and print a one-line notice. It now uses the set they were answered against when this browser holds it, names that set on every row, and says what it did. CSV export writes one file per set, because the columns are question ids.' },
+    { t: 'An assessor screen with nothing in it says why', status: 'done',
+      why: 'Three different situations, and an assessor can tell them apart: no shared store exists yet, this machine cannot reach it, or it is reachable and empty. With a cat.' },
+    { t: 'Sign in is one screen, and short screens keep their footer', status: 'done',
+      why: 'The footer floated in the middle of any short page, the sign-in scrolled like a document, and the load-submissions card hung off the top edge.' },
+    { t: 'The empty evidence row stops blocking the save', status: 'done',
+      why: 'Add evidence created a row with no marking, and the save gate demanded one immediately. An empty row is nothing to mark. A classified row no longer offers attaching at all, and a row already recorded as emailed does not offer it either.' },
     { t: 'Question ids lose a letter', status: 'done',
       why: 'BU-Q1 is now B-Q1. The four domain initials are distinct, so the second letter carried nothing. Cheap today because no real submission exists; expensive once ids are column names in somebody exported spreadsheet.' },
     { t: 'Nothing is destroyed in one step', status: 'done',
@@ -318,6 +328,8 @@ export const resolved = [
 ];
 
 export const questions = [
+  { q: 'What an assessor sees of the pool', who: 'Dan or Chris',
+    blocks: 'Filtering, and any My assessments view', meanwhile: 'Every assessor sees everything' },
   { q: 'Where an assessor\u2019s work is kept between reloads', who: 'us',
     blocks: 'Nothing yet', meanwhile: 'It is in memory only. Saving the audited file is the only copy' },
   { q: 'Can the 176 draft questions be public', who: 'Dan',

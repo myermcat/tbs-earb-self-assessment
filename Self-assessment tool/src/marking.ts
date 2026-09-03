@@ -50,6 +50,10 @@ export function markingProblems(a: Assessment): MarkingProblem[] {
   for (const [qid, ans] of Object.entries(a.answers)) {
     for (const e of ans.evidence ?? []) {
       const named = e.title || e.attachment?.name || 'an evidence item';
+      // An empty row is the one Add evidence just created. Demanding a marking for it blocks
+      // saving the moment somebody clicks Add, before they have typed anything.
+      const empty = !e.title.trim() && !e.location.trim() && !(e.note ?? '').trim() && !e.attachment;
+      if (empty) continue;
       if (!e.classification) {
         out.push({ kind: 'unmarked-evidence', questionId: qid, message: `${qid}: mark "${named}".` });
       } else if (fileMark && classRank(e.classification) > classRank(fileMark)) {
