@@ -9,6 +9,10 @@
  * and then two more thin triangles were drawn floating above and outside those peaks. Now the
  * head is a plain circle and the ears are wide triangles whose base corners sit inside it, so
  * they read as ears joined to a head.
+ *
+ * The second attempt put the mouth on the body's top edge, where the two curves crossed and
+ * read as one line. The face sits higher and the body starts lower, so there are eleven units
+ * of clear space between them.
  */
 export const SAD_CAT = `
 <svg viewBox="0 0 240 180" role="img" aria-label="A cat sitting with its ears down" class="sad-cat">
@@ -23,15 +27,15 @@ export const SAD_CAT = `
   <ellipse cx="104" cy="160" rx="9" ry="5" fill="currentColor" opacity=".30"/>
   <ellipse cx="136" cy="160" rx="9" ry="5" fill="currentColor" opacity=".30"/>
 
-  <path d="M97 55L98 29l14 17z" fill="currentColor" opacity=".30"/>
-  <path d="M143 55L142 29l-14 17z" fill="currentColor" opacity=".30"/>
-  <circle cx="120" cy="74" r="30" fill="currentColor" opacity=".30"/>
-  <path d="M103 50l9-5-10-9z" fill="currentColor" opacity=".16"/>
-  <path d="M137 50l-9-5 10-9z" fill="currentColor" opacity=".16"/>
+  <path d="M97 51L98 25l14 17z" fill="currentColor" opacity=".30"/>
+  <path d="M143 51L142 25l-14 17z" fill="currentColor" opacity=".30"/>
+  <circle cx="120" cy="70" r="30" fill="currentColor" opacity=".30"/>
+  <path d="M103 46l9-5-10-9z" fill="currentColor" opacity=".16"/>
+  <path d="M137 46l-9-5 10-9z" fill="currentColor" opacity=".16"/>
 
-  <circle cx="110" cy="74" r="3.6" fill="currentColor" opacity=".62"/>
-  <circle cx="130" cy="74" r="3.6" fill="currentColor" opacity=".62"/>
-  <path d="M117 85h6l-3 3z" fill="currentColor" opacity=".5"/>
-  <path d="M112 95q8-6 16 0" fill="none" stroke="currentColor" stroke-opacity=".5"
+  <circle cx="110" cy="68" r="3.6" fill="currentColor" opacity=".62"/>
+  <circle cx="130" cy="68" r="3.6" fill="currentColor" opacity=".62"/>
+  <path d="M117 78h6l-3 3z" fill="currentColor" opacity=".5"/>
+  <path d="M112 88q8-6 16 0" fill="none" stroke="currentColor" stroke-opacity=".5"
         stroke-width="2.4" stroke-linecap="round"/>
 </svg>`;

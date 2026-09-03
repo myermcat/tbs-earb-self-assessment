@@ -683,7 +683,8 @@ details[open] > .section-summary::before { transform: rotate(90deg); }
 .question.answered::before { background: var(--edge, var(--accent)); }
 .question.unanswered::before { background: repeating-linear-gradient(
   180deg, var(--line-2) 0 4px, transparent 4px 8px); }
-.question.na .q-ans, .question.na .evidence { opacity: .5; }
+.question.na .q-ans { opacity: .55; }
+.question.na .q-extras-summary { color: var(--ink-2); }
 /* The scale explains a score, and a question that does not apply has none. */
 .question.na .ladder-box { display: none; }
 .question.na::before { background: var(--line-2); }
@@ -949,6 +950,11 @@ code.mark-subject { display: block; margin: .25rem 0; }
 
 .danger-text { color: var(--bad); }
 .danger-text[disabled] { color: var(--ink-3); }
+
+.ref-line { margin: .1rem 0 .6rem; color: var(--ink-2); }
+.ref-line b { letter-spacing: .08em; }
+.ref-chip { display: inline-block; border: 1px solid var(--line-2); border-radius: 5px;
+  padding: 0 .25rem; letter-spacing: .06em; }
 
 .ev-subject { margin: .35rem 0 .1rem; }
 .ev-subject-row { display: flex; align-items: center; gap: .4rem; flex-wrap: wrap; }

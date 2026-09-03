@@ -180,23 +180,9 @@ function paint(root: HTMLElement, rubric: Rubric, records: StoredRecord[]): void
     ]),
   ]));
 
-  // What is being built and what is waiting on somebody, for whoever runs the programme.
-  root.appendChild(el('section', { class: 'card' }, [
-    el('h2', {}, ['The build itself']),
-    el('p', { class: 'muted small' }, [
-      'What is done, what is next, and what is waiting on a person. It is the same page the ',
-      'team works from.',
-    ]),
-    el('div', { class: 'actions' }, [
-      el('a', {
-        class: 'ghost',
-        href: 'https://myermcat.github.io/tbs-earb-self-assessment-preview/backlog.html',
-        target: '_blank', rel: 'noopener',
-      }, ['Open the backlog']),
-    ]),
-    el('p', { class: 'tiny dim' }, [
-      'It opens in a new tab, on the same site this page is served from.',
-    ]),
+  // The backlog lives in Settings, under This build. A pointer is enough here.
+  root.appendChild(el('p', { class: 'small muted' }, [
+    'What is being built, and what is waiting on somebody, is in Settings under This build.',
   ]));
 }
 

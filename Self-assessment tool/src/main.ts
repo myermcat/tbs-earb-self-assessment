@@ -10,8 +10,9 @@ import { addToLibrary, canRemove, currentId, currentRubric, libraryList, removeF
   setCurrentId } from './library';
 import { closeMenusOnOutsideClick, closeOnOutsideClick, confirmStep, openDialog } from './confirm';
 import { saveBadge } from './save-badge';
-import { answeredCount, APP_VERSION, autosave, blankAssessment, clearDraft, download, hasWork,
-  lastSaveInfo, loadDraft, readJsonFiles, saveAssessmentFile, slug } from './storage';
+import { endpointHost, isHosted } from './store';
+import { answeredCount, APP_VERSION, autosave, blankAssessment, clearDraft, download, ensureRef,
+  hasWork, lastSaveInfo, loadDraft, readJsonFiles, saveAssessmentFile, slug } from './storage';
 import { bannerFor, evidenceNote } from './marking';
 import BUILTIN from '../rubric/rubric.v1-dan.json';
 
@@ -52,7 +53,7 @@ let assessment: Assessment = loadDraft() ?? blankAssessment(rubric);
 let side: Side = bootSide();
 let mode: Mode = side === 'assess' ? 'review' : 'home';
 
-type SettingsPane = 'questions' | 'answers' | 'danger';
+type SettingsPane = 'questions' | 'answers' | 'build' | 'danger';
 let settingsPane: SettingsPane = 'questions';
 
 /**
@@ -331,7 +332,7 @@ function renderHome(root: HTMLElement) {
                 alert(`${item.file} is not a self-assessment file.`);
                 return;
               }
-              assessment = a;
+              assessment = ensureRef(a);
               autosave(assessment);
               go('submit');
             },
@@ -511,12 +512,14 @@ function renderSettings(root: HTMLElement) {
     nav.appendChild(el('span', { class: 'set-navgroup' }, ['Settings']));
     nav.appendChild(navRow('Question set', 'questions'));
     nav.appendChild(navRow('Your answers', 'answers'));
+    nav.appendChild(navRow('This build', 'build'));
     nav.appendChild(el('span', { class: 'set-navsep', 'aria-hidden': true }));
     nav.appendChild(navRow('Start again', 'danger', true));
 
     clear(pane);
     if (settingsPane === 'questions') paneQuestions(pane);
     else if (settingsPane === 'answers') paneAnswers(pane);
+    else if (settingsPane === 'build') paneBuild(pane);
     else paneDanger(pane);
 
     const h = pane.querySelector('h1') as HTMLElement | null;
@@ -759,6 +762,35 @@ function paneAnswers(pane: HTMLElement) {
     'Nothing will be recalled once submitted',
     'Planned, not built. A submitted assessment will not be deleted. It will be withdrawn and left out of the statistics, which is a different thing: a copy may already exist in a backup or in somebody else\'s download, so nothing here will claim to erase it.',
     null,
+  ));
+}
+
+/**
+ * What this copy of the tool is, and where the work on it is written down. Somebody looking
+ * for the backlog looks in Settings, which is where this puts it.
+ */
+function paneBuild(pane: HTMLElement) {
+  pane.appendChild(el('h1', { tabindex: -1 }, ['This build']));
+  pane.appendChild(el('p', { class: 'set-lead' }, [
+    'Which version of the tool and the questions you are looking at, and what is being worked on.',
+  ]));
+
+  pane.appendChild(el('dl', { class: 'kv' }, [
+    el('dt', {}, ['Tool']), el('dd', { class: 'mono' }, [`v${APP_VERSION}`]),
+    el('dt', {}, ['Question set']), el('dd', { class: 'mono' }, [`${rubric.id} ${rubric.version}`]),
+    el('dt', {}, ['Store']), el('dd', {}, [
+      isHosted() ? `Writing to ${endpointHost()}` : 'None. This build cannot send anything.',
+    ]),
+  ]));
+
+  pane.appendChild(setRow(
+    'The backlog',
+    'What is done, what is next, and what is waiting on a person. It is the same page the team works from, and it opens in a new tab.',
+    el('a', {
+      class: 'ghost',
+      href: 'https://myermcat.github.io/tbs-earb-self-assessment-preview/backlog.html',
+      target: '_blank', rel: 'noopener',
+    }, ['Open the backlog']),
   ));
 }
 

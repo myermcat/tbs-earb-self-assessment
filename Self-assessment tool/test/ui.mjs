@@ -102,13 +102,25 @@ ok('the question count is stated up front', view().includes(String(TOTAL)));
 q('.icon-btn[aria-label="Settings"]').click();
 ok('settings is a rail and a pane, not a stack of cards',
    !!q('.set-layout') && !!q('.set-nav') && !!q('.set-pane'));
-ok('three panes, named', qa('.set-navrow').map((b) => b.textContent).join('|') ===
-   'Question set|Your answers|Start again',
+ok('four panes, named', qa('.set-navrow').map((b) => b.textContent).join('|') ===
+   'Question set|Your answers|This build|Start again',
    qa('.set-navrow').map((b) => b.textContent).join('|'));
 ok('the gear opens the harmless one', q('.set-navrow.on').textContent === 'Question set',
    q('.set-navrow.on').textContent);
 ok('the destructive pane is marked as dangerous in the rail itself',
-   qa('.set-navrow')[2].classList.contains('danger'));
+   qa('.set-navrow')[3].classList.contains('danger'));
+{
+  // The backlog is in Settings, which is where somebody goes looking for it.
+  pane('This build');
+  ok('this build says which versions are on screen',
+     view().includes('Question set') && view().includes('v0.1.0'));
+  ok('and says whether there is a store to write to',
+     view().includes('cannot send anything') || view().includes('Writing to'));
+  ok('and the backlog opens from here',
+     byText('.set-row a', 'Open the backlog')?.getAttribute('href')?.endsWith('/backlog.html'),
+     byText('.set-row a', 'Open the backlog')?.getAttribute('href'));
+  pane('Question set');
+}
 
 ok('settings shows the rubric version', view().includes('1.0-dan'));
 ok('settings surfaces the import warning about the Business weight gap', view().includes('80%'));
@@ -241,6 +253,12 @@ ok('the save indicator is silent until something is written',
      footBar().querySelector('.progress-shell i').style.width);
 }
 
+// The code is on step one, beside the name, because the name is what people assume identifies
+// an assessment. Email subjects use the code, so a rename costs nothing.
+ok('the assessment has a reference that survives a rename',
+   /Reference\s*[A-Z2-9]{4}/.test(view().replace(/\s+/g, ' ')), view().slice(0, 60));
+ok('and says renaming does not change it', view().includes('if you rename the initiative'));
+
 // Step one: the four plain facts.
 {
   const [name, dept, contact] = qa('.ov-block .grid-2 input');
@@ -304,9 +322,10 @@ byText('.gate-marks .mark-btn', 'Protected B').click();
      dlg.querySelector('.pledge-head h2')?.textContent);
   // The first version of this line read "EARB evidence - m - [question]", which meant
   // nothing to anybody. It names what it is, which initiative, and which question.
-  ok('it shows a subject line somebody could read, with the initiative labelled',
-     dlg.querySelector('.pledge-subject').textContent
-       .startsWith('EARB self-assessment evidence: initiative "'),
+  // The subject carries the question and a code that never changes. It used to carry the
+  // initiative name, which meant renaming the initiative invalidated every sent email.
+  ok('the subject line names the question and a permanent code',
+     /^EARB evidence [A-Z2-9]{4}, question B-Q14$/.test(dlg.querySelector('.pledge-subject').textContent),
      dlg.querySelector('.pledge-subject')?.textContent);
   ok('and says the real one is written for them per question',
      dlg.textContent.includes('That is an example'));
@@ -697,6 +716,32 @@ ok('and one click opens the detail', q('.save-state').tagName === 'BUTTON');
   ok('the question is marked not applicable, which hides the scale',
      qa('.question')[0].classList.contains('na')
      && /\.question\.na \.ladder-box \{[^}]*display:\s*none/.test(html));
+  {
+    // Reasoning and evidence are kept and folded away, with a line saying so. Left open and
+    // dimmed, the whole question read as one grey slab.
+    const first = qa('.question')[0];
+    const box = first.querySelector('.q-extras-box');
+    box.open = true;
+    const ta = box.querySelector('textarea');
+    ta.value = 'Reasoning that must survive the box being ticked.';
+    fire(ta, 'input');
+    const na = first.querySelector('.na input');
+    na.checked = true;
+    fire(na, 'change');
+    const after = qa('.question')[0];
+    ok('not applicable folds the reasoning away rather than deleting it',
+       after.querySelector('.q-extras-box').open === false
+       && after.querySelector('textarea').value.includes('must survive'));
+    ok('and says it is kept and not counted',
+       after.querySelector('.q-extras-count').textContent.includes('kept and not counted'),
+       after.querySelector('.q-extras-count')?.textContent);
+    na.checked = false;
+    fire(na, 'change');
+    const back = qa('.question')[0];
+    back.querySelector('.na input').checked = false;
+    ta.value = '';
+    fire(ta, 'input');
+  }
 
   naInput.checked = false;
   fire(naInput, 'change');
@@ -776,8 +821,7 @@ ok('and offers the email route', !!byText('.ev-alt button', 'cannot be linked'))
   const loc = qa('.question').find((n) => n.textContent.includes('hosting environment'))
     .querySelector('.ev-row2 input[type=text]');
   ok('which fills in a findable subject line',
-     loc.value.startsWith('Emailed to the assessor. Subject: EARB self-assessment evidence: initiative "')
-       && loc.value.includes('question T-Q1'),
+     /^Emailed to the assessor\. Subject: EARB evidence [A-Z2-9]{4}, question T-Q1$/.test(loc.value),
      loc.value);
   {
     // And the line is there to copy, so nobody retypes it and loses the question number.
