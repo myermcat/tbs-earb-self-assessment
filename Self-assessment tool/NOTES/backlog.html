@@ -95,7 +95,7 @@ background:var(--surface);border:1px solid var(--line);border-radius:10px;list-s
 <div class="head"><div class="head-in"><h1>EARB self-assessment: backlog</h1>
 <p class="sub">Updated 2026-09-01.</p></div></div>
 <nav class="topnav"><div class="topnav-in">
-<a class="nav-kpi" href="#quick"><b>26</b><span>next</span></a>
+<a class="nav-kpi" href="#quick"><b>28</b><span>next</span></a>
 <a class="nav-kpi" href="#waiting"><b>8</b><span>waiting on somebody</span></a>
 <a class="nav-kpi" href="#done"><b>74</b><span>done</span></a>
 <a class="nav-kpi" href="#questions"><b>12</b><span>open questions</span></a>
@@ -119,8 +119,8 @@ background:var(--surface);border:1px solid var(--line);border-radius:10px;list-s
 <span class="w">Everything, for now. Chris says departments know who their assessor is, so they could pick one at submission, and an assessor could share a file or hand it on. Until that is decided, every assessor sees the whole pool, and a My assessments tab is the filter to add when the rule exists.</span>
 </div>
 <div class="leaf solo">
-<span class="t">Six steps in a browser, and the store is live</span><span class="st st-next">Next</span>
-<span class="w">This is the next step and it is yours: console.firebase.google.com, add a project, create Firestore in northamerica-northeast1, turn on Google and Microsoft sign-in, paste deploy/firestore.rules, register a web app, and send me the config block. I wire the client and publish. Everything on our side is written.</span>
+<span class="t">One click left on the store: the Google consent screen</span><span class="st st-next">Next</span>
+<span class="w">Everything else is done and live. Open the assessor view, press Continue with Google, choose your account, and press Continue on the consent screen. That grant is yours to give, not mine, which is why I stopped there. It asks for your email address and nothing else, and it can be taken back at myaccount.google.com under Data and privacy.</span>
 </div>
 <div class="leaf solo">
 <span class="t">Sign in, and a store with rules</span><span class="st st-next">Next</span>
@@ -166,8 +166,8 @@ background:var(--surface);border:1px solid var(--line);border-radius:10px;list-s
 </div>
 </div></details>
 <details class="grp" open><summary class="row">
-<span class="t">Firebase project, once it exists</span><span class="st st-next">Next</span>
-<span class="w">The prototype store: a Firestore database in Montreal, sign-in, and the rules in deploy/firestore.rules. Free plan, no card.</span>
+<span class="t">Firebase project tbs-earb-self-assessment</span><span class="st st-next">Next</span>
+<span class="w">Live since 1 September. Firestore in Montreal, the rules published, Google sign-in on, you as the first admin. Free plan, no card. Three things a reviewer asks for are still unwritten.</span>
 </summary><div class="subs">
 <div class="leaf">
 <span class="t">Name an owner of record</span><span class="st st-next">Next</span>
@@ -180,6 +180,14 @@ background:var(--surface);border:1px solid var(--line);border-radius:10px;list-s
 <div class="leaf">
 <span class="t">Write down how it hands over</span><span class="st st-next">Next</span>
 <span class="w">At 40 KB times a few hundred, the whole store moves to a team-owned account in an afternoon. Saying so in advance turns the objection into an answered question.</span>
+</div>
+<div class="leaf">
+<span class="t">Restrict the browser key to your site and to three APIs</span><span class="st st-next">Next</span>
+<span class="w">GitHub flagged the Firebase web key in the published page as a Google API key. It is a public identifier by design and it authorises nothing on its own, so the page is not a leak. What is worth changing is that the key currently answers from anywhere: a check from the command line reached the project with no site attached at all. In the Google Cloud console, under Credentials, the browser key takes a website restriction of myermcat.github.io and localhost, and an API restriction of Identity Toolkit, Token Service and Cloud Firestore. Nothing the tool does falls outside those three.</span>
+</div>
+<div class="leaf">
+<span class="t">Close the GitHub alert as will not fix</span><span class="st st-next">Next</span>
+<span class="w">The alert is correct about what it found. Revoking the key would take the store down and change nothing about who can read what, because reading is gated by sign-in and by the published rules. Will not fix, with the restriction above as the note.</span>
 </div>
 </div></details>
 </div>
@@ -730,4 +738,4 @@ background:var(--surface);border:1px solid var(--line);border-radius:10px;list-s
 <tr><td>Who performs the canada-ca transfer</td><td>Nick</td><td>The repo move</td><td>Asked. An issue on canada-ca/welcome is the route he named</td></tr>
 <tr><td>What the production intake should be</td><td>TBS</td><td>Production only</td><td>The prototype answer is an Azure Function plus one CSP line</td></tr>
 </tbody></table></div>
-<footer>53 open, 74 done. Generated from NOTES/backlog.data.mjs by tools/build-backlog.mjs.</footer></div>
+<footer>55 open, 74 done. Generated from NOTES/backlog.data.mjs by tools/build-backlog.mjs.</footer></div>

@@ -6,6 +6,7 @@ import { autosave, clearSaveWatchers, saveAssessmentFile } from './storage';
 import { humanSize, openAttachment, totalAttachedBytes, TOTAL_WARN } from './attach';
 import { demandPledge } from './pledge';
 import { confirmStep } from './confirm';
+import { t } from './i18n';
 import { canSave, markingProblems } from './marking';
 
 const KINDS: EvidenceRef['kind'][] = ['document', 'diagram', 'dashboard', 'system', 'report', 'other'];
@@ -528,7 +529,7 @@ function pager(list: Stop[], here: Stop, navigate: (t: string) => void, onDone: 
           `Next: ${next.label}`,
           el('span', { class: 'arrow', 'aria-hidden': true }, ['\u2192']),
         ])
-      : el('button', { class: 'primary', onclick: onDone }, ['See my results']),
+      : el('button', { class: 'primary', onclick: onDone }, [t('See my results', 'Voir mes résultats')]),
   ]);
 }
 
@@ -543,7 +544,7 @@ function footerBar(
   const gate = el('div', {});
   const pill = el('span', { class: 'pill', 'aria-hidden': true });
   const readout = el('span', { class: 'muted small' });
-  const save = el('button', { class: 'ghost', onclick: () => saveFile(a) }, ['Save to a file']);
+  const save = el('button', { class: 'ghost', onclick: () => saveFile(a) }, [t('Save to a file', 'Enregistrer dans un fichier')]);
 
   /**
    * Two bars. One answer in 176 moves the whole-assessment bar by half a percent, which is
@@ -639,7 +640,7 @@ function footerBar(
           return jump;
         })(),
         save,
-        el('button', { class: 'primary', onclick: onDone }, ['See my results']),
+        el('button', { class: 'primary', onclick: onDone }, [t('See my results', 'Voir mes résultats')]),
       ]),
     ]),
   ]);
@@ -761,15 +762,15 @@ function aboutSection(
   const steps: OverviewStep[] = [
     {
       key: 'details',
-      title: 'About the initiative',
-      help: 'What an assessor needs before a score means anything. None of it is scored.',
+      title: t('About the initiative', 'Au sujet de l\u2019initiative'),
+      help: t('What an assessor needs before a score means anything. None of it is scored.', 'Ce qu\u2019un évaluateur doit savoir avant qu\u2019une note veuille dire quelque chose. Rien de tout cela n\u2019est noté.'),
       filled: () => !!(a.initiative.name.trim() && a.initiative.department.trim()
         && a.initiative.contact.trim() && a.initiative.summary.trim()),
       build: () => el('div', {}, [
         el('div', { class: 'grid-2' }, [
-          field('Initiative name', text('name', 'The name people would recognise')),
-          field('Department or agency', text('department', 'Transport Canada, for example')),
-          field('Who to contact about this', text('contact', 'Name or team inbox')),
+          field(t('Initiative name', 'Nom de l\u2019initiative'), text('name', t('The name people would recognise', 'Le nom que les gens reconnaîtraient'))),
+          field(t('Department or agency', 'Ministère ou organisme'), text('department', t('Transport Canada, for example', 'Transports Canada, par exemple'))),
+          field(t('Who to contact about this', 'Personne-ressource'), text('contact', t('Name or team inbox', 'Nom ou boîte d\u2019équipe'))),
         ]),
         // The code an assessor matches an email to. It goes here because this is where the
         // name is, and the name is the thing people assume identifies the assessment.
@@ -778,7 +779,7 @@ function aboutSection(
           el('b', { class: 'mono' }, [a.ref ?? '----']),
           el('span', { class: 'dim' }, ['. Quote this in any email about this assessment. It stays the same if you rename the initiative.']),
         ]),
-        field('In two or three sentences, what is it?', el('textarea', {
+        field(t('In two or three sentences, what is it?', 'En deux ou trois phrases, de quoi s\u2019agit-il?'), el('textarea', {
           rows: 3, placeholder: 'What it does, and who it is for.',
           oninput: (e: Event) => { set('summary')(e); settled(); },
           onchange: settled,
@@ -787,15 +788,15 @@ function aboutSection(
     },
     {
       key: 'marking',
-      title: 'How is your evidence marked?',
+      title: t('How is your evidence marked?', 'Quelle est la cote de vos preuves?'),
       help: 'This assessment is an unclassified document, and everything you type into it has to stay unclassified. What can carry a marking is the evidence behind your answers: a cost model, a diagram, a report. Give the highest marking of anything you will point at, so your assessor knows what they need access to. If it is all unclassified, say so.',
       filled: () => !!a.initiative.classification,
       build: () => markingChoices(a, rebuild),
     },
     {
       key: 'stage',
-      title: 'Where is it in the lifecycle?',
-      help: 'This changes what is expected of you. A discovery team has no current solution to document; a live service does.',
+      title: t('Where is it in the lifecycle?', 'Où en est-elle dans le cycle de vie?'),
+      help: t('This changes what is expected of you. A discovery team has no current solution to document; a live service does.', 'Cela change ce qui est attendu de vous. Une équipe en découverte n\u2019a aucune solution actuelle à documenter; un service en production en a une.'),
       filled: () => !!a.initiative.lifecycleStage,
       build: () => stagePicker(rubric, a, rebuild),
     },
@@ -851,7 +852,7 @@ function aboutSection(
 
   const card = el('section', { class: 'card ov-wizard' }, [
     el('div', { class: 'ov-progress' }, [
-      el('span', { class: 'muted tiny' }, [`Step ${overviewStep + 1} of ${steps.length}`]),
+      el('span', { class: 'muted tiny' }, [t(`Step ${overviewStep + 1} of ${steps.length}`, `Étape ${overviewStep + 1} de ${steps.length}`)]),
       el('div', { class: 'ov-dots' }, dots),
     ]),
     block(st, 'h2'),
@@ -870,10 +871,10 @@ function aboutSection(
     })(),
     el('div', { class: 'actions ov-nav' }, [
       overviewStep > 0
-        ? el('button', { class: 'ghost', onclick: () => { overviewStep--; repaintApp(); } }, ['Back'])
+        ? el('button', { class: 'ghost', onclick: () => { overviewStep--; repaintApp(); } }, [t('Back', 'Retour')])
         : el('span', {}),
       el('button', { class: 'primary', onclick: advance }, [
-        overviewStep < steps.length - 1 ? 'Next' : 'Done',
+        overviewStep < steps.length - 1 ? t('Next', 'Suivant') : t('Done', 'Terminé'),
         el('span', { class: 'arrow', 'aria-hidden': true }, ['\u2192']),
       ]),
     ]),
@@ -1081,7 +1082,7 @@ function questionBlock(rubric: Rubric, a: Assessment, q: Question, refresh: () =
   }
   if (q.answerType !== 'yesno') {
     wrap.appendChild(el('details', { class: 'ladder-box' }, [
-      el('summary', {}, ['What the numbers mean']),
+      el('summary', {}, [t('What the numbers mean', 'Ce que les chiffres veulent dire')]),
       ladderList,
     ]));
   }
@@ -1238,7 +1239,7 @@ function questionBlock(rubric: Rubric, a: Assessment, q: Question, refresh: () =
   paintScores();
   answerBox.appendChild(el('div', { class: 'score-line' }, [
     scoreRow,
-    el('label', { class: 'na' }, [naBox, 'Not applicable']),
+    el('label', { class: 'na' }, [naBox, t('Not applicable', 'Sans objet')]),
   ]));
   paintChosen();
   answerBox.appendChild(chosen);
@@ -1316,7 +1317,7 @@ function questionBlock(rubric: Rubric, a: Assessment, q: Question, refresh: () =
      * one. The arrow is left to mean open and closed, and nothing else.
      */
     el('summary', { class: 'q-extras-summary' }, [
-      el('span', {}, ['Reasoning and evidence']),
+      el('span', {}, [t('Reasoning and evidence', 'Justification et preuves')]),
       (() => {
         const badge = el('span', { class: 'q-extras-count' });
         const paintBadge = () => {
@@ -1348,9 +1349,9 @@ function evidenceEditor(a: Assessment, q: Question, list: EvidenceRef[], refresh
   const paint = () => {
     clear(box);
     box.appendChild(el('div', { class: 'ev-head' }, [
-      el('strong', {}, ['Link to the evidence']),
+      el('strong', {}, [t('Link to the evidence', 'Le lien vers la preuve')]),
       el('span', { class: 'muted small' }, [
-        'Point at where it already lives, and make sure your assessor can open it. ',
+        t('Point at where it already lives, and make sure your assessor can open it. ', 'Indiquez où elle se trouve déjà, et assurez-vous que votre évaluateur peut l\u2019ouvrir. '),
         q.evidencePrompt ? q.evidencePrompt : '',
       ]),
     ]));
@@ -1464,7 +1465,7 @@ function evidenceEditor(a: Assessment, q: Question, list: EvidenceRef[], refresh
                 onCommit: drop,
               });
             },
-          }, ['Remove']),
+          }, [t('Remove', 'Retirer')]),
         ]),
         el('div', { class: 'ev-row2' }, [
           el('input', {
@@ -1509,7 +1510,7 @@ function evidenceEditor(a: Assessment, q: Question, list: EvidenceRef[], refresh
                 onCommit: write,
               });
             },
-          }, ['It cannot be linked, I will email it']),
+          }, [t('It cannot be linked, I will email it', 'Impossible de créer un lien, je l\u2019enverrai par courriel')]),
           // Any file already attached, so an assessment saved before this changed still opens.
           attachRow,
           ev.attachment && ev.classification && ev.classification !== 'Unclassified'
@@ -1523,7 +1524,7 @@ function evidenceEditor(a: Assessment, q: Question, list: EvidenceRef[], refresh
         // it by hand is how an assessor ends up unable to find the message.
         emailed
           ? el('div', { class: 'ev-subject' }, [
-              el('span', { class: 'tiny dim' }, ['Subject line for that email']),
+              el('span', { class: 'tiny dim' }, [t('Subject line for that email', 'Objet de ce courriel')]),
               el('div', { class: 'ev-subject-row' }, [
                 // The line as it was recorded. Regenerating it meant renaming the initiative
                 // changed what is shown while the recorded line stayed as it was.
@@ -1537,7 +1538,7 @@ function evidenceEditor(a: Assessment, q: Question, list: EvidenceRef[], refresh
                     btn.textContent = 'Copied';
                     setTimeout(() => { btn.textContent = 'Copy'; }, 1600);
                   },
-                }, ['Copy']),
+                }, [t('Copy', 'Copier')]),
                 // The row is committed to the email route until this is pressed, so there has
                 // to be a way back to a link or a file.
                 el('button', {
@@ -1549,7 +1550,7 @@ function evidenceEditor(a: Assessment, q: Question, list: EvidenceRef[], refresh
                     delete ev.emailSubject;
                     autosave(a); paint(); refresh();
                   },
-                }, ['It did not go by email']),
+                }, [t('It did not go by email', 'Ce n\u2019est pas parti par courriel')]),
               ]),
             ])
           : null,

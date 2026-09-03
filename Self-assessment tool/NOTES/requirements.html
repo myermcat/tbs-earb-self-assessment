@@ -116,12 +116,12 @@ background:var(--surface);border:1px solid var(--line);border-radius:10px;list-s
 .kpi a{color:inherit;text-decoration:none}
 </style>
 <div class="head"><div class="head-in"><h1>GC EA self-assessment: requirements specification</h1>
-<p class="sub">Living document, updated 2026-09-01. 84 requirements, baselined at each release. Following ISO/IEC/IEEE 29148:2018, tailored.</p></div></div>
+<p class="sub">Living document, updated 2026-09-01. 86 requirements, baselined at each release. Following ISO/IEC/IEEE 29148:2018, tailored.</p></div></div>
 <nav class="topnav"><div class="topnav-in">
-<span class="nav-kpi"><b>40</b><span>built</span></span>
-<span class="nav-kpi"><b>25</b><span>agreed, not built</span></span>
-<span class="nav-kpi"><b>5</b><span>proposed</span></span>
-<span class="nav-kpi"><b>14</b><span>open</span></span>
+<span class="nav-kpi"><b>43</b><span>built</span></span>
+<span class="nav-kpi"><b>24</b><span>agreed, not built</span></span>
+<span class="nav-kpi"><b>4</b><span>proposed</span></span>
+<span class="nav-kpi"><b>15</b><span>open</span></span>
 <span class="nav-sep"></span>
 <a class="nav-lay" href="#open">Open decisions</a>
 <a class="nav-lay" href="#purpose">Purpose and scope</a>
@@ -145,12 +145,13 @@ background:var(--surface);border:1px solid var(--line);border-radius:10px;list-s
 <span class="st st-done">Built</span> <span class="st st-next">Agreed</span> <span class="st st-wait">Proposed</span> <span class="st st-later">Open</span>
 <span class="muted">Built is in the tool today. Agreed is decided and not built. Proposed is our reading, waiting on somebody. Open is undecided.</span>
 </div>
-<h2 id="open">Open decisions <span class="muted small">14</span></h2>
+<h2 id="open">Open decisions <span class="muted small">15</span></h2>
 <p class="hint">Every requirement below that nobody has decided, in one place. Each is also in its own section.</p>
 <div class="tw"><table><thead><tr><th>Number</th><th>Decision</th><th>Who owes it</th><th>Section</th></tr></thead><tbody>
 <tr><td class="mono">P4</td><td>Which initiatives have to submit one.</td><td>Dan</td><td>Purpose and scope</td></tr>
 <tr><td class="mono">R7</td><td>What an assessor sees of the pool.</td><td>Dan or Chris</td><td>Roles and access</td></tr>
 <tr><td class="mono">R8</td><td>Whether admin is a role of its own or an assessor with more buttons.</td><td>Dan</td><td>Roles and access</td></tr>
+<tr><td class="mono">S8</td><td>The Firebase web key answers only from the addresses the tool is served from, and only for the three APIs it uses.</td><td>Mariia</td><td>Signing in</td></tr>
 <tr><td class="mono">Q9</td><td>Per-question criticality, separate from section weight.</td><td>Dan</td><td>The instrument</td></tr>
 <tr><td class="mono">Q10</td><td>The dropdown answers for each question.</td><td>Dan</td><td>The instrument</td></tr>
 <tr><td class="mono">Q11</td><td>The Business Architecture section weights add up to 80.</td><td>Dan</td><td>The instrument</td></tr>
@@ -276,15 +277,29 @@ background:var(--surface);border:1px solid var(--line);border-radius:10px;list-s
 </div>
 <div class="req">
 <span class="req-id mono">S3</span>
-<span class="req-t">For the prototype, sign in with a Google account or a Microsoft account, which sends no email and needs no password.</span>
-<span class="st st-next">Agreed</span>
+<span class="req-t">For the prototype, sign in with a Google account, which sends no email and needs no password.</span>
+<span class="st st-done">Built</span>
 <span class="req-note">The first plan was a link sent to a work address. Firebase caps that at five sign-in emails a day for the whole project on the free plan, which is three testers, so it cannot be the prototype route. Neither of these sends an email at all. Microsoft matters because it is how Dan tests from his work account, and it may need TBS to allow the sign-in, which Google does not.</span>
 </div>
 <div class="req">
 <span class="req-id mono">S6</span>
-<span class="req-t">Both Google and Microsoft are offered on the prototype sign-in screen.</span>
+<span class="req-t">Microsoft sign-in, so Dan can use his work account.</span>
 <span class="st st-wait">Proposed</span>
-<span class="req-note">Google works for anybody today. Microsoft lets Dan use his work account, and a departmental tenant can refuse an outside application, so it may need somebody at TBS to approve it. Offering both means one route works while the other is being approved.</span>
+<span class="req-owner">Dan, then TBS owes this</span>
+<span class="req-note">The button is on the screen and the provider is not enabled: Firebase needs an application registered in an Azure directory, which needs somebody with Azure rights at TBS. Google works meanwhile.</span>
+</div>
+<div class="req">
+<span class="req-id mono">S7</span>
+<span class="req-t">Every address the page is served from is registered against the sign-in, in two places.</span>
+<span class="st st-done">Built</span>
+<span class="req-note">Firebase authorised domains, and the OAuth client’s authorised redirect URIs and JavaScript origins in Google Cloud. Missing the second gives redirect_uri_mismatch and nothing else explains it. Publishing the tool at a new address means adding it in both places.</span>
+</div>
+<div class="req">
+<span class="req-id mono">S8</span>
+<span class="req-t">The Firebase web key answers only from the addresses the tool is served from, and only for the three APIs it uses.</span>
+<span class="st st-later">Open</span>
+<span class="req-owner">Mariia owes this</span>
+<span class="req-note">The published page carries the key, which is how Firebase is meant to work: it names the project and authorises nothing by itself. GitHub secret scanning flags it anyway, because the same shape of key can carry billable access on other Google APIs. A command-line call reached the project with no site attached, so the key today carries no restriction. The restriction to write is websites myermcat.github.io and localhost, APIs Identity Toolkit, Token Service and Cloud Firestore. What guards the data is the sign-in and the published rules, so this is about somebody else spending the project’s free quota.</span>
 </div>
 <div class="req">
 <span class="req-id mono">S4</span>
@@ -550,9 +565,9 @@ background:var(--surface);border:1px solid var(--line);border-radius:10px;list-s
 </div>
 <div class="req">
 <span class="req-id mono">H4</span>
-<span class="req-t">For the prototype: a database with sign-in, in a Canadian region, with rules that let somebody read and write their own records and nothing else.</span>
-<span class="st st-wait">Proposed</span>
-<span class="req-note">Cloud Firestore in Montreal is the concrete version, and deploy/firestore.rules is written. A key-value store behind a small program of our own is the alternative, and it has no Canadian region.</span>
+<span class="req-t">The prototype store is Cloud Firestore in Montreal, with sign-in, and rules that let somebody read and write their own records and nothing else.</span>
+<span class="st st-done">Built</span>
+<span class="req-note">Live on 1 September in project tbs-earb-self-assessment, region northamerica-northeast1. The rules from deploy/firestore.rules are published, Google sign-in is on, myermcat.github.io is an authorised domain, and roles/yermolenko.maria@gmail.com carries role admin. Free plan.</span>
 </div>
 <div class="req">
 <span class="req-id mono">H10</span>

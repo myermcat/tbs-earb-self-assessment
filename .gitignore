@@ -4,3 +4,10 @@ test/.smoke.mjs
 
 # Internal source documents stay off GitHub. They live in this folder locally only.
 EARB target state knowledge base/*.pdf
+
+# The Firebase web key. It authorises nothing by itself and the published page carries it, which
+# is how Firebase is meant to work. It stays out of git anyway, because GitHub secret scanning
+# flags the shape and a second copy in a second repository buys nothing. To recreate the file:
+# Firebase console, Project settings, the web app, SDK setup and configuration. Copy apiKey and
+# projectId into deploy/firebase-config.json.
+deploy/firebase-config.json
