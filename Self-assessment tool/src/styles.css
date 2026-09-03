@@ -109,6 +109,10 @@ html { -webkit-text-size-adjust: 100%; }
  * kills `position: sticky` on everything inside it. That is how the header stopped sticking.
  */
 html, body { overflow-x: clip; max-width: 100%; }
+html, body { min-height: 100%; }
+#app { display: flex; flex-direction: column; min-height: 100dvh; }
+#app > .body { flex: 1 0 auto; }
+.sitefoot { flex: none; }
 
 body {
   margin: 0;
@@ -601,6 +605,11 @@ dialog.confirm { border: 0; padding: 0; border-radius: 14px; max-width: 32rem;
   width: calc(100% - 2rem); background: var(--surface); color: var(--ink);
   box-shadow: var(--shadow-lg); }
 dialog.confirm::backdrop { background: rgba(10, 12, 16, .55); }
+/* Deleting without taking a copy is allowed, and it is the strongest-looking button here. */
+dialog.confirm.tier-danger .danger-solid, dialog.confirm.tier-danger .danger {
+  background: var(--bad); border-color: var(--bad); color: var(--bad-ink); font-weight: 700; }
+dialog.confirm.tier-danger .danger-solid:hover, dialog.confirm.tier-danger .danger:hover {
+  background: color-mix(in srgb, var(--bad) 85%, black); border-color: color-mix(in srgb, var(--bad) 85%, black); }
 @media (prefers-color-scheme: dark) { dialog.confirm::backdrop { background: rgba(0, 0, 0, .7); } }
 .cf-head { padding: 1rem 1.15rem .35rem; border-top: 3px solid var(--bad);
   border-radius: 14px 14px 0 0; }
@@ -874,7 +883,39 @@ code.mark-subject { display: block; margin: .25rem 0; }
   padding: .6rem .75rem; }
 .set-list-row.on { border-color: var(--accent-line); background: var(--accent-soft); }
 .set-list-row p { margin: .15rem 0 0; }
+.set-list-main { min-width: 0; }
 .set-list-act { display: flex; gap: .35rem; align-items: center; flex: none; }
+
+/* The three-dot menu. Preview, make active, delete, and who added it. */
+.set-menu { position: relative; }
+.set-menu-btn { list-style: none; cursor: pointer; display: grid; place-items: center;
+  width: 1.8rem; height: 1.8rem; border: 1px solid var(--line); border-radius: 8px;
+  background: var(--surface-2); color: var(--ink-2); font-size: 1rem; line-height: 1; }
+.set-menu-btn::-webkit-details-marker { display: none; }
+.set-menu-btn:hover { border-color: var(--accent-line); color: var(--accent); }
+.set-menu-pop { position: absolute; right: 0; top: 2.1rem; z-index: 5; min-width: 15rem;
+  background: var(--surface); border: 1px solid var(--line-2); border-radius: 10px;
+  box-shadow: var(--shadow-lg); padding: .25rem; display: flex; flex-direction: column; }
+.menu-item { text-align: left; background: none; border: 0; border-radius: 7px;
+  padding: .4rem .55rem; font-size: .85rem; color: var(--ink); cursor: pointer; }
+.menu-item:hover { background: var(--surface-2); border: 0; }
+.menu-item.is-off { color: var(--ink-3); cursor: default; }
+.menu-item.is-off:hover { background: none; }
+.menu-danger { color: var(--bad); font-weight: 600; }
+.menu-danger:hover { background: var(--bad-bg); }
+.menu-note { border-top: 1px solid var(--line); margin-top: .2rem; padding: .35rem .55rem .15rem; }
+
+.set-preview { margin: .5rem 0 .2rem; padding: .5rem .6rem; background: var(--surface-2);
+  border: 1px solid var(--line); border-radius: 8px; }
+.set-preview .kv { margin: 0 0 .4rem; }
+.set-preview-q { margin: 0; padding-left: 1.1rem; }
+.set-preview-q li { margin-bottom: .15rem; }
+.kv.tight dt, .kv.tight dd { padding: .1rem 0; }
+/* A button with an icon beside a label. Without this the two sat on the text baseline and the
+   icon rode high, which read as a mistake rather than a control. */
+.btn-icon { display: inline-flex; align-items: center; gap: .4rem; }
+.btn-icon svg { flex: none; display: block; }
+
 .danger-text { color: var(--bad); }
 .danger-text[disabled] { color: var(--ink-3); }
 

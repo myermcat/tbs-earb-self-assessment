@@ -5,7 +5,8 @@ import { goToFirstGap, renderSubmit, resetOverviewToFirstGap, setRepaint, setSto
 import { renderResults } from './views-results';
 import { openedThisSession, renderReview, setAuditor } from './views-review';
 import { renderDashboard } from './views-dashboard';
-import { addToLibrary, currentId, currentRubric, libraryList, removeFromLibrary, setCurrentId } from './library';
+import { addToLibrary, canRemove, currentId, currentRubric, libraryList, removeFromLibrary,
+  setCurrentId } from './library';
 import { confirmStep } from './confirm';
 import { saveBadge } from './save-badge';
 import { answeredCount, APP_VERSION, autosave, blankAssessment, clearDraft, download, hasWork,
@@ -535,7 +536,7 @@ function paneQuestions(pane: HTMLElement) {
    * most destructive control in the tool and the only one that asked nothing. It now goes
    * through the same confirmation as a discard.
    */
-  const picker = el('label', { class: 'filelabel caution' }, [
+  const picker = el('label', { class: 'filelabel' }, [
     'Add a question set',
     el('input', {
       type: 'file', accept: '.json', hidden: true,
@@ -548,48 +549,22 @@ function paneQuestions(pane: HTMLElement) {
         const v = validate(item.data);
         if (!v.ok) { alert(`That question set will not load:\n\n- ${v.problems.join('\n- ')}`); return; }
 
-        const added = addToLibrary(v.rubric, new Date().toISOString());
+        // Adding is not activating. Nothing that anybody is answering changes here.
+        const added = addToLibrary(v.rubric, new Date().toISOString(), assessorName.trim() || undefined);
         if (!added.ok) { alert(added.problem); return; }
-
-        // A new set becomes the one in use, which is what somebody adding one wants. The set
-        // it replaces stays in the library.
-        const swap = () => {
-          setCurrentId(added.id);
-          rubric = v.rubric;
-          clearDraft();
-          assessment = blankAssessment(rubric);
-          resetOverviewToFirstGap(rubric, assessment);
-          settingsPane = 'questions';
-          go('settings');
-        };
-        if (!hasWork(assessment)) { swap(); return; }
-
-        confirmDestructive({
-          tier: 'caution',
-          title: `Use the new question set and clear ${answeredCount(assessment)} answers?`,
-          body: 'A different question set is a different assessment. The answers you have given cannot be carried across to it. The set is in your library either way.',
-          saveLabel: 'Save a file, then switch',
-          commitLabel: 'Switch anyway',
-          cancelLabel: 'Keep my answers',
-          onCommit: swap,
-        });
+        settingsPane = 'questions';
+        go('settings');
       },
     }),
   ]);
 
-  if (side !== 'assess') {
-    pane.appendChild(setRow(
-      'Changing the question set',
-      'Whoever maintains the instrument does this, on the assessor side. It is not offered here, because using a different set clears every answer.',
-      null,
-    ));
-    return;
-  }
+  if (side !== 'assess') return;
 
   /**
-   * The library. Sets accumulate: the one in the build, plus every one that has been added.
-   * Switching clears answers, so it asks. Deleting asks as well, and offers the file back
-   * first, because a set somebody spent a morning building is not recoverable from here.
+   * The library. Sets accumulate: the one from the build, plus every one that has been added.
+   *
+   * Adding and activating are separate acts. A set that arrives by email is not automatically
+   * the one everybody answers, and somebody should be able to look at it first.
    */
   const lib = libraryList(BUILTIN as unknown as Rubric);
   const cur = currentId();
@@ -597,79 +572,109 @@ function paneQuestions(pane: HTMLElement) {
   const rows = el('div', { class: 'set-list' });
   for (const entry of lib) {
     const isCurrent = entry.id === cur;
-    const acts = el('div', { class: 'set-list-act' });
+    const removable = canRemove(BUILTIN as unknown as Rubric, entry.id);
 
-    if (isCurrent) {
-      acts.appendChild(el('span', { class: 'badge' }, ['In use']));
-    } else {
-      acts.appendChild(el('button', {
-        class: 'ghost small',
-        onclick: () => {
-          const swap = () => {
-            setCurrentId(entry.id);
-            rubric = entry.rubric;
-            clearDraft();
-            assessment = blankAssessment(rubric);
-            resetOverviewToFirstGap(rubric, assessment);
-            go('settings');
-          };
-          if (!hasWork(assessment)) { swap(); return; }
-          confirmDestructive({
-            tier: 'caution',
-            title: `Switch to this set and clear ${answeredCount(assessment)} answers?`,
-            body: 'Answers belong to the set they were given against, so they cannot be carried across.',
-            saveLabel: 'Save a file, then switch',
-            commitLabel: 'Switch anyway',
-            cancelLabel: 'Keep my answers',
-            onCommit: swap,
-          });
+    const activate = () => {
+      const swap = () => {
+        setCurrentId(entry.id);
+        rubric = entry.rubric;
+        clearDraft();
+        assessment = blankAssessment(rubric);
+        resetOverviewToFirstGap(rubric, assessment);
+        go('settings');
+      };
+      if (!hasWork(assessment)) { swap(); return; }
+      confirmDestructive({
+        tier: 'caution',
+        title: `Switch to this set and clear ${answeredCount(assessment)} answers?`,
+        body: 'Answers belong to the set they were given against, so they cannot be carried across. Assessments already submitted keep the set they were answered against and are not touched.',
+        saveLabel: 'Save a file, then switch',
+        commitLabel: 'Switch anyway',
+        cancelLabel: 'Keep my answers',
+        onCommit: swap,
+      });
+    };
+
+    const remove = () => confirmStep({
+      tier: 'danger',
+      title: `Delete "${entry.rubric.title}" ${entry.rubric.version}?`,
+      body: 'This removes the question set from this browser. No answers are touched, and assessments already answered against it keep their own copy.',
+      stake: 'Nobody can get it back from here. If this is the only copy, take the file first.',
+      offer: {
+        label: 'Download the set, then delete',
+        run: () => {
+          const name = `${slug(entry.rubric.title)}-${entry.rubric.version}.json`;
+          download(name, JSON.stringify(entry.rubric, null, 2));
+          return `Saving as ${name}. Check your Downloads folder.`;
         },
-      }, ['Use this one']));
-    }
-
-    const why = entry.builtIn
-      ? 'This set is built into the page, so it cannot be deleted.'
-      : isCurrent
-        ? 'This is the set in use. Switch to another one first.'
-        : 'Delete this set';
-    acts.appendChild(el('button', {
-      class: 'ghost small danger-text',
-      disabled: !!entry.builtIn || isCurrent,
-      title: why,
-      onclick: () => {
-        confirmStep({
-          tier: 'danger',
-          title: `Delete "${entry.rubric.title}" ${entry.rubric.version}?`,
-          body: 'This removes the question set from this browser. No answers are touched, and nothing else in the tool changes.',
-          stake: 'Nobody can get it back from here. If this is the only copy, take the file first.',
-          offer: {
-            label: 'Download the set, then delete',
-            run: () => {
-              const name = `${slug(entry.rubric.title)}-${entry.rubric.version}.json`;
-              download(name, JSON.stringify(entry.rubric, null, 2));
-              return `Saving as ${name}. Check your Downloads folder.`;
-            },
-          },
-          commitLabel: 'Delete permanently',
-          cancelLabel: 'Keep it',
-          onCommit: () => { removeFromLibrary(entry.id); go('settings'); },
-        });
       },
-    }, ['Delete']));
+      commitLabel: 'Delete permanently',
+      cancelLabel: 'Keep it',
+      onCommit: () => { removeFromLibrary(entry.id); go('settings'); },
+    });
+
+    // What each set holds, without making it the one in use.
+    const preview = el('div', { class: 'set-preview', hidden: true }, [
+      el('dl', { class: 'kv tight' }, [
+        el('dt', {}, ['Status']), el('dd', {}, [entry.rubric.status]),
+        el('dt', {}, ['Scale']), el('dd', {}, [`${entry.rubric.scale.min} to ${entry.rubric.scale.max}`]),
+        el('dt', {}, ['Domains']), el('dd', {}, [
+          entry.rubric.domains.map((d) => `${d.label} ${d.weight}%`).join(', '),
+        ]),
+      ]),
+      el('p', { class: 'tiny dim' }, ['First questions in each domain']),
+      el('ul', { class: 'small set-preview-q' }, entry.rubric.domains.map((d) => {
+        const first = d.sections[0]?.questions[0];
+        return el('li', {}, [
+          el('span', { class: 'mono tiny' }, [`${first?.id ?? '--'} `]),
+          first?.text ?? 'no questions',
+        ]);
+      })),
+    ]);
+
+    const menu = el('details', { class: 'set-menu' }, [
+      el('summary', { class: 'set-menu-btn', title: 'More', 'aria-label': 'More actions' }, ['\u22EF']),
+      el('div', { class: 'set-menu-pop' }, [
+        el('button', {
+          class: 'menu-item',
+          onclick: () => { preview.hidden = !preview.hidden; },
+        }, ['Preview the questions']),
+        isCurrent
+          ? el('span', { class: 'menu-item is-off' }, ['Already in use'])
+          : el('button', { class: 'menu-item', onclick: activate }, ['Make this the active set']),
+        removable
+          ? el('button', { class: 'menu-item menu-danger', onclick: remove }, ['Delete this set'])
+          : el('span', {
+              class: 'menu-item is-off',
+              title: isCurrent
+                ? 'Make another set active first.'
+                : 'The tool has no questions without a set.',
+            }, [isCurrent ? 'In use, cannot delete' : 'The only set, cannot delete']),
+        el('div', { class: 'menu-note tiny dim' }, [
+          entry.addedBy
+            ? `Added by ${entry.addedBy}, unverified`
+            : entry.bundled ? 'Came with the page' : 'Added here',
+          entry.addedAt ? `, ${new Date(entry.addedAt).toLocaleDateString()}` : '',
+        ]),
+      ]),
+    ]);
 
     rows.appendChild(el('div', { class: `set-list-row ${isCurrent ? 'on' : ''}` }, [
-      el('div', {}, [
+      el('div', { class: 'set-list-main' }, [
         el('div', { class: 'set-row-title' }, [
           entry.rubric.title,
           el('span', { class: 'mono small muted' }, [` ${entry.rubric.version}`]),
-          entry.builtIn ? el('span', { class: 'badge' }, ['Built in']) : null,
+          isCurrent ? el('span', { class: 'badge' }, ['In use']) : null,
         ]),
         el('p', { class: 'small muted' }, [
-          `${questionCount(entry.rubric)} questions, ${entry.rubric.status}`,
-          entry.addedAt ? `. Added ${new Date(entry.addedAt).toLocaleDateString()}` : '',
+          `${questionCount(entry.rubric)} questions in ${entry.rubric.domains.reduce((n, d) => n + d.sections.length, 0)} sections`,
         ]),
+        preview,
       ]),
-      acts,
+      el('div', { class: 'set-list-act' }, [
+        isCurrent ? null : el('button', { class: 'ghost small', onclick: activate }, ['Make active']),
+        menu,
+      ]),
     ]));
   }
 
@@ -678,7 +683,7 @@ function paneQuestions(pane: HTMLElement) {
     el('span', { class: 'muted small' }, [` ${lib.length}`]),
   ]));
   pane.appendChild(el('p', { class: 'small muted' }, [
-    'Adding a set keeps the old ones. The one in use decides what everybody answers.',
+    'Adding a set keeps the others and changes nothing on its own. Make one active when you want it answered.',
   ]));
   pane.appendChild(rows);
   pane.appendChild(el('div', { class: 'actions' }, [picker]));
@@ -780,7 +785,8 @@ function paneDanger(pane: HTMLElement) {
   const n = answeredCount(assessment);
   const anything = hasWork(assessment);
   const button = el('button', {
-    class: 'danger', disabled: !anything, html: `${TRASH}<span>Discard\u2026</span>`,
+    class: 'danger btn-icon', disabled: !anything,
+    html: `${TRASH}<span>Discard this assessment</span>`,
     onclick: () => confirmDestructive({
       tier: 'danger',
       title: n > 0 ? `Discard ${n} answer${n === 1 ? '' : 's'}?` : 'Discard this assessment?',

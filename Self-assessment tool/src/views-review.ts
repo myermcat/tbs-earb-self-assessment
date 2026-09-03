@@ -5,6 +5,8 @@ import { flags, type Flag } from './flags';
 import { csvHeader, csvRow, toCsv } from './csv';
 import { download, readJsonFiles, slug } from './storage';
 import { humanSize, openAttachment } from './attach';
+import { rubricFor } from './library';
+import BUILTIN from '../rubric/rubric.v1-dan.json';
 
 /**
  * The assessor side. Nick and Allison stop transcribing decks and start auditing anomalies.
@@ -14,6 +16,10 @@ import { humanSize, openAttachment } from './attach';
 interface Loaded {
   file: string;
   a: Assessment;
+  /** The set this submission was answered against, when this browser holds it. */
+  rubric: Rubric;
+  /** True when the set it was answered against is not here, so the active one was used. */
+  substituted: boolean;
   r: Result;
   fs: Flag[];
 }
@@ -67,16 +73,34 @@ async function ingest(rubric: Rubric, files: FileList, root: HTMLElement) {
       problems.push(`${item.file}: not a self-assessment file`);
       continue;
     }
-    if (a.rubric.version !== rubric.version) {
-      problems.push(`${item.file}: answered against rubric ${a.rubric.version}, this app has ${rubric.version}. Scores shown are recalculated with the current rubric.`);
+    /**
+     * Score a submission against the set it was answered against. Recomputing a two-year-old
+     * assessment with today's weights produces a number that was never anybody's score, and
+     * the old behaviour did exactly that behind a one-line notice.
+     */
+    const own = rubricFor(BUILTIN as unknown as Rubric, a.rubric);
+    const use = own ?? rubric;
+    const substituted = !own;
+    if (a.rubric.version !== rubric.version && own) {
+      problems.push(`${item.file}: answered against ${a.rubric.version}. That set is in your library, so the scores here were worked out with it.`);
+    } else if (substituted) {
+      const known = new Set(
+        use.domains.flatMap((d) => d.sections.flatMap((sec) => sec.questions.map((q) => q.id))),
+      );
+      const lost = Object.keys(a.answers).filter((id) => !known.has(id)).length;
+      problems.push(
+        `${item.file}: answered against ${a.rubric.version}, which this browser does not have. Scored with ${use.version} instead`
+        + (lost ? `, and ${lost} answer${lost === 1 ? '' : 's'} do not exist in it.` : '.')
+        + ' Add that set in Settings to see its real scores.',
+      );
     }
-    const r = score(rubric, a);
+    const r = score(use, a);
     const had = loaded.find((l) => l.file === item.file);
     if (had && Object.keys(had.a.audit?.perQuestion ?? {}).length) {
       problems.push(`${item.file}: this file was already open and has been replaced by the version you just picked. The scores and notes you had typed against the old one are gone.`);
     }
     loaded = loaded.filter((l) => l.file !== item.file);
-    loaded.push({ file: item.file, a, r, fs: flags(rubric, a, r) });
+    loaded.push({ file: item.file, a, rubric: use, substituted, r, fs: flags(use, a, r) });
   }
   renderReview(root, rubric);
   if (problems.length) {
@@ -93,6 +117,7 @@ function paintList(rubric: Rubric, root: HTMLElement) {
   const table = el('table', { class: 'triage' }, [
     el('thead', {}, [el('tr', {}, [
       el('th', {}, ['Initiative']), el('th', {}, ['Department']), el('th', {}, ['Marking']),
+      el('th', {}, ['Question set']),
       el('th', {}, ['Stage']), el('th', {}, ['Score']), el('th', {}, ['Suggested routing']),
       el('th', {}, ['Must ask']), el('th', {}, ['Files']), el('th', {}, ['Complete']), el('th', {}, ['']),
     ])]),
@@ -104,13 +129,19 @@ function paintList(rubric: Rubric, root: HTMLElement) {
       el('td', {}, [l.a.initiative.name || l.file]),
       el('td', {}, [l.a.initiative.department]),
       el('td', { class: 'small' }, [l.a.initiative.classification || 'unmarked']),
-      el('td', { class: 'small' }, [rubric.lifecycleStages.find((s) => s.id === l.a.initiative.lifecycleStage)?.label ?? '--']),
+      el('td', { class: 'small mono' }, [
+        l.a.rubric.version,
+        l.substituted ? el('span', { class: 'badge badge-warn tiny' }, ['set missing']) : null,
+      ]),
+      el('td', { class: 'small' }, [l.rubric.lifecycleStages.find((s) => s.id === l.a.initiative.lifecycleStage)?.label ?? '--']),
       el('td', { class: `num ${tone(l.r.overall)}` }, [l.r.overall === null ? '--' : l.r.overall.toFixed(1)]),
       el('td', { class: 'small' }, [l.r.band?.label ?? '--']),
       el('td', { class: highs ? 'num red' : 'num' }, [String(highs)]),
       el('td', { class: 'num' }, [String(Object.values(l.a.answers).reduce((n, x) => n + (x.evidence ?? []).filter((e) => e.attachment).length, 0))]),
       el('td', { class: 'small' }, [`${Math.round(l.r.completeness * 100)}%`]),
-      el('td', {}, [el('button', { class: 'ghost small', onclick: () => openDetail(rubric, root, l) }, ['Open'])]),
+      // The detail reads the set this submission was answered against, so the questions and
+      // weights on screen are the ones the department actually answered.
+      el('td', {}, [el('button', { class: 'ghost small', onclick: () => openDetail(l.rubric, root, l) }, ['Open'])]),
     ]));
   }
   table.appendChild(tb);
@@ -528,13 +559,25 @@ export function unexplainedChanges(a: Assessment): string[] {
     .map(([qid]) => qid);
 }
 
-function exportAllCsv(rubric: Rubric) {
-  const rows = [csvHeader(rubric)];
+/**
+ * One file per question set. A single sheet cannot hold two sets: the columns are the question
+ * ids, so mixing them either drops answers or invents columns. Submissions answered against
+ * different sets are different sheets, named by version.
+ */
+function exportAllCsv(_active: Rubric) {
+  const sets = new Map<string, { rubric: Rubric; rows: Loaded[] }>();
   for (const l of loaded) {
-    rows.push(csvRow(rubric, l.a, {
-      high: l.fs.filter((f) => f.severity === 'high').length,
-      total: l.fs.length,
-    }));
+    const key = `${l.rubric.id}@${l.rubric.version}`;
+    if (!sets.has(key)) sets.set(key, { rubric: l.rubric, rows: [] });
+    sets.get(key)!.rows.push(l);
   }
-  download('assessments.csv', toCsv(rows), 'text/csv');
+  for (const { rubric: set, rows: group } of sets.values()) {
+    const table = [csvHeader(set)];
+    for (const l of group) {
+      table.push(csvRow(set, l.a, { high: l.fs.filter((f) => f.severity === 'high').length, total: l.fs.length }));
+    }
+    const suffix = sets.size > 1 ? `-${slug(set.version)}` : '';
+    download(`gc-arch-submissions${suffix}.csv`, toCsv(table), 'text/csv');
+  }
 }
+
