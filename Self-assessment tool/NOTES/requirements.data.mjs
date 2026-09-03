@@ -191,7 +191,8 @@ export const sections = [
         note: 'The free plan costs nothing and rules out file storage and email sign-in. A billing account at this volume bills a couple of dollars a month. The obstacle is attaching a personal card to government work. That is a procurement conversation, and no amount of engineering settles it.' },
       { id: 'H12', state: 'built', text: 'The store rules are written so that reading your own record costs no extra lookup.',
         note: 'Every exists() or get() inside a rule is a billable read even when the request is denied. Only the assessor and admin paths look a role up.' },
-      { id: 'H5', state: 'agreed', text: 'The prototype store has a named owner and a date it gets deleted, both written down before anybody asks.' },
+      { id: 'H5', state: 'agreed', text: 'The prototype store has a named owner and a date it gets deleted, both written down before anybody asks.',
+        note: 'Drafted, and one blank is yours to fill. Owner of record: Mariia Yermolenko, yermolenko.maria@gmail.com, for the length of the work term. Deleted on: the last day of the work term, which is the date to write in. How it hands over: an admin signs in, opens the portfolio view and exports. The tool already has that feature, so this is a description of something that works today. The free plan has no managed export, so this is the route, and at roughly 40 KB a submission the whole store fits in one file. Confirm the date and this becomes built.' },
       { id: 'H6', state: 'agreed', text: 'The page says what it is whenever it is writing to a prototype store: unclassified drafts only, and not a record of decision.' },
       { id: 'H7', state: 'open', owner: 'TBS', text: 'What the production store is.' },
       { id: 'H8', state: 'open', owner: 'Nick', text: 'The code moving into the canada-ca organisation.',
@@ -243,12 +244,13 @@ export const sections = [
  */
 export const verification = {
   title: 'How each requirement gets checked',
-  lead: 'Four gates run on every change, and a requirement is not built until the gate that covers it passes.',
+  lead: 'Four gates run on every change, and a requirement is not built until the gate that covers it passes. A fifth runs against the live store when the rules change.',
   gates: [
     ['The prose gate', 'Every word the reader sees is checked against the writing rules: no em dashes, no antithesis, no banned words. It runs before the tests and fails the build.'],
     ['The logic gate', 'Scoring, banding, weighting, the flags, the CSV round trip. It runs against the modules directly.'],
     ['The interface gate', 'The built page is driven in a real document object model, end to end: 21 pages of questions answered, evidence attached, markings set, dialogs opened and their buttons pressed. Around 500 assertions, and this is where a requirement about behaviour is actually held.'],
     ['The print gate', 'A printed assessment is checked for the things that vanish on paper: the scores, the reasoning, the marking, and every folded section.'],
+    ['The rules gate', 'deploy/check-rules.sh calls the live store four times with no sign-in at all: read every assessment, read the roles, write an assessment, make yourself an admin. All four have to come back refused. A rules mistake cannot be seen from inside the tool, because the tool always has somebody signed in, so this one runs from outside. As of 3 September all four are refused.'],
   ],
-  note: 'What no gate covers: anything needing a store, a sign-in or a second person. Those requirements are marked agreed, and they say so.',
+  note: 'What no gate covers: anything needing a sign-in or a second person. Those requirements are marked agreed, and they say so.',
 };

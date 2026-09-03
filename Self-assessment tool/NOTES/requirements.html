@@ -592,6 +592,7 @@ background:var(--surface);border:1px solid var(--line);border-radius:10px;list-s
 <span class="req-id mono">H5</span>
 <span class="req-t">The prototype store has a named owner and a date it gets deleted, both written down before anybody asks.</span>
 <span class="st st-next">Agreed</span>
+<span class="req-note">Drafted, and one blank is yours to fill. Owner of record: Mariia Yermolenko, yermolenko.maria@gmail.com, for the length of the work term. Deleted on: the last day of the work term, which is the date to write in. How it hands over: an admin signs in, opens the portfolio view and exports. The tool already has that feature, so this is a description of something that works today. The free plan has no managed export, so this is the route, and at roughly 40 KB a submission the whole store fits in one file. Confirm the date and this becomes built.</span>
 </div>
 <div class="req">
 <span class="req-id mono">H6</span>
@@ -704,12 +705,13 @@ background:var(--surface);border:1px solid var(--line);border-radius:10px;list-s
 </div>
 </div>
 <h2 id="verify">How each requirement gets checked</h2>
-<p class="hint">Four gates run on every change, and a requirement is not built until the gate that covers it passes.</p>
+<p class="hint">Four gates run on every change, and a requirement is not built until the gate that covers it passes. A fifth runs against the live store when the rules change.</p>
 <div class="card">
 <p class="std-p"><b>The prose gate.</b> Every word the reader sees is checked against the writing rules: no em dashes, no antithesis, no banned words. It runs before the tests and fails the build.</p>
 <p class="std-p"><b>The logic gate.</b> Scoring, banding, weighting, the flags, the CSV round trip. It runs against the modules directly.</p>
 <p class="std-p"><b>The interface gate.</b> The built page is driven in a real document object model, end to end: 21 pages of questions answered, evidence attached, markings set, dialogs opened and their buttons pressed. Around 500 assertions, and this is where a requirement about behaviour is actually held.</p>
 <p class="std-p"><b>The print gate.</b> A printed assessment is checked for the things that vanish on paper: the scores, the reasoning, the marking, and every folded section.</p>
-<p class="std-p muted">What no gate covers: anything needing a store, a sign-in or a second person. Those requirements are marked agreed, and they say so.</p>
+<p class="std-p"><b>The rules gate.</b> deploy/check-rules.sh calls the live store four times with no sign-in at all: read every assessment, read the roles, write an assessment, make yourself an admin. All four have to come back refused. A rules mistake cannot be seen from inside the tool, because the tool always has somebody signed in, so this one runs from outside. As of 3 September all four are refused.</p>
+<p class="std-p muted">What no gate covers: anything needing a sign-in or a second person. Those requirements are marked agreed, and they say so.</p>
 </div>
 <footer>Generated from NOTES/requirements.data.mjs by tools/build-requirements.mjs. The backlog is <a href="backlog.html">next door</a>.</footer></div>
