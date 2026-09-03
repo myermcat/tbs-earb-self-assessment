@@ -444,17 +444,21 @@ export function setFileMarking(
   c: Assessment['initiative']['classification'],
   after: () => void,
 ): void {
+  const ack = a.initiative.markingAcknowledged;
   a.initiative.classification = c;
   if (c === 'Unclassified') a.initiative.markingAcknowledged = undefined;
   autosave(a);
   after();
-  if (!c || c === 'Unclassified' || a.initiative.markingAcknowledged) return;
+  if (!c || c === 'Unclassified') return;
+  // Given for this marking, or given before this became per-marking. Moving from Protected B
+  // to Secret is a different situation and asks again.
+  if (ack === true || ack === c) return;
   demandPledge({
     marking: c,
     // No question is on screen here, so this is an example. The evidence box on each question
     // writes the real one, with that question's number already in it.
     subject: evidenceSubject(a, 'B-Q14'),
-    onAcknowledge: () => { a.initiative.markingAcknowledged = true; autosave(a); after(); },
+    onAcknowledge: () => { a.initiative.markingAcknowledged = c; autosave(a); after(); },
     onUnclassified: () => {
       a.initiative.classification = 'Unclassified';
       a.initiative.markingAcknowledged = undefined;
@@ -894,9 +898,13 @@ function markingChoices(a: Assessment, rebuild: () => void): HTMLElement {
       (() => {
         const ack = el('label', { class: 'mark-ack' }, [
           el('input', {
-            type: 'checkbox', checked: !!a.initiative.markingAcknowledged,
+            type: 'checkbox',
+            checked: a.initiative.markingAcknowledged === true
+              || a.initiative.markingAcknowledged === a.initiative.classification,
             onchange: (e: Event) => {
-              a.initiative.markingAcknowledged = (e.target as HTMLInputElement).checked;
+              a.initiative.markingAcknowledged = (e.target as HTMLInputElement).checked
+                ? (a.initiative.classification || undefined)
+                : undefined;
               autosave(a);
             },
           }),

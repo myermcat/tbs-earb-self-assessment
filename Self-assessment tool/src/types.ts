@@ -205,8 +205,13 @@ export interface Assessment {
     summary: string;
     /** The marking on this file as a whole. Must be at least as high as anything inside it. */
     classification: Classification | '';
-    /** Ticked when somebody above unclassified has read what to do instead. */
-    markingAcknowledged?: boolean;
+    /**
+     * Which marking the pledge was given for. Switching Protected B to Secret is a different
+     * situation and asks again; it used to stay silent because this was a boolean.
+     * `true` appears in files saved before this changed, and counts for whatever marking they
+     * carry.
+     */
+    markingAcknowledged?: Classification | boolean;
   };
   answers: Record<string, Answer>;
   meta: { createdAt: string; updatedAt: string; appVersion: string; submittedAt?: string };

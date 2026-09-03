@@ -19,10 +19,12 @@ const out = join(here, '..', 'NOTES', 'backlog.html');
 const STYLE = `<style>
 :root{color-scheme:light;--bg:#f7f8fa;--surface:#fff;--surface-2:#f1f3f6;--line:#e2e6ec;--line-2:#cdd4dd;
 --ink:#16191d;--ink-2:#4a5361;--ink-3:#79828f;--accent:#2a4b8d;--accent-soft:#eaf0fb;--accent-line:#b9caea;
---good:#1f6b3c;--good-bg:#e9f4ed;--warn:#a8620a;--warn-bg:#fdf3e3;--mono:ui-monospace,SFMono-Regular,Menlo,monospace}
+--good:#1f6b3c;--good-bg:#e9f4ed;--warn:#a8620a;--warn-bg:#fdf3e3;--mono:ui-monospace,SFMono-Regular,Menlo,monospace;
+--chrome:#e7ebf1e6;--chrome-line:#c6cfda}
 @media(prefers-color-scheme:dark){:root{color-scheme:dark;--bg:#101216;--surface:#191c22;--surface-2:#21252d;
 --line:#2b303a;--line-2:#3a4150;--ink:#e8eaee;--ink-2:#a8b0bd;--ink-3:#7b8492;--accent:#6f96e0;
---accent-soft:#1b2436;--accent-line:#2f4570;--good:#5fbf82;--good-bg:#14251b;--warn:#e0a34a;--warn-bg:#2a2113}}
+--accent-soft:#1b2436;--accent-line:#2f4570;--good:#5fbf82;--good-bg:#14251b;--warn:#e0a34a;--warn-bg:#2a2113;
+--chrome:#1e222ae6;--chrome-line:#414957}}
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;-webkit-font-smoothing:antialiased}
 .wrap{max-width:1020px;margin:0 auto;padding:2rem 1.2rem 5rem}
@@ -73,12 +75,29 @@ footer{margin-top:3rem;color:var(--ink-3);font-size:.8rem}
 .done-layer{font-size:.66rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3)}
 .wait-row .t{font-weight:600}
 .done-card .leaf{opacity:.92}
-.jump{display:flex;flex-wrap:wrap;gap:.35rem;margin:0 0 1.6rem}
-.jump a{font-size:.78rem;text-decoration:none;color:var(--ink-2);background:var(--surface);
-border:1px solid var(--line);border-radius:999px;padding:.22rem .6rem}
-.jump a:hover{border-color:var(--accent-line);color:var(--accent)}
-.jump a b{font-family:var(--mono);color:var(--ink-3);font-weight:700}
-h2{scroll-margin-top:1rem}
+/* The pinned bar is the navigation. The counts are links, the layers are links, and it stays
+   put so no section has to be hunted for. */
+.topnav{position:sticky;top:0;z-index:20;margin:0 -1.2rem 1.4rem;padding:.5rem 1.2rem;
+background:var(--chrome);border-bottom:1px solid var(--chrome-line);backdrop-filter:saturate(1.4) blur(6px)}
+.topnav-in{display:flex;align-items:center;gap:.4rem;flex-wrap:wrap}
+.nav-kpi{display:flex;align-items:baseline;gap:.3rem;text-decoration:none;color:var(--ink-2);
+background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:.16rem .6rem}
+.nav-kpi b{font-family:var(--mono);font-size:.95rem;color:var(--ink)}
+.nav-kpi span{font-size:.72rem}
+.nav-kpi:hover,.nav-lay:hover{border-color:var(--accent-line);color:var(--accent)}
+.nav-sep{width:1px;height:1.1rem;background:var(--line-2);margin:0 .2rem}
+.nav-lay{font-size:.74rem;text-decoration:none;color:var(--ink-3);border:1px solid transparent;
+border-radius:999px;padding:.16rem .45rem}
+h2{scroll-margin-top:4.2rem}
+h3{scroll-margin-top:4.2rem}
+.done-fold{margin:.3rem 0 0}
+.done-summary{cursor:pointer;display:flex;gap:.5rem;align-items:baseline;padding:.5rem .75rem;
+background:var(--surface);border:1px solid var(--line);border-radius:10px;list-style:none}
+.done-summary::-webkit-details-marker{display:none}
+.done-summary::before{content:'\\25B8';color:var(--ink-3);font-size:.8rem}
+.done-fold[open] .done-summary::before{content:'\\25BE'}
+.done-summary:hover{border-color:var(--accent-line)}
+.section-title{font-weight:650}
 .h3sub{font-size:.98rem;margin:1.2rem 0 .5rem;color:var(--ink-2)}
 .kpi a{color:inherit;text-decoration:none}
 </style>`;
@@ -146,14 +165,24 @@ function count(status) {
 }
 
 const done = doneItems();
+/** Done, grouped by where the work came from, newest group first inside each. */
+const doneByLayer = (rows) => {
+  const order = [];
+  const byLayer = new Map();
+  for (const r of rows) {
+    if (!byLayer.has(r.layer)) { byLayer.set(r.layer, []); order.push(r.layer); }
+    byLayer.get(r.layer).unshift(r);      // newest first
+  }
+  return order.map((layer) => ({ layer, rows: byLayer.get(layer) }));
+};
 // `seen: true` marks work Dan had already seen on 1 September. Everything else is the
 // changelog since that review, which is the list he should be walked through.
 const doneNew = done.filter((r) => !r.item.seen);
 const doneSeen = done.filter((r) => r.item.seen);
-const doneRow = ({ layer, item }) => [
+const doneRow = ({ item }) => [
   '<div class="leaf solo">',
   `<span class="t">${esc(item.t)}</span><span class="st st-done">Done</span>`,
-  `<span class="w"><span class="done-layer">${esc(layer)}</span> &middot; ${esc(item.why ?? '')}</span>`,
+  `<span class="w">${esc(item.why ?? '')}</span>`,
   '</div>',
 ].join('\n');
 const openQuick = quick.items.filter((i) => i.status !== 'done');
@@ -170,26 +199,32 @@ for (const l of layers) {
 
 const html = [
   '<title>EARB tool backlog</title>',
+  // Drawn here rather than fetched: the page is one file and makes no requests.
+  '<link rel="icon" href="data:image/svg+xml,' +
+    encodeURIComponent(
+      '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">' +
+      '<rect width="32" height="32" rx="7" fill="#2a4b8d"/>' +
+      '<rect x="7" y="20" width="4" height="6" rx="1" fill="#9ec4ff"/>' +
+      '<rect x="14" y="14" width="4" height="12" rx="1" fill="#7fd39b"/>' +
+      '<rect x="21" y="7" width="4" height="19" rx="1" fill="#ffd479"/>' +
+      '</svg>',
+    ) + '">',
   STYLE,
   '<div class="wrap"><h1>EARB self-assessment: backlog</h1>',
-  `<p class="sub">Layers are the spine, the three views sit inside the interface layer, and every item appears once. Finished work moves to Done, which is split into what came after Dan's review and what he had already seen, and stays there for good. The links below jump to any section. Updated ${esc(updated)}.</p>`,
-  '<div class="kpis">',
-  `<div class="kpi"><b>${count('next')}</b><span>next</span></div>`,
-  `<div class="kpi"><b>${waiting.length}</b><span><a href="#waiting">waiting on somebody</a></span></div>`,
-  `<div class="kpi"><b>${count('later')}</b><span>later</span></div>`,
-  `<div class="kpi"><b>${done.length}</b><span><a href="#done">done</a></span></div>`,
-  `<div class="kpi"><b>${questions.length}</b><span>open questions</span></div>`,
-  '</div>',
-  '<nav class="jump">',
+  `<p class="sub">Updated ${esc(updated)}.</p>`,
+  // The counts are the navigation: pinned, so every section is one click away from anywhere
+  // on the page.
+  '<nav class="topnav"><div class="topnav-in">',
   [
-    openQuick.length ? ['#quick', 'Quick actions', openQuick.length] : null,
-    waiting.length ? ['#waiting', 'Waiting on somebody', waiting.length] : null,
-    ['#done', 'Done', done.length],
-    ['#resolved', 'Resolved questions', resolved.length],
-    ['#questions', 'Open questions', questions.length],
-  ].filter(Boolean).map(([href, label, n]) => `<a href="${href}">${esc(label)} <b>${n}</b></a>`).join('\n'),
-  layers.map((l, i) => `<a href="#layer-${i}">${esc(l.title)}</a>`).join('\n'),
-  '</nav>',
+    ['#quick', String(count('next')), 'next'],
+    ['#waiting', String(waiting.length), 'waiting on somebody'],
+    ['#done', String(done.length), 'done'],
+    ['#questions', String(questions.length), 'open questions'],
+  ].map(([href, n, label]) => `<a class="nav-kpi" href="${href}"><b>${n}</b><span>${esc(label)}</span></a>`).join('\n'),
+  '<span class="nav-sep"></span>',
+  layers.map((l, i) => `<a class="nav-lay" href="#layer-${i}">${esc(l.title.replace('Interface: ', ''))}</a>`).join('\n'),
+  `<a class="nav-lay" href="#resolved">Resolved</a>`,
+  '</div></nav>',
 
   openQuick.length ? [
     `<h2 id="quick">${esc(quick.title)}</h2><p class="hint">${esc(quick.hint)}</p>`,
@@ -214,18 +249,26 @@ const html = [
     ].join('\n');
   }),
 
-  '<h2 id="done">Done</h2><p class="hint">Built and tested, and kept here permanently. Nothing on this list has to be remembered.</p>',
-  `<h3 class="h3sub">Since Dan's review on 1 September &mdash; ${doneNew.length} items</h3>`,
-  '<p class="hint">This is the list to walk him through. Everything here came out of that conversation.</p>',
-  '<div class="card done-card">',
-  doneNew.map(doneRow).join('\n'),
-  '</div>',
+  '<h2 id="done">Done</h2>',
+  `<p class="hint">Built and tested, kept for good, newest first. ${doneNew.length} items since Dan's review on 1 September.</p>`,
+  // Closed by default: it is a record to open when somebody asks what changed, and it is
+  // longer than everything above it put together.
+  '<details class="done-fold"><summary class="done-summary">',
+  `<span class="section-title">Everything done</span><span class="muted small">${done.length} items, by layer</span>`,
+  '</summary>',
+  doneByLayer(doneNew).map(({ layer, rows }) => [
+    `<h3 class="h3sub">${esc(layer)} <span class="muted small">${rows.length}</span></h3>`,
+    '<div class="card done-card">',
+    rows.map(doneRow).join('\n'),
+    '</div>',
+  ].join('\n')).join('\n'),
   doneSeen.length ? [
     '<h3 class="h3sub">Already there when he reviewed it</h3>',
     '<div class="card done-card">',
     doneSeen.map(doneRow).join('\n'),
     '</div>',
   ].join('\n') : '',
+  '</details>',
 
   '<h2 id="resolved">Resolved questions</h2><p class="hint">Settled, and how.</p>',
   resolved.map((r) => `<div class="callout"><div class="q">${esc(r.q)}</div><div class="a"><b>Resolved.</b> ${esc(r.a)}</div></div>`).join('\n'),

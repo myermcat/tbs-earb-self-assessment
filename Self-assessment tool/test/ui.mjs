@@ -99,8 +99,13 @@ ok('settings shows the rubric version', view().includes('1.0-dan'));
 ok('settings surfaces the import warning about the Business weight gap', view().includes('80%'));
 // Replacing the question set belongs to whoever maintains the instrument, so a submitter is
 // told where it lives and not handed the control.
-ok('a submitter is not offered the question-set loader', !byText('.filelabel', 'Load a question set'));
-ok('and is told who does it', view().includes('on the assessor side'));
+// A submitter cannot change the set, so the screen does not discuss changing it. It shows
+// which set they are answering.
+ok('a submitter is not offered the question-set loader',
+   !byText('.filelabel', 'Load a question set') && !byText('.filelabel', 'Add a question set'));
+ok('and is not told about a setting they do not have',
+   !view().includes('on the assessor side'));
+ok('but does see which set is in use', view().includes('Version') && view().includes('questions in'));
 
 pane('Your answers');
 ok('settings says where the page was loaded from', view().includes('Where your answers go'));
@@ -289,18 +294,32 @@ byText('.gate-marks .mark-btn', 'Protected B').click();
   x.click();
   ok('closing it removes the modal and its scrim',
      !q('dialog.pledge') && !q('.pledge-scrim'));
-  ok('the acknowledgement was recorded',
-     JSON.parse(window.localStorage.getItem('gc-arch-assessment:draft')).initiative.markingAcknowledged === true);
+  ok('the acknowledgement is recorded against that marking',
+     JSON.parse(window.localStorage.getItem('gc-arch-assessment:draft'))
+       .initiative.markingAcknowledged === 'Protected B');
 }
 ok('marking from the gate clears the gate', !q('.gate'));
 
-// Having pledged once, switching between classified markings does not ask again. The advice
-// panel on the overview is the reference to come back to.
-byText('.gate-marks .mark-btn', 'Protected C') ? byText('.gate-marks .mark-btn', 'Protected C').click() : null;
+// A different marking is a different situation, so it asks again. Protected B and Secret do
+// not carry the same instructions.
 {
   const chip = qa('.marking-chip input').find((i) => i.value === 'Protected C');
-  if (chip) { chip.checked = true; fire(chip, 'change'); }
-  ok('a second classified marking does not pop it again', !q('dialog.pledge'));
+  chip.checked = true;
+  fire(chip, 'change');
+  ok('a different classified marking asks again', !!q('dialog.pledge'));
+  ok('and names the new marking',
+     q('dialog.pledge .pledge-head h2').textContent.includes('Protected C'),
+     q('dialog.pledge .pledge-head h2')?.textContent);
+  const box = q('dialog.pledge .pledge-ack input[type=checkbox]');
+  box.checked = true;
+  fire(box, 'change');
+  q('dialog.pledge .pledge-x').click();
+
+  // Re-picking the same one does not.
+  const again = qa('.marking-chip input').find((i) => i.value === 'Protected C');
+  again.checked = true;
+  fire(again, 'change');
+  ok('the same marking twice does not ask twice', !q('dialog.pledge'));
 }
 
 // The escape hatch, on its own terms: it changes the answer back to unclassified.
@@ -926,17 +945,26 @@ ok('reviewer dropzone rendered', view().includes('Load submissions'));
   // ...and the assessor gets a library of them.
   q('.icon-btn[aria-label="Settings"]').click();
   ok('the assessor can add a question set', !!byText('.filelabel', 'Add a question set'));
-  ok('the sets in this browser are listed, built-in included',
-     qa('.set-list-row').length >= 1 && view().includes('Built in'),
+  ok('the sets in this browser are listed', qa('.set-list-row').length >= 1,
      String(qa('.set-list-row').length));
   ok('the one in use is marked', !!q('.set-list-row.on') && view().includes('In use'));
-  ok('and adding one is said to keep the others', view().includes('keeps the old ones'));
+  ok('and adding one is said to change nothing on its own',
+     view().includes('changes nothing on its own'));
   {
-    // Two-step deletion everywhere, and the built-in set cannot be deleted at all.
-    const del = byText('.set-list-row.on .set-list-act button', 'Delete');
-    ok('the built-in set has no delete', del.disabled === true);
-    ok('and says why', del.getAttribute('title').includes('built into the page'),
-       del.getAttribute('title'));
+    // Each set carries a menu: preview, make active, delete, and who added it.
+    const menu = q('.set-list-row .set-menu');
+    ok('every set has a menu', !!menu);
+    menu.open = true;
+    const items = qa('.set-menu-pop .menu-item').map((n) => n.textContent);
+    ok('it offers preview first, then activate, then delete',
+       items[0].includes('Preview') && items.length >= 3, items.join(' | '));
+    ok('and says where the set came from', view().includes('Came with the page'));
+    ok('the only set cannot be deleted, and says so',
+       !!byText('.menu-item.is-off', 'cannot delete'),
+       qa('.menu-item.is-off').map((n) => n.textContent).join('|'));
+    byText('.set-menu-pop .menu-item', 'Preview').click();
+    ok('preview shows what is in the set without making it active',
+       !q('.set-preview').hidden && view().includes('First questions in each domain'));
   }
   // Add a second set, keep the first, then delete the new one. Two steps, both times.
   {
@@ -954,31 +982,25 @@ ok('reviewer dropzone rendered', view().includes('Load submissions'));
 
     ok('an added set joins the library and the old one stays',
        qa('.set-list-row').length === before + 1, String(qa('.set-list-row').length));
-    ok('and the added set becomes the one in use',
-       q('.set-list-row.on').textContent.includes('A second question set'),
+    ok('adding it does not make it active',
+       !q('.set-list-row.on').textContent.includes('A second question set'),
        q('.set-list-row.on')?.textContent?.slice(0, 60));
-    ok('the set in use cannot be deleted while it is in use',
-       byText('.set-list-row.on .set-list-act button', 'Delete').disabled === true);
 
-    // Switch back to the built-in one, which frees the added set for deletion.
-    const other = qa('.set-list-row').find((r) => !r.classList.contains('on'));
-    byText('.set-list-row .set-list-act button', 'Use this one') && other
-      .querySelector('button').click();
-    await new Promise((r) => setTimeout(r, 40));
-
-    const del = qa('.set-list-row').map((r) => r.querySelector('.danger-text'))
-      .find((b) => b && !b.disabled);
-    ok('a set that is not in use can be deleted', !!del);
+    // Now a second set exists, so either can be deleted, and the menu says so.
+    const spare = qa('.set-list-row').find((r) => !r.classList.contains('on'));
+    spare.querySelector('.set-menu').open = true;
+    const del = byText('.set-menu-pop .menu-item', 'Delete this set');
+    ok('a set that is not in use can be deleted once there are two', !!del);
     window.confirm = () => false;
     del.click();
     ok('and saying no keeps it', qa('.set-list-row').length === before + 1,
        String(qa('.set-list-row').length));
     window.confirm = () => true;
-    qa('.set-list-row').map((r) => r.querySelector('.danger-text'))
-      .find((b) => b && !b.disabled).click();
+    const spare2 = qa('.set-list-row').find((r) => !r.classList.contains('on'));
+    spare2.querySelector('.set-menu').open = true;
+    byText('.set-menu-pop .menu-item', 'Delete this set').click();
     await new Promise((r) => setTimeout(r, 40));
-    ok('saying yes removes it, and the built-in set is still there',
-       qa('.set-list-row').length === before && view().includes('Built in'),
+    ok('saying yes removes it', qa('.set-list-row').length === before,
        String(qa('.set-list-row').length));
   }
   byText('.tab', 'Submissions').click();

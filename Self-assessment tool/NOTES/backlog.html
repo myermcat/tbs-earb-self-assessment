@@ -1,11 +1,14 @@
 <title>EARB tool backlog</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2032%2032%22%3E%3Crect%20width%3D%2232%22%20height%3D%2232%22%20rx%3D%227%22%20fill%3D%22%232a4b8d%22%2F%3E%3Crect%20x%3D%227%22%20y%3D%2220%22%20width%3D%224%22%20height%3D%226%22%20rx%3D%221%22%20fill%3D%22%239ec4ff%22%2F%3E%3Crect%20x%3D%2214%22%20y%3D%2214%22%20width%3D%224%22%20height%3D%2212%22%20rx%3D%221%22%20fill%3D%22%237fd39b%22%2F%3E%3Crect%20x%3D%2221%22%20y%3D%227%22%20width%3D%224%22%20height%3D%2219%22%20rx%3D%221%22%20fill%3D%22%23ffd479%22%2F%3E%3C%2Fsvg%3E">
 <style>
 :root{color-scheme:light;--bg:#f7f8fa;--surface:#fff;--surface-2:#f1f3f6;--line:#e2e6ec;--line-2:#cdd4dd;
 --ink:#16191d;--ink-2:#4a5361;--ink-3:#79828f;--accent:#2a4b8d;--accent-soft:#eaf0fb;--accent-line:#b9caea;
---good:#1f6b3c;--good-bg:#e9f4ed;--warn:#a8620a;--warn-bg:#fdf3e3;--mono:ui-monospace,SFMono-Regular,Menlo,monospace}
+--good:#1f6b3c;--good-bg:#e9f4ed;--warn:#a8620a;--warn-bg:#fdf3e3;--mono:ui-monospace,SFMono-Regular,Menlo,monospace;
+--chrome:#e7ebf1e6;--chrome-line:#c6cfda}
 @media(prefers-color-scheme:dark){:root{color-scheme:dark;--bg:#101216;--surface:#191c22;--surface-2:#21252d;
 --line:#2b303a;--line-2:#3a4150;--ink:#e8eaee;--ink-2:#a8b0bd;--ink-3:#7b8492;--accent:#6f96e0;
---accent-soft:#1b2436;--accent-line:#2f4570;--good:#5fbf82;--good-bg:#14251b;--warn:#e0a34a;--warn-bg:#2a2113}}
+--accent-soft:#1b2436;--accent-line:#2f4570;--good:#5fbf82;--good-bg:#14251b;--warn:#e0a34a;--warn-bg:#2a2113;
+--chrome:#1e222ae6;--chrome-line:#414957}}
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;-webkit-font-smoothing:antialiased}
 .wrap{max-width:1020px;margin:0 auto;padding:2rem 1.2rem 5rem}
@@ -56,39 +59,50 @@ footer{margin-top:3rem;color:var(--ink-3);font-size:.8rem}
 .done-layer{font-size:.66rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3)}
 .wait-row .t{font-weight:600}
 .done-card .leaf{opacity:.92}
-.jump{display:flex;flex-wrap:wrap;gap:.35rem;margin:0 0 1.6rem}
-.jump a{font-size:.78rem;text-decoration:none;color:var(--ink-2);background:var(--surface);
-border:1px solid var(--line);border-radius:999px;padding:.22rem .6rem}
-.jump a:hover{border-color:var(--accent-line);color:var(--accent)}
-.jump a b{font-family:var(--mono);color:var(--ink-3);font-weight:700}
-h2{scroll-margin-top:1rem}
+/* The pinned bar is the navigation. The counts are links, the layers are links, and it stays
+   put so no section has to be hunted for. */
+.topnav{position:sticky;top:0;z-index:20;margin:0 -1.2rem 1.4rem;padding:.5rem 1.2rem;
+background:var(--chrome);border-bottom:1px solid var(--chrome-line);backdrop-filter:saturate(1.4) blur(6px)}
+.topnav-in{display:flex;align-items:center;gap:.4rem;flex-wrap:wrap}
+.nav-kpi{display:flex;align-items:baseline;gap:.3rem;text-decoration:none;color:var(--ink-2);
+background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:.16rem .6rem}
+.nav-kpi b{font-family:var(--mono);font-size:.95rem;color:var(--ink)}
+.nav-kpi span{font-size:.72rem}
+.nav-kpi:hover,.nav-lay:hover{border-color:var(--accent-line);color:var(--accent)}
+.nav-sep{width:1px;height:1.1rem;background:var(--line-2);margin:0 .2rem}
+.nav-lay{font-size:.74rem;text-decoration:none;color:var(--ink-3);border:1px solid transparent;
+border-radius:999px;padding:.16rem .45rem}
+h2{scroll-margin-top:4.2rem}
+h3{scroll-margin-top:4.2rem}
+.done-fold{margin:.3rem 0 0}
+.done-summary{cursor:pointer;display:flex;gap:.5rem;align-items:baseline;padding:.5rem .75rem;
+background:var(--surface);border:1px solid var(--line);border-radius:10px;list-style:none}
+.done-summary::-webkit-details-marker{display:none}
+.done-summary::before{content:'\25B8';color:var(--ink-3);font-size:.8rem}
+.done-fold[open] .done-summary::before{content:'\25BE'}
+.done-summary:hover{border-color:var(--accent-line)}
+.section-title{font-weight:650}
 .h3sub{font-size:.98rem;margin:1.2rem 0 .5rem;color:var(--ink-2)}
 .kpi a{color:inherit;text-decoration:none}
 </style>
 <div class="wrap"><h1>EARB self-assessment: backlog</h1>
-<p class="sub">Layers are the spine, the three views sit inside the interface layer, and every item appears once. Finished work moves to Done, which is split into what came after Dan's review and what he had already seen, and stays there for good. The links below jump to any section. Updated 2026-09-01.</p>
-<div class="kpis">
-<div class="kpi"><b>17</b><span>next</span></div>
-<div class="kpi"><b>8</b><span><a href="#waiting">waiting on somebody</a></span></div>
-<div class="kpi"><b>12</b><span>later</span></div>
-<div class="kpi"><b>52</b><span><a href="#done">done</a></span></div>
-<div class="kpi"><b>11</b><span>open questions</span></div>
-</div>
-<nav class="jump">
-<a href="#quick">Quick actions <b>2</b></a>
-<a href="#waiting">Waiting on somebody <b>8</b></a>
-<a href="#done">Done <b>52</b></a>
-<a href="#resolved">Resolved questions <b>10</b></a>
-<a href="#questions">Open questions <b>11</b></a>
-<a href="#layer-0">Question set</a>
-<a href="#layer-1">Engine</a>
-<a href="#layer-2">Interface: the submitter</a>
-<a href="#layer-3">Interface: the assessor</a>
-<a href="#layer-4">Interface: admin</a>
-<a href="#layer-5">Interface: the executive view</a>
-<a href="#layer-6">Data and hosting</a>
-<a href="#layer-7">Process, for people</a>
-</nav>
+<p class="sub">Updated 2026-09-01.</p>
+<nav class="topnav"><div class="topnav-in">
+<a class="nav-kpi" href="#quick"><b>17</b><span>next</span></a>
+<a class="nav-kpi" href="#waiting"><b>8</b><span>waiting on somebody</span></a>
+<a class="nav-kpi" href="#done"><b>52</b><span>done</span></a>
+<a class="nav-kpi" href="#questions"><b>11</b><span>open questions</span></a>
+<span class="nav-sep"></span>
+<a class="nav-lay" href="#layer-0">Question set</a>
+<a class="nav-lay" href="#layer-1">Engine</a>
+<a class="nav-lay" href="#layer-2">the submitter</a>
+<a class="nav-lay" href="#layer-3">the assessor</a>
+<a class="nav-lay" href="#layer-4">admin</a>
+<a class="nav-lay" href="#layer-5">the executive view</a>
+<a class="nav-lay" href="#layer-6">Data and hosting</a>
+<a class="nav-lay" href="#layer-7">Process, for people</a>
+<a class="nav-lay" href="#resolved">Resolved</a>
+</div></nav>
 <h2 id="quick">Quick actions</h2><p class="hint">No discussion needed.</p>
 <div class="card quick">
 <div class="leaf solo">
@@ -306,222 +320,241 @@ h2{scroll-margin-top:1rem}
 <span class="w">His call. Blocks nothing we build.</span>
 </div>
 </div>
-<h2 id="done">Done</h2><p class="hint">Built and tested, and kept here permanently. Nothing on this list has to be remembered.</p>
-<h3 class="h3sub">Since Dan's review on 1 September &mdash; 50 items</h3>
-<p class="hint">This is the list to walk him through. Everything here came out of that conversation.</p>
+<h2 id="done">Done</h2>
+<p class="hint">Built and tested, kept for good, newest first. 50 items since Dan's review on 1 September.</p>
+<details class="done-fold"><summary class="done-summary">
+<span class="section-title">Everything done</span><span class="muted small">52 items, by layer</span>
+</summary>
+<h3 class="h3sub">Quick action <span class="muted small">17</span></h3>
 <div class="card done-card">
 <div class="leaf solo">
-<span class="t">The marking question is about the evidence</span><span class="st st-done">Done</span>
-<span class="w"><span class="done-layer">Quick action</span> &middot; The assessment is always unclassified, so asking how the assessment is marked was the wrong question. It asks for the highest marking of the artefacts the answers point at, which is what an assessor needs access to.</span>
-</div>
-<div class="leaf solo">
-<span class="t">The banner stops printing the wrong marking</span><span class="st st-done">Done</span>
-<span class="w"><span class="done-layer">Quick action</span> &middot; Choosing Protected A stamped PROTECTED A across an unclassified document, top, bottom and every printout. It reads UNCLASSIFIED with "evidence up to Protected A" beside it.</span>
-</div>
-<div class="leaf solo">
-<span class="t">The email subject line is readable</span><span class="st st-done">Done</span>
-<span class="w"><span class="done-layer">Quick action</span> &middot; It said "EARB evidence - m - [question]", with a placeholder nobody filled in. It now names what it is, the initiative and the question number, and the evidence box offers a Copy button.</span>
-</div>
-<div class="leaf solo">
-<span class="t">The save badge says there is no online copy</span><span class="st st-done">Done</span>
-<span class="w"><span class="done-layer">Quick action</span> &middot; She asked where to save online. There is nowhere, and the badge now says so on hover instead of leaving "draft saved" to be read as the whole story.</span>
-</div>
-<div class="leaf solo">
-<span class="t">A library of question sets</span><span class="st st-done">Done</span>
-<span class="w"><span class="done-layer">Quick action</span> &middot; Sets accumulate now. Settings lists every one this browser holds, marks the one in use, and takes another. Adding one keeps the old ones and becomes current. Deleting is two steps, offers the file back first, and is refused on the built-in set and on the set in use.</span>
-</div>
-<div class="leaf solo">
-<span class="t">Question ids lose a letter</span><span class="st st-done">Done</span>
-<span class="w"><span class="done-layer">Quick action</span> &middot; BU-Q1 is now B-Q1. The four domain initials are distinct, so the second letter carried nothing. Cheap today because no real submission exists; expensive once ids are column names in somebody exported spreadsheet.</span>
-</div>
-<div class="leaf solo">
-<span class="t">Nothing is destroyed in one step</span><span class="st st-done">Done</span>
-<span class="w"><span class="done-layer">Quick action</span> &middot; An audit found twenty destructive actions and eleven of them destroyed something with no prompt at all. Every one now asks, keeps a copy where it can, or leaves the work alone.</span>
-</div>
-<div class="leaf solo">
-<span class="t">Not applicable hides the scale and keeps the score</span><span class="st st-done">Done</span>
-<span class="w"><span class="done-layer">Quick action</span> &middot; The eleven descriptions explain a score, and a question that does not apply has none. Ticking the box also used to erase the score, and unticking did not give it back.</span>
-</div>
-<div class="leaf solo">
-<span class="t">The frame stops reading as part of the page</span><span class="st st-done">Done</span>
-<span class="w"><span class="done-layer">Quick action</span> &middot; Measured: the header separated from the page by 1.13 to 1 in light and 1.08 to 1 in dark, and the page footer was exactly the page colour. The frame has its own edge token, the dark frame is now lighter than the page instead of darker, the footer has a ground, and a shadow appears only once content scrolls under it.</span>
-</div>
-<div class="leaf solo">
-<span class="t">The rail stops repeating the domain tabs on a narrow screen</span><span class="st st-done">Done</span>
-<span class="w"><span class="done-layer">Quick action</span> &middot; Below 860px the rail lies down into a strip under the tabs. On the overview it had no section rows to show, so the same five items appeared twice. Found while checking the marking banner on the live page.</span>
-</div>
-<div class="leaf solo">
-<span class="t">The prose linter takes any file</span><span class="st st-done">Done</span>
-<span class="w"><span class="done-layer">Quick action</span> &middot; The writing rules were being applied from memory for chat replies, and em dashes went out. Replies go through the same linter as the app copy now.</span>
-</div>
-<div class="leaf solo">
-<span class="t">Backlog gets jump links and a Done section that stays</span><span class="st st-done">Done</span>
-<span class="w"><span class="done-layer">Quick action</span> &middot; Done was at the bottom of eight layers with no way to reach it. Every section now has a link at the top, and Done is split into what came after Dan’s review and what he had already seen.</span>
-</div>
-<div class="leaf solo">
-<span class="t">Every backlog item carries its reason</span><span class="st st-done">Done</span>
-<span class="w"><span class="done-layer">Quick action</span> &middot; Five items had a title and nothing else, so they read as jargon. All of them now say why they exist.</span>
-</div>
-<div class="leaf solo">
-<span class="t">Rail’s Overview row shows a count and a bar</span><span class="st st-done">Done</span>
-<span class="w"><span class="done-layer">Quick action</span> &middot; Every other rail row had both; Overview had neither, which reads as a row stuck at zero.</span>
-</div>
-<div class="leaf solo">
-<span class="t">Overview bar moves on the first keystroke</span><span class="st st-done">Done</span>
-<span class="w"><span class="done-layer">Quick action</span> &middot; It counted the three groups, and group one needs four fields. It now measures the six fields while the count still reads in groups.</span>
+<span class="t">Settings marks the unbuilt parts as unbuilt</span><span class="st st-done">Done</span>
+<span class="w">It promised a submit act and a withdrawal path as though both existed. Neither is written, and copy that describes a feature has to say whether the feature is there.</span>
 </div>
 <div class="leaf solo">
 <span class="t">README and Settings stop describing a local-only tool</span><span class="st st-done">Done</span>
-<span class="w"><span class="done-layer">Quick action</span> &middot; Both said the tool cannot transmit and that the repo is private. Neither was true.</span>
+<span class="w">Both said the tool cannot transmit and that the repo is private. Neither was true.</span>
 </div>
 <div class="leaf solo">
-<span class="t">Settings marks the unbuilt parts as unbuilt</span><span class="st st-done">Done</span>
-<span class="w"><span class="done-layer">Quick action</span> &middot; It promised a submit act and a withdrawal path as though both existed. Neither is written, and copy that describes a feature has to say whether the feature is there.</span>
+<span class="t">Overview bar moves on the first keystroke</span><span class="st st-done">Done</span>
+<span class="w">It counted the three groups, and group one needs four fields. It now measures the six fields while the count still reads in groups.</span>
 </div>
 <div class="leaf solo">
-<span class="t">Multiple answer types</span><span class="st st-done">Done</span>
-<span class="w"><span class="done-layer">Engine</span> &middot; A type field with scale as the default, so nothing existing breaks.</span>
+<span class="t">Rail’s Overview row shows a count and a bar</span><span class="st st-done">Done</span>
+<span class="w">Every other rail row had both; Overview had neither, which reads as a row stuck at zero.</span>
 </div>
 <div class="leaf solo">
-<span class="t">A no answer colours its section</span><span class="st st-done">Done</span>
-<span class="w"><span class="done-layer">Engine</span> &middot; The question, its section, its rail row and its domain tab. It stops nothing.</span>
+<span class="t">Every backlog item carries its reason</span><span class="st st-done">Done</span>
+<span class="w">Five items had a title and nothing else, so they read as jargon. All of them now say why they exist.</span>
 </div>
 <div class="leaf solo">
-<span class="t">Topic metadata and per-topic roll-up</span><span class="st st-done">Done</span>
-<span class="w"><span class="done-layer">Engine</span> &middot; Security, privacy, cost, data, business and technology, visible without inventing a fifth domain.</span>
+<span class="t">Backlog gets jump links and a Done section that stays</span><span class="st st-done">Done</span>
+<span class="w">Done was at the bottom of eight layers with no way to reach it. Every section now has a link at the top, and Done is split into what came after Dan’s review and what he had already seen.</span>
 </div>
 <div class="leaf solo">
-<span class="t">Two-topic scoring</span><span class="st st-done">Done</span>
-<span class="w"><span class="done-layer">Engine</span> &middot; Once in the overall, at full weight inside each topic, because the weight genuinely differs by topic.</span>
+<span class="t">The prose linter takes any file</span><span class="st st-done">Done</span>
+<span class="w">The writing rules were being applied from memory for chat replies, and em dashes went out. Replies go through the same linter as the app copy now.</span>
+</div>
+<div class="leaf solo">
+<span class="t">The rail stops repeating the domain tabs on a narrow screen</span><span class="st st-done">Done</span>
+<span class="w">Below 860px the rail lies down into a strip under the tabs. On the overview it had no section rows to show, so the same five items appeared twice. Found while checking the marking banner on the live page.</span>
+</div>
+<div class="leaf solo">
+<span class="t">The frame stops reading as part of the page</span><span class="st st-done">Done</span>
+<span class="w">Measured: the header separated from the page by 1.13 to 1 in light and 1.08 to 1 in dark, and the page footer was exactly the page colour. The frame has its own edge token, the dark frame is now lighter than the page instead of darker, the footer has a ground, and a shadow appears only once content scrolls under it.</span>
+</div>
+<div class="leaf solo">
+<span class="t">Not applicable hides the scale and keeps the score</span><span class="st st-done">Done</span>
+<span class="w">The eleven descriptions explain a score, and a question that does not apply has none. Ticking the box also used to erase the score, and unticking did not give it back.</span>
+</div>
+<div class="leaf solo">
+<span class="t">Nothing is destroyed in one step</span><span class="st st-done">Done</span>
+<span class="w">An audit found twenty destructive actions and eleven of them destroyed something with no prompt at all. Every one now asks, keeps a copy where it can, or leaves the work alone.</span>
+</div>
+<div class="leaf solo">
+<span class="t">Question ids lose a letter</span><span class="st st-done">Done</span>
+<span class="w">BU-Q1 is now B-Q1. The four domain initials are distinct, so the second letter carried nothing. Cheap today because no real submission exists; expensive once ids are column names in somebody exported spreadsheet.</span>
+</div>
+<div class="leaf solo">
+<span class="t">A library of question sets</span><span class="st st-done">Done</span>
+<span class="w">Sets accumulate now. Settings lists every one this browser holds, marks the one in use, and takes another. Adding one keeps the old ones and becomes current. Deleting is two steps, offers the file back first, and is refused on the built-in set and on the set in use.</span>
+</div>
+<div class="leaf solo">
+<span class="t">The save badge says there is no online copy</span><span class="st st-done">Done</span>
+<span class="w">She asked where to save online. There is nowhere, and the badge now says so on hover instead of leaving "draft saved" to be read as the whole story.</span>
+</div>
+<div class="leaf solo">
+<span class="t">The email subject line is readable</span><span class="st st-done">Done</span>
+<span class="w">It said "EARB evidence - m - [question]", with a placeholder nobody filled in. It now names what it is, the initiative and the question number, and the evidence box offers a Copy button.</span>
+</div>
+<div class="leaf solo">
+<span class="t">The banner stops printing the wrong marking</span><span class="st st-done">Done</span>
+<span class="w">Choosing Protected A stamped PROTECTED A across an unclassified document, top, bottom and every printout. It reads UNCLASSIFIED with "evidence up to Protected A" beside it.</span>
+</div>
+<div class="leaf solo">
+<span class="t">The marking question is about the evidence</span><span class="st st-done">Done</span>
+<span class="w">The assessment is always unclassified, so asking how the assessment is marked was the wrong question. It asks for the highest marking of the artefacts the answers point at, which is what an assessor needs access to.</span>
+</div>
+</div>
+<h3 class="h3sub">Engine <span class="muted small">6</span></h3>
+<div class="card done-card">
+<div class="leaf solo">
+<span class="t">The three calls a real write needs</span><span class="st st-done">Done</span>
+<span class="w">Saving, saved, failed with a reason. Nothing drives them yet, so the wording is settled before the write exists.</span>
 </div>
 <div class="leaf solo">
 <span class="t">The store seam</span><span class="st st-done">Done</span>
-<span class="w"><span class="done-layer">Engine</span> &middot; src/store.ts. One constant from live, and the dashboard already reads through it.</span>
+<span class="w">src/store.ts. One constant from live, and the dashboard already reads through it.</span>
 </div>
 <div class="leaf solo">
-<span class="t">The three calls a real write needs</span><span class="st st-done">Done</span>
-<span class="w"><span class="done-layer">Engine</span> &middot; Saving, saved, failed with a reason. Nothing drives them yet, so the wording is settled before the write exists.</span>
+<span class="t">Two-topic scoring</span><span class="st st-done">Done</span>
+<span class="w">Once in the overall, at full weight inside each topic, because the weight genuinely differs by topic.</span>
 </div>
 <div class="leaf solo">
-<span class="t">Ask for a link</span><span class="st st-done">Done</span>
-<span class="w"><span class="done-layer">Interface: the submitter</span> &middot; Point at where it lives, and make sure your assessor can open it.</span>
+<span class="t">Topic metadata and per-topic roll-up</span><span class="st st-done">Done</span>
+<span class="w">Security, privacy, cost, data, business and technology, visible without inventing a fifth domain.</span>
 </div>
 <div class="leaf solo">
-<span class="t">Email fallback, with a pattern</span><span class="st st-done">Done</span>
-<span class="w"><span class="done-layer">Interface: the submitter</span> &middot; Marking, sent by email, subject line written for you, so an assessor can find it.</span>
+<span class="t">A no answer colours its section</span><span class="st st-done">Done</span>
+<span class="w">The question, its section, its rail row and its domain tab. It stops nothing.</span>
 </div>
 <div class="leaf solo">
-<span class="t">Any marking above unclassified takes over the screen</span><span class="st st-done">Done</span>
-<span class="w"><span class="done-layer">Interface: the submitter</span> &middot; Whichever control set it. The strip, the picker, and anything added later go through one function, so they cannot drift apart again.</span>
+<span class="t">Multiple answer types</span><span class="st st-done">Done</span>
+<span class="w">A type field with scale as the default, so nothing existing breaks.</span>
 </div>
-<div class="leaf solo">
-<span class="t">The close control is dead until the box is ticked</span><span class="st st-done">Done</span>
-<span class="w"><span class="done-layer">Interface: the submitter</span> &middot; Grey and unclickable, and it says "tick the box first". Escape does not dismiss it and clicking outside does nothing.</span>
 </div>
+<h3 class="h3sub">Interface: the submitter <span class="muted small">12</span></h3>
+<div class="card done-card">
 <div class="leaf solo">
-<span class="t">The way out changes the answer</span><span class="st st-done">Done</span>
-<span class="w"><span class="done-layer">Interface: the submitter</span> &middot; An accidental click needs an exit that is not a dismissal: "this is unclassified after all" sets the marking back rather than waving the warning away.</span>
-</div>
-<div class="leaf solo">
-<span class="t">It asks once, not every time</span><span class="st st-done">Done</span>
-<span class="w"><span class="done-layer">Interface: the submitter</span> &middot; After the pledge, switching between classified markings does not ask again. The panel on the overview stays as the reference.</span>
-</div>
-<div class="leaf solo">
-<span class="t">The unmarked banner lands on the marking question</span><span class="st st-done">Done</span>
-<span class="w"><span class="done-layer">Interface: the submitter</span> &middot; It scrolled to an element that only exists on the overview, so from any of the twenty question pages it did nothing at all.</span>
-</div>
-<div class="leaf solo">
-<span class="t">One big unclassified tile, the six grouped behind it</span><span class="st st-done">Done</span>
-<span class="w"><span class="done-layer">Interface: the submitter</span> &middot; The default must not be taxed by the rare path.</span>
-</div>
-<div class="leaf solo">
-<span class="t">Classified panel with an acknowledgement toggle</span><span class="st st-done">Done</span>
-<span class="w"><span class="done-layer">Interface: the submitter</span> &middot; What to do instead, at the moment it is relevant.</span>
-</div>
-<div class="leaf solo">
-<span class="t">Save status indicator</span><span class="st st-done">Done</span>
-<span class="w"><span class="done-layer">Interface: the submitter</span> &middot; Draft in browser, saving, saved, or not saved with a reason. It sits in the header now, so it is on every screen and on a phone; it was on the 21 question pages only, and CSS hid it below 720px.</span>
+<span class="t">One live indicator, not one per repaint</span><span class="st st-done">Done</span>
+<span class="w">Each repaint added another listener holding a dead node. Harmless while the state never changed, and a leak the moment writes start.</span>
 </div>
 <div class="leaf solo">
 <span class="t">Silent until something is actually written</span><span class="st st-done">Done</span>
-<span class="w"><span class="done-layer">Interface: the submitter</span> &middot; It opened at "draft saved in browser" on an empty page, which is a claim ahead of the fact.</span>
+<span class="w">It opened at "draft saved in browser" on an empty page, which is a claim ahead of the fact.</span>
 </div>
 <div class="leaf solo">
-<span class="t">One live indicator, not one per repaint</span><span class="st st-done">Done</span>
-<span class="w"><span class="done-layer">Interface: the submitter</span> &middot; Each repaint added another listener holding a dead node. Harmless while the state never changed, and a leak the moment writes start.</span>
+<span class="t">Save status indicator</span><span class="st st-done">Done</span>
+<span class="w">Draft in browser, saving, saved, or not saved with a reason. It sits in the header now, so it is on every screen and on a phone; it was on the 21 question pages only, and CSS hid it below 720px.</span>
 </div>
 <div class="leaf solo">
-<span class="t">Mockup verification screen</span><span class="st st-done">Done</span>
-<span class="w"><span class="done-layer">Interface: the assessor</span> &middot; Labelled a mockup, the departmental-account button visibly disabled, everything unverified.</span>
+<span class="t">Classified panel with an acknowledgement toggle</span><span class="st st-done">Done</span>
+<span class="w">What to do instead, at the moment it is relevant.</span>
 </div>
 <div class="leaf solo">
-<span class="t">Nothing an assessor typed is overwritten silently</span><span class="st st-done">Done</span>
-<span class="w"><span class="done-layer">Interface: the assessor</span> &middot; Four places did it. Agree-with-all replaced a verdict somebody had already given, the note field rewrote the reason on whatever change was last in the trail, reloading a file of the same name discarded the audit attached to it without a word, and the email button wrote over a link somebody had typed.</span>
+<span class="t">One big unclassified tile, the six grouped behind it</span><span class="st st-done">Done</span>
+<span class="w">The default must not be taxed by the rare path.</span>
 </div>
 <div class="leaf solo">
-<span class="t">Justification required on a changed score</span><span class="st st-done">Done</span>
-<span class="w"><span class="done-layer">Interface: the assessor</span> &middot; His rule. The file cannot be saved while one is missing, and the button says how many are outstanding.</span>
+<span class="t">The unmarked banner lands on the marking question</span><span class="st st-done">Done</span>
+<span class="w">It scrolled to an element that only exists on the overview, so from any of the twenty question pages it did nothing at all.</span>
 </div>
 <div class="leaf solo">
-<span class="t">Accept-all per section</span><span class="st st-done">Done</span>
-<span class="w"><span class="done-layer">Interface: the assessor</span> &middot; He asked for it by name. It touches no score, and skips any changed score that still needs a reason.</span>
+<span class="t">It asks once, not every time</span><span class="st st-done">Done</span>
+<span class="w">After the pledge, switching between classified markings does not ask again. The panel on the overview stays as the reference.</span>
 </div>
 <div class="leaf solo">
-<span class="t">Assessor recorded per question</span><span class="st st-done">Done</span>
-<span class="w"><span class="done-layer">Interface: the assessor</span> &middot; Two assessors on one high-profile file. Each change carries a name, a time and a reason.</span>
+<span class="t">The way out changes the answer</span><span class="st st-done">Done</span>
+<span class="w">An accidental click needs an exit that is not a dismissal: "this is unclassified after all" sets the marking back rather than waving the warning away.</span>
 </div>
 <div class="leaf solo">
-<span class="t">The edit exchange, visible</span><span class="st st-done">Done</span>
-<span class="w"><span class="done-layer">Interface: the assessor</span> &middot; The line says it was edited and by whom. The full back and forth opens on request, and nothing is overwritten.</span>
+<span class="t">The close control is dead until the box is ticked</span><span class="st st-done">Done</span>
+<span class="w">Grey and unclickable, and it says "tick the box first". Escape does not dismiss it and clicking outside does nothing.</span>
+</div>
+<div class="leaf solo">
+<span class="t">Any marking above unclassified takes over the screen</span><span class="st st-done">Done</span>
+<span class="w">Whichever control set it. The strip, the picker, and anything added later go through one function, so they cannot drift apart again.</span>
+</div>
+<div class="leaf solo">
+<span class="t">Email fallback, with a pattern</span><span class="st st-done">Done</span>
+<span class="w">Marking, sent by email, subject line written for you, so an assessor can find it.</span>
+</div>
+<div class="leaf solo">
+<span class="t">Ask for a link</span><span class="st st-done">Done</span>
+<span class="w">Point at where it lives, and make sure your assessor can open it.</span>
+</div>
+</div>
+<h3 class="h3sub">Interface: the assessor <span class="muted small">8</span></h3>
+<div class="card done-card">
+<div class="leaf solo">
+<span class="t">Load a question set moves here</span><span class="st st-done">Done</span>
+<span class="w">It belongs to whoever maintains the instrument. A submitter is told where it lives and not handed the control.</span>
 </div>
 <div class="leaf solo">
 <span class="t">Evidence read-only</span><span class="st st-done">Done</span>
-<span class="w"><span class="done-layer">Interface: the assessor</span> &middot; Already true, and now held true by a test.</span>
+<span class="w">Already true, and now held true by a test.</span>
 </div>
 <div class="leaf solo">
-<span class="t">Load a question set moves here</span><span class="st st-done">Done</span>
-<span class="w"><span class="done-layer">Interface: the assessor</span> &middot; It belongs to whoever maintains the instrument. A submitter is told where it lives and not handed the control.</span>
+<span class="t">The edit exchange, visible</span><span class="st st-done">Done</span>
+<span class="w">The line says it was edited and by whom. The full back and forth opens on request, and nothing is overwritten.</span>
 </div>
 <div class="leaf solo">
-<span class="t">Reachable without going through the assessor view</span><span class="st st-done">Done</span>
-<span class="w"><span class="done-layer">Interface: admin</span> &middot; It sat behind two clicks on the assessor side with nothing on the start page pointing at it. There is a line under the assessor link now, and it asks who you are the same way.</span>
+<span class="t">Assessor recorded per question</span><span class="st st-done">Done</span>
+<span class="w">Two assessors on one high-profile file. Each change carries a name, a time and a reason.</span>
 </div>
 <div class="leaf solo">
-<span class="t">Averages by domain and by topic</span><span class="st st-done">Done</span>
-<span class="w"><span class="done-layer">Interface: admin</span> &middot; The topic cut is the one a single assessment cannot show: security spread thin over four domains looks fine in each of them.</span>
+<span class="t">Accept-all per section</span><span class="st st-done">Done</span>
+<span class="w">He asked for it by name. It touches no score, and skips any changed score that still needs a reason.</span>
 </div>
 <div class="leaf solo">
-<span class="t">Every record, weakest first</span><span class="st st-done">Done</span>
-<span class="w"><span class="done-layer">Interface: admin</span> &middot; The list is a worklist. Red rows are the ones with a no answer.</span>
+<span class="t">Justification required on a changed score</span><span class="st st-done">Done</span>
+<span class="w">His rule. The file cannot be saved while one is missing, and the button says how many are outstanding.</span>
+</div>
+<div class="leaf solo">
+<span class="t">Nothing an assessor typed is overwritten silently</span><span class="st st-done">Done</span>
+<span class="w">Four places did it. Agree-with-all replaced a verdict somebody had already given, the note field rewrote the reason on whatever change was last in the trail, reloading a file of the same name discarded the audit attached to it without a word, and the email button wrote over a link somebody had typed.</span>
+</div>
+<div class="leaf solo">
+<span class="t">Mockup verification screen</span><span class="st st-done">Done</span>
+<span class="w">Labelled a mockup, the departmental-account button visibly disabled, everything unverified.</span>
+</div>
+</div>
+<h3 class="h3sub">Interface: admin <span class="muted small">5</span></h3>
+<div class="card done-card">
+<div class="leaf solo">
+<span class="t">It says what it can currently see</span><span class="st st-done">Done</span>
+<span class="w">With no store, that is this browser and the files opened this session. The page says so rather than looking live.</span>
 </div>
 <div class="leaf solo">
 <span class="t">Portfolio CSV</span><span class="st st-done">Done</span>
-<span class="w"><span class="done-layer">Interface: admin</span> &middot; One row per record, topic columns included.</span>
+<span class="w">One row per record, topic columns included.</span>
 </div>
 <div class="leaf solo">
-<span class="t">It says what it can currently see</span><span class="st st-done">Done</span>
-<span class="w"><span class="done-layer">Interface: admin</span> &middot; With no store, that is this browser and the files opened this session. The page says so rather than looking live.</span>
+<span class="t">Every record, weakest first</span><span class="st st-done">Done</span>
+<span class="w">The list is a worklist. Red rows are the ones with a no answer.</span>
+</div>
+<div class="leaf solo">
+<span class="t">Averages by domain and by topic</span><span class="st st-done">Done</span>
+<span class="w">The topic cut is the one a single assessment cannot show: security spread thin over four domains looks fine in each of them.</span>
+</div>
+<div class="leaf solo">
+<span class="t">Reachable without going through the assessor view</span><span class="st st-done">Done</span>
+<span class="w">It sat behind two clicks on the assessor side with nothing on the start page pointing at it. There is a line under the assessor link now, and it asks who you are the same way.</span>
+</div>
+</div>
+<h3 class="h3sub">Data and hosting <span class="muted small">2</span></h3>
+<div class="card done-card">
+<div class="leaf solo">
+<span class="t">Reply to Nick: transfer the existing repo</span><span class="st st-done">Done</span>
+<span class="w">Sent. 28 commits of history, all yours.</span>
 </div>
 <div class="leaf solo">
 <span class="t">GitHub Pages cannot serve a private repo on a free account</span><span class="st st-done">Done</span>
-<span class="w"><span class="done-layer">Data and hosting</span> &middot; Checked: all 35 Pages sites in canada-ca come from public repos, and no private repo there serves one. This is why a separate public preview repo exists.</span>
-</div>
-<div class="leaf solo">
-<span class="t">Reply to Nick: transfer the existing repo</span><span class="st st-done">Done</span>
-<span class="w"><span class="done-layer">Data and hosting</span> &middot; Sent. 28 commits of history, all yours.</span>
+<span class="w">Checked: all 35 Pages sites in canada-ca come from public repos, and no private repo there serves one. This is why a separate public preview repo exists.</span>
 </div>
 </div>
 <h3 class="h3sub">Already there when he reviewed it</h3>
 <div class="card done-card">
 <div class="leaf solo">
 <span class="t">Submitter answers and assessor scores are separate fields</span><span class="st st-done">Done</span>
-<span class="w"><span class="done-layer">Engine</span> &middot; Which is why a submitter and an assessor cannot collide at all.</span>
+<span class="w">Which is why a submitter and an assessor cannot collide at all.</span>
 </div>
 <div class="leaf solo">
 <span class="t">Draft the email</span><span class="st st-done">Done</span>
-<span class="w"><span class="done-layer">Data and hosting</span> &middot; Opens the person’s own mail client with the message written. All a static page can do.</span>
+<span class="w">Opens the person’s own mail client with the message written. All a static page can do.</span>
 </div>
 </div>
+</details>
 <h2 id="resolved">Resolved questions</h2><p class="hint">Settled, and how.</p>
 <div class="callout"><div class="q">Should the tool hold classified information?</div><div class="a"><b>Resolved.</b> No. Nothing protected or classified goes in at all, settled with Dan on 1 September. That removed the second deployment, the local-only engine, the theme switch, and the whole recall problem.</div></div>
 <div class="callout"><div class="q">What happens to online data when a marking rises?</div><div class="a"><b>Resolved.</b> Dropped. The tool never stores classified evidence, so the question cannot arise.</div></div>
