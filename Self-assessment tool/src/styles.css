@@ -951,6 +951,8 @@ code.mark-subject { display: block; margin: .25rem 0; }
 .danger-text { color: var(--bad); }
 .danger-text[disabled] { color: var(--ink-3); }
 
+.sitefoot .proto { color: var(--warn); font-weight: 600; }
+
 .ref-line { margin: .1rem 0 .6rem; color: var(--ink-2); }
 .ref-line b { letter-spacing: .08em; }
 .ref-chip { display: inline-block; border: 1px solid var(--line-2); border-radius: 5px;

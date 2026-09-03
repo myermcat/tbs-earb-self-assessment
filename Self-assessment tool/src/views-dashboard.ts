@@ -24,10 +24,15 @@ export function renderDashboard(root: HTMLElement, rubric: Rubric, sessionFiles:
     el('p', { class: 'muted' }, ['Reading the records…']),
   ]));
 
-  void listRecords(sessionFiles).then((records) => paint(root, rubric, records));
+  void listRecords(sessionFiles).then((records) => paint(root, rubric, records, sessionFiles));
 }
 
-function paint(root: HTMLElement, rubric: Rubric, records: StoredRecord[]): void {
+function paint(
+  root: HTMLElement,
+  rubric: Rubric,
+  records: StoredRecord[],
+  sessionFiles: Assessment[] = [],
+): void {
   clear(root);
 
   // Withdrawn records stay in the list and out of every statistic.
@@ -65,6 +70,15 @@ function paint(root: HTMLElement, rubric: Rubric, records: StoredRecord[]): void
         : 'Nothing is hosted yet, so this page can only see what this browser and this session hold. The day a store exists, the same page reads the whole portfolio. The numbers below are computed the same way in both cases.',
     ]),
     el('p', { class: 'small' }, ['Showing: ', el('b', {}, [sourceLine(records)]), '.']),
+    // Key-value storage is eventually consistent: a write can take a minute to be visible at
+    // another location, and longer at one that read the old list recently. Somebody watching
+    // for a submission that has just been sent needs to know that before they assume it lost.
+    isHosted()
+      ? el('p', { class: 'small muted' }, [
+          'A submission can take up to a minute to appear here, and longer if this page read the list a moment ago. ',
+          el('button', { class: 'ghost small', onclick: () => renderDashboard(root, rubric, sessionFiles) }, ['Check again']),
+        ])
+      : null,
     el('div', { class: 'kpi-row' }, [
       kpi(String(live.length), live.length === 1 ? 'record' : 'records'),
       kpi(avg === null ? '--' : avg.toFixed(1), 'average overall'),
