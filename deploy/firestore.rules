@@ -1,0 +1,93 @@
+// The store, with sign-in, for the prototype.
+//
+// This is the alternative to deploy/worker.js, and the better one now that sign-in is on the
+// table. There is no program of ours in the middle: the page talks to the database, and Google
+// enforces these rules on every request. That is how a phone app talks to Firebase, and it is
+// what makes per-person access possible.
+//
+// WHY THIS BEATS THE WORKER
+//
+//   A Canadian region can be chosen. Create the database in northamerica-northeast1, which is
+//   Montreal. Cloudflare cannot offer that.
+//
+//   Nothing is publicly readable. With sign-in, a rule can name the person; without it, the
+//   only rule available is "anybody may read", which would publish every draft.
+//
+//   Roles live in the database, so an admin grants them and the rules enforce them.
+//
+// WHAT SOMEBODY HAS TO DO ONCE
+//
+//   1. console.firebase.google.com, add a project. No card.
+//   2. Build > Firestore Database > Create, and choose northamerica-northeast1 (Montreal).
+//      The region cannot be changed afterwards, so choose it now.
+//   3. Build > Authentication > Sign-in method > Email link (passwordless sign-in), enable.
+//      A person types their work address and clicks the link in the mail. No password exists.
+//   4. Paste these rules into Firestore Database > Rules and publish.
+//   5. Project settings > General > Your apps > Web, register one, copy the config.
+//   6. Firestore Database > Data, create a document at roles/<your-email> with
+//      { "role": "admin" }. That is the first admin, and from then on an admin makes the rest.
+//
+// THE RULES BELOW, IN WORDS
+//
+//   A signed-in person may create an assessment and read and change their own.
+//   An assessor may read every submitted assessment and write the audit on it, and may never
+//   touch anybody's answers or evidence.
+//   An admin may do what an assessor may, plus grant roles.
+//   Nobody may delete anything, ever, and that is enforced by Google rather than by us.
+
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Who is who. Only an admin writes here, so a person cannot promote themselves.
+    match /roles/{email} {
+      allow get: if request.auth != null && request.auth.token.email == email;
+      allow list, create, update: if isAdmin();
+      allow delete: if false;
+    }
+
+    match /assessments/{id} {
+      allow create: if signedIn() && request.resource.data.ownerEmail == email();
+
+      // The submitter reads and changes their own. An assessor or an admin reads any.
+      allow get: if isOwner() || isAssessor();
+      allow list: if isAssessor();
+
+      // The submitter may change their own answers. An assessor may not: the audit is a
+      // separate document, so an assessor writing a score can never overwrite an answer.
+      allow update: if isOwner() && request.resource.data.ownerEmail == resource.data.ownerEmail;
+
+      allow delete: if false;
+
+      // The audit trail, one document per assessment. Append-only from the outside: an
+      // assessor may add to it and may not shorten it.
+      match /audit/{entry} {
+        allow get, list: if isOwner() || isAssessor();
+        allow create, update: if isAssessor();
+        allow delete: if false;
+      }
+    }
+
+    function signedIn() {
+      return request.auth != null && request.auth.token.email_verified == true;
+    }
+    function email() {
+      return request.auth.token.email;
+    }
+    function isOwner() {
+      return signedIn() && resource.data.ownerEmail == email();
+    }
+    function roleOf() {
+      return exists(/databases/$(database)/documents/roles/$(email()))
+        ? get(/databases/$(database)/documents/roles/$(email())).data.role
+        : 'submitter';
+    }
+    function isAssessor() {
+      return signedIn() && (roleOf() == 'assessor' || roleOf() == 'admin');
+    }
+    function isAdmin() {
+      return signedIn() && roleOf() == 'admin';
+    }
+  }
+}

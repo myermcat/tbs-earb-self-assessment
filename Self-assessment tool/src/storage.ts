@@ -171,7 +171,9 @@ export function lastSaveInfo(): { name: string; at: number } | null { return las
 /** The one place an assessment becomes a file, so every save path records that it happened. */
 export function saveAssessmentFile(a: Assessment): string {
   autosave(a);
-  const name = `${slug(a.initiative.name)}-self-assessment.json`;
+  // The reference is in the filename, so two saves of two assessments never look alike in a
+  // downloads folder and an assessor can match a file to an email without opening it.
+  const name = `${slug(a.initiative.name)}-${a.ref ?? 'earb'}-self-assessment.json`;
   download(name, JSON.stringify(a, null, 2));
   lastSave = { name, at: Date.now() };
   return name;

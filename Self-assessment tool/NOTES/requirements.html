@@ -1,0 +1,602 @@
+<title>EARB tool requirements</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2032%2032%22%3E%3Crect%20width%3D%2232%22%20height%3D%2232%22%20rx%3D%227%22%20fill%3D%22%231f6b3c%22%2F%3E%3Cpath%20d%3D%22M9%2017l5%205%209-11%22%20fill%3D%22none%22%20stroke%3D%22%23eaf7ef%22%20stroke-width%3D%223.4%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%2F%3E%3C%2Fsvg%3E">
+<style>
+:root{color-scheme:light;--bg:#f7f8fa;--surface:#fff;--surface-2:#f1f3f6;--line:#e2e6ec;--line-2:#cdd4dd;
+--ink:#16191d;--ink-2:#4a5361;--ink-3:#79828f;--accent:#2a4b8d;--accent-soft:#eaf0fb;--accent-line:#b9caea;
+--good:#1f6b3c;--good-bg:#e9f4ed;--warn:#a8620a;--warn-bg:#fdf3e3;--mono:ui-monospace,SFMono-Regular,Menlo,monospace;
+--chrome:#e7ebf1e6;--chrome-line:#c6cfda}
+@media(prefers-color-scheme:dark){:root{color-scheme:dark;--bg:#101216;--surface:#191c22;--surface-2:#21252d;
+--line:#2b303a;--line-2:#3a4150;--ink:#e8eaee;--ink-2:#a8b0bd;--ink-3:#7b8492;--accent:#6f96e0;
+--accent-soft:#1b2436;--accent-line:#2f4570;--good:#5fbf82;--good-bg:#14251b;--warn:#e0a34a;--warn-bg:#2a2113;
+--chrome:#1e222ae6;--chrome-line:#414957}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1020px;margin:0 auto;padding:.4rem 1.2rem 5rem}
+/* The title band and the pinned bar both run the full width of the window, the way a header
+   does. The text inside them lines up with the column below. */
+.head{background:var(--surface);border-bottom:1px solid var(--line)}
+.head-in{max-width:1020px;margin:0 auto;padding:1.6rem 1.2rem 1rem}
+.head h1{margin:0 0 .2rem}
+.head .sub{margin:0}
+h1{font-size:1.9rem;letter-spacing:-.02em;margin:0 0 .3rem}
+.sub{color:var(--ink-2);margin:0 0 1.5rem;max-width:70ch}
+h2{font-size:1.15rem;margin:2.3rem 0 .6rem;display:flex;align-items:baseline;gap:.6rem;flex-wrap:wrap}
+h2 .owner{font-size:.68rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3);
+border:1px solid var(--line-2);border-radius:999px;padding:.05rem .5rem}
+.hint{color:var(--ink-3);font-size:.85rem;margin:-.35rem 0 .7rem}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(112px,1fr));gap:.55rem;margin:0 0 1.6rem}
+.kpi{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:.6rem .75rem}
+.kpi b{display:block;font-family:var(--mono);font-size:1.45rem;line-height:1.1}
+.kpi span{font-size:.68rem;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-3);font-weight:700}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.card.quick{border-left:3px solid var(--accent)}
+details.grp{border-top:1px solid var(--line)}
+details.grp:first-child{border-top:0}
+summary.row{cursor:pointer;list-style:none;display:grid;grid-template-columns:1rem 1fr auto;gap:.15rem .7rem;
+padding:.7rem .9rem;align-items:center}
+summary.row::-webkit-details-marker{display:none}
+summary.row::before{content:'';width:0;height:0;border-left:5px solid var(--ink-3);
+border-top:4px solid transparent;border-bottom:4px solid transparent;transition:transform .15s;justify-self:center}
+details[open]>summary.row::before{transform:rotate(90deg)}
+summary.row .t{font-weight:650;font-size:.95rem}
+summary.row .w{grid-column:2;color:var(--ink-2);font-size:.84rem;max-width:72ch}
+.leaf{display:grid;grid-template-columns:1rem 1fr auto;gap:.15rem .7rem;padding:.55rem .9rem}
+.leaf.solo{border-top:1px solid var(--line)}
+.leaf .t{grid-column:2;font-weight:600;font-size:.9rem}
+.leaf .w{grid-column:2;color:var(--ink-2);font-size:.82rem;max-width:72ch}
+.subs{background:var(--surface-2);padding:.15rem 0 .35rem;border-top:1px solid var(--line)}
+.subs .leaf{padding-left:2.1rem}
+.n{grid-column:3;justify-self:end;font-family:var(--mono);font-size:.68rem;color:var(--ink-3)}
+.st{grid-column:3;grid-row:1;justify-self:end;font-size:.66rem;font-weight:700;letter-spacing:.06em;
+text-transform:uppercase;border:1px solid;border-radius:999px;padding:.08rem .45rem;white-space:nowrap;height:fit-content}
+.st-done{color:var(--good);border-color:var(--good);background:var(--good-bg)}
+.st-next{color:var(--accent);border-color:var(--accent-line);background:var(--accent-soft)}
+.st-wait{color:var(--warn);border-color:var(--warn);background:var(--warn-bg)}
+.st-later{color:var(--ink-3);border-color:var(--line-2);background:var(--surface-2)}
+.callout{background:var(--good-bg);border-left:3px solid var(--good);border-radius:0 8px 8px 0;padding:.55rem .8rem;margin:.45rem 0 0}
+.callout .q{font-weight:650;font-size:.92rem;margin-bottom:.1rem}
+.callout .a{font-size:.85rem;color:var(--ink-2)}
+.callout .a b{color:var(--good)}
+table{border-collapse:collapse;width:100%;font-size:.87rem;background:var(--surface)}
+th,td{text-align:left;padding:.5rem .7rem;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-size:.68rem;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-3)}
+.tw{overflow-x:auto;border:1px solid var(--line);border-radius:10px}
+footer{margin-top:3rem;color:var(--ink-3);font-size:.8rem}
+.done-layer{font-size:.66rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3)}
+.wait-row .t{font-weight:600}
+.done-card .leaf{opacity:.92}
+/* One requirement per row: the number, the sentence, the state, then who owes it and why it
+   is there. The number is what gets quoted, so it is first and it is monospaced. */
+.reqs{display:flex;flex-direction:column;gap:0}
+.req{display:grid;grid-template-columns:3.2rem 1fr auto;gap:.2rem .6rem;
+padding:.6rem .1rem;border-bottom:1px solid var(--line)}
+.req:last-child{border-bottom:0}
+.req-id{grid-column:1;grid-row:1;font-size:.78rem;color:var(--ink-3);padding-top:.1rem}
+.req-t{grid-column:2;grid-row:1;font-weight:600}
+.req .st{grid-column:3;grid-row:1;justify-self:end}
+.req-owner{grid-column:2;grid-row:2;font-size:.74rem;font-weight:700;letter-spacing:.04em;
+text-transform:uppercase;color:var(--warn)}
+.req-note{grid-column:2;font-size:.85rem;color:var(--ink-2)}
+.lead{font-size:1rem;color:var(--ink-2);max-width:74ch;margin:.2rem 0 .8rem}
+.legend{display:flex;align-items:center;gap:.4rem;flex-wrap:wrap;margin:0 0 1.4rem;
+padding:.5rem .7rem;background:var(--surface);border:1px solid var(--line);border-radius:10px}
+.legend .muted{font-size:.8rem}
+.nav-kpi b{margin-right:.15rem}
+footer a{color:var(--accent)}
+/* The pinned bar is the navigation. The counts are links, the layers are links, and it stays
+   put so no section has to be hunted for. */
+.topnav{position:sticky;top:0;z-index:20;margin:0 0 1.4rem;padding:.5rem 0;
+background:var(--chrome);border-bottom:1px solid var(--chrome-line);backdrop-filter:saturate(1.4) blur(6px)}
+.topnav-in{display:flex;align-items:center;gap:.4rem;flex-wrap:wrap;
+max-width:1020px;margin:0 auto;padding:0 1.2rem}
+.nav-kpi{display:flex;align-items:baseline;gap:.3rem;text-decoration:none;color:var(--ink-2);
+background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:.16rem .6rem}
+.nav-kpi b{font-family:var(--mono);font-size:.95rem;color:var(--ink)}
+.nav-kpi span{font-size:.72rem}
+.nav-kpi:hover,.nav-lay:hover{border-color:var(--accent-line);color:var(--accent)}
+.nav-sep{width:1px;height:1.1rem;background:var(--line-2);margin:0 .2rem}
+.nav-lay{font-size:.74rem;text-decoration:none;color:var(--ink-3);border:1px solid transparent;
+border-radius:999px;padding:.16rem .45rem}
+h2{scroll-margin-top:4.2rem}
+h3{scroll-margin-top:4.2rem}
+.done-fold{margin:.3rem 0 0}
+.done-summary{cursor:pointer;display:flex;gap:.5rem;align-items:baseline;padding:.5rem .75rem;
+background:var(--surface);border:1px solid var(--line);border-radius:10px;list-style:none}
+.done-summary::-webkit-details-marker{display:none}
+.done-summary::before{content:'\25B8';color:var(--ink-3);font-size:.8rem}
+.done-fold[open] .done-summary::before{content:'\25BE'}
+.done-summary:hover{border-color:var(--accent-line)}
+.section-title{font-weight:650}
+.h3sub{font-size:.98rem;margin:1.2rem 0 .5rem;color:var(--ink-2)}
+.kpi a{color:inherit;text-decoration:none}
+</style>
+<div class="head"><div class="head-in"><h1>EARB self-assessment: requirements</h1>
+<p class="sub">Updated 2026-09-01. 75 requirements.</p></div></div>
+<nav class="topnav"><div class="topnav-in">
+<span class="nav-kpi"><b>37</b><span>built</span></span>
+<span class="nav-kpi"><b>20</b><span>agreed, not built</span></span>
+<span class="nav-kpi"><b>5</b><span>proposed</span></span>
+<span class="nav-kpi"><b>13</b><span>open</span></span>
+<span class="nav-sep"></span>
+<a class="nav-lay" href="#purpose">Purpose and scope</a>
+<a class="nav-lay" href="#roles">Roles and access</a>
+<a class="nav-lay" href="#signin">Signing in</a>
+<a class="nav-lay" href="#instrument">The instrument</a>
+<a class="nav-lay" href="#filling">Filling one in</a>
+<a class="nav-lay" href="#evidence">Evidence and markings</a>
+<a class="nav-lay" href="#assessing">Assessing</a>
+<a class="nav-lay" href="#portfolio">The portfolio view</a>
+<a class="nav-lay" href="#data">Data, storage and hosting</a>
+<a class="nav-lay" href="#notify">Notifications</a>
+<a class="nav-lay" href="#nonfunctional">How it has to behave</a>
+</div></nav>
+<div class="wrap">
+<p class="lead">This is the standing record of what the GC Enterprise Architecture self-assessment tool has to do. It accumulates: a decision made in a meeting is written here the same day, with who made it.</p>
+<p class="lead">Each requirement carries a number so it can be quoted, a state, and an owner where somebody owes an answer. Nothing is deleted when it changes. The state changes and the reason goes in the note.</p>
+<div class="legend small">
+<span class="st st-done">Built</span> <span class="st st-next">Agreed</span> <span class="st st-wait">Proposed</span> <span class="st st-later">Open</span>
+<span class="muted">Built is in the tool today. Agreed is decided and not built. Proposed is our reading, waiting on somebody. Open is undecided.</span>
+</div>
+<h2 id="purpose">1. Purpose and scope</h2>
+<p class="hint">What the tool replaces and what it does not touch.</p>
+<div class="card reqs">
+<div class="req">
+<span class="req-id mono">P1</span>
+<span class="req-t">A department scores its own architecture against the published GC Enterprise Architecture framework and points at evidence it already holds.</span>
+<span class="st st-next">Agreed</span>
+<span class="req-note">Replaces the GC EARB assessment template and the score deck built by hand.</span>
+</div>
+<div class="req">
+<span class="req-id mono">P2</span>
+<span class="req-t">The assessor reads the answers that do not add up. Reading all 176 is the job this abolishes.</span>
+<span class="st st-next">Agreed</span>
+<span class="req-note">On a full submission the anomalies are single digits out of 176 questions.</span>
+</div>
+<div class="req">
+<span class="req-id mono">P3</span>
+<span class="req-t">Everything in the tool is unclassified. Nothing protected or classified goes into it at all.</span>
+<span class="st st-next">Agreed</span>
+<span class="req-note">Settled with Dan on 1 September 2026. This one decision removes the second deployment, the local-only mode, the theme switch and the recall problem.</span>
+</div>
+<div class="req">
+<span class="req-id mono">P4</span>
+<span class="req-t">Which initiatives have to submit one.</span>
+<span class="st st-later">Open</span>
+<span class="req-owner">Dan owes this</span>
+<span class="req-note">Blocks nothing that is being built.</span>
+</div>
+</div>
+<h2 id="roles">2. Roles and access</h2>
+<p class="hint">Three roles, and three views that do not overlap. The prototype shows them in one page because it is a prototype.</p>
+<div class="card reqs">
+<div class="req">
+<span class="req-id mono">R1</span>
+<span class="req-t">Three roles: submitter, assessor, admin.</span>
+<span class="st st-next">Agreed</span>
+</div>
+<div class="req">
+<span class="req-id mono">R2</span>
+<span class="req-t">The views are separate. A submitter cannot reach the assessor view or the admin view.</span>
+<span class="st st-next">Agreed</span>
+<span class="req-note">They are reachable from one page today so the shape can be shown and argued about. That is a property of the prototype.</span>
+</div>
+<div class="req">
+<span class="req-id mono">R3</span>
+<span class="req-t">The admin adds assessors. Signing in tells the tool which role somebody has, and they never choose it themselves.</span>
+<span class="st st-next">Agreed</span>
+</div>
+<div class="req">
+<span class="req-id mono">R4</span>
+<span class="req-t">The admin can grant admin rights to an assessor, the way a Discord server grants a role.</span>
+<span class="st st-next">Agreed</span>
+<span class="req-note">So an admin leaving does not leave the programme without one.</span>
+</div>
+<div class="req">
+<span class="req-id mono">R5</span>
+<span class="req-t">Rights decide which settings somebody sees.</span>
+<span class="st st-next">Agreed</span>
+</div>
+<div class="req">
+<span class="req-id mono">R6</span>
+<span class="req-t">The exact rights each role carries, as a table, before any of it is built.</span>
+<span class="st st-wait">Proposed</span>
+<span class="req-note">The Discord model is the reference: named roles, each with a set of permissions, granted per person.</span>
+</div>
+<div class="req">
+<span class="req-id mono">R7</span>
+<span class="req-t">What an assessor sees of the pool.</span>
+<span class="st st-later">Open</span>
+<span class="req-owner">Dan or Chris owes this</span>
+<span class="req-note">Every assessor sees everything today. Chris says departments know who their assessor is, so a department could pick one at submission, and an assessor could share a file or hand it on. A My assessments filter is the shape to add once the rule exists.</span>
+</div>
+<div class="req">
+<span class="req-id mono">R8</span>
+<span class="req-t">Whether admin is a role of its own or an assessor with more buttons.</span>
+<span class="st st-later">Open</span>
+<span class="req-owner">Dan owes this</span>
+</div>
+</div>
+<h2 id="signin">3. Signing in</h2>
+<p class="hint">The thing that makes every access rule above enforceable.</p>
+<div class="card reqs">
+<div class="req">
+<span class="req-id mono">S1</span>
+<span class="req-t">Real sign-in, so the tool knows who somebody is without asking them.</span>
+<span class="st st-next">Agreed</span>
+<span class="req-note">The no-sign-in design came from the assumption that the tool would hold classified evidence and therefore could not be online at all. P3 removed that assumption, so the constraint went with it.</span>
+</div>
+<div class="req">
+<span class="req-id mono">S2</span>
+<span class="req-t">For the real thing, the departmental account: the same one used for Teams.</span>
+<span class="st st-next">Agreed</span>
+<span class="req-note">Microsoft Entra. No new password, and the tool knows the person and their department from the sign-in.</span>
+</div>
+<div class="req">
+<span class="req-id mono">S3</span>
+<span class="req-t">For the prototype, a link sent to a work email address. Clicking it signs the person in, and no password exists.</span>
+<span class="st st-wait">Proposed</span>
+<span class="req-note">Works with a gc.ca address today and needs no departmental approval. It maps onto S2 without changing how the tool reads a role.</span>
+</div>
+<div class="req">
+<span class="req-id mono">S4</span>
+<span class="req-t">Until sign-in exists, the assessor side opens on a screen shaped like a sign-in that says it is a mockup, and everything it produces is labelled unverified.</span>
+<span class="st st-done">Built</span>
+</div>
+<div class="req">
+<span class="req-id mono">S5</span>
+<span class="req-t">A submitter may read and change their own submission, and no other.</span>
+<span class="st st-next">Agreed</span>
+<span class="req-note">And any submission they have been added to.</span>
+</div>
+</div>
+<h2 id="instrument">4. The instrument</h2>
+<p class="hint">The questions, the weights and the scale. Dan owns the content; the tool renders whatever it is handed.</p>
+<div class="card reqs">
+<div class="req">
+<span class="req-id mono">Q1</span>
+<span class="req-t">The question set is a data file. A new version is a new file, and every assessment records the version it was answered against.</span>
+<span class="st st-done">Built</span>
+</div>
+<div class="req">
+<span class="req-id mono">Q2</span>
+<span class="req-t">Question sets accumulate. Adding one changes nothing on its own; one set is active at a time; any set can be previewed, made active or deleted.</span>
+<span class="st st-done">Built</span>
+</div>
+<div class="req">
+<span class="req-id mono">Q3</span>
+<span class="req-t">A submission is scored against the set it was answered against, and the row says which set produced the number.</span>
+<span class="st st-done">Built</span>
+</div>
+<div class="req">
+<span class="req-id mono">Q4</span>
+<span class="req-t">Each question is scored 0 to 10 against a ladder of descriptions, and the ladder is visible while answering.</span>
+<span class="st st-done">Built</span>
+</div>
+<div class="req">
+<span class="req-id mono">Q5</span>
+<span class="req-t">Question weight is multiplied by a lifecycle-stage factor, and the weights are re-normalised so every assessment still scores out of 10.</span>
+<span class="st st-done">Built</span>
+</div>
+<div class="req">
+<span class="req-id mono">Q6</span>
+<span class="req-t">Not applicable is an answer. It leaves the score out of every total and counts as dealt with for progress.</span>
+<span class="st st-done">Built</span>
+</div>
+<div class="req">
+<span class="req-id mono">Q7</span>
+<span class="req-t">Ten questions are yes/no. A no colours its question, its section, its rail row and its domain tab, and stops nothing.</span>
+<span class="st st-wait">Proposed</span>
+<span class="req-owner">Dan owes this</span>
+<span class="req-note">Which ten is our reading of his wording, and is labelled provisional in the tool.</span>
+</div>
+<div class="req">
+<span class="req-id mono">Q8</span>
+<span class="req-t">Questions carry topics as well as a domain, so the same answers can be cut across the four domains.</span>
+<span class="st st-wait">Proposed</span>
+<span class="req-owner">Dan owes this</span>
+<span class="req-note">Six topics, 31 questions in two of them. A question counts fully in each topic and once in the overall, so the topic scores do not add up to the overall.</span>
+</div>
+<div class="req">
+<span class="req-id mono">Q9</span>
+<span class="req-t">Per-question criticality, separate from section weight.</span>
+<span class="st st-later">Open</span>
+<span class="req-owner">Dan owes this</span>
+</div>
+<div class="req">
+<span class="req-id mono">Q10</span>
+<span class="req-t">The dropdown answers for each question.</span>
+<span class="st st-later">Open</span>
+<span class="req-owner">Dan owes this</span>
+<span class="req-note">None exist. The only real source is the 700-odd past assessments.</span>
+</div>
+<div class="req">
+<span class="req-id mono">Q11</span>
+<span class="req-t">The Business Architecture section weights add up to 80.</span>
+<span class="st st-later">Open</span>
+<span class="req-owner">Dan owes this</span>
+<span class="req-note">His own workbook, confirmed in his words. The tool shares the missing 20 out proportionally and shows the normalised share.</span>
+</div>
+<div class="req">
+<span class="req-id mono">Q12</span>
+<span class="req-t">The routing thresholds.</span>
+<span class="st st-later">Open</span>
+<span class="req-owner">Dan owes this</span>
+<span class="req-note">He gave three different numbers in one conversation. The tool interpolates and labels the threshold provisional wherever it appears.</span>
+</div>
+</div>
+<h2 id="filling">5. Filling one in</h2>
+<p class="hint">The submitter side.</p>
+<div class="card reqs">
+<div class="req">
+<span class="req-id mono">F1</span>
+<span class="req-t">Nobody has to finish it in one go. Work is kept as it is typed, and a reload loses nothing.</span>
+<span class="st st-done">Built</span>
+</div>
+<div class="req">
+<span class="req-id mono">F2</span>
+<span class="req-t">One weighted section per screen, with a rail that says where the gaps are.</span>
+<span class="st st-done">Built</span>
+<span class="req-note">176 questions in one scroll is not a form anybody finishes.</span>
+</div>
+<div class="req">
+<span class="req-id mono">F3</span>
+<span class="req-t">The overview asks six things before the questions: name, department, contact, summary, the marking of the evidence, and the lifecycle stage.</span>
+<span class="st st-done">Built</span>
+</div>
+<div class="req">
+<span class="req-id mono">F4</span>
+<span class="req-t">Every assessment carries a four-character reference from the moment it is created, and the reference never changes.</span>
+<span class="st st-done">Built</span>
+<span class="req-note">Email subject lines are permanent, so nothing in one may depend on a name somebody can edit.</span>
+</div>
+<div class="req">
+<span class="req-id mono">F5</span>
+<span class="req-t">Nothing is destroyed in one step, and the window that asks says what will be lost and offers a copy first where there is one to offer.</span>
+<span class="st st-done">Built</span>
+</div>
+<div class="req">
+<span class="req-id mono">F6</span>
+<span class="req-t">Submitting is one deliberate act. The first press names what is about to go online and asks the person to confirm it is unclassified.</span>
+<span class="st st-next">Agreed</span>
+</div>
+<div class="req">
+<span class="req-id mono">F7</span>
+<span class="req-t">After the first submit, later changes write through as they are made.</span>
+<span class="st st-next">Agreed</span>
+</div>
+</div>
+<h2 id="evidence">6. Evidence and markings</h2>
+<p class="hint">What follows from P3.</p>
+<div class="card reqs">
+<div class="req">
+<span class="req-id mono">E1</span>
+<span class="req-t">Evidence is a link to where the artefact already lives, plus a note that the assessor has been given access.</span>
+<span class="st st-done">Built</span>
+</div>
+<div class="req">
+<span class="req-id mono">E2</span>
+<span class="req-t">An artefact that cannot be linked and is unclassified may be attached to the assessment.</span>
+<span class="st st-done">Built</span>
+</div>
+<div class="req">
+<span class="req-id mono">E3</span>
+<span class="req-t">An artefact above unclassified goes to the assessor by email, and the tool writes the subject line and records that it was sent.</span>
+<span class="st st-done">Built</span>
+</div>
+<div class="req">
+<span class="req-id mono">E4</span>
+<span class="req-t">Choosing a marking above unclassified takes over the screen once, explains what to do instead, and cannot be dismissed until the person says they understand.</span>
+<span class="st st-done">Built</span>
+</div>
+<div class="req">
+<span class="req-id mono">E5</span>
+<span class="req-t">A file attached while a row was unclassified cannot stay once that row is marked higher. Saving is blocked and the row says why.</span>
+<span class="st st-done">Built</span>
+</div>
+<div class="req">
+<span class="req-id mono">E6</span>
+<span class="req-t">Evidence marked above the answer given on the overview asks which of the two is wrong.</span>
+<span class="st st-done">Built</span>
+</div>
+<div class="req">
+<span class="req-id mono">E7</span>
+<span class="req-t">The document itself is marked unclassified on screen and on every printout, with the evidence marking beside it.</span>
+<span class="st st-done">Built</span>
+</div>
+</div>
+<h2 id="assessing">7. Assessing</h2>
+<p class="hint">Rules Dan stated as rules.</p>
+<div class="card reqs">
+<div class="req">
+<span class="req-id mono">A1</span>
+<span class="req-t">A changed score cannot be saved without a reason.</span>
+<span class="st st-done">Built</span>
+</div>
+<div class="req">
+<span class="req-id mono">A2</span>
+<span class="req-t">Nothing is overwritten. Each change appends a name, a time and the reason, and two assessors disagreeing leaves both accounts.</span>
+<span class="st st-done">Built</span>
+</div>
+<div class="req">
+<span class="req-id mono">A3</span>
+<span class="req-t">A line shows that it was edited and by whom before anybody opens anything.</span>
+<span class="st st-done">Built</span>
+</div>
+<div class="req">
+<span class="req-id mono">A4</span>
+<span class="req-t">A whole section can be agreed with in one click, which touches no score.</span>
+<span class="st st-done">Built</span>
+</div>
+<div class="req">
+<span class="req-id mono">A5</span>
+<span class="req-t">An assessor cannot change the evidence.</span>
+<span class="st st-done">Built</span>
+</div>
+<div class="req">
+<span class="req-id mono">A6</span>
+<span class="req-t">The anomalies are surfaced first, with a question drafted for each, and the rest is folded away.</span>
+<span class="st st-done">Built</span>
+</div>
+<div class="req">
+<span class="req-id mono">A7</span>
+<span class="req-t">The assessor side keeps its work in the browser as it is typed.</span>
+<span class="st st-done">Built</span>
+</div>
+<div class="req">
+<span class="req-id mono">A8</span>
+<span class="req-t">Two people on one record do not overwrite each other, and each is told when the other has changed something they are looking at.</span>
+<span class="st st-next">Agreed</span>
+<span class="req-note">The append-only trail is built. The live signal is not.</span>
+</div>
+</div>
+<h2 id="portfolio">8. The portfolio view</h2>
+<p class="hint">What the programme sees.</p>
+<div class="card reqs">
+<div class="req">
+<span class="req-id mono">D1</span>
+<span class="req-t">One page over every record: averages by domain and by topic, and every record listed weakest first.</span>
+<span class="st st-done">Built</span>
+</div>
+<div class="req">
+<span class="req-id mono">D2</span>
+<span class="req-t">It recalculates from the answers as it draws, so no stored number can go stale.</span>
+<span class="st st-done">Built</span>
+</div>
+<div class="req">
+<span class="req-id mono">D3</span>
+<span class="req-t">It says what it can currently see, and does not pretend to be live when it is reading one browser.</span>
+<span class="st st-done">Built</span>
+</div>
+<div class="req">
+<span class="req-id mono">D4</span>
+<span class="req-t">Nothing is deleted. A record is withdrawn, which means out of every statistic and still in the list.</span>
+<span class="st st-next">Agreed</span>
+</div>
+<div class="req">
+<span class="req-id mono">D5</span>
+<span class="req-t">The twelve-month questions: per-question averages, averages by department, and the best and worst evidence for each question.</span>
+<span class="st st-later">Open</span>
+<span class="req-owner">Dan owes this</span>
+<span class="req-note">The reason the data is worth collecting at all. All of it needs more than one record to mean anything.</span>
+</div>
+</div>
+<h2 id="data">9. Data, storage and hosting</h2>
+<p class="hint">Where the answers live.</p>
+<div class="card reqs">
+<div class="req">
+<span class="req-id mono">H1</span>
+<span class="req-t">Work is kept in the browser as it is typed, and can be saved to a file and reopened.</span>
+<span class="st st-done">Built</span>
+</div>
+<div class="req">
+<span class="req-id mono">H2</span>
+<span class="req-t">Submitted assessments live in one store that the submitter and the assessor both read, so nobody works from an older copy.</span>
+<span class="st st-next">Agreed</span>
+</div>
+<div class="req">
+<span class="req-id mono">H3</span>
+<span class="req-t">The store address is a build input. It sets both where the page writes and the single host the page is allowed to reach, so a build with no store cannot make a request at all.</span>
+<span class="st st-done">Built</span>
+</div>
+<div class="req">
+<span class="req-id mono">H4</span>
+<span class="req-t">For the prototype: a database with sign-in, in a Canadian region, with rules that let somebody read and write their own records and nothing else.</span>
+<span class="st st-wait">Proposed</span>
+<span class="req-note">Cloud Firestore in Montreal is the concrete version. A key-value store behind a small program of our own is the alternative, and it has no Canadian region.</span>
+</div>
+<div class="req">
+<span class="req-id mono">H5</span>
+<span class="req-t">The prototype store has a named owner and a date it gets deleted, both written down before anybody asks.</span>
+<span class="st st-next">Agreed</span>
+</div>
+<div class="req">
+<span class="req-id mono">H6</span>
+<span class="req-t">The page says what it is whenever it is writing to a prototype store: unclassified drafts only, and not a record of decision.</span>
+<span class="st st-next">Agreed</span>
+</div>
+<div class="req">
+<span class="req-id mono">H7</span>
+<span class="req-t">What the production store is.</span>
+<span class="st st-later">Open</span>
+<span class="req-owner">TBS owes this</span>
+</div>
+<div class="req">
+<span class="req-id mono">H8</span>
+<span class="req-t">The code moving into the canada-ca organisation.</span>
+<span class="st st-later">Open</span>
+<span class="req-owner">Nick owes this</span>
+<span class="req-note">Either as its own repository, which needs permission to create one, or as a folder in TBS-OCIO-ESP, which already publishes a tool the same way and which we can already push to.</span>
+</div>
+<div class="req">
+<span class="req-id mono">H9</span>
+<span class="req-t">Whether the 176 draft questions can be public.</span>
+<span class="st st-later">Open</span>
+<span class="req-owner">Dan owes this</span>
+<span class="req-note">Publishing inside canada-ca makes them public, because Pages will not serve a private repository.</span>
+</div>
+</div>
+<h2 id="notify">10. Notifications</h2>
+<p class="hint">Nothing here is built.</p>
+<div class="card reqs">
+<div class="req">
+<span class="req-id mono">N1</span>
+<span class="req-t">The tool can open the person mail client with a message already written.</span>
+<span class="st st-done">Built</span>
+</div>
+<div class="req">
+<span class="req-id mono">N2</span>
+<span class="req-t">Notifications go through GC Notify.</span>
+<span class="st st-next">Agreed</span>
+<span class="req-note">Already in Dan own question set, at application question 33.</span>
+</div>
+<div class="req">
+<span class="req-id mono">N3</span>
+<span class="req-t">What triggers one, and who receives it.</span>
+<span class="st st-later">Open</span>
+<span class="req-owner">Dan owes this</span>
+<span class="req-note">Submission, assignment, a changed score and a reminder are four different decisions.</span>
+</div>
+</div>
+<h2 id="nonfunctional">11. How it has to behave</h2>
+<p class="hint">The properties that are not features.</p>
+<div class="card reqs">
+<div class="req">
+<span class="req-id mono">X1</span>
+<span class="req-t">One self-contained page. No framework, no runtime dependency, and nothing to install at the user end.</span>
+<span class="st st-done">Built</span>
+<span class="req-note">Departmental laptops will not run anything that has to be installed.</span>
+</div>
+<div class="req">
+<span class="req-id mono">X2</span>
+<span class="req-t">The page states which hosts it may reach, and the build enforces it.</span>
+<span class="st st-done">Built</span>
+</div>
+<div class="req">
+<span class="req-id mono">X3</span>
+<span class="req-t">Every score is reachable and answerable by keyboard, and each score row is one tab stop.</span>
+<span class="st st-done">Built</span>
+</div>
+<div class="req">
+<span class="req-id mono">X4</span>
+<span class="req-t">It prints. A printed assessment carries its scores, its reasoning and its marking.</span>
+<span class="st st-done">Built</span>
+</div>
+<div class="req">
+<span class="req-id mono">X5</span>
+<span class="req-t">It reads in light and in dark, and on a phone.</span>
+<span class="st st-done">Built</span>
+</div>
+<div class="req">
+<span class="req-id mono">X6</span>
+<span class="req-t">Nothing is ever hard-deleted.</span>
+<span class="st st-next">Agreed</span>
+</div>
+<div class="req">
+<span class="req-id mono">X7</span>
+<span class="req-t">French.</span>
+<span class="st st-later">Open</span>
+<span class="req-owner">us owes this</span>
+<span class="req-note">A Government of Canada tool is bilingual. Nothing about the structure prevents it and none of it is written.</span>
+</div>
+</div>
+<footer>Generated from NOTES/requirements.data.mjs by tools/build-requirements.mjs. The backlog is <a href="backlog.html">next door</a>.</footer></div>

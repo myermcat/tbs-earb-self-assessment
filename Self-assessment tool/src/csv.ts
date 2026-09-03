@@ -10,7 +10,7 @@ function cell(v: unknown): string {
 
 export function csvHeader(rubric: Rubric): string[] {
   const cols = [
-    'initiative', 'department', 'contact', 'lifecycle_stage',
+    'ref', 'initiative', 'department', 'contact', 'lifecycle_stage',
     'rubric_version', 'submitted_at', 'overall_score', 'band', 'completeness_pct',
   ];
   for (const d of rubric.domains) cols.push(`domain_${d.id}`);
@@ -33,7 +33,7 @@ export function csvHeader(rubric: Rubric): string[] {
 export function csvRow(rubric: Rubric, a: Assessment, flagCounts: { high: number; total: number }): string[] {
   const r = score(rubric, a);
   const row: string[] = [
-    a.initiative.name, a.initiative.department, a.initiative.contact, a.initiative.lifecycleStage,
+    a.ref ?? '', a.initiative.name, a.initiative.department, a.initiative.contact, a.initiative.lifecycleStage,
     a.rubric.version, a.meta.updatedAt,
     r.overall === null ? '' : r.overall.toFixed(2),
     r.band?.label ?? '',

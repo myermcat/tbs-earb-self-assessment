@@ -28,6 +28,9 @@ export function renderResults(root: HTMLElement, rubric: Rubric, a: Assessment, 
       el('p', { class: 'muted' }, [
         [a.initiative.department, rubric.lifecycleStages.find((s) => s.id === a.initiative.lifecycleStage)?.label]
           .filter(Boolean).join(' - ') || 'No department or stage set',
+        // The reference travels with the score, because this is the page somebody prints and
+        // sends on, and it is what an assessor matches an email to.
+        a.ref ? el('span', { class: 'ref-chip' }, [a.ref]) : null,
       ]),
       r.maturity
         ? el('div', { class: 'maturity' }, [

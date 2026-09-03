@@ -793,6 +793,15 @@ function paneBuild(pane: HTMLElement) {
   ]));
 
   pane.appendChild(setRow(
+    'What this tool has to do',
+    'Every requirement, numbered, with its state and whoever owes an answer. Decisions are written here the day they are made.',
+    el('a', {
+      class: 'ghost',
+      href: 'https://myermcat.github.io/tbs-earb-self-assessment-preview/requirements.html',
+      target: '_blank', rel: 'noopener',
+    }, ['Open the requirements']),
+  ));
+  pane.appendChild(setRow(
     'The backlog',
     'What is done, what is next, and what is waiting on a person. It is the same page the team works from, and it opens in a new tab.',
     el('a', {
