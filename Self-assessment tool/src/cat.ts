@@ -4,21 +4,34 @@
  * Drawn here because the page makes no requests: its own rule blocks them, and an empty state
  * that fails to load its own illustration is worse than one without a picture. It takes its
  * colours from the theme, so it belongs to the page in both light and dark.
+ *
+ * The first attempt gave it horns. The head outline peaked at both sides, which were the ears,
+ * and then two more thin triangles were drawn floating above and outside those peaks. Now the
+ * head is a plain circle and the ears are wide triangles whose base corners sit inside it, so
+ * they read as ears joined to a head.
  */
 export const SAD_CAT = `
-<svg viewBox="0 0 240 180" role="img" aria-label="A cat sitting with its back turned" class="sad-cat">
-  <ellipse cx="120" cy="163" rx="62" ry="8" fill="currentColor" opacity=".10"/>
-  <path d="M78 158c-4-30 2-56 16-70 8-8 18-12 26-12s18 4 26 12c14 14 20 40 16 70z"
-        fill="currentColor" opacity=".22"/>
-  <path d="M96 92c-6-10-8-22-7-34l19 14c8-3 16-3 24 0l19-14c1 12-1 24-7 34z"
-        fill="currentColor" opacity=".30"/>
-  <path d="M97 64l-6-22 17 13z" fill="currentColor" opacity=".38"/>
-  <path d="M143 64l6-22-17 13z" fill="currentColor" opacity=".38"/>
-  <circle cx="108" cy="78" r="3.4" fill="currentColor" opacity=".62"/>
-  <circle cx="132" cy="78" r="3.4" fill="currentColor" opacity=".62"/>
-  <path d="M113 88q7 6 14 0" fill="none" stroke="currentColor" stroke-opacity=".55"
-        stroke-width="2.4" stroke-linecap="round"/>
-  <path d="M160 150c22-4 34-18 30-36-3-14-16-20-24-14-7 5-6 16 2 18 6 2 10-2 9-7"
-        fill="none" stroke="currentColor" stroke-opacity=".28" stroke-width="7"
+<svg viewBox="0 0 240 180" role="img" aria-label="A cat sitting with its ears down" class="sad-cat">
+  <ellipse cx="120" cy="166" rx="56" ry="7" fill="currentColor" opacity=".10"/>
+
+  <path d="M158 158c22-2 34-16 32-32-2-14-18-18-24-8-5 8 2 16 10 13"
+        fill="none" stroke="currentColor" stroke-opacity=".26" stroke-width="8"
         stroke-linecap="round"/>
+
+  <path d="M120 96c-24 0-40 24-42 52-1 12 7 18 19 18h46c12 0 20-6 19-18-2-28-18-52-42-52z"
+        fill="currentColor" opacity=".22"/>
+  <ellipse cx="104" cy="160" rx="9" ry="5" fill="currentColor" opacity=".30"/>
+  <ellipse cx="136" cy="160" rx="9" ry="5" fill="currentColor" opacity=".30"/>
+
+  <path d="M97 55L98 29l14 17z" fill="currentColor" opacity=".30"/>
+  <path d="M143 55L142 29l-14 17z" fill="currentColor" opacity=".30"/>
+  <circle cx="120" cy="74" r="30" fill="currentColor" opacity=".30"/>
+  <path d="M103 50l9-5-10-9z" fill="currentColor" opacity=".16"/>
+  <path d="M137 50l-9-5 10-9z" fill="currentColor" opacity=".16"/>
+
+  <circle cx="110" cy="74" r="3.6" fill="currentColor" opacity=".62"/>
+  <circle cx="130" cy="74" r="3.6" fill="currentColor" opacity=".62"/>
+  <path d="M117 85h6l-3 3z" fill="currentColor" opacity=".5"/>
+  <path d="M112 95q8-6 16 0" fill="none" stroke="currentColor" stroke-opacity=".5"
+        stroke-width="2.4" stroke-linecap="round"/>
 </svg>`;

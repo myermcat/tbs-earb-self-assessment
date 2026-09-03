@@ -1,21 +1,23 @@
 import type { Assessment } from './types';
-import { loadDraft } from './storage';
+import { beginWrite, loadDraft, writeFailed, writeLanded } from './storage';
 
 /**
- * The seam where the hosted store goes.
+ * The store, and how to point at one.
  *
- * Everything in this tool is unclassified, so the records can live online and the dashboard can
- * read them without anybody mailing a file around. Nothing is hosted yet: GitHub Pages serves
- * static files and cannot accept a write, so a small write endpoint has to exist first (an
- * Azure Function is the cheapest route, since canada-ca/TBS-OCIO-ESP already builds on Azure
- * Pipelines). Until then `ENDPOINT` is null, and the dashboard runs on whatever this browser
- * and this session can see, saying so on the page rather than pretending to be live.
+ * Everything in this tool is unclassified, so records can live in one place and the dashboard
+ * can read them without anybody mailing a file around.
  *
- * The page's own CSP is `connect-src 'none'`, so the fetch below cannot even leave the page
- * today. That is deliberate: the day the endpoint exists, opening the CSP to exactly that one
- * origin is the change that makes it live, and it is one line in the build.
+ * The address is a build input, not a code change:
+ *
+ *   EARB_ENDPOINT=https://earb-store.example.workers.dev npm run build
+ *
+ * That one value sets both this constant and the page's `connect-src`, so a build with no
+ * endpoint genuinely cannot make a request and a build with one can reach that origin and
+ * nothing else. `deploy/worker.js` is the other half: paste it into a Cloudflare Worker, bind
+ * a KV namespace called STORE, and this works.
  */
-const ENDPOINT: string | null = null;
+declare const __EARB_ENDPOINT__: string;
+const ENDPOINT: string = typeof __EARB_ENDPOINT__ === 'string' ? __EARB_ENDPOINT__ : '';
 
 export type RecordStatus = 'draft' | 'submitted' | 'audited' | 'withdrawn';
 export type StoreSource = 'this-browser' | 'session-files' | 'hosted';
@@ -28,7 +30,16 @@ export interface StoredRecord {
   assessment: Assessment;
 }
 
-export function isHosted(): boolean { return ENDPOINT !== null; }
+export function isHosted(): boolean { return ENDPOINT !== ''; }
+
+/** Where the records are, for a page that has to say so. */
+export function endpointHost(): string {
+  try {
+    return ENDPOINT ? new URL(ENDPOINT).host : '';
+  } catch {
+    return '';
+  }
+}
 
 /** What the record's own contents say its state is. No status field is stored yet. */
 export function statusOf(a: Assessment): RecordStatus {
@@ -51,18 +62,46 @@ export async function listRecords(sessionFiles: Assessment[] = []): Promise<Stor
   const out: StoredRecord[] = [];
   if (ENDPOINT) {
     try {
-      const res = await fetch(`${ENDPOINT}/assessments`);
+      const res = await fetch(`${ENDPOINT}/assessments`, { headers: { accept: 'application/json' } });
+      if (!res.ok) throw new Error(`store answered ${res.status}`);
       const rows = (await res.json()) as Assessment[];
       return rows.map((a, i) => recordOf(a, 'hosted', a.id ?? `hosted-${i}`));
     } catch {
-      // Fall through to what is local. A dashboard that shows nothing is worse than a
-      // dashboard that shows this browser and says that is all it has.
+      // Fall through to what is local. A dashboard that shows nothing is worse than one that
+      // shows this browser and says that is all it can reach.
     }
   }
   const draft = loadDraft();
   if (draft) out.push(recordOf(draft, 'this-browser', 'draft-in-this-browser'));
   sessionFiles.forEach((a, i) => out.push(recordOf(a, 'session-files', `file-${i}`)));
   return out;
+}
+
+/**
+ * Send one assessment to the store.
+ *
+ * The three save states are driven from here, so the badge in the header tells the truth
+ * whether the write worked, is in flight, or failed with a reason.
+ */
+export async function putRecord(a: Assessment): Promise<{ ok: true } | { ok: false; problem: string }> {
+  if (!ENDPOINT) return { ok: false, problem: 'This build has no store to write to.' };
+  beginWrite();
+  try {
+    const res = await fetch(`${ENDPOINT}/assessments`, {
+      method: 'PUT',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(a),
+    });
+    if (!res.ok) throw new Error(`the store answered ${res.status}`);
+    writeLanded();
+    return { ok: true };
+  } catch (err) {
+    const problem = typeof navigator !== 'undefined' && navigator.onLine === false
+      ? 'Not saved. Check your connection.'
+      : `Not saved: ${(err as Error).message}`;
+    writeFailed(problem);
+    return { ok: false, problem };
+  }
 }
 
 /** Where the numbers on screen came from, in the words the page uses. */

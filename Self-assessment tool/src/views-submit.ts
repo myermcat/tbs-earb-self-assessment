@@ -1,4 +1,5 @@
-import { CLASSIFICATIONS, type Assessment, type EvidenceRef, type Question, type Rubric } from './types';
+import { CLASSIFICATIONS, classRank, type Assessment, type EvidenceRef, type Question,
+  type Rubric } from './types';
 import { el, clear, tone } from './dom';
 import { domainRedFlags, score, sectionRedFlags, type Result, type SectionScore } from './scoring';
 import { autosave, clearSaveWatchers, saveAssessmentFile } from './storage';
@@ -679,6 +680,8 @@ function saveFile(a: Assessment) {
  * reader is editing rather than filling in, and editing wants everything at once.
  */
 let overviewStep = 0;
+/** What Done said when it could not finish. Cleared as soon as the gap is filled. */
+let overviewNag = '';
 
 /** True while the overview still has a group to fill, which is when it is a wizard. */
 function overviewIsWizard(a: Assessment): boolean {
@@ -809,6 +812,16 @@ function aboutSection(
   const advance = () => {
     const wasLastGap = steps.filter((x) => !x.filled()).length === 1 && st.filled();
     if (overviewStep < steps.length - 1) { overviewStep++; repaintApp(); return; }
+    // Done on the last step used to repaint the same card and say nothing at all when
+    // something earlier was still empty. It goes to the gap and names it.
+    const gap = steps.findIndex((x) => !x.filled());
+    if (gap !== -1) {
+      overviewStep = gap;
+      overviewNag = `${steps[gap].title} is still empty, so this is not finished yet.`;
+      repaintApp();
+      return;
+    }
+    overviewNag = '';
     if (wasLastGap || steps.every((x) => x.filled())) confetti('section');
     repaintApp();
   };
@@ -828,6 +841,19 @@ function aboutSection(
       el('div', { class: 'ov-dots' }, dots),
     ]),
     block(st, 'h2'),
+    overviewNag && !st.filled()
+      ? el('p', { class: 'ov-nag small warn-text', role: 'status' }, [overviewNag])
+      : null,
+    // What is left, at all times, so Done is never a button that does nothing.
+    (() => {
+      const left = steps.filter((x) => !x.filled());
+      if (!left.length) return null;
+      return el('p', { class: 'tiny dim' }, [
+        left.length === steps.length && overviewStep === 0
+          ? 'Three things to fill in.'
+          : `Still empty: ${left.map((x) => x.title.replace(/\?$/, '')).join(', ')}.`,
+      ]);
+    })(),
     el('div', { class: 'actions ov-nav' }, [
       overviewStep > 0
         ? el('button', { class: 'ghost', onclick: () => { overviewStep--; repaintApp(); } }, ['Back'])
@@ -1062,8 +1088,9 @@ function questionBlock(rubric: Rubric, a: Assessment, q: Question, refresh: () =
     type: 'checkbox',
     onchange: (e: Event) => {
       ans.na = (e.target as HTMLInputElement).checked;
-      // The score is kept while a question is not applicable. Scoring already leaves n/a out
-      // of every total, and unticking the box used to leave the answer erased.
+      // Not applicable is its own answer, so it replaces the score instead of sitting on top
+      // of one. Unticking leaves the question unanswered, which is what it is.
+      if (ans.na) ans.score = null;
       autosave(a); paintScores(); paintChosen(); refresh();
     },
   }) as HTMLInputElement;
@@ -1093,7 +1120,7 @@ function questionBlock(rubric: Rubric, a: Assessment, q: Question, refresh: () =
           'aria-disabled': ans.na ? 'true' : 'false',
           tabindex: ans.na || (ans.score === null ? value !== rubric.scale.max : ans.score !== value) ? -1 : 0,
           disabled: !!ans.na,
-          onclick: () => choose(ans.score === value ? null : value),
+          onclick: () => choose(value),
         }, [label]);
       scoreRow.appendChild(opt('Yes', rubric.scale.max));
       scoreRow.appendChild(opt('No', rubric.scale.min));
@@ -1118,7 +1145,7 @@ function questionBlock(rubric: Rubric, a: Assessment, q: Question, refresh: () =
           'aria-disabled': ans.na ? 'true' : 'false',
           tabindex: ans.na || i !== focusIndex ? -1 : 0,
           disabled: !!ans.na,
-          onclick: () => choose(ans.score === v ? null : v),
+          onclick: () => choose(v),
         }, [String(v)]),
       );
     });
@@ -1258,14 +1285,24 @@ function questionBlock(rubric: Rubric, a: Assessment, q: Question, refresh: () =
    */
   const hasExtras = !!(ans.justification ?? '').trim() || (ans.evidence ?? []).length > 0;
   const extrasBox = el('details', { class: 'q-extras-box', open: hasExtras }, [
+    /**
+     * The heading stays put and a short status follows it, which is how a government task
+     * list marks a section as started. The label used to read "Add reasoning or evidence"
+     * whether or not anything was there, so a filled section looked exactly like an empty
+     * one. The arrow is left to mean open and closed, and nothing else.
+     */
     el('summary', { class: 'q-extras-summary' }, [
-      el('span', {}, ['Add reasoning or evidence']),
+      el('span', {}, ['Reasoning and evidence']),
       (() => {
         const badge = el('span', { class: 'q-extras-count' });
         const paintBadge = () => {
           const n = (ans.evidence ?? []).length;
           const words = (ans.justification ?? '').trim() ? 1 : 0;
-          badge.textContent = n + words === 0 ? '' : `${words ? 'reasoning' : ''}${words && n ? ', ' : ''}${n ? `${n} file${n === 1 ? '' : 's'}` : ''}`;
+          const parts: string[] = [];
+          if (words) parts.push('reasoning written');
+          if (n) parts.push(`${n} piece${n === 1 ? '' : 's'} of evidence`);
+          badge.className = `q-extras-count ${parts.length ? 'filled' : 'empty'}`;
+          badge.textContent = parts.length ? parts.join(', ') : 'nothing yet';
         };
         paintBadge();
         extras.addEventListener('input', paintBadge);
@@ -1294,8 +1331,41 @@ function evidenceEditor(a: Assessment, q: Question, list: EvidenceRef[], refresh
 
     list.forEach((ev, i) => {
       const upd = (k: 'title' | 'location' | 'note' | 'kind' | 'classification') => (e: Event) => {
+        const was = k === 'classification' ? ev.classification : '';
         (ev as unknown as Record<string, string>)[k] = (e.target as HTMLInputElement).value;
         autosave(a);
+        /**
+         * Evidence marked higher than the answer given on the overview used to sit there
+         * blocking the save with a message. It is a two-way question, and this is the moment
+         * to ask it: raise the overview answer, or say the evidence is not that high.
+         */
+        if (k === 'classification'
+            && ev.classification
+            && classRank(ev.classification) > classRank(a.initiative.classification)) {
+          const wanted = ev.classification;
+          const said = a.initiative.classification || 'nothing yet';
+          confirmStep({
+            tier: 'caution',
+            title: `On the overview you said your evidence goes up to ${said}`,
+            body: `This piece is marked ${wanted}, which is higher. One of the two answers has to change.`,
+            alt: {
+              label: `My evidence does go up to ${wanted}`,
+              run: () => {
+                // Raising the overview answer keeps the pledge already given: they have read
+                // what to do about classified material, and saying it again is noise.
+                a.initiative.classification = wanted;
+                a.initiative.markingAcknowledged = wanted;
+                autosave(a); paint(); refresh(); repaintApp();
+              },
+            },
+            commitLabel: `No, put this piece back to ${was || 'unmarked'}`,
+            cancelLabel: 'Leave both as they are',
+            onCommit: () => {
+              ev.classification = was;
+              autosave(a); paint(); refresh();
+            },
+          });
+        }
         if (k === 'classification') { paint(); refresh(); }
       };
 
@@ -1508,7 +1578,7 @@ function evidenceEditor(a: Assessment, q: Question, list: EvidenceRef[], refresh
           list.push({ title: '', kind: 'document', location: '', classification: '' });
           autosave(a); paint(); refresh();
         },
-      }, ['Add evidence']),
+      }, [list.length ? 'Add another piece of evidence' : 'Add a piece of evidence']),
       attached > TOTAL_WARN
         ? el('span', { class: 'small warn-text' }, [
             `${humanSize(attached)} attached across this assessment. Departmental mail often stops around 25 MB.`,

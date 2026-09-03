@@ -4,12 +4,16 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <!--
-  The security story is this line. default-src 'none' plus connect-src 'none' means the page
-  cannot fetch, XHR, open a websocket, load an image from a host, or submit a form anywhere.
-  Everything it needs is inlined below. It works with the network cable pulled out.
+  The security story is this line. default-src 'none' means the page cannot load anything from
+  anywhere: no script, no stylesheet, no image, no font. Everything it needs is inlined below,
+  so it works with the network cable pulled out.
+
+  connect-src is the part that decides whether it can talk to anything. Built with no
+  endpoint it is 'none', and the page cannot fetch, XHR or open a socket at all. Built with
+  EARB_ENDPOINT set it names that one origin, and nothing else is reachable.
 -->
 <meta http-equiv="Content-Security-Policy"
-      content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data:; connect-src 'none'; form-action 'none'; base-uri 'none'">
+      content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data:; connect-src __CONNECT__; form-action 'none'; base-uri 'none'">
 <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2064%2064%22%3E%3Cdefs%3E%3ClinearGradient%20id%3D%22g%22%20x1%3D%220%22%20y1%3D%220%22%20x2%3D%221%22%20y2%3D%221%22%3E%3Cstop%20offset%3D%220%22%20stop-color%3D%22%232a6fbd%22%2F%3E%3Cstop%20offset%3D%221%22%20stop-color%3D%22%236c4bb0%22%2F%3E%3C%2FlinearGradient%3E%3C%2Fdefs%3E%3Crect%20width%3D%2264%22%20height%3D%2264%22%20rx%3D%2214%22%20fill%3D%22url%28%23g%29%22%2F%3E%3Crect%20x%3D%2212%22%20y%3D%2242%22%20width%3D%228%22%20height%3D%2210%22%20rx%3D%222%22%20fill%3D%22%23fff%22%20opacity%3D%22.45%22%2F%3E%3Crect%20x%3D%2224%22%20y%3D%2234%22%20width%3D%228%22%20height%3D%2218%22%20rx%3D%222%22%20fill%3D%22%23fff%22%20opacity%3D%22.62%22%2F%3E%3Crect%20x%3D%2236%22%20y%3D%2225%22%20width%3D%228%22%20height%3D%2227%22%20rx%3D%222%22%20fill%3D%22%23fff%22%20opacity%3D%22.8%22%2F%3E%3Crect%20x%3D%2248%22%20y%3D%2214%22%20width%3D%228%22%20height%3D%2238%22%20rx%3D%222%22%20fill%3D%22%23fff%22%2F%3E%3C%2Fsvg%3E">
 <title>__TITLE__</title>
 <style>__CSS__</style>

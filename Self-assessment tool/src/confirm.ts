@@ -21,20 +21,60 @@ export interface ConfirmStep {
    * copy removes the whole risk.
    */
   offer?: { label: string; run: () => string; commits?: boolean };
+  /**
+   * A second way to resolve the same problem, which is not the destroying one. Used where the
+   * mismatch can be fixed from either end, so both ends are on the buttons.
+   */
+  alt?: { label: string; run: () => void };
   commitLabel: string;
   cancelLabel: string;
   onCommit: () => void;
 }
 
+/**
+ * Clicking away from a dialog closes it.
+ *
+ * A native dialog's backdrop is a pseudo-element, so a click on it arrives with the dialog
+ * itself as the target: anything inside the dialog targets a descendant. Cancelling is the
+ * safe outcome, which is why this is fine on a destroying confirmation and wrong on the
+ * classified pledge, where a tick is the whole point.
+ */
+export function closeOnOutsideClick(dlg: HTMLElement, cancel: () => void): void {
+  dlg.addEventListener('click', (e) => { if (e.target === dlg) cancel(); });
+}
+
+/**
+ * A small menu closes when the reader clicks anywhere else, presses Escape, or opens another
+ * one. Leaving it open on the next click is the thing that reads as broken.
+ */
+export function closeMenusOnOutsideClick(root: Document | HTMLElement, selector = 'details.set-menu'): void {
+  const all = () => [...root.querySelectorAll<HTMLDetailsElement>(selector)];
+  root.addEventListener('click', (e) => {
+    const inside = (e.target as HTMLElement | null)?.closest?.(selector);
+    for (const d of all()) if (d !== inside) d.open = false;
+  }, true);
+  root.addEventListener('keydown', (e) => {
+    if ((e as KeyboardEvent).key !== 'Escape') return;
+    for (const d of all()) d.open = false;
+  });
+}
+
+/**
+ * Show a dialog, modal where the browser can.
+ *
+ * The old fallback called window.confirm and treated OK as yes, which meant a browser without
+ * dialog support confirmed a delete through a box that never named what it was deleting. The
+ * same dialog, non-modal, says everything it was going to say.
+ */
+export function openDialog(dlg: HTMLElement): void {
+  const d = dlg as HTMLDialogElement;
+  if (typeof d.showModal === 'function') { d.showModal(); return; }
+  d.setAttribute('open', '');
+  dlg.classList.add('no-modal');
+}
+
 export function confirmStep(o: ConfirmStep): void {
   const dlg = document.createElement('dialog');
-
-  // jsdom has no showModal. The tests drive the fallback, so the fallback has to be real
-  // rather than a silent no-op that would let a delete through unconfirmed.
-  if (typeof (dlg as HTMLDialogElement).showModal !== 'function') {
-    if (window.confirm(`${o.title}\n\n${o.body}`)) o.onCommit();
-    return;
-  }
 
   dlg.className = `confirm tier-${o.tier}`;
   const body = el('div', { class: 'cf-body' }, [el('p', {}, [o.body])]);
@@ -56,6 +96,12 @@ export function confirmStep(o: ConfirmStep): void {
         paint(true);
       } }, [o.offer.label]));
     }
+    if (o.alt) {
+      actions.appendChild(el('button', { class: 'primary cf-wide', onclick: () => {
+        close();
+        o.alt!.run();
+      } }, [o.alt.label]));
+    }
     actions.appendChild(el('button', {
       class: `${o.tier === 'danger' ? 'danger-solid' : 'danger'} cf-wide`,
       onclick: () => { close(); o.onCommit(); },
@@ -72,6 +118,7 @@ export function confirmStep(o: ConfirmStep): void {
   dlg.appendChild(body);
   dlg.appendChild(actions);
   dlg.addEventListener('close', () => dlg.remove());
+  closeOnOutsideClick(dlg, close);
   document.body.appendChild(dlg);
-  (dlg as HTMLDialogElement).showModal();
+  openDialog(dlg);
 }

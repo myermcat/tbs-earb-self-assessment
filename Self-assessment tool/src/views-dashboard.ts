@@ -171,12 +171,31 @@ function paint(root: HTMLElement, rubric: Rubric, records: StoredRecord[]): void
       el('li', {}, [el('b', {}, ['Re-assign an assessor. ']), 'When somebody leaves, or a file needs a second pair of eyes.']),
       el('li', {}, [
         el('b', {}, ['Question sets. ']),
-        'Built. Settings holds every set this browser knows, marks the one in use, and takes a new one. Adding a set keeps the old ones, and deleting one asks twice.',
+        'Built. Settings holds every set this browser knows, marks the active one, and takes a new one. Adding a set keeps the old ones, and deleting one asks twice.',
       ]),
       el('li', {}, [el('b', {}, ['Clear out test submissions. ']), 'Dan raised it and parked it.']),
     ]),
     el('p', { class: 'small muted' }, [
       'Open question for Dan: is this a separate role, or an assessor with more buttons?',
+    ]),
+  ]));
+
+  // What is being built and what is waiting on somebody, for whoever runs the programme.
+  root.appendChild(el('section', { class: 'card' }, [
+    el('h2', {}, ['The build itself']),
+    el('p', { class: 'muted small' }, [
+      'What is done, what is next, and what is waiting on a person. It is the same page the ',
+      'team works from.',
+    ]),
+    el('div', { class: 'actions' }, [
+      el('a', {
+        class: 'ghost',
+        href: 'https://myermcat.github.io/tbs-earb-self-assessment-preview/backlog.html',
+        target: '_blank', rel: 'noopener',
+      }, ['Open the backlog']),
+    ]),
+    el('p', { class: 'tiny dim' }, [
+      'It opens in a new tab, on the same site this page is served from.',
     ]),
   ]));
 }
