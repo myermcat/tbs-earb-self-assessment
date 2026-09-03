@@ -8,7 +8,7 @@ import { openedThisSession, renderReview, setAuditor } from './views-review';
 import { renderDashboard } from './views-dashboard';
 import { addToLibrary, canRemove, currentId, currentRubric, libraryList, removeFromLibrary,
   setCurrentId } from './library';
-import { confirmStep } from './confirm';
+import { closeMenusOnOutsideClick, closeOnOutsideClick, confirmStep, openDialog } from './confirm';
 import { saveBadge } from './save-badge';
 import { answeredCount, APP_VERSION, autosave, blankAssessment, clearDraft, download, hasWork,
   lastSaveInfo, loadDraft, readJsonFiles, saveAssessmentFile, slug } from './storage';
@@ -311,42 +311,59 @@ function renderHome(root: HTMLElement) {
           el('span', { class: 'arrow', 'aria-hidden': true }, ['\u2192']),
         ]),
         el('span', { class: 'or' }, ['or']),
-        el('label', { class: 'linkish filelabel-plain' }, [
-          'open a saved assessment',
-          el('input', {
+        /**
+         * Opening a file replaces whatever this browser is holding, so the question comes
+         * before the file picker rather than after it: being asked once a file is chosen
+         * reads as the tool changing its mind. Both assessments belong to the same person,
+         * so the wording is about which one, never about whose.
+         */
+        (() => {
+          const picker = el('input', {
             type: 'file', accept: '.json', hidden: true,
             onchange: async (e: Event) => {
-              const f = (e.target as HTMLInputElement).files;
+              const input = e.target as HTMLInputElement;
+              const f = input.files;
               if (!f?.length) return;
               const [item] = await readJsonFiles(f);
+              input.value = '';
               const a = item.data as Assessment;
               if (a?.fileType !== 'gc-arch-assessment') {
                 alert(`${item.file} is not a self-assessment file.`);
                 return;
               }
-              const open = () => { assessment = a; autosave(assessment); go('submit'); };
-              // Opening a file overwrites whatever this browser is holding, which is the same
-              // destruction as a discard and used to happen on one click with no warning.
-              // With nothing here, there is nothing to warn about.
-              if (!hasWork(assessment)) { open(); return; }
-              const n = answeredCount(assessment);
-              confirmStep({
-                tier: 'danger',
-                title: `Open ${item.file} over what is here?`,
-                body: `This browser is holding an assessment with ${n} answer${n === 1 ? '' : 's'} in it. Opening a file replaces it.`,
-                stake: 'Anything here that is not already in a file of its own is gone.',
-                offer: {
-                  label: 'Save mine as a file, then open theirs',
-                  commits: true,
-                  run: () => `Saving as ${saveAssessmentFile(assessment)}.`,
-                },
-                commitLabel: 'Open theirs without saving mine',
-                cancelLabel: 'Keep mine, do not open',
-                onCommit: open,
-              });
+              assessment = a;
+              autosave(assessment);
+              go('submit');
             },
-          }),
-        ]),
+          }) as HTMLInputElement;
+
+          const open = () => picker.click();
+
+          return el('span', { class: 'openfile' }, [
+            el('button', {
+              class: 'linkish',
+              onclick: () => {
+                if (!hasWork(assessment)) { open(); return; }
+                const n = answeredCount(assessment);
+                confirmStep({
+                  tier: 'danger',
+                  title: 'Open a different assessment?',
+                  body: `This browser is holding one with ${n} answer${n === 1 ? '' : 's'} in it. Opening another replaces it, and only one can be here at a time.`,
+                  stake: 'Whatever is here and not already in a file of its own is gone.',
+                  offer: {
+                    label: 'Save this one as a file, then choose the other',
+                    commits: true,
+                    run: () => `Saving as ${saveAssessmentFile(assessment)}.`,
+                  },
+                  commitLabel: 'Choose the other one without saving this',
+                  cancelLabel: 'Keep this one',
+                  onCommit: open,
+                });
+              },
+            }, ['open a saved assessment']),
+            picker,
+          ]);
+        })(),
       ]),
       started ? draftNote(draft!, total) : null,
     ]),
@@ -532,7 +549,7 @@ function setRow(
 
 function paneQuestions(pane: HTMLElement) {
   pane.appendChild(el('h1', { tabindex: -1 }, ['Question set']));
-  pane.appendChild(el('p', { class: 'set-lead' }, ['The questions, weights and scale in use.']));
+  pane.appendChild(el('p', { class: 'set-lead' }, ['The active questions, weights and scale.']));
 
   pane.appendChild(el('dl', { class: 'kv' }, [
     el('dt', {}, ['Title']), el('dd', {}, [rubric.title]),
@@ -662,7 +679,7 @@ function paneQuestions(pane: HTMLElement) {
           onclick: () => { preview.hidden = !preview.hidden; },
         }, ['Preview the questions']),
         isCurrent
-          ? el('span', { class: 'menu-item is-off' }, ['Already in use'])
+          ? el('span', { class: 'menu-item is-off' }, ['Already active'])
           : el('button', { class: 'menu-item', onclick: activate }, ['Make this the active set']),
         removable
           ? el('button', { class: 'menu-item menu-danger', onclick: remove }, ['Delete this set'])
@@ -671,7 +688,7 @@ function paneQuestions(pane: HTMLElement) {
               title: isCurrent
                 ? 'Make another set active first.'
                 : 'The tool has no questions without a set.',
-            }, [isCurrent ? 'In use, cannot delete' : 'The only set, cannot delete']),
+            }, [isCurrent ? 'Active, cannot delete' : 'The only set, cannot delete']),
         el('div', { class: 'menu-note tiny dim' }, [
           entry.addedBy
             ? `Added by ${entry.addedBy}, unverified`
@@ -686,7 +703,7 @@ function paneQuestions(pane: HTMLElement) {
         el('div', { class: 'set-row-title' }, [
           entry.rubric.title,
           el('span', { class: 'mono small muted' }, [` ${entry.rubric.version}`]),
-          isCurrent ? el('span', { class: 'badge' }, ['In use']) : null,
+          isCurrent ? el('span', { class: 'badge' }, ['Active']) : null,
         ]),
         el('p', { class: 'small muted' }, [
           `${questionCount(entry.rubric)} questions in ${entry.rubric.domains.reduce((n, d) => n + d.sections.length, 0)} sections`,
@@ -862,11 +879,6 @@ interface ConfirmOpts {
 function confirmDestructive(o: ConfirmOpts): void {
   const dlg = document.createElement('dialog') as HTMLDialogElement;
 
-  if (typeof dlg.showModal !== 'function') {
-    if (window.confirm(`${o.title}\n\n${o.body}`)) o.onCommit();
-    return;
-  }
-
   dlg.className = `confirm tier-${o.tier}`;
   const actions = el('div', { class: 'cf-actions' });
   const body = el('div', { class: 'cf-body' }, [el('p', {}, [o.body])]);
@@ -922,8 +934,9 @@ function confirmDestructive(o: ConfirmOpts): void {
   dlg.appendChild(body);
   dlg.appendChild(actions);
   dlg.addEventListener('close', () => dlg.remove());
+  closeOnOutsideClick(dlg, close);
   document.body.appendChild(dlg);
-  dlg.showModal();
+  openDialog(dlg);
 }
 
 /**
@@ -1000,6 +1013,7 @@ function wireScrollLift(): void {
 openEverythingForPrint();
 wireHistory();
 wireScrollLift();
+closeMenusOnOutsideClick(document);
 setRepaint(() => paint());
 
 const check = validate(rubric);

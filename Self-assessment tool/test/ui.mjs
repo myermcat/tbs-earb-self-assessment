@@ -24,7 +24,7 @@ window.URL.revokeObjectURL = () => {};
 const origClick = window.HTMLAnchorElement.prototype.click;
 window.HTMLAnchorElement.prototype.click = function () { if (!this.download) origClick.call(this); };
 window.alert = () => {};
-window.confirm = () => true;
+window.confirm = () => true;   // nothing uses it any more; kept so a stray call cannot hang
 window.print = () => {};
 window.scrollTo = () => {};
 const opened = [];
@@ -45,6 +45,21 @@ const fire = (node, type) => node.dispatchEvent(new window.Event(type, { bubbles
  * than rendered output. Always assert against the app root instead.
  */
 const view = () => document.getElementById('app').textContent;
+/**
+ * Every dialog in the app is the same component, and in jsdom it renders non-modally rather
+ * than through window.confirm. `dialogAct` presses one of its buttons by text; `dialogGone`
+ * checks it closed.
+ */
+const dialogAct = (t) => {
+  const dlg = document.querySelector('dialog.confirm');
+  if (!dlg) return false;
+  const btn = [...dlg.querySelectorAll('button')].find((b) => b.textContent.toLowerCase().includes(t.toLowerCase()));
+  if (!btn) return false;
+  btn.click();
+  return true;
+};
+const dialogText = () => document.querySelector('dialog.confirm')?.textContent ?? '';
+
 /** Answers currently in the tool, read the way the app reads them. */
 const answeredNow = () => {
   const raw = window.localStorage.getItem('gc-arch-assessment:draft');
@@ -129,7 +144,11 @@ pane('Question set');
 byText('.tab', 'Start').click();
 ok('the start page no longer carries the destructive control',
    !byText('button', 'Discard this and start again'));
+// Built with no endpoint, the page cannot make a request at all. Built with one, that single
+// origin is named and nothing else is reachable. One value in the build sets both.
 ok('no network call is even possible (CSP)', html.includes("connect-src 'none'"));
+ok('and the endpoint is a build input rather than a code change',
+   /connect-src __CONNECT__/.test(await readFile('template.html', 'utf8')));
 // Without an explicit color-scheme, native buttons and inputs follow the OS setting while
 // the page follows the media query, and a light page renders dark controls.
 ok('color-scheme is declared for both themes',
@@ -565,13 +584,15 @@ ok('and one click opens the detail', q('.save-state').tagName === 'BUTTON');
      railCounts().join(' '));
   ok('the page still was not rebuilt', document.contains(probeQuestion) && probeLadder.open === true);
 
-  // Put it back, so the rest of the run sees a fully answered assessment. Unticking is enough:
-  // marking a question not applicable keeps the score it had, and used to erase it.
+  // Not applicable is its own answer, so it takes the score with it and unticking leaves the
+  // question unanswered. Then score it again, so the rest of the run sees a full assessment.
   naBox.checked = false;
   fire(naBox, 'change');
-  ok('unticking not applicable gives the score back',
-     naQ.querySelectorAll('.score-btn')[7].getAttribute('aria-checked') === 'true',
-     [...naQ.querySelectorAll('.score-btn')].map((b) => b.getAttribute('aria-checked')).join(''));
+  ok('unticking not applicable leaves the question unanswered',
+     [...naQ.querySelectorAll('.score-btn')].every((b) => b.getAttribute('aria-checked') === 'false'),
+     [...naQ.querySelectorAll('.score-btn')].map((b) => b.getAttribute('aria-checked')).join(','));
+  [...naQ.querySelectorAll('.score-btn')].find((b) => b.textContent === '7').click();
+  ok('and it can be scored again', footerCount().includes(`${TOTAL} of ${TOTAL}`), footerCount());
   probeTextarea.value = '';
   fire(probeTextarea, 'input');
   ok('restored to fully answered', footerCount().includes(`${TOTAL} of ${TOTAL}`), footerCount());
@@ -584,8 +605,12 @@ ok('and one click opens the detail', q('.save-state').tagName === 'BUTTON');
   const box = qa('.question')[0].querySelector('.q-extras-box');
   ok('reasoning and evidence are folded by default', !!box && box.open === false);
   ok('the score itself is not folded', !!qa('.question')[0].querySelector('.score-row'));
-  ok('the fold says what is behind it',
-     box.querySelector('summary').textContent.includes('Add reasoning or evidence'));
+  // The heading is stable and a status follows it, so a filled section does not look like an
+  // empty one. It used to say "Add reasoning or evidence" either way.
+  ok('the fold names itself and says it is empty',
+     box.querySelector('summary').textContent.includes('Reasoning and evidence')
+     && box.querySelector('.q-extras-count.empty').textContent === 'nothing yet',
+     box.querySelector('summary').textContent);
 
   // Anything already written must never hide behind a closed fold.
   box.open = true;
@@ -677,6 +702,10 @@ ok('and one click opens the detail', q('.save-state').tagName === 'BUTTON');
   fire(naInput, 'change');
   [...qa('.question')[0].querySelectorAll('.score-btn')].find((b) => b.textContent === '7').click();
   ok('restored to 7', qa('.question')[0].querySelectorAll('.score-btn')[7].getAttribute('aria-checked') === 'true');
+  // Pressing the score that is already chosen leaves it chosen. It used to clear the answer.
+  qa('.question')[0].querySelectorAll('.score-btn')[7].click();
+  ok('pressing the chosen score again keeps it',
+     qa('.question')[0].querySelectorAll('.score-btn')[7].getAttribute('aria-checked') === 'true');
 }
 
 // ---- no readout is announced twice -------------------------------------------------------
@@ -732,7 +761,7 @@ ok('n/a counts as dealt with, so the denominator stays whole',
    q('.footer-score .muted').textContent);
 
 const hosting = gotoQuestion('hosting environment');
-[...hosting.querySelectorAll('button')].find((b) => b.textContent === 'Add evidence').click();
+byText('.evidence button', 'Add a piece of evidence').click();
 ok('an evidence row appears', hosting.querySelectorAll('.ev-item').length === 1);
 // Add evidence used to block saving the instant it was clicked, because the row it creates
 // carries no marking. An empty row is nothing to mark.
@@ -790,10 +819,18 @@ ok('a row with something in it and no marking blocks saving',
 // Marking it unclassified brings the attach control back, and a classified marking takes it
 // away again: the artefact itself must never come into the tool.
 {
+  // Marking a piece of evidence above the answer given on the overview now asks which of the
+  // two is wrong. Saying "leave both as they are" keeps the mismatch, which is what this test
+  // needs; the save gate then has its say.
   const live = qa('.question').find((n) => n.textContent.includes('hosting environment'));
   const sel = [...live.querySelectorAll('.ev-row select')][1];
   sel.value = 'Secret';
   fire(sel, 'change');
+  ok('marking evidence above the overview answer asks which is wrong',
+     dialogText().includes('One of the two answers has to change'), dialogText().slice(0, 80));
+  ok('and offers raising the overview answer as the first choice',
+     dialogText().includes('My evidence does go up to Secret'));
+  dialogAct('Leave both');
   const row = qa('.question').find((n) => n.textContent.includes('hosting environment'));
   ok('a classified evidence row cannot be attached to', !row.querySelector('.ev-alt input[type=file]'));
   ok('and says what to do instead', row.textContent.includes('cannot come into this tool'));
@@ -835,6 +872,7 @@ ok('saving is unblocked once the evidence is marked',
   const raise = sel();
   raise.value = 'Secret';
   fire(raise, 'change');
+  dialogAct('Leave both');
   ok('a file attached and then marked classified blocks the save',
      byText('.footer-actions button', 'Save to a file').disabled === true);
   ok('and the row says it cannot be held here',
@@ -850,7 +888,7 @@ ok('saving is unblocked once the evidence is marked',
 // link, because the first one is holding the attachment the rest of this run needs.
 {
   const here = () => qa('.question').find((n) => n.textContent.includes('hosting environment'));
-  [...here().querySelectorAll('button')].find((b) => b.textContent === 'Add evidence').click();
+  [...here().querySelectorAll('button')].find((b) => b.textContent.includes('Add another piece')).click();
   const rows = () => [...here().querySelectorAll('.ev-item')];
   const second = () => rows()[rows().length - 1];
   const title = second().querySelector('.ev-row input[type=text]');
@@ -859,6 +897,7 @@ ok('saving is unblocked once the evidence is marked',
   const sel = [...second().querySelectorAll('.ev-row select')][1];
   sel.value = 'Secret';
   fire(sel, 'change');
+  dialogAct('Leave both');
   ok('evidence above the file marking blocks saving',
      byText('.footer-actions button', 'Save to a file').disabled === true,
      byText('.footer-actions button', 'Save to a file').getAttribute('title'));
@@ -871,6 +910,7 @@ ok('saving is unblocked once the evidence is marked',
      byText('.footer-actions button', 'Save to a file').getAttribute('title'));
   // Take the extra row away again, so the rest of the run sees one piece of evidence.
   [...second().querySelectorAll('button')].find((b) => b.textContent === 'Remove').click();
+  dialogAct('Remove it');
   await new Promise((r) => setTimeout(r, 40));
   ok('and the extra row can be taken away', rows().length === 1, String(rows().length));
 }
@@ -965,14 +1005,16 @@ ok('csv carries a column per section', head.includes('section_data_data-architec
   ok('the danger pane names what is at stake', /Erases the \d+ answers/.test(view()), view().slice(0, 80));
 
   // Refuse the confirmation: nothing may change.
-  window.confirm = () => false;
   q('.set-row.danger button.danger').click();
+  ok('the discard dialog says what will go', dialogText().includes('Discard'), dialogText().slice(0, 60));
+  ok('and states whether a file was ever saved', /saved|only copy/i.test(dialogText()));
+  dialogAct('Keep');
   ok('saying no changes nothing', answeredNow() === before, `${answeredNow()} vs ${before}`);
   ok('and no undo is offered, because nothing happened', !q('.undo-bar'));
 
-  // Accept it.
-  window.confirm = () => true;
+  // Accept it, without taking a file first.
   q('.set-row.danger button.danger').click();
+  dialogAct('Discard permanently');
   ok('discarding empties the assessment', answeredNow() === 0, String(answeredNow()));
   ok('the browser draft is cleared too', !window.localStorage.getItem('gc-arch-assessment:draft'));
   ok('and it stays on the pane that did it, so the loss is visible', !!q('.set-row.danger'));
@@ -982,8 +1024,6 @@ ok('csv carries a column per section', head.includes('section_data_data-architec
   byText('.undo-bar button', 'Undo').click();
   ok('undo puts every answer back', answeredNow() === before, `${answeredNow()} vs ${before}`);
   ok('and the undo strip goes away once used', !q('.undo-bar'));
-
-  window.confirm = () => true;
 }
 
 // ---- reviewer --------------------------------------------------------------------------
@@ -1037,7 +1077,7 @@ ok('and an empty screen centres its one card', !!q('main.body-empty'));
   ok('the assessor can add a question set', !!byText('.filelabel', 'Add a question set'));
   ok('the sets in this browser are listed', qa('.set-list-row').length >= 1,
      String(qa('.set-list-row').length));
-  ok('the one in use is marked', !!q('.set-list-row.on') && view().includes('In use'));
+  ok('the active set is marked', !!q('.set-list-row.on') && view().includes('Active'));
   ok('and adding one is said to change nothing on its own',
      view().includes('changes nothing on its own'));
   {
@@ -1055,6 +1095,10 @@ ok('and an empty screen centres its one card', !!q('main.body-empty'));
     byText('.set-menu-pop .menu-item', 'Preview').click();
     ok('preview shows what is in the set without making it active',
        !q('.set-preview').hidden && view().includes('First questions in each domain'));
+    // Clicking anywhere else closes it, which is what any small menu does.
+    q('.set-menu').open = true;
+    q('h1').click();
+    ok('a click outside closes the menu', q('.set-menu').open === false);
   }
   // Add a second set, keep the first, then delete the new one. Two steps, both times.
   {
@@ -1081,14 +1125,19 @@ ok('and an empty screen centres its one card', !!q('main.body-empty'));
     spare.querySelector('.set-menu').open = true;
     const del = byText('.set-menu-pop .menu-item', 'Delete this set');
     ok('a set that is not in use can be deleted once there are two', !!del);
-    window.confirm = () => false;
     del.click();
+    ok('deleting a set offers the file back before it goes',
+       dialogText().includes('Download the set'), dialogText().slice(0, 80));
+    ok('and deleting without a copy is offered too',
+       dialogText().includes('Delete permanently'));
+    dialogAct('Keep it');
     ok('and saying no keeps it', qa('.set-list-row').length === before + 1,
        String(qa('.set-list-row').length));
-    window.confirm = () => true;
+
     const spare2 = qa('.set-list-row').find((r) => !r.classList.contains('on'));
     spare2.querySelector('.set-menu').open = true;
     byText('.set-menu-pop .menu-item', 'Delete this set').click();
+    dialogAct('Delete permanently');
     await new Promise((r) => setTimeout(r, 40));
     ok('saying yes removes it', qa('.set-list-row').length === before,
        String(qa('.set-list-row').length));
@@ -1105,6 +1154,9 @@ fire(fileInput, 'change');
 await new Promise((r) => setTimeout(r, 100));
 
 ok('submission appears in the triage list', !!q('table.triage tbody tr'));
+// The assessor's side keeps its work in the browser now, the way the submitter's always has.
+ok('the assessor session is kept in this browser',
+   !!window.localStorage.getItem('gc-arch-assessment:audit-session'));
 ok('triage row names the initiative', q('table.triage tbody tr').textContent.includes('Nexus'));
 
 byText('button', 'Open').click();

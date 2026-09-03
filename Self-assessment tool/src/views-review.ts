@@ -6,6 +6,7 @@ import { csvHeader, csvRow, toCsv } from './csv';
 import { download, readJsonFiles, slug } from './storage';
 import { humanSize, openAttachment } from './attach';
 import { rubricFor } from './library';
+import { confirmStep } from './confirm';
 import { SAD_CAT } from './cat';
 import { isHosted } from './store';
 import BUILTIN from '../rubric/rubric.v1-dan.json';
@@ -27,6 +28,47 @@ interface Loaded {
 }
 
 let loaded: Loaded[] = [];
+
+/**
+ * The assessor's work, kept the way the submitter's is.
+ *
+ * Everything an assessor typed lived in memory until they saved a file: a reload, a crash or a
+ * stray click took the afternoon with it. The submitter side has autosaved to the browser
+ * since the first day, and there was no reason for this side to be different.
+ *
+ * Only the parsed submissions and the audit on them are kept, which is the same information
+ * the files already hold, in the same browser that was reading them.
+ */
+const AUDIT_KEY = 'gc-arch-assessment:audit-session';
+
+function keepSession(): void {
+  try {
+    localStorage.setItem(AUDIT_KEY, JSON.stringify(loaded.map((l) => ({ file: l.file, a: l.a }))));
+  } catch {
+    /* private window, or full. The session still holds in this tab. */
+  }
+}
+
+function restoreSession(rubric: Rubric): void {
+  if (loaded.length) return;
+  try {
+    const raw = localStorage.getItem(AUDIT_KEY);
+    if (!raw) return;
+    const rows = JSON.parse(raw) as { file: string; a: Assessment }[];
+    for (const row of rows) {
+      if (row?.a?.fileType !== 'gc-arch-assessment') continue;
+      const own = rubricFor(BUILTIN as unknown as Rubric, row.a.rubric);
+      const use = own ?? rubric;
+      const r = score(use, row.a);
+      loaded.push({ file: row.file, a: row.a, rubric: use, substituted: !own, r, fs: flags(use, row.a, r) });
+    }
+  } catch {
+    /* a half-written record is not worth failing the page over */
+  }
+}
+
+/** Called by every control that changes an audit, so nothing waits for a file to be saved. */
+export function auditChanged(): void { keepSession(); }
 
 /** What the dashboard can see of this session: the files the assessor opened. */
 export function openedThisSession(): Assessment[] { return loaded.map((l) => l.a); }
@@ -69,6 +111,7 @@ export function setAuditor(name: string): void { auditor = name; }
 
 export function renderReview(root: HTMLElement, rubric: Rubric): void {
   clear(root);
+  restoreSession(rubric);
   // With nothing loaded this screen is one card, and it centres. A toggle, because clear()
   // empties children and leaves classes, and loading a file re-enters here.
   root.classList.toggle('body-empty', loaded.length === 0);
@@ -151,6 +194,7 @@ async function ingest(rubric: Rubric, files: FileList, root: HTMLElement) {
     }
     loaded = loaded.filter((l) => l.file !== item.file);
     loaded.push({ file: item.file, a, rubric: use, substituted, r, fs: flags(use, a, r) });
+    keepSession();
   }
   renderReview(root, rubric);
   if (problems.length) {
@@ -204,7 +248,22 @@ function paintList(rubric: Rubric, root: HTMLElement) {
     el('div', { class: 'table-wrap' }, [table]),
     el('div', { class: 'actions' }, [
       el('button', { class: 'ghost', onclick: () => exportAllCsv(rubric) }, ['Export all as CSV']),
-      el('button', { class: 'ghost', onclick: () => { loaded = []; renderReview(root, rubric); } }, ['Clear']),
+      el('button', {
+        class: 'ghost danger-text',
+        onclick: () => confirmStep({
+          tier: 'danger',
+          title: `Clear ${loaded.length} submission${loaded.length === 1 ? '' : 's'} and the audit on them?`,
+          body: 'The files stay where they are on your machine. Every score, verdict and reason you have typed here goes.',
+          stake: 'Saving an audited file is the only way to keep any of it.',
+          commitLabel: 'Clear them',
+          cancelLabel: 'Keep them open',
+          onCommit: () => {
+            loaded = [];
+            keepSession();
+            renderReview(root, rubric);
+          },
+        }),
+      }, ['Clear']),
     ]),
   ]));
 }
@@ -380,6 +439,7 @@ function openDetail(rubric: Rubric, root: HTMLElement, l: Loaded) {
               agreed++;
             }
             lastAgree = { section: sec.section.id, agreed, kept };
+            keepSession();
             repaint();
           },
         }, ['Agree with all']),
@@ -422,7 +482,10 @@ function openDetail(rubric: Rubric, root: HTMLElement, l: Loaded) {
       el('span', {}, ['Overall note for the board']),
       el('textarea', {
         rows: 4,
-        oninput: (e: Event) => { audit.overallNote = (e.target as HTMLTextAreaElement).value; },
+        oninput: (e: Event) => {
+          audit.overallNote = (e.target as HTMLTextAreaElement).value;
+          keepSession();
+        },
       }, [audit.overallNote ?? '']),
     ]),
     el('div', { class: 'actions' }, [
@@ -559,6 +622,7 @@ function auditRow(
               by: entry.by, at: entry.at, score: next, note: entry.note ?? '', unverified: true,
             });
           }
+          keepSession();
           repaint();
         },
         oninput: (e: Event) => {
@@ -587,6 +651,7 @@ function auditRow(
           const hist = entry.history ?? [];
           const last = hist[hist.length - 1];
           if (last && last.score === entry.auditedScore) last.note = entry.note ?? '';
+          keepSession();
         },
         onchange: () => repaint(),
       }),

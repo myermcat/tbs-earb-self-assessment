@@ -46,7 +46,7 @@ const first = g('.question')[0];
 first.querySelector('.q-extras-box').open = true;
 const ta = first.querySelector('textarea');
 ta.value = 'Reviewed quarterly and owned by the platform team.'; fire(ta, 'input');
-[...first.querySelectorAll('button')].find((b) => b.textContent === 'Add evidence').click();
+[...first.querySelectorAll('button')].find((b) => b.textContent.includes('Add a piece of evidence')).click();
 const evRow = g('.ev-row input[type=text]')[0];
 evRow.value = 'Current-state architecture pack'; fire(evRow, 'input');
 const evCls = [...g('.ev-row select')][1]; evCls.value = 'Protected B'; fire(evCls, 'change');

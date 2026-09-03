@@ -125,7 +125,7 @@ export function demandPledge(o: PledgeOpts): void {
     d.showModal();
     scrim.remove();                       // the native ::backdrop does this properly
   } else {
-    d.setAttribute('open', '');           // jsdom, and anything without dialog support
+    d.setAttribute('open', '');           // anything without dialog support
     dlg.classList.add('no-modal');
   }
   setTimeout(() => box.focus?.(), 0);

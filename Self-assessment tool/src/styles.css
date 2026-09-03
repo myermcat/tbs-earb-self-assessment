@@ -621,6 +621,8 @@ dialog.confirm { border: 0; padding: 0; border-radius: 14px; max-width: 32rem;
   width: calc(100% - 2rem); background: var(--surface); color: var(--ink);
   box-shadow: var(--shadow-lg); }
 dialog.confirm::backdrop { background: rgba(10, 12, 16, .55); }
+dialog.confirm.no-modal { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+  margin: 0; z-index: 70; box-shadow: var(--shadow-lg); }
 /* Deleting without taking a copy is allowed, and it is the strongest-looking button here. */
 dialog.confirm.tier-danger .danger-solid, dialog.confirm.tier-danger .danger {
   background: var(--bad); border-color: var(--bad); color: var(--bad-ink); font-weight: 700; }
@@ -760,6 +762,9 @@ tr.red-flag td:first-child { box-shadow: inset 2px 0 0 var(--bad); }
 .q-extras-summary { cursor: pointer; list-style: none; display: flex; align-items: center;
   gap: .45rem; font-size: .82rem; color: var(--accent); padding: .2rem 0; }
 .q-extras-summary::-webkit-details-marker { display: none; }
+/* Started or not started, in the words a task list uses. The arrow means open and closed. */
+.q-extras-count.empty { color: var(--ink-3); }
+.q-extras-count.filled { color: var(--accent); font-weight: 600; }
 .q-extras-summary::before { content: '+'; font-family: var(--mono); font-weight: 700; }
 details[open] > .q-extras-summary::before { content: '\2212'; }
 .q-extras-count { color: var(--ink-3); font-size: .76rem; }

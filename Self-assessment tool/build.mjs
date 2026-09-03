@@ -10,6 +10,18 @@ const OUT_DIR = 'dist';
 const OUT_FILE = `${OUT_DIR}/index.html`;
 const watch = process.argv.includes('--watch');
 
+/**
+ * Where submissions go, if anywhere.
+ *
+ *   EARB_ENDPOINT=https://earb-store.example.workers.dev npm run build
+ *
+ * With no endpoint the page keeps its `connect-src 'none'`, which means it cannot make a
+ * request at all. With one, exactly that origin is allowed and nothing else: the security
+ * story stays a story about one host rather than a story about the internet.
+ */
+const ENDPOINT = (process.env.EARB_ENDPOINT ?? '').trim().replace(/\/$/, '');
+const ORIGIN = ENDPOINT ? new URL(ENDPOINT).origin : '';
+
 async function once() {
   const result = await build({
     entryPoints: ['src/main.ts'],
@@ -19,6 +31,7 @@ async function once() {
     target: ['es2020'],
     minify: !watch,
     loader: { '.json': 'json' },
+    define: { __EARB_ENDPOINT__: JSON.stringify(ENDPOINT) },
     logLevel: 'warning',
   });
 
@@ -29,6 +42,7 @@ async function once() {
 
   const html = template
     .replace('__TITLE__', rubric.title)
+    .replace('__CONNECT__', ORIGIN || "'none'")
     .replace('__CSS__', () => css)
     .replace('__JS__', () => js);
 

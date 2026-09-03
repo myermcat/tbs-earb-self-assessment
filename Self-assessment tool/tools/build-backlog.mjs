@@ -27,7 +27,13 @@ const STYLE = `<style>
 --chrome:#1e222ae6;--chrome-line:#414957}}
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;-webkit-font-smoothing:antialiased}
-.wrap{max-width:1020px;margin:0 auto;padding:2rem 1.2rem 5rem}
+.wrap{max-width:1020px;margin:0 auto;padding:.4rem 1.2rem 5rem}
+/* The title band and the pinned bar both run the full width of the window, the way a header
+   does. The text inside them lines up with the column below. */
+.head{background:var(--surface);border-bottom:1px solid var(--line)}
+.head-in{max-width:1020px;margin:0 auto;padding:1.6rem 1.2rem 1rem}
+.head h1{margin:0 0 .2rem}
+.head .sub{margin:0}
 h1{font-size:1.9rem;letter-spacing:-.02em;margin:0 0 .3rem}
 .sub{color:var(--ink-2);margin:0 0 1.5rem;max-width:70ch}
 h2{font-size:1.15rem;margin:2.3rem 0 .6rem;display:flex;align-items:baseline;gap:.6rem;flex-wrap:wrap}
@@ -77,9 +83,10 @@ footer{margin-top:3rem;color:var(--ink-3);font-size:.8rem}
 .done-card .leaf{opacity:.92}
 /* The pinned bar is the navigation. The counts are links, the layers are links, and it stays
    put so no section has to be hunted for. */
-.topnav{position:sticky;top:0;z-index:20;margin:0 -1.2rem 1.4rem;padding:.5rem 1.2rem;
+.topnav{position:sticky;top:0;z-index:20;margin:0 0 1.4rem;padding:.5rem 0;
 background:var(--chrome);border-bottom:1px solid var(--chrome-line);backdrop-filter:saturate(1.4) blur(6px)}
-.topnav-in{display:flex;align-items:center;gap:.4rem;flex-wrap:wrap}
+.topnav-in{display:flex;align-items:center;gap:.4rem;flex-wrap:wrap;
+max-width:1020px;margin:0 auto;padding:0 1.2rem}
 .nav-kpi{display:flex;align-items:baseline;gap:.3rem;text-decoration:none;color:var(--ink-2);
 background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:.16rem .6rem}
 .nav-kpi b{font-family:var(--mono);font-size:.95rem;color:var(--ink)}
@@ -210,8 +217,8 @@ const html = [
       '</svg>',
     ) + '">',
   STYLE,
-  '<div class="wrap"><h1>EARB self-assessment: backlog</h1>',
-  `<p class="sub">Updated ${esc(updated)}.</p>`,
+  '<div class="head"><div class="head-in"><h1>EARB self-assessment: backlog</h1>',
+  `<p class="sub">Updated ${esc(updated)}.</p></div></div>`,
   // The counts are the navigation: pinned, so every section is one click away from anywhere
   // on the page.
   '<nav class="topnav"><div class="topnav-in">',
@@ -225,6 +232,7 @@ const html = [
   layers.map((l, i) => `<a class="nav-lay" href="#layer-${i}">${esc(l.title.replace('Interface: ', ''))}</a>`).join('\n'),
   `<a class="nav-lay" href="#resolved">Resolved</a>`,
   '</div></nav>',
+  '<div class="wrap">',
 
   openQuick.length ? [
     `<h2 id="quick">${esc(quick.title)}</h2><p class="hint">${esc(quick.hint)}</p>`,

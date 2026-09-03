@@ -11,7 +11,13 @@
 --chrome:#1e222ae6;--chrome-line:#414957}}
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;-webkit-font-smoothing:antialiased}
-.wrap{max-width:1020px;margin:0 auto;padding:2rem 1.2rem 5rem}
+.wrap{max-width:1020px;margin:0 auto;padding:.4rem 1.2rem 5rem}
+/* The title band and the pinned bar both run the full width of the window, the way a header
+   does. The text inside them lines up with the column below. */
+.head{background:var(--surface);border-bottom:1px solid var(--line)}
+.head-in{max-width:1020px;margin:0 auto;padding:1.6rem 1.2rem 1rem}
+.head h1{margin:0 0 .2rem}
+.head .sub{margin:0}
 h1{font-size:1.9rem;letter-spacing:-.02em;margin:0 0 .3rem}
 .sub{color:var(--ink-2);margin:0 0 1.5rem;max-width:70ch}
 h2{font-size:1.15rem;margin:2.3rem 0 .6rem;display:flex;align-items:baseline;gap:.6rem;flex-wrap:wrap}
@@ -61,9 +67,10 @@ footer{margin-top:3rem;color:var(--ink-3);font-size:.8rem}
 .done-card .leaf{opacity:.92}
 /* The pinned bar is the navigation. The counts are links, the layers are links, and it stays
    put so no section has to be hunted for. */
-.topnav{position:sticky;top:0;z-index:20;margin:0 -1.2rem 1.4rem;padding:.5rem 1.2rem;
+.topnav{position:sticky;top:0;z-index:20;margin:0 0 1.4rem;padding:.5rem 0;
 background:var(--chrome);border-bottom:1px solid var(--chrome-line);backdrop-filter:saturate(1.4) blur(6px)}
-.topnav-in{display:flex;align-items:center;gap:.4rem;flex-wrap:wrap}
+.topnav-in{display:flex;align-items:center;gap:.4rem;flex-wrap:wrap;
+max-width:1020px;margin:0 auto;padding:0 1.2rem}
 .nav-kpi{display:flex;align-items:baseline;gap:.3rem;text-decoration:none;color:var(--ink-2);
 background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:.16rem .6rem}
 .nav-kpi b{font-family:var(--mono);font-size:.95rem;color:var(--ink)}
@@ -85,12 +92,12 @@ background:var(--surface);border:1px solid var(--line);border-radius:10px;list-s
 .h3sub{font-size:.98rem;margin:1.2rem 0 .5rem;color:var(--ink-2)}
 .kpi a{color:inherit;text-decoration:none}
 </style>
-<div class="wrap"><h1>EARB self-assessment: backlog</h1>
-<p class="sub">Updated 2026-09-01.</p>
+<div class="head"><div class="head-in"><h1>EARB self-assessment: backlog</h1>
+<p class="sub">Updated 2026-09-01.</p></div></div>
 <nav class="topnav"><div class="topnav-in">
 <a class="nav-kpi" href="#quick"><b>17</b><span>next</span></a>
 <a class="nav-kpi" href="#waiting"><b>8</b><span>waiting on somebody</span></a>
-<a class="nav-kpi" href="#done"><b>58</b><span>done</span></a>
+<a class="nav-kpi" href="#done"><b>66</b><span>done</span></a>
 <a class="nav-kpi" href="#questions"><b>12</b><span>open questions</span></a>
 <span class="nav-sep"></span>
 <a class="nav-lay" href="#layer-0">Question set</a>
@@ -103,6 +110,7 @@ background:var(--surface);border:1px solid var(--line);border-radius:10px;list-s
 <a class="nav-lay" href="#layer-7">Process, for people</a>
 <a class="nav-lay" href="#resolved">Resolved</a>
 </div></nav>
+<div class="wrap">
 <h2 id="quick">Quick actions</h2><p class="hint">No discussion needed.</p>
 <div class="card quick">
 <div class="leaf solo">
@@ -110,8 +118,8 @@ background:var(--surface);border:1px solid var(--line);border-radius:10px;list-s
 <span class="w">Everything, for now. Chris says departments know who their assessor is, so they could pick one at submission, and an assessor could share a file or hand it on. Until that is decided, every assessor sees the whole pool, and a My assessments tab is the filter to add when the rule exists.</span>
 </div>
 <div class="leaf solo">
-<span class="t">The assessor side keeps nothing between reloads</span><span class="st st-next">Next</span>
-<span class="w">Every audited score, verdict, note and history entry lives in memory only until the file is saved. A reload, a crash or a stray click on Clear takes the afternoon with it. The submitter side has autosaved to the browser since the start.</span>
+<span class="t">Stand up the store</span><span class="st st-next">Next</span>
+<span class="w">The Worker is written and waiting in deploy/worker.js, and the page takes its address as a build input. What is left is a Cloudflare account, which only you can create: sign in, paste the file, bind a KV namespace, then build with EARB_ENDPOINT set.</span>
 </div>
 <div class="leaf solo">
 <span class="t">Decide where the tool is published</span><span class="st st-next">Next</span>
@@ -325,11 +333,11 @@ background:var(--surface);border:1px solid var(--line);border-radius:10px;list-s
 </div>
 </div>
 <h2 id="done">Done</h2>
-<p class="hint">Built and tested, kept for good, newest first. 56 items since Dan's review on 1 September.</p>
+<p class="hint">Built and tested, kept for good, newest first. 64 items since Dan's review on 1 September.</p>
 <details class="done-fold"><summary class="done-summary">
-<span class="section-title">Everything done</span><span class="muted small">58 items, by layer</span>
+<span class="section-title">Everything done</span><span class="muted small">66 items, by layer</span>
 </summary>
-<h3 class="h3sub">Quick action <span class="muted small">23</span></h3>
+<h3 class="h3sub">Quick action <span class="muted small">31</span></h3>
 <div class="card done-card">
 <div class="leaf solo">
 <span class="t">Settings marks the unbuilt parts as unbuilt</span><span class="st st-done">Done</span>
@@ -390,6 +398,38 @@ background:var(--surface);border:1px solid var(--line);border-radius:10px;list-s
 <div class="leaf solo">
 <span class="t">A classified file cannot be left attached</span><span class="st st-done">Done</span>
 <span class="w">Hiding the attach control was not enough: attach while the row is unclassified, raise the marking afterwards, and the file stayed, saved, and passed every check. The save is blocked now and the row says why, which is the one promise the pledge window makes.</span>
+</div>
+<div class="leaf solo">
+<span class="t">The cat had horns</span><span class="st st-done">Done</span>
+<span class="w">The head outline peaked at both sides, which were the ears, and two more thin triangles were drawn floating above them. The head is a circle now and the ear bases sit inside it.</span>
+</div>
+<div class="leaf solo">
+<span class="t">Done asks the reader to finish, and says what is missing</span><span class="st st-done">Done</span>
+<span class="w">Pressing Done on the overview with something empty repainted the same card and explained nothing. It goes to the gap and names it, and what is left is listed under the step at all times.</span>
+</div>
+<div class="leaf solo">
+<span class="t">A filled section stops looking empty</span><span class="st st-done">Done</span>
+<span class="w">The disclosure said "Add reasoning or evidence" whether or not anything was inside. The heading is stable now and a status follows it, the way a government task list marks a section as started.</span>
+</div>
+<div class="leaf solo">
+<span class="t">One dialog everywhere, and no silent yes</span><span class="st st-done">Done</span>
+<span class="w">A browser without dialog support fell back to window.confirm, which named neither the count nor the stake and treated OK as yes. The same dialog renders in place instead, so the tests press the real buttons too.</span>
+</div>
+<div class="leaf solo">
+<span class="t">Every dialog closes on a click outside it</span><span class="st st-done">Done</span>
+<span class="w">Menus stayed open until something else was clicked, and the discard window had no way out but its own buttons. Cancelling is the outcome, so a stray click can never delete. The classified pledge is the exception, because a tick is the point of it.</span>
+</div>
+<div class="leaf solo">
+<span class="t">A prompt when the evidence outranks the overview answer</span><span class="st st-done">Done</span>
+<span class="w">Marking a piece of evidence higher than the answer given on the overview used to sit there blocking the save. It asks which of the two is wrong, and raising the overview answer does not re-open the pledge.</span>
+</div>
+<div class="leaf solo">
+<span class="t">The store is one build input away</span><span class="st st-done">Done</span>
+<span class="w">EARB_ENDPOINT sets both the address the page writes to and the one origin its security policy allows, so a build with no endpoint still cannot make a request. deploy/worker.js is the store: forty lines, free tier, browser-only setup.</span>
+</div>
+<div class="leaf solo">
+<span class="t">The assessor side keeps its work in the browser</span><span class="st st-done">Done</span>
+<span class="w">Every audited score, verdict, note and history entry used to live in memory until the file was saved, so a reload took the afternoon. It autosaves the way the submitter side always has, Clear asks first, and the session comes back after a reload.</span>
 </div>
 <div class="leaf solo">
 <span class="t">Sign in is one screen, and short screens keep their footer</span><span class="st st-done">Done</span>
@@ -597,7 +637,7 @@ background:var(--surface);border:1px solid var(--line);border-radius:10px;list-s
 <h2 id="questions">Open questions</h2><p class="hint">Not work. Somebody owes an answer.</p>
 <div class="tw"><table><thead><tr><th>Question</th><th>Who owes it</th><th>Blocks</th><th>Meanwhile</th></tr></thead><tbody>
 <tr><td>What an assessor sees of the pool</td><td>Dan or Chris</td><td>Filtering, and any My assessments view</td><td>Every assessor sees everything</td></tr>
-<tr><td>Where an assessor’s work is kept between reloads</td><td>us</td><td>Nothing yet</td><td>It is in memory only. Saving the audited file is the only copy</td></tr>
+<tr><td>Who may write to the prototype store</td><td>us, then Dan</td><td>Nothing yet</td><td>Anybody who reads the page source. Fine for unclassified drafts, and the reason the real one needs the departmental sign-in</td></tr>
 <tr><td>Can the 176 draft questions be public</td><td>Dan</td><td>Publishing inside canada-ca</td><td>The preview sits on a personal public repo, which is the same exposure with less visibility</td></tr>
 <tr><td>Who may edit a stored assessment, and how it is checked</td><td>Dan</td><td>Real authentication</td><td>Mockup screen, everything labelled unverified</td></tr>
 <tr><td>Verifying an assessor’s identity</td><td>Dan</td><td>Real sign-in</td><td>Typed name, labelled unverified on every change it records</td></tr>
@@ -609,4 +649,4 @@ background:var(--surface);border:1px solid var(--line);border-radius:10px;list-s
 <tr><td>Who performs the canada-ca transfer</td><td>Nick</td><td>The repo move</td><td>Asked. An issue on canada-ca/welcome is the route he named</td></tr>
 <tr><td>What the production intake should be</td><td>TBS</td><td>Production only</td><td>The prototype answer is an Azure Function plus one CSP line</td></tr>
 </tbody></table></div>
-<footer>43 open, 58 done. Generated from NOTES/backlog.data.mjs by tools/build-backlog.mjs.</footer></div>
+<footer>43 open, 66 done. Generated from NOTES/backlog.data.mjs by tools/build-backlog.mjs.</footer></div>
