@@ -15,6 +15,21 @@ HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 WORK="$(mktemp -d)"
 trap 'rm -rf "$WORK"' EXIT
 
+# The store this build talks to. A Firebase web key identifies the project and authorises
+# nothing on its own, which is Google's own position, so it lives here rather than in a secret
+# store. Take this file away and the build goes back to reaching nothing at all.
+# The file is not in git. Recreate it from the Firebase console: Project settings, the web app,
+# SDK setup and configuration, then copy apiKey and projectId into it.
+if [ -f "$HERE/deploy/firebase-config.json" ]; then
+  EARB_FIREBASE="$(tr -d '\n' < "$HERE/deploy/firebase-config.json")"
+  export EARB_FIREBASE
+else
+  echo "WARNING: deploy/firebase-config.json is missing."
+  echo "         This build will reach no store at all, and the page will say so."
+  echo "         Press Return to publish it anyway, or Ctrl-C to stop."
+  read -r _
+fi
+
 echo "Building..."
 ( cd "$HERE/Self-assessment tool" && npm run --silent build )
 ( cd "$HERE/Self-assessment tool" && node tools/build-backlog.mjs >/dev/null )
