@@ -427,10 +427,17 @@ function stepper(
  * initiative, and which question. The first version read "EARB evidence - m - [question]",
  * which meant nothing to anybody who had not written it.
  */
+/**
+ * The subject line for an artefact that has to travel by email.
+ *
+ * It carries the question and a short code for the assessment, and deliberately not the
+ * initiative name. A subject line is permanent once the mail is sent: with the name in it,
+ * renaming the initiative silently invalidated every email already gone, and there is no way
+ * to un-send one. The code is made when the assessment is created and never changes, so a
+ * rename costs nothing and nothing has to be locked.
+ */
 export function evidenceSubject(a: Assessment, questionId: string): string {
-  const who = a.initiative.name.trim() || 'your initiative';
-  // The initiative name is quoted and labelled. Unquoted it read as a typo: "evidence for m".
-  return `EARB self-assessment evidence: initiative "${who}", question ${questionId}`;
+  return `EARB evidence ${a.ref ?? '----'}, question ${questionId}`;
 }
 
 /**
@@ -764,6 +771,13 @@ function aboutSection(
           field('Department or agency', text('department', 'Transport Canada, for example')),
           field('Who to contact about this', text('contact', 'Name or team inbox')),
         ]),
+        // The code an assessor matches an email to. It goes here because this is where the
+        // name is, and the name is the thing people assume identifies the assessment.
+        el('p', { class: 'ref-line tiny' }, [
+          'Reference ',
+          el('b', { class: 'mono' }, [a.ref ?? '----']),
+          el('span', { class: 'dim' }, ['. Quote this in any email about this assessment. It stays the same if you rename the initiative.']),
+        ]),
         field('In two or three sentences, what is it?', el('textarea', {
           rows: 3, placeholder: 'What it does, and who it is for.',
           oninput: (e: Event) => { set('summary')(e); settled(); },
@@ -1091,6 +1105,10 @@ function questionBlock(rubric: Rubric, a: Assessment, q: Question, refresh: () =
       // Not applicable is its own answer, so it replaces the score instead of sitting on top
       // of one. Unticking leaves the question unanswered, which is what it is.
       if (ans.na) ans.score = null;
+      // Fold the reasoning and evidence away as the box is ticked. Left open and dimmed, the
+      // whole apparatus read as one grey slab.
+      const box = wrap.querySelector('.q-extras-box') as HTMLDetailsElement | null;
+      if (box && ans.na) box.open = false;
       autosave(a); paintScores(); paintChosen(); refresh();
     },
   }) as HTMLInputElement;
@@ -1284,7 +1302,13 @@ function questionBlock(rubric: Rubric, a: Assessment, q: Question, refresh: () =
    * so nothing a person wrote can hide behind a closed disclosure.
    */
   const hasExtras = !!(ans.justification ?? '').trim() || (ans.evidence ?? []).length > 0;
-  const extrasBox = el('details', { class: 'q-extras-box', open: hasExtras }, [
+  /**
+   * Not applicable is an answer, so the reasoning and evidence behind a score are not part of
+   * this question any more. They are kept, because deleting somebody's work because they
+   * ticked a box is not a decision the tool gets to make, and they are folded away with a
+   * line saying so. Untick it and everything is where it was.
+   */
+  const extrasBox = el('details', { class: 'q-extras-box', open: hasExtras && !ans.na }, [
     /**
      * The heading stays put and a short status follows it, which is how a government task
      * list marks a section as started. The label used to read "Add reasoning or evidence"
@@ -1302,7 +1326,9 @@ function questionBlock(rubric: Rubric, a: Assessment, q: Question, refresh: () =
           if (words) parts.push('reasoning written');
           if (n) parts.push(`${n} piece${n === 1 ? '' : 's'} of evidence`);
           badge.className = `q-extras-count ${parts.length ? 'filled' : 'empty'}`;
-          badge.textContent = parts.length ? parts.join(', ') : 'nothing yet';
+          badge.textContent = parts.length
+            ? (ans.na ? `${parts.join(', ')}, kept and not counted` : parts.join(', '))
+            : 'nothing yet';
         };
         paintBadge();
         extras.addEventListener('input', paintBadge);
@@ -1358,10 +1384,12 @@ function evidenceEditor(a: Assessment, q: Question, list: EvidenceRef[], refresh
                 autosave(a); paint(); refresh(); repaintApp();
               },
             },
-            commitLabel: `No, put this piece back to ${was || 'unmarked'}`,
+            // Back to the highest this row may be, which is the overview answer. Reverting to
+            // whatever the row held a moment ago put a Protected C row back to unmarked.
+            commitLabel: `No, my evidence goes up to ${a.initiative.classification || 'nothing higher'}`,
             cancelLabel: 'Leave both as they are',
             onCommit: () => {
-              ev.classification = was;
+              ev.classification = a.initiative.classification || was;
               autosave(a); paint(); refresh();
             },
           });

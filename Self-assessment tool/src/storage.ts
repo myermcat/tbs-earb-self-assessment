@@ -10,11 +10,24 @@ import type { Assessment, Rubric } from './types';
 const KEY = 'gc-arch-assessment:draft';
 export const APP_VERSION = '0.1.0';
 
+/**
+ * A short code somebody can read aloud, and that never changes.
+ *
+ * No I, O, 0 or 1, because this gets typed into an email subject and read back off a screen.
+ */
+function newRef(): string {
+  const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let out = '';
+  for (let i = 0; i < 4; i++) out += alphabet[Math.floor(Math.random() * alphabet.length)];
+  return out;
+}
+
 export function blankAssessment(rubric: Rubric): Assessment {
   const now = new Date().toISOString();
   return {
     fileType: 'gc-arch-assessment',
     formatVersion: 1,
+    ref: newRef(),
     rubric: { id: rubric.id, version: rubric.version, title: rubric.title },
     initiative: { name: '', department: '', contact: '', lifecycleStage: '', summary: '', classification: '' },
     answers: {},
@@ -81,12 +94,21 @@ export function autosave(a: Assessment): void {
   }
 }
 
+/**
+ * An assessment saved before the code existed gets one now, so every subject line the tool
+ * writes from here on can be matched back to it.
+ */
+export function ensureRef(a: Assessment): Assessment {
+  if (!a.ref) a.ref = newRef();
+  return a;
+}
+
 export function loadDraft(): Assessment | null {
   try {
     const raw = localStorage.getItem(KEY);
     if (!raw) return null;
     const a = JSON.parse(raw) as Assessment;
-    return a?.fileType === 'gc-arch-assessment' ? a : null;
+    return a?.fileType === 'gc-arch-assessment' ? ensureRef(a) : null;
   } catch {
     return null;
   }

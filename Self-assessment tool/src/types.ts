@@ -204,6 +204,14 @@ export interface Assessment {
   formatVersion: number;
   /** Assigned by the store when the record first goes online. Absent while it is only a draft. */
   id?: string;
+  /**
+   * A short code for this assessment, made when it is created and never changed.
+   *
+   * It exists because email subject lines are permanent. Putting the initiative name in a
+   * subject means renaming the initiative invalidates every email already sent, and nobody can
+   * un-send an email. The code does not depend on anything a person can edit.
+   */
+  ref?: string;
   rubric: { id: string; version: string; title: string };
   initiative: {
     name: string;
