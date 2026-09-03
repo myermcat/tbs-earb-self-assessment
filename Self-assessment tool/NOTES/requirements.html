@@ -1,4 +1,4 @@
-<title>EARB tool requirements</title>
+<title>EARB tool requirements specification</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2032%2032%22%3E%3Crect%20width%3D%2232%22%20height%3D%2232%22%20rx%3D%227%22%20fill%3D%22%231f6b3c%22%2F%3E%3Cpath%20d%3D%22M9%2017l5%205%209-11%22%20fill%3D%22none%22%20stroke%3D%22%23eaf7ef%22%20stroke-width%3D%223.4%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%2F%3E%3C%2Fsvg%3E">
 <style>
 :root{color-scheme:light;--bg:#f7f8fa;--surface:#fff;--surface-2:#f1f3f6;--line:#e2e6ec;--line-2:#cdd4dd;
@@ -78,6 +78,9 @@ padding:.6rem .1rem;border-bottom:1px solid var(--line)}
 text-transform:uppercase;color:var(--warn)}
 .req-note{grid-column:2;font-size:.85rem;color:var(--ink-2)}
 .lead{font-size:1rem;color:var(--ink-2);max-width:74ch;margin:.2rem 0 .8rem}
+.std-p{margin:0 0 .6rem;font-size:.9rem;color:var(--ink-2);max-width:80ch}
+.std-p:last-child{margin-bottom:0}
+.std-p b{color:var(--ink)}
 .legend{display:flex;align-items:center;gap:.4rem;flex-wrap:wrap;margin:0 0 1.4rem;
 padding:.5rem .7rem;background:var(--surface);border:1px solid var(--line);border-radius:10px}
 .legend .muted{font-size:.8rem}
@@ -110,14 +113,15 @@ background:var(--surface);border:1px solid var(--line);border-radius:10px;list-s
 .h3sub{font-size:.98rem;margin:1.2rem 0 .5rem;color:var(--ink-2)}
 .kpi a{color:inherit;text-decoration:none}
 </style>
-<div class="head"><div class="head-in"><h1>EARB self-assessment: requirements</h1>
-<p class="sub">Updated 2026-09-01. 79 requirements.</p></div></div>
+<div class="head"><div class="head-in"><h1>GC EA self-assessment: requirements specification</h1>
+<p class="sub">Living document, updated 2026-09-01. 81 requirements, baselined at each release. Following ISO/IEC/IEEE 29148:2018, tailored.</p></div></div>
 <nav class="topnav"><div class="topnav-in">
-<span class="nav-kpi"><b>38</b><span>built</span></span>
+<span class="nav-kpi"><b>39</b><span>built</span></span>
 <span class="nav-kpi"><b>23</b><span>agreed, not built</span></span>
 <span class="nav-kpi"><b>5</b><span>proposed</span></span>
-<span class="nav-kpi"><b>13</b><span>open</span></span>
+<span class="nav-kpi"><b>14</b><span>open</span></span>
 <span class="nav-sep"></span>
+<a class="nav-lay" href="#open">Open decisions</a>
 <a class="nav-lay" href="#purpose">Purpose and scope</a>
 <a class="nav-lay" href="#roles">Roles and access</a>
 <a class="nav-lay" href="#signin">Signing in</a>
@@ -129,13 +133,38 @@ background:var(--surface);border:1px solid var(--line);border-radius:10px;list-s
 <a class="nav-lay" href="#data">Data, storage and hosting</a>
 <a class="nav-lay" href="#notify">Notifications</a>
 <a class="nav-lay" href="#nonfunctional">How it has to behave</a>
+<a class="nav-lay" href="#verify">How it is checked</a>
 </div></nav>
 <div class="wrap">
 <p class="lead">This is the standing record of what the GC Enterprise Architecture self-assessment tool has to do. It accumulates: a decision made in a meeting is written here the same day, with who made it.</p>
-<p class="lead">Each requirement carries a number so it can be quoted, a state, and an owner where somebody owes an answer. Nothing is deleted when it changes. The state changes and the reason goes in the note.</p>
+<p class="lead">Each requirement carries a number so it can be quoted, a state, and an owner where somebody owes an answer. Numbers are never reused and never renumbered. Nothing is deleted when a requirement changes: the state changes and the reason goes in the note.</p>
 <div class="legend small">
 <span class="st st-done">Built</span> <span class="st st-next">Agreed</span> <span class="st st-wait">Proposed</span> <span class="st st-later">Open</span>
 <span class="muted">Built is in the tool today. Agreed is decided and not built. Proposed is our reading, waiting on somebody. Open is undecided.</span>
+</div>
+<h2 id="open">Open decisions <span class="muted small">14</span></h2>
+<p class="hint">Every requirement below that nobody has decided, in one place. Each is also in its own section.</p>
+<div class="tw"><table><thead><tr><th>Number</th><th>Decision</th><th>Who owes it</th><th>Section</th></tr></thead><tbody>
+<tr><td class="mono">P4</td><td>Which initiatives have to submit one.</td><td>Dan</td><td>Purpose and scope</td></tr>
+<tr><td class="mono">R7</td><td>What an assessor sees of the pool.</td><td>Dan or Chris</td><td>Roles and access</td></tr>
+<tr><td class="mono">R8</td><td>Whether admin is a role of its own or an assessor with more buttons.</td><td>Dan</td><td>Roles and access</td></tr>
+<tr><td class="mono">Q9</td><td>Per-question criticality, separate from section weight.</td><td>Dan</td><td>The instrument</td></tr>
+<tr><td class="mono">Q10</td><td>The dropdown answers for each question.</td><td>Dan</td><td>The instrument</td></tr>
+<tr><td class="mono">Q11</td><td>The Business Architecture section weights add up to 80.</td><td>Dan</td><td>The instrument</td></tr>
+<tr><td class="mono">Q12</td><td>The routing thresholds.</td><td>Dan</td><td>The instrument</td></tr>
+<tr><td class="mono">D5</td><td>The twelve-month questions: per-question averages, averages by department, and the best and worst evidence for each question.</td><td>Dan</td><td>The portfolio view</td></tr>
+<tr><td class="mono">H11</td><td>Whether the prototype store runs on the free plan or has a billing account attached.</td><td>ours, then Dan</td><td>Data, storage and hosting</td></tr>
+<tr><td class="mono">H7</td><td>What the production store is.</td><td>TBS</td><td>Data, storage and hosting</td></tr>
+<tr><td class="mono">H8</td><td>The code moving into the canada-ca organisation.</td><td>Nick</td><td>Data, storage and hosting</td></tr>
+<tr><td class="mono">H9</td><td>Whether the 176 draft questions can be public.</td><td>Dan</td><td>Data, storage and hosting</td></tr>
+<tr><td class="mono">N3</td><td>What triggers one, and who receives it.</td><td>Dan</td><td>Notifications</td></tr>
+<tr><td class="mono">X7</td><td>French.</td><td>ours</td><td>How it has to behave</td></tr>
+</tbody></table></div>
+<h2 id="standard">What this follows, and where it departs</h2>
+<div class="card">
+<p class="std-p"><b>The standard.</b> ISO/IEC/IEEE 29148:2018, Systems and software engineering, life cycle processes, requirements engineering. It replaced IEEE 830, which is withdrawn and still the thing most people picture when they hear the words requirements specification.</p>
+<p class="std-p"><b>Tailored, which the standard allows.</b> Clause 4.5 permits tailoring. Two departures are deliberate. The document carries a status line where a signature block would go, because it is living and gets baselined at each release. And requirements are written in plain present tense, leaving out the "shall" convention in clause 5.2.7, because the people who read this are two colleagues and a director, and "the tool shall keep work as it is typed" is harder to read than the same sentence without it.</p>
+<p class="std-p"><b>States.</b> Proposed is the standard word. Agreed means analysed, agreed by whoever owns the decision, and committed to. Built means it is in the tool. Open marks a decision nobody has made, and every open item is also listed in one place at the top.</p>
 </div>
 <h2 id="purpose">1. Purpose and scope</h2>
 <p class="hint">What the tool replaces and what it does not touch.</p>
@@ -244,9 +273,9 @@ background:var(--surface);border:1px solid var(--line);border-radius:10px;list-s
 </div>
 <div class="req">
 <span class="req-id mono">S3</span>
-<span class="req-t">For the prototype, a link sent to a work email address. Clicking it signs the person in, and no password exists.</span>
+<span class="req-t">For the prototype, sign in with a Google account, which sends no email and needs no password.</span>
 <span class="st st-wait">Proposed</span>
-<span class="req-note">Works with a gc.ca address today and needs no departmental approval. It maps onto S2 without changing how the tool reads a role.</span>
+<span class="req-note">The first plan was a link sent to a work address. Firebase caps that at five sign-in emails a day for the whole project on the free plan, which is three testers, so it cannot be the prototype route. Google sign-in has no such cap, works from a static page, and the rules key off the address either way. Attaching a billing account lifts the cap to 25,000 a day and is the other way out.</span>
 </div>
 <div class="req">
 <span class="req-id mono">S4</span>
@@ -519,7 +548,20 @@ background:var(--surface);border:1px solid var(--line);border-radius:10px;list-s
 <span class="req-id mono">H10</span>
 <span class="req-t">Attached files do not go into the store as part of the assessment.</span>
 <span class="st st-next">Agreed</span>
-<span class="req-note">A document in the store caps at about a megabyte, and the tool allows 15 MB per attachment. Evidence is a link for exactly this reason; an attachment is the fallback for something unclassified that cannot be linked, and where it goes in a hosted world is still to be decided.</span>
+<span class="req-note">A document in Firestore caps at one mebibyte and the tool allows 15 MB per attachment, so the design does not fit by a factor of twenty. Base64 makes it worse by a third. Evidence is a link for exactly this reason; an attachment stays in the file somebody saves, and it does not travel to the store.</span>
+</div>
+<div class="req">
+<span class="req-id mono">H11</span>
+<span class="req-t">Whether the prototype store runs on the free plan or has a billing account attached.</span>
+<span class="st st-later">Open</span>
+<span class="req-owner">ours, then Dan owes this</span>
+<span class="req-note">The free plan costs nothing and rules out file storage and email sign-in. A billing account at this volume bills a couple of dollars a month. The obstacle is attaching a personal card to government work. That is a procurement conversation, and no amount of engineering settles it.</span>
+</div>
+<div class="req">
+<span class="req-id mono">H12</span>
+<span class="req-t">The store rules are written so that reading your own record costs no extra lookup.</span>
+<span class="st st-done">Built</span>
+<span class="req-note">Every exists() or get() inside a rule is a billable read even when the request is denied. Only the assessor and admin paths look a role up.</span>
 </div>
 <div class="req">
 <span class="req-id mono">H5</span>
@@ -620,7 +662,16 @@ background:var(--surface);border:1px solid var(--line);border-radius:10px;list-s
 <span class="req-t">French.</span>
 <span class="st st-later">Open</span>
 <span class="req-owner">ours to answer</span>
-<span class="req-note">A Government of Canada tool is bilingual. Nothing about the structure prevents it and none of it is written.</span>
+<span class="req-note">A Government of Canada tool is bilingual. Nothing about the structure prevents it and none of it is written. Ours means this team. It is work, and nobody owes a decision about it.</span>
 </div>
+</div>
+<h2 id="verify">How each requirement gets checked</h2>
+<p class="hint">Four gates run on every change, and a requirement is not built until the gate that covers it passes.</p>
+<div class="card">
+<p class="std-p"><b>The prose gate.</b> Every word the reader sees is checked against the writing rules: no em dashes, no antithesis, no banned words. It runs before the tests and fails the build.</p>
+<p class="std-p"><b>The logic gate.</b> Scoring, banding, weighting, the flags, the CSV round trip. It runs against the modules directly.</p>
+<p class="std-p"><b>The interface gate.</b> The built page is driven in a real document object model, end to end: 21 pages of questions answered, evidence attached, markings set, dialogs opened and their buttons pressed. Around 500 assertions, and this is where a requirement about behaviour is actually held.</p>
+<p class="std-p"><b>The print gate.</b> A printed assessment is checked for the things that vanish on paper: the scores, the reasoning, the marking, and every folded section.</p>
+<p class="std-p muted">What no gate covers: anything needing a store, a sign-in or a second person. Those requirements are marked agreed, and they say so.</p>
 </div>
 <footer>Generated from NOTES/requirements.data.mjs by tools/build-requirements.mjs. The backlog is <a href="backlog.html">next door</a>.</footer></div>

@@ -231,7 +231,13 @@ export interface Assessment {
   };
   answers: Record<string, Answer>;
   meta: { createdAt: string; updatedAt: string; appVersion: string; submittedAt?: string };
-  /** Set when a record is pulled back out of the statistics. Nothing is ever deleted. */
+  /** Set when a record is pulled back out of the statistics. */
   withdrawnAt?: string;
+  /**
+   * Who owns this record, once there is a store and a sign-in. The store's rules compare it
+   * against the signed-in address, which is what makes "read your own and nobody else's"
+   * enforceable without a program of ours in the middle.
+   */
+  ownerEmail?: string;
   audit?: Audit;
 }
