@@ -66,7 +66,9 @@ const answeredNow = () => {
   const live = q('.set-row.danger p')?.textContent?.match(/Erases the (\d+)/);
   if (live) return Number(live[1]);
   if (!raw) return 0;
-  return Object.values(JSON.parse(raw).answers ?? {}).filter((x) => typeof x.score === 'number').length;
+  // Not applicable counts as dealt with, the way the app counts it.
+  return Object.values(JSON.parse(raw).answers ?? {})
+    .filter((x) => typeof x.score === 'number' || x.na === true).length;
 };
 /** Settings is a rail and one pane, so a check has to open the pane it is about. */
 const pane = (name) => qa('.set-navrow').find((b) => b.textContent.includes(name)).click();
@@ -1040,9 +1042,9 @@ ok('csv carries a column per section', head.includes('section_data_data-architec
 // jsdom has no <dialog>.showModal, so the app falls back to a plain confirm. That is the path
 // exercised here; the dialog itself is verified in a browser.
 {
-  // Scored answers only, the way the app counts them. One question is marked not applicable
-  // and carries no score.
-  const before = Object.values(savedJson.answers).filter((x) => typeof x.score === 'number').length;
+  // Questions dealt with, the way the app counts them: a score, or marked not applicable.
+  const before = Object.values(savedJson.answers)
+    .filter((x) => typeof x.score === 'number' || x.na === true).length;
   q('.icon-btn[aria-label="Settings"]').click();
   pane('Start again');
 
@@ -1319,6 +1321,26 @@ ok('audited file keeps the self-score alongside the audited one',
      String(qa('table.detail tbody tr').length));
   ok('nothing about the roll-up is stored, so it cannot go stale',
      !view().includes('last calculated'));
+  {
+    // An admin deletes a record by typing the initiative name, the way GitHub deletes a
+    // repository. The button is dead until the typing matches.
+    byText('table.detail button', 'Delete').click();
+    const dlg = q('dialog.confirm.typed');
+    ok('deleting a record asks for the name to be typed', !!dlg);
+    ok('and lists what goes', dlg.querySelectorAll('.typed-list li').length >= 3,
+       String(dlg.querySelectorAll('.typed-list li').length));
+    const go = byText('dialog.confirm.typed button', 'Delete this assessment');
+    ok('the delete is dead to begin with', go.disabled === true);
+    const field = dlg.querySelector('.typed-field');
+    field.value = 'not the name';
+    fire(field, 'input');
+    ok('and stays dead for the wrong name', go.disabled === true);
+    field.value = dlg.querySelector('.typed-ask code').textContent;
+    fire(field, 'input');
+    ok('and arms only on the exact name', go.disabled === false && go.classList.contains('armed'));
+    byText('dialog.confirm.typed button', 'Cancel').click();
+    ok('cancelling closes it and deletes nothing', !q('dialog.confirm.typed'));
+  }
   ok('the admin-only actions are listed, with what is built marked',
      view().includes('Admin actions') && view().includes('Mostly not built')
      && view().includes('Question sets'));

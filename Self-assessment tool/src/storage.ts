@@ -135,8 +135,15 @@ export function download(filename: string, text: string, mime = 'application/jso
 }
 
 /** How many questions carry a score. Home and Settings must never disagree about this. */
+/**
+ * Questions dealt with, which includes the ones marked not applicable.
+ *
+ * Deciding a question does not apply IS answering it, and the questionnaire's own footer has
+ * counted it that way since the start. This did not, so the start page reported a smaller
+ * number than the page the person had just left.
+ */
 export function answeredCount(a: Assessment): number {
-  return Object.values(a.answers).filter((x) => typeof x.score === 'number').length;
+  return Object.values(a.answers).filter((x) => typeof x.score === 'number' || x.na === true).length;
 }
 
 /** Anything at all in the file: an answer, or a fact about the initiative. */
