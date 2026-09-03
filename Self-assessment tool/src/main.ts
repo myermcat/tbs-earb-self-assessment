@@ -206,6 +206,15 @@ function header(): HTMLElement {
 }
 
 function footer(): HTMLElement {
+  // With a store configured, the first thing the page says about itself is what it is. An
+  // unowned prototype with no end date is the objection; saying so first is the answer.
+  if (isHosted()) {
+    return el('footer', { class: 'sitefoot' }, [
+      el('span', { class: 'proto' }, ['Prototype. Unclassified drafts only, and not a record of decision. ']),
+      el('button', { class: 'linkish', onclick: () => openSettings('build') }, ['Where this goes']),
+      el('span', {}, [`  \u00b7  rubric ${rubric.version}  \u00b7  v${APP_VERSION}`]),
+    ]);
+  }
   return el('footer', { class: 'sitefoot' }, [
     el('span', {}, ['Everything you enter stays on this machine. ']),
     el('button', { class: 'linkish', onclick: () => openSettings('answers') }, ['How that works']),

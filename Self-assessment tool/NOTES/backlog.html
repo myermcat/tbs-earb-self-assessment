@@ -95,7 +95,7 @@ background:var(--surface);border:1px solid var(--line);border-radius:10px;list-s
 <div class="head"><div class="head-in"><h1>EARB self-assessment: backlog</h1>
 <p class="sub">Updated 2026-09-01.</p></div></div>
 <nav class="topnav"><div class="topnav-in">
-<a class="nav-kpi" href="#quick"><b>17</b><span>next</span></a>
+<a class="nav-kpi" href="#quick"><b>18</b><span>next</span></a>
 <a class="nav-kpi" href="#waiting"><b>8</b><span>waiting on somebody</span></a>
 <a class="nav-kpi" href="#done"><b>70</b><span>done</span></a>
 <a class="nav-kpi" href="#questions"><b>12</b><span>open questions</span></a>
@@ -119,7 +119,11 @@ background:var(--surface);border:1px solid var(--line);border-radius:10px;list-s
 </div>
 <div class="leaf solo">
 <span class="t">Stand up the store</span><span class="st st-next">Next</span>
-<span class="w">The Worker is written and waiting in deploy/worker.js, and the page takes its address as a build input. What is left is a Cloudflare account, which only you can create: sign in, paste the file, bind a KV namespace, then build with EARB_ENDPOINT set.</span>
+<span class="w">The Worker is written and waiting in deploy/worker.js, and the page takes its address as a build input. What is left is a Cloudflare account, which only you can create: sign in, paste the file, bind a KV namespace, then build with EARB_ENDPOINT set. 1,000 writes a day on the free plan, no card, and no Canadian region.</span>
+</div>
+<div class="leaf solo">
+<span class="t">Name an owner and a delete date for the prototype store</span><span class="st st-next">Next</span>
+<span class="w">The objection to a store on a personal account is not the account. It is a store with no owner, no end date and no plan for handing it over. Written down before anybody asks, it stops being an objection. The page already says it is a prototype holding unclassified drafts.</span>
 </div>
 <div class="leaf solo">
 <span class="t">Decide where the tool is published</span><span class="st st-next">Next</span>
@@ -665,4 +669,4 @@ background:var(--surface);border:1px solid var(--line);border-radius:10px;list-s
 <tr><td>Who performs the canada-ca transfer</td><td>Nick</td><td>The repo move</td><td>Asked. An issue on canada-ca/welcome is the route he named</td></tr>
 <tr><td>What the production intake should be</td><td>TBS</td><td>Production only</td><td>The prototype answer is an Azure Function plus one CSP line</td></tr>
 </tbody></table></div>
-<footer>43 open, 70 done. Generated from NOTES/backlog.data.mjs by tools/build-backlog.mjs.</footer></div>
+<footer>44 open, 70 done. Generated from NOTES/backlog.data.mjs by tools/build-backlog.mjs.</footer></div>
