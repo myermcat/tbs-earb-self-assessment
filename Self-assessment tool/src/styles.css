@@ -621,6 +621,16 @@ dialog.confirm { border: 0; padding: 0; border-radius: 14px; max-width: 32rem;
   width: calc(100% - 2rem); background: var(--surface); color: var(--ink);
   box-shadow: var(--shadow-lg); }
 dialog.confirm::backdrop { background: rgba(10, 12, 16, .55); }
+/* The typed delete. The button stays dead until the name matches, and looks it. */
+.typed-list { margin: .2rem 0 .7rem; padding-left: 1.1rem; font-size: .88rem; color: var(--ink-2); }
+.typed-list li { margin-bottom: .2rem; }
+.typed-ask { margin: .6rem 0 .3rem; font-size: .88rem; }
+.typed-ask code { background: var(--surface-2); border: 1px solid var(--line); border-radius: 5px;
+  padding: .05rem .3rem; }
+.typed-field { width: 100%; }
+dialog.confirm .danger-solid[disabled] { opacity: .45; cursor: not-allowed; }
+dialog.confirm .danger-solid.armed { box-shadow: 0 0 0 2px color-mix(in srgb, var(--bad) 35%, transparent); }
+
 dialog.confirm.no-modal { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
   margin: 0; z-index: 70; box-shadow: var(--shadow-lg); }
 /* Deleting without taking a copy is allowed, and it is the strongest-looking button here. */

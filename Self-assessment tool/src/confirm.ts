@@ -122,3 +122,64 @@ export function confirmStep(o: ConfirmStep): void {
   document.body.appendChild(dlg);
   openDialog(dlg);
 }
+
+/**
+ * The delete that has to be typed out, copied from the way GitHub deletes a repository.
+ *
+ * The reason it works: a confirmation you can agree to by reflex stops being a confirmation
+ * once you have seen it twice. Typing the name cannot be done by reflex, and it fails safe,
+ * because a person who cannot produce the name is not looking at what they think they are.
+ */
+export interface ConfirmTyped {
+  /** What is being deleted, as a heading: "Delete the Nexus platform assessment?" */
+  title: string;
+  /** Everything that goes, listed. GitHub enumerates it and so should we. */
+  consequences: string[];
+  /** The exact string somebody has to type. Shown, so it can be read and copied. */
+  phrase: string;
+  /** What to call the phrase in the instruction: "the initiative name", "the reference". */
+  phraseLabel: string;
+  commitLabel: string;
+  onCommit: () => void;
+}
+
+export function confirmTyped(o: ConfirmTyped): void {
+  const dlg = document.createElement('dialog');
+  dlg.className = 'confirm tier-danger typed';
+
+  const close = () => { try { (dlg as HTMLDialogElement).close(); } catch { /* not open */ } dlg.remove(); };
+
+  const go = el('button', { class: 'danger-solid cf-wide', disabled: true }, [o.commitLabel]) as HTMLButtonElement;
+  const field = el('input', {
+    type: 'text',
+    class: 'typed-field',
+    autocomplete: 'off',
+    spellcheck: false,
+    'aria-label': `Type ${o.phraseLabel} to confirm`,
+    oninput: (e: Event) => {
+      const typed = (e.target as HTMLInputElement).value.trim();
+      go.disabled = typed !== o.phrase;
+      go.classList.toggle('armed', !go.disabled);
+    },
+  }) as HTMLInputElement;
+  go.onclick = () => { if (!go.disabled) { close(); o.onCommit(); } };
+
+  dlg.appendChild(el('div', { class: 'cf-head' }, [el('h2', { class: 'cf-title' }, [o.title])]));
+  dlg.appendChild(el('div', { class: 'cf-body' }, [
+    el('p', {}, ['This cannot be undone. It removes:']),
+    el('ul', { class: 'typed-list' }, o.consequences.map((c) => el('li', {}, [c]))),
+    el('p', { class: 'typed-ask' }, [
+      `To confirm, type ${o.phraseLabel}: `,
+      el('code', { class: 'mono' }, [o.phrase]),
+    ]),
+    field,
+  ]));
+  dlg.appendChild(el('div', { class: 'cf-actions' }, [
+    go,
+    el('button', { class: 'cf-wide', onclick: close }, ['Cancel']),
+  ]));
+  dlg.addEventListener('close', () => dlg.remove());
+  document.body.appendChild(dlg);
+  openDialog(dlg);
+  setTimeout(() => field.focus?.(), 0);
+}

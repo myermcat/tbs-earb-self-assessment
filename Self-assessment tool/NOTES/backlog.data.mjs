@@ -130,7 +130,7 @@ export const layers = [
     ],
   },
   {
-    title: 'Engine', owner: 'us',
+    title: 'Engine', owner: 'ours',
     groups: [
       { t: 'Question mechanics', status: 'done',
         why: 'What the instrument can carry.',
@@ -165,7 +165,7 @@ export const layers = [
     ],
   },
   {
-    title: 'Interface: the submitter', owner: 'us',
+    title: 'Interface: the submitter', owner: 'ours',
     groups: [
       { t: 'Evidence', status: 'done',
         why: 'The change that follows from unclassified-only.',
@@ -214,7 +214,7 @@ export const layers = [
     ],
   },
   {
-    title: 'Interface: the assessor', owner: 'us',
+    title: 'Interface: the assessor', owner: 'ours',
     groups: [
       { t: 'Identity', status: 'wait',
         why: 'Their name goes against a number somebody may dispute.',
@@ -245,7 +245,7 @@ export const layers = [
     ],
   },
   {
-    title: 'Interface: admin', owner: 'us',
+    title: 'Interface: admin', owner: 'ours',
     groups: [
       { t: 'Reachable without going through the assessor view', status: 'done',
         why: 'It sat behind two clicks on the assessor side with nothing on the start page pointing at it. There is a line under the assessor link now, and it asks who you are the same way.' },
@@ -274,7 +274,7 @@ export const layers = [
     ],
   },
   {
-    title: 'Interface: the executive view', owner: 'us',
+    title: 'Interface: the executive view', owner: 'ours',
     groups: [
       { t: 'Dan’s twelve-month questions', status: 'later',
         why: 'The reason the data is worth capturing at all. All of it needs more than one record to mean anything.',
@@ -289,7 +289,7 @@ export const layers = [
     ],
   },
   {
-    title: 'Data and hosting', owner: 'us and TBS',
+    title: 'Data and hosting', owner: 'ours and TBS',
     groups: [
       { t: 'Get into canada-ca', status: 'next',
         why: 'Access is done. Publishing is a commit away in a repo you can already push to. A repo of our own is a separate, slower question.',
@@ -364,7 +364,7 @@ export const resolved = [
 export const questions = [
   { q: 'What an assessor sees of the pool', who: 'Dan or Chris',
     blocks: 'Filtering, and any My assessments view', meanwhile: 'Every assessor sees everything' },
-  { q: 'Who may write to the prototype store', who: 'us, then Dan',
+  { q: 'Who may write to the prototype store', who: 'ours, then Dan',
     blocks: 'Nothing yet', meanwhile: 'Anybody who reads the page source. Fine for unclassified drafts, and the reason the real one needs the departmental sign-in' },
   { q: 'Can the 176 draft questions be public', who: 'Dan',
     blocks: 'Publishing inside canada-ca', meanwhile: 'The preview sits on a personal public repo, which is the same exposure with less visibility' },

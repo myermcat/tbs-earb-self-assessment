@@ -111,10 +111,10 @@ background:var(--surface);border:1px solid var(--line);border-radius:10px;list-s
 .kpi a{color:inherit;text-decoration:none}
 </style>
 <div class="head"><div class="head-in"><h1>EARB self-assessment: requirements</h1>
-<p class="sub">Updated 2026-09-01. 75 requirements.</p></div></div>
+<p class="sub">Updated 2026-09-01. 79 requirements.</p></div></div>
 <nav class="topnav"><div class="topnav-in">
-<span class="nav-kpi"><b>37</b><span>built</span></span>
-<span class="nav-kpi"><b>20</b><span>agreed, not built</span></span>
+<span class="nav-kpi"><b>38</b><span>built</span></span>
+<span class="nav-kpi"><b>23</b><span>agreed, not built</span></span>
 <span class="nav-kpi"><b>5</b><span>proposed</span></span>
 <span class="nav-kpi"><b>13</b><span>open</span></span>
 <span class="nav-sep"></span>
@@ -214,6 +214,17 @@ background:var(--surface);border:1px solid var(--line);border-radius:10px;list-s
 <span class="req-t">Whether admin is a role of its own or an assessor with more buttons.</span>
 <span class="st st-later">Open</span>
 <span class="req-owner">Dan owes this</span>
+</div>
+<div class="req">
+<span class="req-id mono">R9</span>
+<span class="req-t">An admin can delete a record, and has to type the initiative name out to do it.</span>
+<span class="st st-done">Built</span>
+<span class="req-note">Copied from the way GitHub deletes a repository. A prototype fills up with test submissions and somebody has to be able to clear them; the protection is the typing, because a confirmation somebody can agree to by reflex stops being one.</span>
+</div>
+<div class="req">
+<span class="req-id mono">R10</span>
+<span class="req-t">A submitter can never delete anything.</span>
+<span class="st st-next">Agreed</span>
 </div>
 </div>
 <h2 id="signin">3. Signing in</h2>
@@ -502,7 +513,13 @@ background:var(--surface);border:1px solid var(--line);border-radius:10px;list-s
 <span class="req-id mono">H4</span>
 <span class="req-t">For the prototype: a database with sign-in, in a Canadian region, with rules that let somebody read and write their own records and nothing else.</span>
 <span class="st st-wait">Proposed</span>
-<span class="req-note">Cloud Firestore in Montreal is the concrete version. A key-value store behind a small program of our own is the alternative, and it has no Canadian region.</span>
+<span class="req-note">Cloud Firestore in Montreal is the concrete version, and deploy/firestore.rules is written. A key-value store behind a small program of our own is the alternative, and it has no Canadian region.</span>
+</div>
+<div class="req">
+<span class="req-id mono">H10</span>
+<span class="req-t">Attached files do not go into the store as part of the assessment.</span>
+<span class="st st-next">Agreed</span>
+<span class="req-note">A document in the store caps at about a megabyte, and the tool allows 15 MB per attachment. Evidence is a link for exactly this reason; an attachment is the fallback for something unclassified that cannot be linked, and where it goes in a hosted world is still to be decided.</span>
 </div>
 <div class="req">
 <span class="req-id mono">H5</span>
@@ -588,14 +605,21 @@ background:var(--surface);border:1px solid var(--line);border-radius:10px;list-s
 </div>
 <div class="req">
 <span class="req-id mono">X6</span>
-<span class="req-t">Nothing is ever hard-deleted.</span>
+<span class="req-t">Only an admin can delete, and only by typing the name of the thing being deleted.</span>
 <span class="st st-next">Agreed</span>
+<span class="req-note">This replaces the earlier rule that nothing could ever be deleted, which does not survive a prototype full of test data.</span>
+</div>
+<div class="req">
+<span class="req-id mono">X8</span>
+<span class="req-t">Where a decision about how something should behave is not obvious, copy what GitHub does.</span>
+<span class="st st-next">Agreed</span>
+<span class="req-note">Her instruction on 1 September, after the typed-name delete. GitHub has already argued these out in public and its patterns are familiar to the people who will use this.</span>
 </div>
 <div class="req">
 <span class="req-id mono">X7</span>
 <span class="req-t">French.</span>
 <span class="st st-later">Open</span>
-<span class="req-owner">us owes this</span>
+<span class="req-owner">ours to answer</span>
 <span class="req-note">A Government of Canada tool is bilingual. Nothing about the structure prevents it and none of it is written.</span>
 </div>
 </div>

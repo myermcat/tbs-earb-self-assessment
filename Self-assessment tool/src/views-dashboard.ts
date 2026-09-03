@@ -2,6 +2,7 @@ import type { Assessment, Rubric } from './types';
 import { el, clear, tone, bar } from './dom';
 import { score, isRedFlag, allQuestionScores, type Result } from './scoring';
 import { csvHeader, csvRow, toCsv } from './csv';
+import { confirmTyped } from './confirm';
 import { flags } from './flags';
 import { download } from './storage';
 import { isHosted, listRecords, sourceLine, type StoredRecord } from './store';
@@ -137,7 +138,7 @@ function paint(
     el('thead', {}, [el('tr', {}, [
       el('th', {}, ['Initiative']), el('th', {}, ['Department']), el('th', {}, ['Stage']),
       el('th', {}, ['Score']), el('th', {}, ['Band']), el('th', {}, ['Answered']),
-      el('th', {}, ['No']), el('th', {}, ['State']), el('th', {}, ['Updated']),
+      el('th', {}, ['No']), el('th', {}, ['State']), el('th', {}, ['Updated']), el('th', {}, ['']),
     ])]),
   ]);
   const body = el('tbody', {});
@@ -154,6 +155,34 @@ function paint(
       el('td', { class: 'small' }, [row.redFlags ? String(row.redFlags) : '']),
       el('td', { class: 'small' }, [state(row.rec)]),
       el('td', { class: 'small muted' }, [when(row.rec.updatedAt)]),
+      /**
+       * An admin can delete a record, and has to type the initiative name to do it. Copied
+       * from the way GitHub deletes a repository, for the reason that pattern exists: a
+       * prototype accumulates test submissions, and a confirmation somebody can agree to by
+       * reflex stops being one.
+       */
+      el('td', {}, [
+        el('button', {
+          class: 'ghost small danger-text',
+          onclick: () => confirmTyped({
+            title: `Delete the ${a.initiative.name || 'unnamed'} assessment?`,
+            consequences: [
+              `Every answer in it, ${Math.round(row.r.completeness * 100)} per cent of ${row.r.scoreable} questions.`,
+              'The reasoning and the evidence links on each answer.',
+              'Every audited score, verdict and reason written against it.',
+              a.ref ? `The reference ${a.ref}, which any email about this assessment quotes.` : 'Its reference.',
+            ],
+            phrase: a.initiative.name || (a.ref ?? 'unnamed'),
+            phraseLabel: a.initiative.name ? 'the initiative name' : 'the reference',
+            commitLabel: 'Delete this assessment',
+            onCommit: () => {
+              // Nothing to delete from until there is a store. Withdrawing is the shape that
+              // survives one, and it is what the rules allow an admin to do.
+              alert('Deleting from the shared store needs the store. Nothing has been removed.');
+            },
+          }),
+        }, ['Delete']),
+      ]),
     ]));
   }
   table.appendChild(body);

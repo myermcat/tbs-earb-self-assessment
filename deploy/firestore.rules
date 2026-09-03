@@ -32,8 +32,15 @@
 //   A signed-in person may create an assessment and read and change their own.
 //   An assessor may read every submitted assessment and write the audit on it, and may never
 //   touch anybody's answers or evidence.
-//   An admin may do what an assessor may, plus grant roles.
-//   Nobody may delete anything, ever, and that is enforced by Google rather than by us.
+//   An admin may do what an assessor may, plus grant roles, plus delete a record.
+//   A submitter may never delete anything, and Google enforces that.
+//
+// WHY AN ADMIN CAN DELETE
+//
+// A prototype fills up with test submissions, and somebody has to be able to clear them. The
+// protection is not the rule, it is the way the tool asks: deleting a record makes the admin
+// type the initiative name out, copied from the way GitHub deletes a repository. A
+// confirmation somebody can agree to by reflex stops being a confirmation.
 
 rules_version = '2';
 
@@ -58,14 +65,15 @@ service cloud.firestore {
       // separate document, so an assessor writing a score can never overwrite an answer.
       allow update: if isOwner() && request.resource.data.ownerEmail == resource.data.ownerEmail;
 
-      allow delete: if false;
+      // Admin only, and the tool makes them type the initiative name first.
+      allow delete: if isAdmin();
 
       // The audit trail, one document per assessment. Append-only from the outside: an
       // assessor may add to it and may not shorten it.
       match /audit/{entry} {
         allow get, list: if isOwner() || isAssessor();
         allow create, update: if isAssessor();
-        allow delete: if false;
+        allow delete: if isAdmin();
       }
     }
 

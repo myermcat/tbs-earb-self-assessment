@@ -144,7 +144,7 @@ function req(r) {
     `<span class="req-id mono">${esc(r.id)}</span>`,
     `<span class="req-t">${esc(r.text)}</span>`,
     `<span class="st ${cls}">${label}</span>`,
-    r.owner ? `<span class="req-owner">${esc(r.owner)} owes this</span>` : '',
+    r.owner ? `<span class="req-owner">${esc(r.owner === 'ours' ? 'ours to answer' : `${r.owner} owes this`)}</span>` : '',
     r.note ? `<span class="req-note">${esc(r.note)}</span>` : '',
     '</div>',
   ].filter(Boolean).join('\n');
