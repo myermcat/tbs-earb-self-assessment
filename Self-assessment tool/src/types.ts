@@ -148,6 +148,14 @@ export interface EvidenceRef {
   classification: Classification | '';
   note?: string;
   attachment?: Attachment;
+  /**
+   * Recorded as sent to the assessor by email, with the subject line that was written at the
+   * time. This was a prefix on `location` for a while, which meant editing that text by hand
+   * changed the state, and renaming the initiative made the recorded line and the shown line
+   * disagree, so the assessor searched for a subject nobody had sent.
+   */
+  emailed?: true;
+  emailSubject?: string;
 }
 
 export interface Answer {
