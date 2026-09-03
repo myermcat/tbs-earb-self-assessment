@@ -109,9 +109,7 @@ html { -webkit-text-size-adjust: 100%; }
  * kills `position: sticky` on everything inside it. That is how the header stopped sticking.
  */
 html, body { overflow-x: clip; max-width: 100%; }
-html, body { min-height: 100%; }
 #app { display: flex; flex-direction: column; min-height: 100dvh; }
-#app > .body { flex: 1 0 auto; }
 .sitefoot { flex: none; }
 
 body {
@@ -201,10 +199,10 @@ li { margin-bottom: .22rem; }
 .tab:hover { color: var(--ink); }
 .tab.on { background: var(--surface); color: var(--ink); box-shadow: var(--shadow); }
 
-.body { max-width: 940px; margin: 1.15rem auto 6rem; padding: 0 1.15rem; }
+.body { max-width: 940px; margin: 1.15rem auto 6rem; padding: 0 1.15rem; flex: 1 0 auto; }
 .body-submit { padding-bottom: 9rem; }
 .sitefoot { text-align: center; color: var(--ink-3); font-size: .78rem; padding: .8rem 1rem 2.5rem;
-  background: var(--surface-2); border-top: 1px solid var(--line); margin-top: 2rem; }
+  background: var(--surface-2); border-top: 1px solid var(--line); }
 
 .card {
   background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius);
@@ -503,6 +501,22 @@ a.faint-link:hover { color: var(--accent); }
  *
  * The body becomes its own scroll container, so the header stays put without being sticky.
  */
+/* Sign in is exactly one viewport, and the card centres in it. The body is the scroll
+   container, never html or body, because that would break the pinned header. */
+.app-signin { height: 100dvh; overflow: hidden; }
+.app-signin .body { flex: 1 1 auto; min-height: 0; overflow-y: auto;
+  display: flex; flex-direction: column; justify-content: center;
+  margin: 0 auto; padding: 1rem 1.15rem; }
+.app-signin .signin { flex: 0 0 auto; width: 100%; margin: 0 auto; }
+.app-signin .sitefoot { padding: .5rem 1rem 1rem; }
+
+/* One card on an otherwise empty screen centres, instead of hanging off the top edge with the
+   footer stranded under it. The class comes off as soon as a file loads. */
+.body-empty { flex: 1 1 auto; min-height: 0;
+  display: flex; flex-direction: column; justify-content: center;
+  margin: 0 auto; padding: 1rem 1.15rem; }
+.body-empty > .card { width: 100%; margin-bottom: 0; }
+
 .app-results { height: 100dvh; display: flex; flex-direction: column; overflow: hidden; }
 .body-results {
   flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior-y: contain;
@@ -526,6 +540,8 @@ a.faint-link:hover { color: var(--accent); }
 .snap-dot.on { background: var(--accent); transform: scale(1.4); }
 
 @media (max-height: 620px) {
+  .app-signin { height: auto; overflow: visible; }
+  .app-signin .body { overflow: visible; justify-content: flex-start; }
   .app-results { height: auto; overflow: visible; }
   .body-results { overflow: visible; scroll-snap-type: none; }
   .snap-hint { display: none; }
@@ -883,6 +899,16 @@ code.mark-subject { display: block; margin: .25rem 0; }
   padding: .6rem .75rem; }
 .set-list-row.on { border-color: var(--accent-line); background: var(--accent-soft); }
 .set-list-row p { margin: .15rem 0 0; }
+/* The empty-pool state. The cat takes the page's ink colour, so it belongs to the theme. */
+.pool-out { display: flex; gap: 1rem; align-items: center; flex-wrap: wrap; }
+.pool-art { flex: none; width: 148px; color: var(--accent); }
+.sad-cat { display: block; width: 100%; height: auto; }
+.pool-out h2 { margin: 0 0 .3rem; }
+.pool-out p { margin: 0 0 .5rem; max-width: 48ch; }
+.pool-alt-h { font-size: .95rem; margin: 1.2rem 0 .2rem; padding-top: .9rem;
+  border-top: 1px solid var(--line); }
+@media (max-width: 620px) { .pool-art { width: 108px; } }
+
 .set-list-main { min-width: 0; }
 .set-list-act { display: flex; gap: .35rem; align-items: center; flex: none; }
 

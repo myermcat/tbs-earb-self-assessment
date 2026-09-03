@@ -13,8 +13,14 @@ export interface ConfirmStep {
   body: string;
   /** What is at stake, in one line. Rendered in the tone of the tier. */
   stake?: string;
-  /** The keep-a-copy escape. Runs, then reports back so the wording can change. */
-  offer?: { label: string; run: () => string };
+  /**
+   * The keep-a-copy escape. Runs, then reports back so the wording can change.
+   *
+   * `commits` makes it one action: take the copy and go ahead. Without it the copy is taken
+   * and the person still has to confirm, which is right for a discard and wrong where the
+   * copy removes the whole risk.
+   */
+  offer?: { label: string; run: () => string; commits?: boolean };
   commitLabel: string;
   cancelLabel: string;
   onCommit: () => void;
@@ -43,6 +49,7 @@ export function confirmStep(o: ConfirmStep): void {
     if (o.offer && !kept) {
       actions.appendChild(el('button', { class: 'primary cf-wide', onclick: () => {
         const said = o.offer!.run();
+        if (o.offer!.commits) { close(); o.onCommit(); return; }
         const fresh = el('p', { class: 'cf-stake ok' }, [said]);
         if (stakeEl) { stakeEl.replaceWith(fresh); } else { body.appendChild(fresh); }
         stakeEl = fresh;

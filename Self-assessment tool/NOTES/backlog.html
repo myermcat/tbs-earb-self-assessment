@@ -90,8 +90,8 @@ background:var(--surface);border:1px solid var(--line);border-radius:10px;list-s
 <nav class="topnav"><div class="topnav-in">
 <a class="nav-kpi" href="#quick"><b>17</b><span>next</span></a>
 <a class="nav-kpi" href="#waiting"><b>8</b><span>waiting on somebody</span></a>
-<a class="nav-kpi" href="#done"><b>52</b><span>done</span></a>
-<a class="nav-kpi" href="#questions"><b>11</b><span>open questions</span></a>
+<a class="nav-kpi" href="#done"><b>56</b><span>done</span></a>
+<a class="nav-kpi" href="#questions"><b>12</b><span>open questions</span></a>
 <span class="nav-sep"></span>
 <a class="nav-lay" href="#layer-0">Question set</a>
 <a class="nav-lay" href="#layer-1">Engine</a>
@@ -105,6 +105,10 @@ background:var(--surface);border:1px solid var(--line);border-radius:10px;list-s
 </div></nav>
 <h2 id="quick">Quick actions</h2><p class="hint">No discussion needed.</p>
 <div class="card quick">
+<div class="leaf solo">
+<span class="t">What each assessor sees of the pool</span><span class="st st-wait">Waiting</span>
+<span class="w">Everything, for now. Chris says departments know who their assessor is, so they could pick one at submission, and an assessor could share a file or hand it on. Until that is decided, every assessor sees the whole pool, and a My assessments tab is the filter to add when the rule exists.</span>
+</div>
 <div class="leaf solo">
 <span class="t">The assessor side keeps nothing between reloads</span><span class="st st-next">Next</span>
 <span class="w">Every audited score, verdict, note and history entry lives in memory only until the file is saved. A reload, a crash or a stray click on Clear takes the afternoon with it. The submitter side has autosaved to the browser since the start.</span>
@@ -321,11 +325,11 @@ background:var(--surface);border:1px solid var(--line);border-radius:10px;list-s
 </div>
 </div>
 <h2 id="done">Done</h2>
-<p class="hint">Built and tested, kept for good, newest first. 50 items since Dan's review on 1 September.</p>
+<p class="hint">Built and tested, kept for good, newest first. 54 items since Dan's review on 1 September.</p>
 <details class="done-fold"><summary class="done-summary">
-<span class="section-title">Everything done</span><span class="muted small">52 items, by layer</span>
+<span class="section-title">Everything done</span><span class="muted small">56 items, by layer</span>
 </summary>
-<h3 class="h3sub">Quick action <span class="muted small">17</span></h3>
+<h3 class="h3sub">Quick action <span class="muted small">21</span></h3>
 <div class="card done-card">
 <div class="leaf solo">
 <span class="t">Settings marks the unbuilt parts as unbuilt</span><span class="st st-done">Done</span>
@@ -376,8 +380,24 @@ background:var(--surface);border:1px solid var(--line);border-radius:10px;list-s
 <span class="w">BU-Q1 is now B-Q1. The four domain initials are distinct, so the second letter carried nothing. Cheap today because no real submission exists; expensive once ids are column names in somebody exported spreadsheet.</span>
 </div>
 <div class="leaf solo">
+<span class="t">The empty evidence row stops blocking the save</span><span class="st st-done">Done</span>
+<span class="w">Add evidence created a row with no marking, and the save gate demanded one immediately. An empty row is nothing to mark. A classified row no longer offers attaching at all, and a row already recorded as emailed does not offer it either.</span>
+</div>
+<div class="leaf solo">
+<span class="t">Sign in is one screen, and short screens keep their footer</span><span class="st st-done">Done</span>
+<span class="w">The footer floated in the middle of any short page, the sign-in scrolled like a document, and the load-submissions card hung off the top edge.</span>
+</div>
+<div class="leaf solo">
+<span class="t">An assessor screen with nothing in it says why</span><span class="st st-done">Done</span>
+<span class="w">Three different situations, and an assessor can tell them apart: no shared store exists yet, this machine cannot reach it, or it is reachable and empty. With a cat.</span>
+</div>
+<div class="leaf solo">
+<span class="t">Each submission is scored against its own question set</span><span class="st st-done">Done</span>
+<span class="w">Twenty submissions answered against set 1 are untouched when set 2 becomes active, but the assessor page used to recompute them with whichever set was active and print a one-line notice. It now uses the set they were answered against when this browser holds it, names that set on every row, and says what it did. CSV export writes one file per set, because the columns are question ids.</span>
+</div>
+<div class="leaf solo">
 <span class="t">A library of question sets</span><span class="st st-done">Done</span>
-<span class="w">Sets accumulate now. Settings lists every one this browser holds, marks the one in use, and takes another. Adding one keeps the old ones and becomes current. Deleting is two steps, offers the file back first, and is refused on the built-in set and on the set in use.</span>
+<span class="w">Sets accumulate. Settings lists every one this browser holds and marks the one in use. Adding one changes nothing on its own, and each row has a menu: preview the questions, make it active, delete it, and who added it. Deleting is two steps and refused only on the set in use and on the last remaining set.</span>
 </div>
 <div class="leaf solo">
 <span class="t">The save badge says there is no online copy</span><span class="st st-done">Done</span>
@@ -568,6 +588,7 @@ background:var(--surface);border:1px solid var(--line);border-radius:10px;list-s
 <div class="callout"><div class="q">How does the dashboard stay current?</div><div class="a"><b>Resolved.</b> By storing nothing. It recalculates each record from its answers as the page draws, so there is no roll-up that can go stale.</div></div>
 <h2 id="questions">Open questions</h2><p class="hint">Not work. Somebody owes an answer.</p>
 <div class="tw"><table><thead><tr><th>Question</th><th>Who owes it</th><th>Blocks</th><th>Meanwhile</th></tr></thead><tbody>
+<tr><td>What an assessor sees of the pool</td><td>Dan or Chris</td><td>Filtering, and any My assessments view</td><td>Every assessor sees everything</td></tr>
 <tr><td>Where an assessor’s work is kept between reloads</td><td>us</td><td>Nothing yet</td><td>It is in memory only. Saving the audited file is the only copy</td></tr>
 <tr><td>Can the 176 draft questions be public</td><td>Dan</td><td>Publishing inside canada-ca</td><td>The preview sits on a personal public repo, which is the same exposure with less visibility</td></tr>
 <tr><td>Who may edit a stored assessment, and how it is checked</td><td>Dan</td><td>Real authentication</td><td>Mockup screen, everything labelled unverified</td></tr>
@@ -580,4 +601,4 @@ background:var(--surface);border:1px solid var(--line);border-radius:10px;list-s
 <tr><td>Who performs the canada-ca transfer</td><td>Nick</td><td>The repo move</td><td>Asked. An issue on canada-ca/welcome is the route he named</td></tr>
 <tr><td>What the production intake should be</td><td>TBS</td><td>Production only</td><td>The prototype answer is an Azure Function plus one CSP line</td></tr>
 </tbody></table></div>
-<footer>42 open, 52 done. Generated from NOTES/backlog.data.mjs by tools/build-backlog.mjs.</footer></div>
+<footer>43 open, 56 done. Generated from NOTES/backlog.data.mjs by tools/build-backlog.mjs.</footer></div>

@@ -1,7 +1,8 @@
 import type { Assessment, Rubric } from './types';
 import { el, clear } from './dom';
 import { validate } from './rubric';
-import { goToFirstGap, renderSubmit, resetOverviewToFirstGap, setRepaint, setStopKey, showMarkingStep, takeSubmitTabs } from './views-submit';
+import { goToFirstGap, overviewFieldProgress, renderSubmit, resetOverviewToFirstGap, setRepaint,
+  setStopKey, showMarkingStep, takeSubmitTabs } from './views-submit';
 import { renderResults } from './views-results';
 import { openedThisSession, renderReview, setAuditor } from './views-review';
 import { renderDashboard } from './views-dashboard';
@@ -103,7 +104,11 @@ const GEAR =
 
 function paint() {
   clear(app);
-  app.className = mode === 'home' ? 'app-home' : mode === 'results' ? 'app-results' : '';
+  // The sign-in gate is its own shell: one screen, nothing to scroll, like any sign-in.
+  const gate = (mode === 'admin' || mode === 'review') && !assessorName.trim();
+  app.className = mode === 'home' ? 'app-home'
+    : mode === 'results' ? 'app-results'
+    : gate ? 'app-signin' : '';
 
   // The body is built first because the questionnaire's domain tabs live in the chrome and
   // register their own readouts, and renderSubmit clears that registry as it starts.
@@ -113,6 +118,7 @@ function paint() {
       mode === 'home' ? 'body-home' : '',
       mode === 'submit' ? 'body-submit' : '',
       mode === 'results' ? 'body-results' : '',
+      mode === 'settings' ? 'body-settings' : '',
     ].filter(Boolean).join(' '),
   });
 
@@ -120,7 +126,7 @@ function paint() {
   else if (mode === 'submit') renderSubmit(body, rubric, assessment, () => go('results'));
   else if (mode === 'results') renderResults(body, rubric, assessment, () => go('submit'));
   else if (mode === 'settings') renderSettings(body);
-  else if ((mode === 'admin' || mode === 'review') && !assessorName.trim()) renderSignIn(body, () => paint());
+  else if (gate) renderSignIn(body, () => paint());
   else if (mode === 'admin') renderAdmin(body);
   else renderReview(body, rubric);
 
@@ -253,9 +259,18 @@ function draftNote(draft: Assessment, total: number): HTMLElement {
     return Number.isFinite(t) ? new Date(t).toLocaleString() : 'a moment ago';
   })();
 
+  // The overview is six fields and none of them are scored questions, so filling it in left
+  // this line reading "0 of 176 answered", which looks like nothing was kept.
+  const [ovDone, ovTotal] = overviewFieldProgress(draft);
+
   return el('div', { class: 'draft-note' }, [
     el('p', { class: 'small' }, [
-      el('b', {}, [`${answered} of ${total} answered, last changed ${saved}.`]),
+      el('b', {}, [
+        ovDone < ovTotal
+          ? `About the initiative ${ovDone} of ${ovTotal}, and ${answered} of ${total} questions answered.`
+          : `${answered} of ${total} answered.`,
+      ]),
+      el('span', { class: 'muted' }, [` Last changed ${saved}.`]),
     ]),
     el('p', { class: 'small muted' }, [
       'Saved locally on this machine, by your browser, as you type. Closing the tab or ',
@@ -312,14 +327,21 @@ function renderHome(root: HTMLElement) {
               const open = () => { assessment = a; autosave(assessment); go('submit'); };
               // Opening a file overwrites whatever this browser is holding, which is the same
               // destruction as a discard and used to happen on one click with no warning.
+              // With nothing here, there is nothing to warn about.
               if (!hasWork(assessment)) { open(); return; }
-              confirmDestructive({
-                tier: 'caution',
-                title: `Open ${item.file} over ${answeredCount(assessment)} answers?`,
-                body: 'The file you open replaces what this browser is holding. Anything here that is not in a file of its own is gone.',
-                saveLabel: 'Save this one first',
-                commitLabel: 'Open the file anyway',
-                cancelLabel: 'Keep what I have',
+              const n = answeredCount(assessment);
+              confirmStep({
+                tier: 'danger',
+                title: `Open ${item.file} over what is here?`,
+                body: `This browser is holding an assessment with ${n} answer${n === 1 ? '' : 's'} in it. Opening a file replaces it.`,
+                stake: 'Anything here that is not already in a file of its own is gone.',
+                offer: {
+                  label: 'Save mine as a file, then open theirs',
+                  commits: true,
+                  run: () => `Saving as ${saveAssessmentFile(assessment)}.`,
+                },
+                commitLabel: 'Open theirs without saving mine',
+                cancelLabel: 'Keep mine, do not open',
                 onCommit: open,
               });
             },
