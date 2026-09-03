@@ -624,10 +624,12 @@ dialog.confirm::backdrop { background: rgba(10, 12, 16, .55); }
 /* The typed delete. The button stays dead until the name matches, and looks it. */
 .typed-list { margin: .2rem 0 .7rem; padding-left: 1.1rem; font-size: .88rem; color: var(--ink-2); }
 .typed-list li { margin-bottom: .2rem; }
-.typed-ask { margin: .6rem 0 .3rem; font-size: .88rem; }
+.typed-ask { margin: .9rem 0 .45rem; font-size: .88rem; }
 .typed-ask code { background: var(--surface-2); border: 1px solid var(--line); border-radius: 5px;
   padding: .05rem .3rem; }
-.typed-field { width: 100%; }
+.typed-field { width: 100%; margin-bottom: .2rem; }
+/* A menu inside a table row sits above the rows below it. */
+.row-menu .set-menu-pop { right: 0; min-width: 13rem; }
 dialog.confirm .danger-solid[disabled] { opacity: .45; cursor: not-allowed; }
 dialog.confirm .danger-solid.armed { box-shadow: 0 0 0 2px color-mix(in srgb, var(--bad) 35%, transparent); }
 
@@ -975,6 +977,14 @@ code.mark-subject { display: block; margin: .25rem 0; }
 
 .marking-banner .mark-note { font-weight: 600; letter-spacing: .04em; opacity: .8;
   text-transform: none; margin-left: .5rem; }
+
+/* Two letters, so it takes no room in a header that is already full. */
+.lang-switch { display: inline-flex; border: 1px solid var(--line); border-radius: 999px;
+  overflow: hidden; background: var(--surface-2); }
+.lang-btn { border: 0; background: none; padding: .16rem .5rem; font-size: .72rem;
+  font-weight: 700; letter-spacing: .04em; color: var(--ink-3); cursor: pointer; }
+.lang-btn.on { background: var(--surface); color: var(--accent); }
+.lang-btn:hover { color: var(--accent); border: 0; }
 
 .save-state { display: inline-flex; align-items: center; gap: .35rem; cursor: pointer;
   background: var(--surface-2); border: 1px solid var(--line);

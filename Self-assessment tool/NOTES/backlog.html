@@ -95,19 +95,20 @@ background:var(--surface);border:1px solid var(--line);border-radius:10px;list-s
 <div class="head"><div class="head-in"><h1>EARB self-assessment: backlog</h1>
 <p class="sub">Updated 2026-09-01.</p></div></div>
 <nav class="topnav"><div class="topnav-in">
-<a class="nav-kpi" href="#quick"><b>18</b><span>next</span></a>
+<a class="nav-kpi" href="#quick"><b>26</b><span>next</span></a>
 <a class="nav-kpi" href="#waiting"><b>8</b><span>waiting on somebody</span></a>
-<a class="nav-kpi" href="#done"><b>73</b><span>done</span></a>
+<a class="nav-kpi" href="#done"><b>74</b><span>done</span></a>
 <a class="nav-kpi" href="#questions"><b>12</b><span>open questions</span></a>
 <span class="nav-sep"></span>
-<a class="nav-lay" href="#layer-0">Question set</a>
-<a class="nav-lay" href="#layer-1">Engine</a>
-<a class="nav-lay" href="#layer-2">the submitter</a>
-<a class="nav-lay" href="#layer-3">the assessor</a>
-<a class="nav-lay" href="#layer-4">admin</a>
-<a class="nav-lay" href="#layer-5">the executive view</a>
-<a class="nav-lay" href="#layer-6">Data and hosting</a>
-<a class="nav-lay" href="#layer-7">Process, for people</a>
+<a class="nav-lay" href="#layer-0">In your name</a>
+<a class="nav-lay" href="#layer-1">Question set</a>
+<a class="nav-lay" href="#layer-2">Engine</a>
+<a class="nav-lay" href="#layer-3">the submitter</a>
+<a class="nav-lay" href="#layer-4">the assessor</a>
+<a class="nav-lay" href="#layer-5">admin</a>
+<a class="nav-lay" href="#layer-6">the executive view</a>
+<a class="nav-lay" href="#layer-7">Data and hosting</a>
+<a class="nav-lay" href="#layer-8">Process, for people</a>
 <a class="nav-lay" href="#resolved">Resolved</a>
 </div></nav>
 <div class="wrap">
@@ -118,8 +119,12 @@ background:var(--surface);border:1px solid var(--line);border-radius:10px;list-s
 <span class="w">Everything, for now. Chris says departments know who their assessor is, so they could pick one at submission, and an assessor could share a file or hand it on. Until that is decided, every assessor sees the whole pool, and a My assessments tab is the filter to add when the rule exists.</span>
 </div>
 <div class="leaf solo">
+<span class="t">Six steps in a browser, and the store is live</span><span class="st st-next">Next</span>
+<span class="w">This is the next step and it is yours: console.firebase.google.com, add a project, create Firestore in northamerica-northeast1, turn on Google and Microsoft sign-in, paste deploy/firestore.rules, register a web app, and send me the config block. I wire the client and publish. Everything on our side is written.</span>
+</div>
+<div class="leaf solo">
 <span class="t">Sign in, and a store with rules</span><span class="st st-next">Next</span>
-<span class="w">deploy/firestore.rules is written: a Canadian region, nothing publicly readable, roles an admin grants, admin-only delete. Six one-time steps in a browser, and only you can do them because the account is yours. Two limits found before building it: sign-in has to be a Google account rather than an emailed link, because the free plan sends five of those a day for the whole project, and attachments cannot go in the store at all.</span>
+<span class="w">deploy/firestore.rules is written: a Canadian region, nothing publicly readable, roles an admin grants, admin-only delete. Six one-time steps in a browser. Only you can do them, because the account is yours. Two limits found before building it: sign-in has to be a Google or Microsoft account, because the free plan sends five emailed links a day for the whole project, and attachments cannot go in the store at all.</span>
 </div>
 <div class="leaf solo">
 <span class="t">Stand up the store</span><span class="st st-later">Later</span>
@@ -145,7 +150,40 @@ background:var(--surface);border:1px solid var(--line);border-radius:10px;list-s
 <tr><td>Nick’s answer on who performs the transfer</td><td>Nick</td><td>Data and hosting</td><td>Open an issue on canada-ca/welcome is the route he named. Whether he moves it or you do is the part still unanswered.</td></tr>
 <tr><td>Decide the triggers</td><td>Dan</td><td>Data and hosting</td><td>Submission, assignment, a changed score and a reminder are four different decisions.</td></tr>
 </tbody></table></div>
-<h2 id="layer-0">Question set <span class="owner">Dan</span></h2>
+<h2 id="layer-0">In your name <span class="owner">Mariia</span></h2>
+<div class="card">
+<details class="grp" open><summary class="row">
+<span class="t">GitHub, myermcat</span><span class="st st-next">Next</span>
+<span class="w">Two repositories, both yours. The objection to a personal account is never the account: it is one with no owner of record and no plan for handing it over.</span>
+</summary><div class="subs">
+<div class="leaf">
+<span class="t">myermcat/tbs-earb-self-assessment</span><span class="st st-next">Next</span>
+<span class="w">Private, and it holds the source with every commit authored by you. It moves to canada-ca when Nick answers.</span>
+</div>
+<div class="leaf">
+<span class="t">myermcat/tbs-earb-self-assessment-preview</span><span class="st st-next">Next</span>
+<span class="w">Public, and it holds the built page, the backlog and the requirements. Retire it once the tool is published from canada-ca.</span>
+</div>
+</div></details>
+<details class="grp" open><summary class="row">
+<span class="t">Firebase project, once it exists</span><span class="st st-next">Next</span>
+<span class="w">The prototype store: a Firestore database in Montreal, sign-in, and the rules in deploy/firestore.rules. Free plan, no card.</span>
+</summary><div class="subs">
+<div class="leaf">
+<span class="t">Name an owner of record</span><span class="st st-next">Next</span>
+<span class="w">You, in writing, until somebody at TBS takes it. This is the sentence that answers the question before it is asked.</span>
+</div>
+<div class="leaf">
+<span class="t">Set a date it gets deleted</span><span class="st st-next">Next</span>
+<span class="w">The end of the co-op term is the obvious one. An unowned store with no end date is what gets a prototype refused.</span>
+</div>
+<div class="leaf">
+<span class="t">Write down how it hands over</span><span class="st st-next">Next</span>
+<span class="w">At 40 KB times a few hundred, the whole store moves to a team-owned account in an afternoon. Saying so in advance turns the objection into an answered question.</span>
+</div>
+</div></details>
+</div>
+<h2 id="layer-1">Question set <span class="owner">Dan</span></h2>
 <div class="card">
 <details class="grp" open><summary class="row">
 <span class="t">Answer types and criticality</span><span class="st st-wait">Waiting</span>
@@ -182,7 +220,7 @@ background:var(--surface);border:1px solid var(--line);border-radius:10px;list-s
 </div>
 </div></details>
 </div>
-<h2 id="layer-1">Engine <span class="owner">ours</span></h2>
+<h2 id="layer-2">Engine <span class="owner">ours</span></h2>
 <div class="card">
 <details class="grp" open><summary class="row">
 <span class="t">Storage and concurrency</span><span class="st st-next">Next</span>
@@ -206,7 +244,7 @@ background:var(--surface);border:1px solid var(--line);border-radius:10px;list-s
 </div>
 </div></details>
 </div>
-<h2 id="layer-2">Interface: the submitter <span class="owner">ours</span></h2>
+<h2 id="layer-3">Interface: the submitter <span class="owner">ours</span></h2>
 <div class="card">
 <details class="grp" open><summary class="row">
 <span class="t">Marking</span><span class="st st-next">Next</span>
@@ -227,7 +265,7 @@ background:var(--surface);border:1px solid var(--line);border-radius:10px;list-s
 </div>
 </div></details>
 </div>
-<h2 id="layer-3">Interface: the assessor <span class="owner">ours</span></h2>
+<h2 id="layer-4">Interface: the assessor <span class="owner">ours</span></h2>
 <div class="card">
 <details class="grp" open><summary class="row">
 <span class="t">Identity</span><span class="st st-wait">Waiting</span>
@@ -239,7 +277,7 @@ background:var(--surface);border:1px solid var(--line);border-radius:10px;list-s
 </div>
 </div></details>
 </div>
-<h2 id="layer-4">Interface: admin <span class="owner">ours</span></h2>
+<h2 id="layer-5">Interface: admin <span class="owner">ours</span></h2>
 <div class="card">
 <details class="grp" open><summary class="row">
 <span class="t">Admin-only actions</span><span class="st st-later">Later</span>
@@ -247,7 +285,7 @@ background:var(--surface);border:1px solid var(--line);border-radius:10px;list-s
 </summary><div class="subs">
 <div class="leaf">
 <span class="t">Withdraw a record</span><span class="st st-later">Later</span>
-<span class="w">Out of every statistic, still in the list. Nothing is deleted.</span>
+<span class="w">Out of every statistic and still in the list, with nothing deleted.</span>
 </div>
 <div class="leaf">
 <span class="t">Re-assign an assessor</span><span class="st st-later">Later</span>
@@ -259,7 +297,7 @@ background:var(--surface);border:1px solid var(--line);border-radius:10px;list-s
 </div>
 </div></details>
 </div>
-<h2 id="layer-5">Interface: the executive view <span class="owner">ours</span></h2>
+<h2 id="layer-6">Interface: the executive view <span class="owner">ours</span></h2>
 <div class="card">
 <details class="grp" open><summary class="row">
 <span class="t">Dan’s twelve-month questions</span><span class="st st-later">Later</span>
@@ -267,7 +305,7 @@ background:var(--surface);border:1px solid var(--line);border-radius:10px;list-s
 </summary><div class="subs">
 <div class="leaf">
 <span class="t">Per-question averages and histograms</span><span class="st st-later">Later</span>
-<span class="w">Which questions the whole GC is weak on, which is the argument for changing a question rather than a department.</span>
+<span class="w">Which questions the whole GC is weak on, which is the argument for changing a question.</span>
 </div>
 <div class="leaf">
 <span class="t">Average by department</span><span class="st st-later">Later</span>
@@ -279,7 +317,7 @@ background:var(--surface);border:1px solid var(--line);border-radius:10px;list-s
 </div>
 </div></details>
 </div>
-<h2 id="layer-6">Data and hosting <span class="owner">ours and TBS</span></h2>
+<h2 id="layer-7">Data and hosting <span class="owner">ours and TBS</span></h2>
 <div class="card">
 <details class="grp" open><summary class="row">
 <span class="t">Get into canada-ca</span><span class="st st-next">Next</span>
@@ -299,7 +337,7 @@ background:var(--surface);border:1px solid var(--line);border-radius:10px;list-s
 </div>
 </div></details>
 <details class="grp" open><summary class="row">
-<span class="t">Where submissions land</span><span class="st st-next">Next</span>
+<span class="t">Where submissions arrive</span><span class="st st-next">Next</span>
 <span class="w">Dan asked us to figure it out. GitHub Pages serves static files and cannot accept a write, so something has to receive one.</span>
 </summary><div class="subs">
 <div class="leaf">
@@ -325,7 +363,7 @@ background:var(--surface);border:1px solid var(--line);border-radius:10px;list-s
 </div>
 </div></details>
 </div>
-<h2 id="layer-7">Process, for people <span class="owner">Dan and John</span></h2>
+<h2 id="layer-8">Process, for people <span class="owner">Dan and John</span></h2>
 <div class="card">
 <div class="leaf solo">
 <span class="t">How John’s team validates evidence</span><span class="st st-later">Later</span>
@@ -341,9 +379,9 @@ background:var(--surface);border:1px solid var(--line);border-radius:10px;list-s
 </div>
 </div>
 <h2 id="done">Done</h2>
-<p class="hint">Built and tested, kept for good, newest first. 71 items since Dan's review on 1 September.</p>
+<p class="hint">Built and tested, kept for good, newest first. 72 items since Dan's review on 1 September.</p>
 <details class="done-fold"><summary class="done-summary">
-<span class="section-title">Everything done</span><span class="muted small">73 items, by layer</span>
+<span class="section-title">Everything done</span><span class="muted small">74 items, by layer</span>
 </summary>
 <h3 class="h3sub">Quick action <span class="muted small">38</span></h3>
 <div class="card done-card">
@@ -353,7 +391,7 @@ background:var(--surface);border:1px solid var(--line);border-radius:10px;list-s
 </div>
 <div class="leaf solo">
 <span class="t">README and Settings stop describing a local-only tool</span><span class="st st-done">Done</span>
-<span class="w">Both said the tool cannot transmit and that the repo is private. Neither was true.</span>
+<span class="w">Both said the tool cannot transmit and that the repo is private, and neither was true.</span>
 </div>
 <div class="leaf solo">
 <span class="t">Overview bar moves on the first keystroke</span><span class="st st-done">Done</span>
@@ -381,7 +419,7 @@ background:var(--surface);border:1px solid var(--line);border-radius:10px;list-s
 </div>
 <div class="leaf solo">
 <span class="t">The frame stops reading as part of the page</span><span class="st st-done">Done</span>
-<span class="w">Measured: the header separated from the page by 1.13 to 1 in light and 1.08 to 1 in dark, and the page footer was exactly the page colour. The frame has its own edge token, the dark frame is now lighter than the page instead of darker, the footer has a ground, and a shadow appears only once content scrolls under it.</span>
+<span class="w">Measured: the header separated from the page by 1.13 to 1 in light and 1.08 to 1 in dark, and the page footer was exactly the page colour. The frame has its own edge token, the dark frame is now lighter than the page, the footer has a ground, and a shadow appears only once content scrolls under it.</span>
 </div>
 <div class="leaf solo">
 <span class="t">Not applicable hides the scale and keeps the score</span><span class="st st-done">Done</span>
@@ -429,7 +467,7 @@ background:var(--surface);border:1px solid var(--line);border-radius:10px;list-s
 </div>
 <div class="leaf solo">
 <span class="t">A prompt when the evidence outranks the overview answer</span><span class="st st-done">Done</span>
-<span class="w">Marking a piece of evidence higher than the answer given on the overview used to sit there blocking the save. It asks which of the two is wrong, and raising the overview answer does not re-open the pledge.</span>
+<span class="w">Marking a piece of evidence higher than the answer given on the overview used to stay on screen blocking the save. It asks which of the two is wrong, and raising the overview answer does not re-open the pledge.</span>
 </div>
 <div class="leaf solo">
 <span class="t">The store is one build input away</span><span class="st st-done">Done</span>
@@ -445,14 +483,14 @@ background:var(--surface);border:1px solid var(--line);border-radius:10px;list-s
 </div>
 <div class="leaf solo">
 <span class="t">The revert goes to the highest marking allowed</span><span class="st st-done">Done</span>
-<span class="w">Saying no to a Protected C piece put the row back to unmarked instead of the marking chosen on the overview.</span>
+<span class="w">Saying no to a Protected C piece put the row back to unmarked. It goes to the marking chosen on the overview.</span>
 </div>
 <div class="leaf solo">
 <span class="t">Not applicable folds the work away and keeps it</span><span class="st st-done">Done</span>
 <span class="w">A question with evidence on it turned into a grey slab when it was marked not applicable: the disclosure opened itself because there was something inside, and the whole apparatus dimmed. It folds, the summary says the work is kept and not counted, and unticking puts it back. Deleting somebody evidence because they ticked a box is not the tool decision to make.</span>
 </div>
 <div class="leaf solo">
-<span class="t">Email subjects use a code, not the initiative name</span><span class="st st-done">Done</span>
+<span class="t">Email subjects carry a code, and no initiative name</span><span class="st st-done">Done</span>
 <span class="w">A sent email cannot be un-sent, so a subject line that carries the initiative name breaks the moment somebody renames the initiative. Every assessment gets a four-character reference when it is created, the subject reads "EARB evidence 7QF3, question B-Q1", and renaming costs nothing. It shows on the overview beside the name and on the assessor row.</span>
 </div>
 <div class="leaf solo">
@@ -461,7 +499,7 @@ background:var(--surface);border:1px solid var(--line);border-radius:10px;list-s
 </div>
 <div class="leaf solo">
 <span class="t">An assessor screen with nothing in it says why</span><span class="st st-done">Done</span>
-<span class="w">Three different situations, and an assessor can tell them apart: no shared store exists yet, this machine cannot reach it, or it is reachable and empty. With a cat.</span>
+<span class="w">Three different situations, and an assessor can tell them apart: no shared store exists yet, this machine cannot reach it, or it is reachable and empty. It has a cat on it.</span>
 </div>
 <div class="leaf solo">
 <span class="t">Each submission is scored against its own question set</span><span class="st st-done">Done</span>
@@ -473,7 +511,7 @@ background:var(--surface);border:1px solid var(--line);border-radius:10px;list-s
 </div>
 <div class="leaf solo">
 <span class="t">The save badge says there is no online copy</span><span class="st st-done">Done</span>
-<span class="w">She asked where to save online. There is nowhere, and the badge now says so on hover instead of leaving "draft saved" to be read as the whole story.</span>
+<span class="w">She asked where to save online. There is nowhere, and the badge says so on hover, so "draft saved" cannot be read as the whole story.</span>
 </div>
 <div class="leaf solo">
 <span class="t">The email subject line is readable</span><span class="st st-done">Done</span>
@@ -500,6 +538,13 @@ background:var(--surface);border:1px solid var(--line);border-radius:10px;list-s
 <span class="w">A requirements specification, 81 numbered requirements with a state and an owner each, generated from NOTES/requirements.data.mjs so ids and states cannot drift. It follows ISO/IEC/IEEE 29148:2018 with two departures named in the document, lists the open decisions at the top, and says how each requirement gets checked. Linked from Settings and published beside the backlog.</span>
 </div>
 </div>
+<h3 class="h3sub">In your name <span class="muted small">1</span></h3>
+<div class="card done-card">
+<div class="leaf solo">
+<span class="t">Nothing else is in your name</span><span class="st st-done">Done</span>
+<span class="w">No Cloudflare account was created, no domain was bought, no paid service is attached to anything. The tool itself is one HTML file and needs no account to run.</span>
+</div>
+</div>
 <h3 class="h3sub">Engine <span class="muted small">6</span></h3>
 <div class="card done-card">
 <div class="leaf solo">
@@ -520,7 +565,7 @@ background:var(--surface);border:1px solid var(--line);border-radius:10px;list-s
 </div>
 <div class="leaf solo">
 <span class="t">A no answer colours its section</span><span class="st st-done">Done</span>
-<span class="w">The question, its section, its rail row and its domain tab. It stops nothing.</span>
+<span class="w">The question, its section, its rail row and its domain tab, and it stops nothing.</span>
 </div>
 <div class="leaf solo">
 <span class="t">Multiple answer types</span><span class="st st-done">Done</span>
@@ -530,7 +575,7 @@ background:var(--surface);border:1px solid var(--line);border-radius:10px;list-s
 <h3 class="h3sub">Interface: the submitter <span class="muted small">12</span></h3>
 <div class="card done-card">
 <div class="leaf solo">
-<span class="t">One live indicator, not one per repaint</span><span class="st st-done">Done</span>
+<span class="t">One live indicator for the whole visit</span><span class="st st-done">Done</span>
 <span class="w">Each repaint added another listener holding a dead node. Harmless while the state never changed, and a leak the moment writes start.</span>
 </div>
 <div class="leaf solo">
@@ -539,7 +584,7 @@ background:var(--surface);border:1px solid var(--line);border-radius:10px;list-s
 </div>
 <div class="leaf solo">
 <span class="t">Save status indicator</span><span class="st st-done">Done</span>
-<span class="w">Draft in browser, saving, saved, or not saved with a reason. It sits in the header now, so it is on every screen and on a phone; it was on the 21 question pages only, and CSS hid it below 720px.</span>
+<span class="w">Draft in browser, saving, saved, or not saved with a reason. It is in the header now, so it is on every screen and on a phone; it was on the 21 question pages only, and CSS hid it below 720px.</span>
 </div>
 <div class="leaf solo">
 <span class="t">Classified panel with an acknowledgement toggle</span><span class="st st-done">Done</span>
@@ -550,16 +595,16 @@ background:var(--surface);border:1px solid var(--line);border-radius:10px;list-s
 <span class="w">The default must not be taxed by the rare path.</span>
 </div>
 <div class="leaf solo">
-<span class="t">The unmarked banner lands on the marking question</span><span class="st st-done">Done</span>
+<span class="t">The unmarked banner opens the marking question</span><span class="st st-done">Done</span>
 <span class="w">It scrolled to an element that only exists on the overview, so from any of the twenty question pages it did nothing at all.</span>
 </div>
 <div class="leaf solo">
-<span class="t">It asks once, not every time</span><span class="st st-done">Done</span>
+<span class="t">It asks once per marking</span><span class="st st-done">Done</span>
 <span class="w">After the pledge, switching between classified markings does not ask again. The panel on the overview stays as the reference.</span>
 </div>
 <div class="leaf solo">
 <span class="t">The way out changes the answer</span><span class="st st-done">Done</span>
-<span class="w">An accidental click needs an exit that is not a dismissal: "this is unclassified after all" sets the marking back rather than waving the warning away.</span>
+<span class="w">An accidental click needs an exit that is not a dismissal: "this is unclassified after all" changes the answer, and the warning stands.</span>
 </div>
 <div class="leaf solo">
 <span class="t">The close control is dead until the box is ticked</span><span class="st st-done">Done</span>
@@ -617,7 +662,7 @@ background:var(--surface);border:1px solid var(--line);border-radius:10px;list-s
 <div class="card done-card">
 <div class="leaf solo">
 <span class="t">It says what it can currently see</span><span class="st st-done">Done</span>
-<span class="w">With no store, that is this browser and the files opened this session. The page says so rather than looking live.</span>
+<span class="w">With no store, that is this browser and the files opened this session. The page says so, so it cannot be read as live.</span>
 </div>
 <div class="leaf solo">
 <span class="t">Portfolio CSV</span><span class="st st-done">Done</span>
@@ -674,7 +719,7 @@ background:var(--surface);border:1px solid var(--line);border-radius:10px;list-s
 <div class="tw"><table><thead><tr><th>Question</th><th>Who owes it</th><th>Blocks</th><th>Meanwhile</th></tr></thead><tbody>
 <tr><td>What an assessor sees of the pool</td><td>Dan or Chris</td><td>Filtering, and any My assessments view</td><td>Every assessor sees everything</td></tr>
 <tr><td>Who may write to the prototype store</td><td>ours, then Dan</td><td>Nothing yet</td><td>Anybody who reads the page source. Fine for unclassified drafts, and the reason the real one needs the departmental sign-in</td></tr>
-<tr><td>Can the 176 draft questions be public</td><td>Dan</td><td>Publishing inside canada-ca</td><td>The preview sits on a personal public repo, which is the same exposure with less visibility</td></tr>
+<tr><td>Can the 176 draft questions be public</td><td>Dan</td><td>Publishing inside canada-ca</td><td>The preview is on a personal public repo, which is the same exposure with less visibility</td></tr>
 <tr><td>Who may edit a stored assessment, and how it is checked</td><td>Dan</td><td>Real authentication</td><td>Mockup screen, everything labelled unverified</td></tr>
 <tr><td>Verifying an assessor’s identity</td><td>Dan</td><td>Real sign-in</td><td>Typed name, labelled unverified on every change it records</td></tr>
 <tr><td>Is admin a role, or an assessor with more buttons?</td><td>Dan</td><td>The admin-only actions</td><td>The dashboard is built; the actions are listed and marked unbuilt</td></tr>
@@ -685,4 +730,4 @@ background:var(--surface);border:1px solid var(--line);border-radius:10px;list-s
 <tr><td>Who performs the canada-ca transfer</td><td>Nick</td><td>The repo move</td><td>Asked. An issue on canada-ca/welcome is the route he named</td></tr>
 <tr><td>What the production intake should be</td><td>TBS</td><td>Production only</td><td>The prototype answer is an Azure Function plus one CSP line</td></tr>
 </tbody></table></div>
-<footer>45 open, 73 done. Generated from NOTES/backlog.data.mjs by tools/build-backlog.mjs.</footer></div>
+<footer>53 open, 74 done. Generated from NOTES/backlog.data.mjs by tools/build-backlog.mjs.</footer></div>

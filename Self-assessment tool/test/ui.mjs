@@ -500,6 +500,24 @@ ok('and the indicator is a live region', q('.save-state')?.getAttribute('role') 
 ok('it lives in the chrome, not in the questionnaire footer',
    !!q('.topbar .save-state') && !q('.sticky-footer .save-state'));
 ok('it carries a short wording for a narrow screen', !!q('.save-state .ss-short'));
+// The language switch is in the chrome from the start, because retrofitting one is how a page
+// ends up with a French version missing a third of its screens.
+ok('both languages are offered in the chrome',
+   qa('.lang-switch .lang-btn').map((b) => b.textContent).join('|') === 'EN|FR',
+   qa('.lang-switch .lang-btn').map((b) => b.textContent).join('|'));
+ok('and the page says which one it is in',
+   document.documentElement.getAttribute('lang') === 'en',
+   document.documentElement.getAttribute('lang'));
+{
+  // Switching shows French where it exists and English where it does not, and says so.
+  byText('.lang-btn', 'FR').click();
+  ok('switching to French takes effect', document.documentElement.getAttribute('lang') === 'fr');
+  ok('and a translated string is translated',
+     view().includes('Brouillon enregistré') || !!q('.save-state.hidden'),
+     q('.save-state')?.textContent);
+  byText('.lang-btn', 'EN').click();
+  ok('and back again', document.documentElement.getAttribute('lang') === 'en');
+}
 ok('and one click opens the detail', q('.save-state').tagName === 'BUTTON');
 
 // With work in the file, the start page points at Settings and destroys nothing itself.
@@ -843,8 +861,7 @@ ok('and offers the email route', !!byText('.ev-alt button', 'cannot be linked'))
   byText('.ev-subject button', 'did not go by email').click();
   {
     const row = qa('.question').find((n) => n.textContent.includes('hosting environment'));
-    ok('the email note can be taken back', !row.querySelector('.ev-subject')
-       && !!row.querySelector('.ev-alt input[type=file]'));
+    ok('the email note can be taken back', !row.querySelector('.ev-subject'));
   }
 }
 const just = hosting.querySelector('textarea');
@@ -862,14 +879,10 @@ fire(evTitle, 'input');
 ok('a row with something in it and no marking blocks saving',
    byText('.footer-actions button', 'Save to a file').disabled === true && view().includes('mark'));
 
-// Marking it unclassified brings the attach control back, and a classified marking takes it
-// away again: the artefact itself must never come into the tool.
+// Evidence above the answer given on the overview is refused, on the row that is here.
 {
-  // Marking a piece of evidence above the answer given on the overview now asks which of the
-  // two is wrong. Saying "leave both as they are" keeps the mismatch, which is what this test
-  // needs; the save gate then has its say.
-  const live = qa('.question').find((n) => n.textContent.includes('hosting environment'));
-  const sel = [...live.querySelectorAll('.ev-row select')][1];
+  const here = () => qa('.question').find((n) => n.textContent.includes('hosting environment'));
+  const sel = [...here().querySelectorAll('.ev-row select')][1];
   sel.value = 'Secret';
   fire(sel, 'change');
   ok('marking evidence above the overview answer asks which is wrong',
@@ -877,89 +890,18 @@ ok('a row with something in it and no marking blocks saving',
   ok('and offers raising the overview answer as the first choice',
      dialogText().includes('My evidence does go up to Secret'));
   dialogAct('Leave both');
-  const row = qa('.question').find((n) => n.textContent.includes('hosting environment'));
-  ok('a classified evidence row cannot be attached to', !row.querySelector('.ev-alt input[type=file]'));
-  ok('and says what to do instead', row.textContent.includes('cannot come into this tool'));
-  const sel2 = [...row.querySelectorAll('.ev-row select')][1];
-  sel2.value = 'Unclassified';
-  fire(sel2, 'change');
-}
-
-// Attach a real file, the way Dan asked - so an assessor does not have to email anybody.
-const evFileInput = qa('.ev-alt input[type=file]')[0];
-const bytes = new Uint8Array([0x25, 0x50, 0x44, 0x46, 0x2d, 0x31, 0x2e, 0x34]);   // "%PDF-1.4"
-const fakePdf = new window.File([bytes], 'current-state.pdf', { type: 'application/pdf' });
-Object.defineProperty(evFileInput, 'files', { value: [fakePdf], configurable: true });
-fire(evFileInput, 'change');
-await new Promise((r) => setTimeout(r, 80));
-
-const hosting2 = qa('.question').find((n) => n.textContent.includes('hosting environment'));
-ok('the attachment is held on the evidence row', !!hosting2.querySelector('.att .att-name'),
-   hosting2.querySelector('.att')?.textContent);
-ok('the attachment keeps its filename', hosting2.querySelector('.att-name').textContent === 'current-state.pdf',
-   hosting2.querySelector('.att-name')?.textContent);
-
-// An attached file has to be unclassified, and saying so is what unblocks the save.
-const evClass = [...hosting2.querySelectorAll('.ev-row select')][1];
-evClass.value = 'Unclassified';
-fire(evClass, 'change');
-ok('evidence marking can be set', evClass.value === 'Unclassified');
-ok('saving is unblocked once the evidence is marked',
-   byText('.footer-actions button', 'Save to a file').disabled === false);
-
-/**
- * The hole this closes: attach a file while the row is unclassified, then raise the row's
- * marking. The attach control disappears, and before this the file stayed, saved, and passed
- * every check, which is the one thing the tool promises cannot happen.
- */
-{
-  const sel = () => [...qa('.question').find((n) => n.textContent.includes('hosting environment'))
-    .querySelectorAll('.ev-row select')][1];
-  const raise = sel();
-  raise.value = 'Secret';
-  fire(raise, 'change');
-  dialogAct('Leave both');
-  ok('a file attached and then marked classified blocks the save',
-     byText('.footer-actions button', 'Save to a file').disabled === true);
-  ok('and the row says it cannot be held here',
-     view().includes('cannot be held in this file'));
-  const back = sel();
-  back.value = 'Unclassified';
-  fire(back, 'change');
-  ok('and unblocks when the marking comes back down',
-     byText('.footer-actions button', 'Save to a file').disabled === false);
-}
-
-// Evidence above the file's own marking is refused too. On a second row, pointed at by a
-// link, because the first one is holding the attachment the rest of this run needs.
-{
-  const here = () => qa('.question').find((n) => n.textContent.includes('hosting environment'));
-  [...here().querySelectorAll('button')].find((b) => b.textContent.includes('Add another piece')).click();
-  const rows = () => [...here().querySelectorAll('.ev-item')];
-  const second = () => rows()[rows().length - 1];
-  const title = second().querySelector('.ev-row input[type=text]');
-  title.value = 'Threat assessment, held on the classified network';
-  fire(title, 'input');
-  const sel = [...second().querySelectorAll('.ev-row select')][1];
-  sel.value = 'Secret';
-  fire(sel, 'change');
-  dialogAct('Leave both');
   ok('evidence above the file marking blocks saving',
      byText('.footer-actions button', 'Save to a file').disabled === true,
      byText('.footer-actions button', 'Save to a file').getAttribute('title'));
   ok('and says which way to resolve it', view().includes('Raise that answer to Secret'));
-  const sel2 = [...second().querySelectorAll('.ev-row select')][1];
+  const sel2 = [...here().querySelectorAll('.ev-row select')][1];
   sel2.value = 'Protected B';
   fire(sel2, 'change');
   ok('and unblocks when brought back down',
      byText('.footer-actions button', 'Save to a file').disabled === false,
      byText('.footer-actions button', 'Save to a file').getAttribute('title'));
-  // Take the extra row away again, so the rest of the run sees one piece of evidence.
-  [...second().querySelectorAll('button')].find((b) => b.textContent === 'Remove').click();
-  dialogAct('Remove it');
-  await new Promise((r) => setTimeout(r, 40));
-  ok('and the extra row can be taken away', rows().length === 1, String(rows().length));
 }
+
 ok('draft is autosaved to this browser', !!window.localStorage.getItem('gc-arch-assessment:draft'));
 
 // ---- results ---------------------------------------------------------------------------
@@ -1023,10 +965,14 @@ ok('saved file is a self-assessment', savedJson.fileType === 'gc-arch-assessment
 ok("saved file carries Dan's rubric version", savedJson.rubric.version === '1.0-dan');
 ok('saved file holds every answer', Object.keys(savedJson.answers).length === TOTAL, String(Object.keys(savedJson.answers).length));
 ok('saved file carries the evidence reference', JSON.stringify(savedJson).includes('Current-state architecture diagram'));
-ok('saved file carries the attachment itself', (() => {
-  const ev = Object.values(savedJson.answers).flatMap((x) => x.evidence ?? []).find((e) => e.attachment);
-  return !!ev && ev.attachment.name === 'current-state.pdf' && atob(ev.attachment.data).startsWith('%PDF');
+// Nothing is attached any more, so nothing large rides in the file. This is what keeps an
+// assessment inside the size a store will take.
+ok('the saved file carries no attachment', (() => {
+  const withFile = Object.values(savedJson.answers).flatMap((x) => x.evidence ?? []).filter((e) => e.attachment);
+  return withFile.length === 0;
 })());
+ok('and stays small enough for a store to hold it',
+   JSON.stringify(savedJson).length < 400_000, String(JSON.stringify(savedJson).length));
 ok('saved file records its marking', savedJson.initiative.classification === 'Protected B');
 ok('the favicon is inline, so the built file needs no second request', html.includes('rel="icon" href="data:image/svg+xml'));
 
@@ -1230,13 +1176,9 @@ ok('a challenge question is drafted for the assessor, with no AI and no key invo
    qa('.challenge')[0]?.textContent?.slice(0, 70));
 ok('the marking is shown as handling information, not as an anomaly',
    view().includes('Marked Protected B') && !view().includes('Evidence marked Protected B'));
-{
-  const openBtn = qa('.ev-list button').find((b) => b.textContent === 'Open');
-  ok('assessor can open the attached evidence in place', !!openBtn);
-  openBtn.click();
-  ok('opening it produces a blob from memory, not a network request',
-     opened.length === 1 && String(opened[0]).startsWith('blob:'), String(opened[0]));
-}
+// The assessor sees where the evidence lives, which is a link or a note that it was emailed.
+ok('the assessor is told where the evidence is',
+   view().includes('Current-state architecture diagram'));
 
 ok('the audit is attributed to whoever signed in, and says it is unverified',
    view().includes('Auditing as') && view().includes('unverified'));
@@ -1324,12 +1266,14 @@ ok('audited file keeps the self-score alongside the audited one',
   {
     // An admin deletes a record by typing the initiative name, the way GitHub deletes a
     // repository. The button is dead until the typing matches.
-    byText('table.detail button', 'Delete').click();
+    // Delete is behind a menu, because nothing that cannot be undone sits in a row.
+    q('table.detail .row-menu').open = true;
+    byText('.row-menu .menu-item', 'Delete this assessment').click();
     const dlg = q('dialog.confirm.typed');
     ok('deleting a record asks for the name to be typed', !!dlg);
     ok('and lists what goes', dlg.querySelectorAll('.typed-list li').length >= 3,
        String(dlg.querySelectorAll('.typed-list li').length));
-    const go = byText('dialog.confirm.typed button', 'Delete this assessment');
+    const go = byText('dialog.confirm.typed .cf-actions button', 'Delete this assessment');
     ok('the delete is dead to begin with', go.disabled === true);
     const field = dlg.querySelector('.typed-field');
     field.value = 'not the name';

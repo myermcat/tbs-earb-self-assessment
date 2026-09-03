@@ -213,7 +213,7 @@ function paintList(rubric: Rubric, root: HTMLElement) {
       el('th', {}, ['Initiative']), el('th', {}, ['Department']), el('th', {}, ['Marking']),
       el('th', {}, ['Question set']),
       el('th', {}, ['Stage']), el('th', {}, ['Score']), el('th', {}, ['Suggested routing']),
-      el('th', {}, ['Must ask']), el('th', {}, ['Files']), el('th', {}, ['Complete']), el('th', {}, ['']),
+      el('th', {}, ['Must ask']), el('th', {}, ['Evidence']), el('th', {}, ['Complete']), el('th', {}, ['']),
     ])]),
   ]);
   const tb = el('tbody', {});
@@ -233,7 +233,7 @@ function paintList(rubric: Rubric, root: HTMLElement) {
       el('td', { class: `num ${tone(l.r.overall)}` }, [l.r.overall === null ? '--' : l.r.overall.toFixed(1)]),
       el('td', { class: 'small' }, [l.r.band?.label ?? '--']),
       el('td', { class: highs ? 'num red' : 'num' }, [String(highs)]),
-      el('td', { class: 'num' }, [String(Object.values(l.a.answers).reduce((n, x) => n + (x.evidence ?? []).filter((e) => e.attachment).length, 0))]),
+      el('td', { class: 'num' }, [String(Object.values(l.a.answers).reduce((n, x) => n + (x.evidence ?? []).length, 0))]),
       el('td', { class: 'small' }, [`${Math.round(l.r.completeness * 100)}%`]),
       // The detail reads the set this submission was answered against, so the questions and
       // weights on screen are the ones the department actually answered.
@@ -296,7 +296,7 @@ function openDetail(rubric: Rubric, root: HTMLElement, l: Loaded) {
   const changed = Object.entries(audit.perQuestion).filter(
     ([qid, e]) => typeof e.auditedScore === 'number' && e.auditedScore !== (a.answers[qid]?.score ?? null),
   );
-  const attachments = Object.values(a.answers).reduce((n, x) => n + (x.evidence ?? []).filter((e) => e.attachment).length, 0);
+  const evidenceCount = Object.values(a.answers).reduce((n, x) => n + (x.evidence ?? []).length, 0);
 
   root.appendChild(el('section', { class: 'card tight actions' }, [
     el('button', { class: 'ghost', onclick: () => renderReview(root, rubric) }, ['Back to the list']),
@@ -333,7 +333,7 @@ function openDetail(rubric: Rubric, root: HTMLElement, l: Loaded) {
       kpi(String(fs.filter((f) => f.severity === 'high').length), 'must ask'),
       kpi(String(needLook.size), 'questions flagged'),
       kpi(`${Math.round(r.completeness * 100)}%`, 'complete'),
-      kpi(String(attachments), 'files attached'),
+      kpi(String(evidenceCount), 'pieces of evidence'),
       kpi(String(changed.length), 'you changed'),
     ]),
   ]));
