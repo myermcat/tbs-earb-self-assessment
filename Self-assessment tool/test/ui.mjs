@@ -764,8 +764,13 @@ ok('and offers the email route', !!byText('.ev-alt button', 'cannot be linked'))
   // there invited a second, unmarked copy of the same artefact.
   ok('an emailed row does not offer attaching', !q('.ev-alt input[type=file]'));
 
-  loc.value = '';
-  fire(loc, 'input');
+  // And a way back, because the row is committed to the email route until it is pressed.
+  byText('.ev-subject button', 'did not go by email').click();
+  {
+    const row = qa('.question').find((n) => n.textContent.includes('hosting environment'));
+    ok('the email note can be taken back', !row.querySelector('.ev-subject')
+       && !!row.querySelector('.ev-alt input[type=file]'));
+  }
 }
 const just = hosting.querySelector('textarea');
 just.value = 'Diagram is current as of March and owned by the platform team.';
@@ -811,25 +816,63 @@ ok('the attachment is held on the evidence row', !!hosting2.querySelector('.att 
 ok('the attachment keeps its filename', hosting2.querySelector('.att-name').textContent === 'current-state.pdf',
    hosting2.querySelector('.att-name')?.textContent);
 
+// An attached file has to be unclassified, and saying so is what unblocks the save.
 const evClass = [...hosting2.querySelectorAll('.ev-row select')][1];
-evClass.value = 'Protected B';
+evClass.value = 'Unclassified';
 fire(evClass, 'change');
-ok('evidence marking can be set', evClass.value === 'Protected B');
+ok('evidence marking can be set', evClass.value === 'Unclassified');
 ok('saving is unblocked once the evidence is marked',
    byText('.footer-actions button', 'Save to a file').disabled === false);
 
-// Evidence above the file's own marking must be refused, not silently allowed through.
+/**
+ * The hole this closes: attach a file while the row is unclassified, then raise the row's
+ * marking. The attach control disappears, and before this the file stayed, saved, and passed
+ * every check, which is the one thing the tool promises cannot happen.
+ */
 {
-  const sel = [...qa('.question').find((n) => n.textContent.includes('hosting environment')).querySelectorAll('.ev-row select')][1];
+  const sel = () => [...qa('.question').find((n) => n.textContent.includes('hosting environment'))
+    .querySelectorAll('.ev-row select')][1];
+  const raise = sel();
+  raise.value = 'Secret';
+  fire(raise, 'change');
+  ok('a file attached and then marked classified blocks the save',
+     byText('.footer-actions button', 'Save to a file').disabled === true);
+  ok('and the row says it cannot be held here',
+     view().includes('cannot be held in this file'));
+  const back = sel();
+  back.value = 'Unclassified';
+  fire(back, 'change');
+  ok('and unblocks when the marking comes back down',
+     byText('.footer-actions button', 'Save to a file').disabled === false);
+}
+
+// Evidence above the file's own marking is refused too. On a second row, pointed at by a
+// link, because the first one is holding the attachment the rest of this run needs.
+{
+  const here = () => qa('.question').find((n) => n.textContent.includes('hosting environment'));
+  [...here().querySelectorAll('button')].find((b) => b.textContent === 'Add evidence').click();
+  const rows = () => [...here().querySelectorAll('.ev-item')];
+  const second = () => rows()[rows().length - 1];
+  const title = second().querySelector('.ev-row input[type=text]');
+  title.value = 'Threat assessment, held on the classified network';
+  fire(title, 'input');
+  const sel = [...second().querySelectorAll('.ev-row select')][1];
   sel.value = 'Secret';
   fire(sel, 'change');
   ok('evidence above the file marking blocks saving',
-     byText('.footer-actions button', 'Save to a file').disabled === true);
+     byText('.footer-actions button', 'Save to a file').disabled === true,
+     byText('.footer-actions button', 'Save to a file').getAttribute('title'));
   ok('and says which way to resolve it', view().includes('Raise that answer to Secret'));
-  sel.value = 'Protected B';
-  fire(sel, 'change');
+  const sel2 = [...second().querySelectorAll('.ev-row select')][1];
+  sel2.value = 'Protected B';
+  fire(sel2, 'change');
   ok('and unblocks when brought back down',
-     byText('.footer-actions button', 'Save to a file').disabled === false);
+     byText('.footer-actions button', 'Save to a file').disabled === false,
+     byText('.footer-actions button', 'Save to a file').getAttribute('title'));
+  // Take the extra row away again, so the rest of the run sees one piece of evidence.
+  [...second().querySelectorAll('button')].find((b) => b.textContent === 'Remove').click();
+  await new Promise((r) => setTimeout(r, 40));
+  ok('and the extra row can be taken away', rows().length === 1, String(rows().length));
 }
 ok('draft is autosaved to this browser', !!window.localStorage.getItem('gc-arch-assessment:draft'));
 

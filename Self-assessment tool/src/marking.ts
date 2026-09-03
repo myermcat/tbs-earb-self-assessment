@@ -1,4 +1,4 @@
-import { CLASSIFICATIONS, classRank, type Assessment, type Classification } from './types';
+import { CLASSIFICATIONS, classRank, type Assessment } from './types';
 
 /**
  * Everything in this tool is unclassified, settled with Dan on 1 September, so the assessment
@@ -11,19 +11,9 @@ import { CLASSIFICATIONS, classRank, type Assessment, type Classification } from
  */
 
 export interface MarkingProblem {
-  kind: 'no-file-marking' | 'unmarked-evidence' | 'evidence-above-file';
+  kind: 'no-file-marking' | 'unmarked-evidence' | 'evidence-above-file' | 'classified-attachment';
   message: string;
   questionId?: string;
-}
-
-export function highestEvidenceMarking(a: Assessment): Classification | '' {
-  let top: Classification | '' = '';
-  for (const ans of Object.values(a.answers)) {
-    for (const e of ans.evidence ?? []) {
-      if (classRank(e.classification) > classRank(top)) top = e.classification;
-    }
-  }
-  return top;
 }
 
 /** Everything standing between the user and a saved file. Empty means good to go. */
@@ -50,9 +40,23 @@ export function markingProblems(a: Assessment): MarkingProblem[] {
   for (const [qid, ans] of Object.entries(a.answers)) {
     for (const e of ans.evidence ?? []) {
       const named = e.title || e.attachment?.name || 'an evidence item';
+      /**
+       * An artefact above unclassified must not be held in this file at all, and hiding the
+       * attach control is not enough: attaching while a row is unclassified and raising the
+       * marking afterwards kept the file, saved it, and passed every check.
+       */
+      if (e.attachment && e.classification && e.classification !== 'Unclassified') {
+        out.push({
+          kind: 'classified-attachment',
+          questionId: qid,
+          message: `${qid}: "${named}" is marked ${e.classification} and is attached to this file. Nothing above unclassified can be held here. Remove the file and send it to your assessor by email.`,
+        });
+      }
       // An empty row is the one Add evidence just created. Demanding a marking for it blocks
-      // saving the moment somebody clicks Add, before they have typed anything.
-      const empty = !e.title.trim() && !e.location.trim() && !(e.note ?? '').trim() && !e.attachment;
+      // saving the moment somebody clicks Add, before they have typed anything. A file loaded
+      // from disk may be missing fields entirely, and this runs on every keystroke.
+      const empty = !(e.title ?? '').trim() && !(e.location ?? '').trim()
+        && !(e.note ?? '').trim() && !e.attachment;
       if (empty) continue;
       if (!e.classification) {
         out.push({ kind: 'unmarked-evidence', questionId: qid, message: `${qid}: mark "${named}".` });

@@ -1305,7 +1305,8 @@ function evidenceEditor(a: Assessment, q: Question, list: EvidenceRef[], refresh
        * here, and a row already recorded as emailed, where the attach control sitting there
        * invited a second, unmarked copy of the same thing.
        */
-      const emailed = (ev.location ?? '').startsWith('Emailed to the assessor');
+      // A field, with the old prefix still honoured for rows recorded before it existed.
+      const emailed = ev.emailed === true || (ev.location ?? '').startsWith('Emailed to the assessor');
       const noAttaching = !!ev.classification && ev.classification !== 'Unclassified';
 
       const attachRow = ev.attachment
@@ -1409,7 +1410,10 @@ function evidenceEditor(a: Assessment, q: Question, list: EvidenceRef[], refresh
             class: 'linkish tiny',
             onclick: () => {
               const write = () => {
-                ev.location = `Emailed to the assessor. Subject: ${evidenceSubject(a, q.id)}`;
+                const subject = evidenceSubject(a, q.id);
+                ev.emailed = true;
+                ev.emailSubject = subject;
+                ev.location = `Emailed to the assessor. Subject: ${subject}`;
                 if (!ev.title) ev.title = 'Emailed to the assessor';
                 autosave(a); paint(); refresh();
               };
@@ -1435,24 +1439,46 @@ function evidenceEditor(a: Assessment, q: Question, list: EvidenceRef[], refresh
                 `${ev.classification} cannot come into this tool. Link to it, or email it to your assessor.`,
               ])
             : null,
+          // Attaching while the row was unclassified and raising the marking afterwards kept
+          // the file. It cannot stay, and this is where somebody sees that.
+          noAttaching && ev.attachment
+            ? el('div', { class: 'ev-block warn-text small' }, [
+                el('b', {}, [`${ev.classification} cannot be held in this file. `]),
+                'Remove it here and send it to your assessor by email. Saving is blocked until you do.',
+              ])
+            : null,
         ]),
         // Once they say they will email it, the exact subject line is here to copy. Retyping
         // it by hand is how an assessor ends up unable to find the message.
-        (ev.location ?? '').startsWith('Emailed to the assessor')
+        emailed
           ? el('div', { class: 'ev-subject' }, [
               el('span', { class: 'tiny dim' }, ['Subject line for that email']),
               el('div', { class: 'ev-subject-row' }, [
-                el('code', { class: 'mono' }, [evidenceSubject(a, q.id)]),
+                // The line as it was recorded. Regenerating it meant renaming the initiative
+                // changed what is shown while the recorded line stayed as it was.
+                el('code', { class: 'mono' }, [ev.emailSubject ?? evidenceSubject(a, q.id)]),
                 el('button', {
                   class: 'ghost tiny',
                   onclick: (e: Event) => {
                     const btn = e.currentTarget as HTMLButtonElement;
-                    const line = evidenceSubject(a, q.id);
+                    const line = ev.emailSubject ?? evidenceSubject(a, q.id);
                     void navigator.clipboard?.writeText?.(line);
                     btn.textContent = 'Copied';
                     setTimeout(() => { btn.textContent = 'Copy'; }, 1600);
                   },
                 }, ['Copy']),
+                // The row is committed to the email route until this is pressed, so there has
+                // to be a way back to a link or a file.
+                el('button', {
+                  class: 'linkish tiny',
+                  onclick: () => {
+                    const generated = `Emailed to the assessor. Subject: ${ev.emailSubject ?? ''}`;
+                    if (ev.location === generated) ev.location = '';
+                    delete ev.emailed;
+                    delete ev.emailSubject;
+                    autosave(a); paint(); refresh();
+                  },
+                }, ['It did not go by email']),
               ]),
             ])
           : null,
