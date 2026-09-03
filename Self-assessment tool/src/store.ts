@@ -114,3 +114,22 @@ export function sourceLine(records: StoredRecord[]): string {
   if (files) parts.push(`${files} file${files === 1 ? '' : 's'} opened this session`);
   return parts.length ? parts.join(' and ') : 'nothing to show yet';
 }
+
+/**
+ * Whether a submission this browser is holding has gone from the store.
+ *
+ * An admin can delete a record, and the person who filled it in still has their own copy in
+ * this browser. Coming back to it and finding it quietly out of step with the store is the
+ * worst version of that; being told, with two ways forward, is the least bad.
+ *
+ * Untested against a real store, because there is not one yet. It is written now so the
+ * behaviour is decided rather than improvised on the day.
+ */
+export function goneFromStore(records: StoredRecord[], local: Assessment): boolean {
+  if (!isHosted()) return false;
+  if (!local.meta?.submittedAt) return false;          // never went, so nothing to miss
+  if (!local.ref && !local.id) return false;
+  return !records.some((r) => (
+    (local.id && r.assessment.id === local.id) || (local.ref && r.assessment.ref === local.ref)
+  ));
+}

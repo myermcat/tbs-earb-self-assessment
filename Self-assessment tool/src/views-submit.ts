@@ -3,7 +3,7 @@ import { CLASSIFICATIONS, classRank, type Assessment, type EvidenceRef, type Que
 import { el, clear, tone } from './dom';
 import { domainRedFlags, score, sectionRedFlags, type Result, type SectionScore } from './scoring';
 import { autosave, clearSaveWatchers, saveAssessmentFile } from './storage';
-import { humanSize, openAttachment, readAttachment, totalAttachedBytes, TOTAL_LIMIT, TOTAL_WARN } from './attach';
+import { humanSize, openAttachment, totalAttachedBytes, TOTAL_WARN } from './attach';
 import { demandPledge } from './pledge';
 import { confirmStep } from './confirm';
 import { canSave, markingProblems } from './marking';
@@ -1398,19 +1398,22 @@ function evidenceEditor(a: Assessment, q: Question, list: EvidenceRef[], refresh
       };
 
       /**
-       * Attaching is for an unclassified artefact that cannot be linked. Two states remove it
-       * from the row entirely: a marking above unclassified, where the file must never come in
-       * here, and a row already recorded as emailed, where the attach control sitting there
-       * invited a second, unmarked copy of the same thing.
+       * Evidence is a link, and only a link.
+       *
+       * Attaching went because it cannot survive a store: a document there caps at about a
+       * megabyte and the tool allowed fifteen. An artefact that cannot be linked goes to the
+       * assessor by email, which is the same route classified material already took.
+       *
+       * A file attached in an earlier version still opens, so an assessment saved last week
+       * loses nothing. Nothing new can be attached.
        */
-      // A field, with the old prefix still honoured for rows recorded before it existed.
       const emailed = ev.emailed === true || (ev.location ?? '').startsWith('Emailed to the assessor');
-      const noAttaching = !!ev.classification && ev.classification !== 'Unclassified';
 
       const attachRow = ev.attachment
         ? el('div', { class: 'att' }, [
             el('span', { class: 'att-name' }, [ev.attachment.name]),
             el('span', { class: 'muted small' }, [humanSize(ev.attachment.size)]),
+            el('span', { class: 'badge badge-warn tiny' }, ['attached before, kept']),
             el('button', { class: 'ghost small', onclick: () => openAttachment(ev.attachment!) }, ['Open']),
             el('button', {
               class: 'ghost small danger-text',
@@ -1419,7 +1422,7 @@ function evidenceEditor(a: Assessment, q: Question, list: EvidenceRef[], refresh
                 confirmStep({
                   tier: 'danger',
                   title: `Detach ${att.name}?`,
-                  body: 'The copy inside this assessment is removed. If the original is no longer on your machine, there is no other copy.',
+                  body: 'The copy inside this assessment is removed. Nothing new can be attached, so this cannot be undone from here.',
                   stake: `${humanSize(att.size)}, held only here.`,
                   offer: {
                     label: 'Open it first, so you can save it',
@@ -1432,29 +1435,7 @@ function evidenceEditor(a: Assessment, q: Question, list: EvidenceRef[], refresh
               },
             }, ['Detach']),
           ])
-        : el('label', { class: 'filelabel small' }, [
-            'Attach an unclassified file',
-            el('input', {
-              type: 'file', hidden: true,
-              onchange: async (e: Event) => {
-                const input = e.target as HTMLInputElement;
-                const f = input.files?.[0];
-                if (!f) return;
-                try {
-                  const att = await readAttachment(f);
-                  if (totalAttachedBytes(a.answers) + att.size > TOTAL_LIMIT) {
-                    alert(`That would take this file past ${humanSize(TOTAL_LIMIT)}. Record where this one lives without attaching it.`);
-                    return;
-                  }
-                  ev.attachment = att;
-                  if (!ev.title) ev.title = f.name;
-                  autosave(a); paint(); refresh();
-                } catch (err) {
-                  alert((err as Error).message);
-                }
-              },
-            }),
-          ]);
+        : null;
 
       const unmarked = !ev.classification;
       box.appendChild(el('div', { class: `ev-item ${unmarked ? 'unmarked' : ''}` }, [
@@ -1529,20 +1510,12 @@ function evidenceEditor(a: Assessment, q: Question, list: EvidenceRef[], refresh
               });
             },
           }, ['It cannot be linked, I will email it']),
-          // attachRow is the file chip when something is attached, and the picker when not.
-          // Skipping it while attached made the attached file invisible.
-          ev.attachment || !(noAttaching || emailed) ? attachRow : null,
-          noAttaching && !ev.attachment
-            ? el('span', { class: 'tiny dim' }, [
-                `${ev.classification} cannot come into this tool. Link to it, or email it to your assessor.`,
-              ])
-            : null,
-          // Attaching while the row was unclassified and raising the marking afterwards kept
-          // the file. It cannot stay, and this is where somebody sees that.
-          noAttaching && ev.attachment
+          // Any file already attached, so an assessment saved before this changed still opens.
+          attachRow,
+          ev.attachment && ev.classification && ev.classification !== 'Unclassified'
             ? el('div', { class: 'ev-block warn-text small' }, [
                 el('b', {}, [`${ev.classification} cannot be held in this file. `]),
-                'Remove it here and send it to your assessor by email. Saving is blocked until you do.',
+                'Detach it and send it to your assessor by email. Saving is blocked until you do.',
               ])
             : null,
         ]),
@@ -1609,7 +1582,7 @@ function evidenceEditor(a: Assessment, q: Question, list: EvidenceRef[], refresh
       }, [list.length ? 'Add another piece of evidence' : 'Add a piece of evidence']),
       attached > TOTAL_WARN
         ? el('span', { class: 'small warn-text' }, [
-            `${humanSize(attached)} attached across this assessment. Departmental mail often stops around 25 MB.`,
+            `${humanSize(attached)} of files came with this assessment from an earlier version. Detach them and send them by email; nothing new can be attached.`,
           ])
         : null,
     ]));

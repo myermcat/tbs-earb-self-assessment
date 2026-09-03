@@ -71,14 +71,16 @@ footer{margin-top:3rem;color:var(--ink-3);font-size:.8rem}
 .req{display:grid;grid-template-columns:3.2rem 1fr auto;gap:.2rem .6rem;
 padding:.6rem .1rem;border-bottom:1px solid var(--line)}
 .req:last-child{border-bottom:0}
-.req-id{grid-column:1;grid-row:1;font-size:.78rem;color:var(--ink-3);padding-top:.1rem}
+.req-id{grid-column:1;grid-row:1;font-size:.78rem;color:var(--ink-3);align-self:center}
 .req-t{grid-column:2;grid-row:1;font-weight:600}
 .req .st{grid-column:3;grid-row:1;justify-self:end}
 .req-owner{grid-column:2;grid-row:2;font-size:.74rem;font-weight:700;letter-spacing:.04em;
 text-transform:uppercase;color:var(--warn)}
 .req-note{grid-column:2;font-size:.85rem;color:var(--ink-2)}
 .lead{font-size:1rem;color:var(--ink-2);max-width:74ch;margin:.2rem 0 .8rem}
-.std-p{margin:0 0 .6rem;font-size:.9rem;color:var(--ink-2);max-width:80ch}
+.card{padding:.9rem 1.1rem}
+.card.reqs{padding:.3rem 1.1rem}
+.std-p{margin:0 0 .7rem;font-size:.9rem;color:var(--ink-2);max-width:80ch;line-height:1.6}
 .std-p:last-child{margin-bottom:0}
 .std-p b{color:var(--ink)}
 .legend{display:flex;align-items:center;gap:.4rem;flex-wrap:wrap;margin:0 0 1.4rem;
@@ -114,10 +116,10 @@ background:var(--surface);border:1px solid var(--line);border-radius:10px;list-s
 .kpi a{color:inherit;text-decoration:none}
 </style>
 <div class="head"><div class="head-in"><h1>GC EA self-assessment: requirements specification</h1>
-<p class="sub">Living document, updated 2026-09-01. 81 requirements, baselined at each release. Following ISO/IEC/IEEE 29148:2018, tailored.</p></div></div>
+<p class="sub">Living document, updated 2026-09-01. 84 requirements, baselined at each release. Following ISO/IEC/IEEE 29148:2018, tailored.</p></div></div>
 <nav class="topnav"><div class="topnav-in">
-<span class="nav-kpi"><b>39</b><span>built</span></span>
-<span class="nav-kpi"><b>23</b><span>agreed, not built</span></span>
+<span class="nav-kpi"><b>40</b><span>built</span></span>
+<span class="nav-kpi"><b>25</b><span>agreed, not built</span></span>
 <span class="nav-kpi"><b>5</b><span>proposed</span></span>
 <span class="nav-kpi"><b>14</b><span>open</span></span>
 <span class="nav-sep"></span>
@@ -138,6 +140,7 @@ background:var(--surface);border:1px solid var(--line);border-radius:10px;list-s
 <div class="wrap">
 <p class="lead">This is the standing record of what the GC Enterprise Architecture self-assessment tool has to do. It accumulates: a decision made in a meeting is written here the same day, with who made it.</p>
 <p class="lead">Each requirement carries a number so it can be quoted, a state, and an owner where somebody owes an answer. Numbers are never reused and never renumbered. Nothing is deleted when a requirement changes: the state changes and the reason goes in the note.</p>
+<p class="lead">Owners are named people. Build team means Mariia Yermolenko, who is building this on a co-op term at the Treasury Board Secretariat. TBS means whoever holds the decision inside the department, which is Dan Cooper unless the entry says otherwise.</p>
 <div class="legend small">
 <span class="st st-done">Built</span> <span class="st st-next">Agreed</span> <span class="st st-wait">Proposed</span> <span class="st st-later">Open</span>
 <span class="muted">Built is in the tool today. Agreed is decided and not built. Proposed is our reading, waiting on somebody. Open is undecided.</span>
@@ -153,12 +156,12 @@ background:var(--surface);border:1px solid var(--line);border-radius:10px;list-s
 <tr><td class="mono">Q11</td><td>The Business Architecture section weights add up to 80.</td><td>Dan</td><td>The instrument</td></tr>
 <tr><td class="mono">Q12</td><td>The routing thresholds.</td><td>Dan</td><td>The instrument</td></tr>
 <tr><td class="mono">D5</td><td>The twelve-month questions: per-question averages, averages by department, and the best and worst evidence for each question.</td><td>Dan</td><td>The portfolio view</td></tr>
-<tr><td class="mono">H11</td><td>Whether the prototype store runs on the free plan or has a billing account attached.</td><td>ours, then Dan</td><td>Data, storage and hosting</td></tr>
+<tr><td class="mono">H11</td><td>Whether the prototype store runs on the free plan or has a billing account attached.</td><td>Build team, then Dan</td><td>Data, storage and hosting</td></tr>
 <tr><td class="mono">H7</td><td>What the production store is.</td><td>TBS</td><td>Data, storage and hosting</td></tr>
 <tr><td class="mono">H8</td><td>The code moving into the canada-ca organisation.</td><td>Nick</td><td>Data, storage and hosting</td></tr>
 <tr><td class="mono">H9</td><td>Whether the 176 draft questions can be public.</td><td>Dan</td><td>Data, storage and hosting</td></tr>
 <tr><td class="mono">N3</td><td>What triggers one, and who receives it.</td><td>Dan</td><td>Notifications</td></tr>
-<tr><td class="mono">X7</td><td>French.</td><td>ours</td><td>How it has to behave</td></tr>
+<tr><td class="mono">X10</td><td>French for the question set: 176 questions, their descriptions and the eleven rungs of the scale.</td><td>Dan</td><td>How it has to behave</td></tr>
 </tbody></table></div>
 <h2 id="standard">What this follows, and where it departs</h2>
 <div class="card">
@@ -273,9 +276,15 @@ background:var(--surface);border:1px solid var(--line);border-radius:10px;list-s
 </div>
 <div class="req">
 <span class="req-id mono">S3</span>
-<span class="req-t">For the prototype, sign in with a Google account, which sends no email and needs no password.</span>
+<span class="req-t">For the prototype, sign in with a Google account or a Microsoft account, which sends no email and needs no password.</span>
+<span class="st st-next">Agreed</span>
+<span class="req-note">The first plan was a link sent to a work address. Firebase caps that at five sign-in emails a day for the whole project on the free plan, which is three testers, so it cannot be the prototype route. Neither of these sends an email at all. Microsoft matters because it is how Dan tests from his work account, and it may need TBS to allow the sign-in, which Google does not.</span>
+</div>
+<div class="req">
+<span class="req-id mono">S6</span>
+<span class="req-t">Both Google and Microsoft are offered on the prototype sign-in screen.</span>
 <span class="st st-wait">Proposed</span>
-<span class="req-note">The first plan was a link sent to a work address. Firebase caps that at five sign-in emails a day for the whole project on the free plan, which is three testers, so it cannot be the prototype route. Google sign-in has no such cap, works from a static page, and the rules key off the address either way. Attaching a billing account lifts the cap to 25,000 a day and is the other way out.</span>
+<span class="req-note">Google works for anybody today. Microsoft lets Dan use his work account, and a departmental tenant can refuse an outside application, so it may need somebody at TBS to approve it. Offering both means one route works while the other is being approved.</span>
 </div>
 <div class="req">
 <span class="req-id mono">S4</span>
@@ -415,8 +424,9 @@ background:var(--surface);border:1px solid var(--line);border-radius:10px;list-s
 </div>
 <div class="req">
 <span class="req-id mono">E2</span>
-<span class="req-t">An artefact that cannot be linked and is unclassified may be attached to the assessment.</span>
+<span class="req-t">Evidence is a link, and nothing can be attached to an assessment.</span>
 <span class="st st-done">Built</span>
+<span class="req-note">Attaching was removed on 1 September. It cannot survive a store: a document there caps at one mebibyte and the tool allowed fifteen. A file attached by an earlier version still opens, so nothing already saved is lost.</span>
 </div>
 <div class="req">
 <span class="req-id mono">E3</span>
@@ -554,7 +564,7 @@ background:var(--surface);border:1px solid var(--line);border-radius:10px;list-s
 <span class="req-id mono">H11</span>
 <span class="req-t">Whether the prototype store runs on the free plan or has a billing account attached.</span>
 <span class="st st-later">Open</span>
-<span class="req-owner">ours, then Dan owes this</span>
+<span class="req-owner">Build team, then Dan owes this</span>
 <span class="req-note">The free plan costs nothing and rules out file storage and email sign-in. A billing account at this volume bills a couple of dollars a month. The obstacle is attaching a personal card to government work. That is a procurement conversation, and no amount of engineering settles it.</span>
 </div>
 <div class="req">
@@ -659,10 +669,23 @@ background:var(--surface);border:1px solid var(--line);border-radius:10px;list-s
 </div>
 <div class="req">
 <span class="req-id mono">X7</span>
-<span class="req-t">French.</span>
+<span class="req-t">The page is built to be bilingual: every reader-facing string goes through one function that returns English or French, and a switch in the header changes language without a reload.</span>
+<span class="st st-done">Built</span>
+<span class="req-note">Keyed on the English text, so no key can be invented or go stale, and a string with no French shows in English and is counted. Settings reports how far the translation has got.</span>
+</div>
+<div class="req">
+<span class="req-id mono">X9</span>
+<span class="req-t">The French text itself, for about 960 strings.</span>
+<span class="st st-next">Agreed</span>
+<span class="req-owner">Build team owes this</span>
+<span class="req-note">Mechanical from here: each string gets its French beside the English. It is writing, and the architecture is done.</span>
+</div>
+<div class="req">
+<span class="req-id mono">X10</span>
+<span class="req-t">French for the question set: 176 questions, their descriptions and the eleven rungs of the scale.</span>
 <span class="st st-later">Open</span>
-<span class="req-owner">ours to answer</span>
-<span class="req-note">A Government of Canada tool is bilingual. Nothing about the structure prevents it and none of it is written. Ours means this team. It is work, and nobody owes a decision about it.</span>
+<span class="req-owner">Dan owes this</span>
+<span class="req-note">His text, so his translation. It belongs in the rubric file beside the English, which the tool already reads as data.</span>
 </div>
 </div>
 <h2 id="verify">How each requirement gets checked</h2>

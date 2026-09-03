@@ -69,14 +69,16 @@ footer{margin-top:3rem;color:var(--ink-3);font-size:.8rem}
 .req{display:grid;grid-template-columns:3.2rem 1fr auto;gap:.2rem .6rem;
 padding:.6rem .1rem;border-bottom:1px solid var(--line)}
 .req:last-child{border-bottom:0}
-.req-id{grid-column:1;grid-row:1;font-size:.78rem;color:var(--ink-3);padding-top:.1rem}
+.req-id{grid-column:1;grid-row:1;font-size:.78rem;color:var(--ink-3);align-self:center}
 .req-t{grid-column:2;grid-row:1;font-weight:600}
 .req .st{grid-column:3;grid-row:1;justify-self:end}
 .req-owner{grid-column:2;grid-row:2;font-size:.74rem;font-weight:700;letter-spacing:.04em;
 text-transform:uppercase;color:var(--warn)}
 .req-note{grid-column:2;font-size:.85rem;color:var(--ink-2)}
 .lead{font-size:1rem;color:var(--ink-2);max-width:74ch;margin:.2rem 0 .8rem}
-.std-p{margin:0 0 .6rem;font-size:.9rem;color:var(--ink-2);max-width:80ch}
+.card{padding:.9rem 1.1rem}
+.card.reqs{padding:.3rem 1.1rem}
+.std-p{margin:0 0 .7rem;font-size:.9rem;color:var(--ink-2);max-width:80ch;line-height:1.6}
 .std-p:last-child{margin-bottom:0}
 .std-p b{color:var(--ink)}
 .legend{display:flex;align-items:center;gap:.4rem;flex-wrap:wrap;margin:0 0 1.4rem;

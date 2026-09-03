@@ -10,7 +10,8 @@ import { addToLibrary, canRemove, currentId, currentRubric, libraryList, removeF
   setCurrentId } from './library';
 import { closeMenusOnOutsideClick, closeOnOutsideClick, confirmStep, openDialog } from './confirm';
 import { saveBadge } from './save-badge';
-import { endpointHost, isHosted } from './store';
+import { bootLang, coverage, lang, setLang } from './i18n';
+import { endpointHost, goneFromStore, isHosted, listRecords, putRecord } from './store';
 import { answeredCount, APP_VERSION, autosave, blankAssessment, clearDraft, download, ensureRef,
   hasWork, lastSaveInfo, loadDraft, readJsonFiles, saveAssessmentFile, slug } from './storage';
 import { bannerFor, evidenceNote } from './marking';
@@ -183,6 +184,22 @@ function header(): HTMLElement {
     el('div', { class: 'topbar-right' }, [
       // Where the work is kept, on every screen, and one click from the detail.
       saveBadge(() => openSettings('answers')),
+      /**
+       * The language switch. It is here from the start because retrofitting one is how a page
+       * ends up with a French version that is missing a third of its screens.
+       */
+      el('div', { class: 'lang-switch', role: 'group', 'aria-label': 'Language' }, [
+        el('button', {
+          class: `lang-btn ${lang() === 'en' ? 'on' : ''}`,
+          'aria-pressed': lang() === 'en' ? 'true' : 'false',
+          onclick: () => { setLang('en'); paint(); },
+        }, ['EN']),
+        el('button', {
+          class: `lang-btn ${lang() === 'fr' ? 'on' : ''}`,
+          'aria-pressed': lang() === 'fr' ? 'true' : 'false',
+          onclick: () => { setLang('fr'); paint(); },
+        }, ['FR']),
+      ]),
       side === 'assess'
         ? el('nav', { class: 'path', 'aria-label': 'Where you are' }, [
             tab('Submissions', 'review'), chev(), tab('Admin', 'admin'),
@@ -292,6 +309,31 @@ function draftNote(draft: Assessment, total: number): HTMLElement {
       '.',
     ]),
   ]);
+}
+
+/**
+ * An admin removed this submission from the store while the person still had their own copy.
+ * Two ways forward, and no third: send this copy again, or keep it here and talk to the
+ * assessor. Nothing is done to their work either way.
+ */
+function warnGoneFromStore(): void {
+  if (!isHosted()) return;
+  void listRecords().then((records) => {
+    if (!goneFromStore(records, assessment)) return;
+    confirmStep({
+      tier: 'caution',
+      title: 'This assessment is no longer in the shared store',
+      body: 'Somebody with admin rights removed it. Your own copy is here and untouched, and nothing has happened to your answers.',
+      stake: `${answeredCount(assessment)} answers, kept in this browser.`,
+      alt: {
+        label: 'Send this copy to the store again',
+        run: () => { void putRecord(assessment); },
+      },
+      commitLabel: 'Keep it here and ask my assessor',
+      cancelLabel: 'Decide later',
+      onCommit: () => { /* nothing to do: the local copy is already the only one */ },
+    });
+  });
 }
 
 function renderHome(root: HTMLElement) {
@@ -792,6 +834,15 @@ function paneBuild(pane: HTMLElement) {
     ]),
   ]));
 
+  (() => {
+    const c = coverage();
+    pane.appendChild(setRow(
+      'Languages',
+      `English is complete. French is being written: ${c.seen - c.missing} of the ${c.seen} strings this screen has needed so far have it. Anything without French shows in English. The questions themselves need their French from TBS.`,
+      null,
+      c.missing > 0 ? { tier: 'caution', badge: 'French incomplete' } : {},
+    ));
+  })(),
   pane.appendChild(setRow(
     'The requirements specification',
     'Every requirement, numbered, with its state and whoever owes an answer. Decisions are written here the day they are made, and the open ones are listed at the top.',
@@ -1060,8 +1111,10 @@ function wireScrollLift(): void {
   paint();
 }
 
+setLang(bootLang());
 openEverythingForPrint();
 wireHistory();
+warnGoneFromStore();
 wireScrollLift();
 closeMenusOnOutsideClick(document);
 setRepaint(() => paint());

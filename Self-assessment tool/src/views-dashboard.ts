@@ -162,12 +162,15 @@ function paint(
        * reflex stops being one.
        */
       el('td', {}, [
+        el('details', { class: 'set-menu row-menu' }, [
+          el('summary', { class: 'set-menu-btn', title: 'More', 'aria-label': 'More actions' }, ['\u22EF']),
+          el('div', { class: 'set-menu-pop' }, [
         el('button', {
-          class: 'ghost small danger-text',
+          class: 'menu-item menu-danger',
           onclick: () => confirmTyped({
             title: `Delete the ${a.initiative.name || 'unnamed'} assessment?`,
             consequences: [
-              `Every answer in it, ${Math.round(row.r.completeness * 100)} per cent of ${row.r.scoreable} questions.`,
+              `Every answer in it: ${row.r.answered} of ${row.r.scoreable} questions.`,
               'The reasoning and the evidence links on each answer.',
               'Every audited score, verdict and reason written against it.',
               a.ref ? `The reference ${a.ref}, which any email about this assessment quotes.` : 'Its reference.',
@@ -181,7 +184,9 @@ function paint(
               alert('Deleting from the shared store needs the store. Nothing has been removed.');
             },
           }),
-        }, ['Delete']),
+        }, ['Delete this assessment']),
+          ]),
+        ]),
       ]),
     ]));
   }

@@ -18,6 +18,7 @@ export const updated = '2026-09-01';
 export const intro = [
   'This is the standing record of what the GC Enterprise Architecture self-assessment tool has to do. It accumulates: a decision made in a meeting is written here the same day, with who made it.',
   'Each requirement carries a number so it can be quoted, a state, and an owner where somebody owes an answer. Numbers are never reused and never renumbered. Nothing is deleted when a requirement changes: the state changes and the reason goes in the note.',
+  'Owners are named people. Build team means Mariia Yermolenko, who is building this on a co-op term at the Treasury Board Secretariat. TBS means whoever holds the decision inside the department, which is Dan Cooper unless the entry says otherwise.',
 ];
 
 /** Shown under the intro, because a reader will ask what standard this follows. */
@@ -77,8 +78,10 @@ export const sections = [
         note: 'The no-sign-in design came from the assumption that the tool would hold classified evidence and therefore could not be online at all. P3 removed that assumption, so the constraint went with it.' },
       { id: 'S2', state: 'agreed', text: 'For the real thing, the departmental account: the same one used for Teams.',
         note: 'Microsoft Entra. No new password, and the tool knows the person and their department from the sign-in.' },
-      { id: 'S3', state: 'proposed', text: 'For the prototype, sign in with a Google account, which sends no email and needs no password.',
-        note: 'The first plan was a link sent to a work address. Firebase caps that at five sign-in emails a day for the whole project on the free plan, which is three testers, so it cannot be the prototype route. Google sign-in has no such cap, works from a static page, and the rules key off the address either way. Attaching a billing account lifts the cap to 25,000 a day and is the other way out.' },
+      { id: 'S3', state: 'agreed', text: 'For the prototype, sign in with a Google account or a Microsoft account, which sends no email and needs no password.',
+        note: 'The first plan was a link sent to a work address. Firebase caps that at five sign-in emails a day for the whole project on the free plan, which is three testers, so it cannot be the prototype route. Neither of these sends an email at all. Microsoft matters because it is how Dan tests from his work account, and it may need TBS to allow the sign-in, which Google does not.' },
+      { id: 'S6', state: 'proposed', text: 'Both Google and Microsoft are offered on the prototype sign-in screen.',
+        note: 'Google works for anybody today. Microsoft lets Dan use his work account, and a departmental tenant can refuse an outside application, so it may need somebody at TBS to approve it. Offering both means one route works while the other is being approved.' },
       { id: 'S4', state: 'built', text: 'Until sign-in exists, the assessor side opens on a screen shaped like a sign-in that says it is a mockup, and everything it produces is labelled unverified.' },
       { id: 'S5', state: 'agreed', text: 'A submitter may read and change their own submission, and no other.',
         note: 'And any submission they have been added to.' },
@@ -130,7 +133,8 @@ export const sections = [
     lead: 'What follows from P3.',
     reqs: [
       { id: 'E1', state: 'built', text: 'Evidence is a link to where the artefact already lives, plus a note that the assessor has been given access.' },
-      { id: 'E2', state: 'built', text: 'An artefact that cannot be linked and is unclassified may be attached to the assessment.' },
+      { id: 'E2', state: 'built', text: 'Evidence is a link, and nothing can be attached to an assessment.',
+        note: 'Attaching was removed on 1 September. It cannot survive a store: a document there caps at one mebibyte and the tool allowed fifteen. A file attached by an earlier version still opens, so nothing already saved is lost.' },
       { id: 'E3', state: 'built', text: 'An artefact above unclassified goes to the assessor by email, and the tool writes the subject line and records that it was sent.' },
       { id: 'E4', state: 'built', text: 'Choosing a marking above unclassified takes over the screen once, explains what to do instead, and cannot be dismissed until the person says they understand.' },
       { id: 'E5', state: 'built', text: 'A file attached while a row was unclassified cannot stay once that row is marked higher. Saving is blocked and the row says why.' },
@@ -179,7 +183,7 @@ export const sections = [
         note: 'Cloud Firestore in Montreal is the concrete version, and deploy/firestore.rules is written. A key-value store behind a small program of our own is the alternative, and it has no Canadian region.' },
       { id: 'H10', state: 'agreed', text: 'Attached files do not go into the store as part of the assessment.',
         note: 'A document in Firestore caps at one mebibyte and the tool allows 15 MB per attachment, so the design does not fit by a factor of twenty. Base64 makes it worse by a third. Evidence is a link for exactly this reason; an attachment stays in the file somebody saves, and it does not travel to the store.' },
-      { id: 'H11', state: 'open', owner: 'ours, then Dan', text: 'Whether the prototype store runs on the free plan or has a billing account attached.',
+      { id: 'H11', state: 'open', owner: 'Build team, then Dan', text: 'Whether the prototype store runs on the free plan or has a billing account attached.',
         note: 'The free plan costs nothing and rules out file storage and email sign-in. A billing account at this volume bills a couple of dollars a month. The obstacle is attaching a personal card to government work. That is a procurement conversation, and no amount of engineering settles it.' },
       { id: 'H12', state: 'built', text: 'The store rules are written so that reading your own record costs no extra lookup.',
         note: 'Every exists() or get() inside a rule is a billable read even when the request is denied. Only the assessor and admin paths look a role up.' },
@@ -219,8 +223,12 @@ export const sections = [
         note: 'This replaces the earlier rule that nothing could ever be deleted, which does not survive a prototype full of test data.' },
       { id: 'X8', state: 'agreed', text: 'Where a decision about how something should behave is not obvious, copy what GitHub does.',
         note: 'Her instruction on 1 September, after the typed-name delete. GitHub has already argued these out in public and its patterns are familiar to the people who will use this.' },
-      { id: 'X7', state: 'open', owner: 'ours', text: 'French.',
-        note: 'A Government of Canada tool is bilingual. Nothing about the structure prevents it and none of it is written. Ours means this team. It is work, and nobody owes a decision about it.' },
+      { id: 'X7', state: 'built', text: 'The page is built to be bilingual: every reader-facing string goes through one function that returns English or French, and a switch in the header changes language without a reload.',
+        note: 'Keyed on the English text, so no key can be invented or go stale, and a string with no French shows in English and is counted. Settings reports how far the translation has got.' },
+      { id: 'X9', state: 'agreed', owner: 'Build team', text: 'The French text itself, for about 960 strings.',
+        note: 'Mechanical from here: each string gets its French beside the English. It is writing, and the architecture is done.' },
+      { id: 'X10', state: 'open', owner: 'Dan', text: 'French for the question set: 176 questions, their descriptions and the eleven rungs of the scale.',
+        note: 'His text, so his translation. It belongs in the rubric file beside the English, which the tool already reads as data.' },
     ],
   },
 ];
