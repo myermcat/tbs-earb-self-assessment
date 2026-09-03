@@ -181,7 +181,7 @@ function header(): HTMLElement {
       el('strong', {}, [rubric.title]),
       side === 'assess'
         ? el('span', { class: 'side-badge' }, [
-            assessorName.trim() ? `${assessorName.trim()} · unverified` : 'Assessor',
+            assessorName.trim() ? `${assessorName.trim()} · ${t('unverified', 'non vérifié')}` : t('Assessor', 'Évaluateur'),
           ])
         : null,
     ]),
@@ -192,7 +192,7 @@ function header(): HTMLElement {
        * The language switch. It is here from the start because retrofitting one is how a page
        * ends up with a French version that is missing a third of its screens.
        */
-      el('div', { class: 'lang-switch', role: 'group', 'aria-label': 'Language' }, [
+      el('div', { class: 'lang-switch', role: 'group', 'aria-label': t('Language', 'Langue') }, [
         el('button', {
           class: `lang-btn ${lang() === 'en' ? 'on' : ''}`,
           'aria-pressed': lang() === 'en' ? 'true' : 'false',
@@ -205,20 +205,20 @@ function header(): HTMLElement {
         }, ['FR']),
       ]),
       side === 'assess'
-        ? el('nav', { class: 'path', 'aria-label': 'Where you are' }, [
-            tab('Submissions', 'review'), chev(), tab('Admin', 'admin'),
+        ? el('nav', { class: 'path', 'aria-label': t('Where you are', 'Où vous êtes') }, [
+            tab(t('Submissions', 'Soumissions'), 'review'), chev(), tab(t('Admin', 'Administration'), 'admin'),
           ])
-        : el('nav', { class: 'path', 'aria-label': 'Where you are' }, [
+        : el('nav', { class: 'path', 'aria-label': t('Where you are', 'Où vous êtes') }, [
             tab(t('Start', 'Début'), 'home'), chev(),
             tab(t('Fill it in', 'Remplir'), 'submit'), chev(),
             tab(t('My results', 'Mes résultats'), 'results'),
           ]),
       side === 'assess'
-        ? el('button', { class: 'linkish small', onclick: () => setSide('submit') }, ['Leave assessor view'])
+        ? el('button', { class: 'linkish small', onclick: () => setSide('submit') }, [t('Leave assessor view', 'Quitter la vue de l\u2019évaluateur')])
         : null,
       el('button', {
         class: `icon-btn ${mode === 'settings' ? 'on' : ''}`,
-        title: 'Settings', 'aria-label': 'Settings',
+        title: t('Settings', 'Paramètres'), 'aria-label': t('Settings', 'Paramètres'),
         html: GEAR,
         onclick: () => openSettings('questions'),
       }),
