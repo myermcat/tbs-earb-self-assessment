@@ -26,6 +26,8 @@ export const quick = {
       why: 'The one thing left on the store that only you can do. Google Cloud console, Credentials, the browser key Firebase made: websites myermcat.github.io and localhost, APIs Identity Toolkit, Token Service and Cloud Firestore. Then dismiss the secret-scanning alert as will not fix.' },
     { t: 'Sign in, and a store with rules', status: 'next',
       why: 'deploy/firestore.rules is written: a Canadian region, nothing publicly readable, roles an admin grants, admin-only delete. Six one-time steps in a browser. Only you can do them, because the account is yours. Two limits found before building it: sign-in has to be a Google or Microsoft account, because the free plan sends five emailed links a day for the whole project, and attachments cannot go in the store at all.' },
+    { t: 'Signing in without access says so', status: 'done',
+      why: 'An account nobody has added as an assessor now meets one screen naming the address, with the way back to the home page and the way to sign in as somebody else. Before this it reached the assessor screen and was told the pool was empty, which reads as a lost submission.' },
     { t: 'The back button works on every screen', status: 'done',
       why: 'One hash router. The assessor view, the admin view, results, settings and any questionnaire section are all addresses somebody can send, and Back walks them in the order they were visited. Before this, Back worked inside the questionnaire only, so leaving the results page went two stops back into the questions and an assessor pressing Back was dropped into the submitter view.' },
     { t: 'A submitter is told why a send did not go', status: 'done',

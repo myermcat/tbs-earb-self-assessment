@@ -10,6 +10,7 @@ import { addToLibrary, canRemove, currentId, currentRubric, libraryList, removeF
   setCurrentId } from './library';
 import { closeMenusOnOutsideClick, closeOnOutsideClick, confirmStep, openDialog } from './confirm';
 import { saveBadge } from './save-badge';
+import { SAD_CAT } from './cat';
 import { bootLang, coverage, lang, type Lang, setLang } from './i18n';
 import { endpointHost, goneFromStore, isHosted, listRecords, putRecord } from './store';
 import { currentUser, forgetRole, isConfigured as firebaseConfigured, knownRole, lastSignInProblem,
@@ -188,14 +189,100 @@ function adoptSignedIn(): void {
   void loadRole().then((r) => { if (r) paint(); });
 }
 
+/**
+ * Whether this account may see the assessor screens.
+ *
+ * Signing in and being allowed in are two different things, and a tool that treats them as one
+ * shows a person an empty screen and lets them conclude their submission was lost. An admin
+ * grants the assessor role, so an address nobody has granted gets a screen that says so and
+ * names the address, which is the thing the admin needs in order to fix it.
+ *
+ * A build with no project has no roles, so the mockup side is unaffected.
+ */
+type Access = 'ok' | 'checking' | 'denied';
+
+function accessState(): Access {
+  if (mode !== 'review' && mode !== 'admin') return 'ok';
+  if (!firebaseConfigured() || !currentUser()) return 'ok';
+  const role = knownRole();
+  if (role === null) return 'checking';
+  if (role === 'admin') return 'ok';
+  if (role === 'assessor') return mode === 'admin' ? 'denied' : 'ok';
+  return 'denied';
+}
+
+/**
+ * The screen an account without access meets, and the one it meets while that is being decided.
+ *
+ * Two ways out, because there are two reasons to be here: the wrong account is signed in, or
+ * the right one has not been added yet. Signing in again handles the first. For the second the
+ * only useful thing a page can do is hand over the address to send to an admin.
+ */
+function renderNoAccess(root: HTMLElement, state: Access) {
+  const me = currentUser();
+  const role = knownRole();
+  const checking = state === 'checking';
+  const wrongScreen = role === 'assessor' && mode === 'admin';
+
+  const title = checking
+    ? t('Checking your access', 'Vérification de votre accès')
+    : wrongScreen
+      ? t('The admin view is for admins', 'La vue d\u2019administration est réservée aux administrateurs')
+      : t('This account does not have access', 'Ce compte n\u2019a pas accès');
+
+  const detail = checking
+    ? t('Asking the store what this account is allowed to see.',
+        'Nous demandons au dépôt ce que ce compte a le droit de voir.')
+    : wrongScreen
+      ? t('You are signed in as an assessor. The admin view lists every submission and can delete them, so it is kept to admins.',
+          'Vous êtes connecté comme évaluateur. La vue d\u2019administration liste toutes les soumissions et peut les supprimer, elle est donc réservée aux administrateurs.')
+      : t('This address is not set up as an assessor, so there is nothing here for it to show. An admin adds assessors. Send them the address below and they can add it in a minute.',
+          'Cette adresse n\u2019est pas enregistrée comme évaluateur, il n\u2019y a donc rien à afficher ici. Ce sont les administrateurs qui ajoutent les évaluateurs. Envoyez-leur l\u2019adresse ci-dessous et ils pourront l\u2019ajouter en une minute.');
+
+  const actions: (HTMLElement | null)[] = checking ? [] : [
+    wrongScreen
+      ? el('button', { class: 'primary', onclick: () => go('review') }, [
+          t('Back to submissions', 'Retour aux soumissions'),
+        ])
+      : el('button', { class: 'primary', onclick: () => setSide('submit') }, [
+          t('Go to the home page', 'Aller à la page d\u2019accueil'),
+        ]),
+    el('button', {
+      class: 'ghost',
+      onclick: () => {
+        signOut();
+        forgetPool();
+        forgetRole();
+        assessorName = '';
+        void signInWithGoogle();
+      },
+    }, [t('Sign in with a different account', 'Se connecter avec un autre compte')]),
+  ];
+
+  root.appendChild(el('section', { class: 'card no-access' }, [
+    el('div', { class: 'pool-out' }, [
+      el('div', { class: 'pool-art', html: SAD_CAT }),
+      el('div', {}, [
+        el('h1', { tabindex: -1 }, [title]),
+        el('p', { class: 'muted' }, [detail]),
+        me && !checking
+          ? el('p', { class: 'mono small addr' }, [me.email])
+          : null,
+        actions.length ? el('div', { class: 'actions' }, actions) : null,
+      ]),
+    ]),
+  ]));
+}
+
 function paint() {
   clear(app);
   adoptSignedIn();
   // The sign-in gate is its own shell: one screen, nothing to scroll, like any sign-in.
   const gate = (mode === 'admin' || mode === 'review') && !assessorName.trim();
+  const access = gate ? 'ok' : accessState();
   app.className = mode === 'home' ? 'app-home'
     : mode === 'results' ? 'app-results'
-    : gate ? 'app-signin' : '';
+    : gate || access !== 'ok' ? 'app-signin' : '';
 
   // The body is built first because the questionnaire's domain tabs live in the chrome and
   // register their own readouts, and renderSubmit clears that registry as it starts.
@@ -214,6 +301,7 @@ function paint() {
   else if (mode === 'results') renderResults(body, rubric, assessment, () => go('submit'));
   else if (mode === 'settings') renderSettings(body);
   else if (gate) renderSignIn(body, () => paint());
+  else if (access !== 'ok') renderNoAccess(body, access);
   else if (mode === 'admin') renderAdmin(body);
   else renderReview(body, rubric);
 
@@ -426,6 +514,10 @@ function draftNote(draft: Assessment, total: number): HTMLElement {
  */
 function warnGoneFromStore(): void {
   if (!isHosted()) return;
+  // Nothing can have gone missing unless this browser holds a copy that was actually sent. The
+  // check used to run on every load for everybody, which asked the store for a list that most
+  // people are refused, on the way to answering a question they had not asked.
+  if (!assessment.id || !assessment.meta?.submittedAt) return;
   void listRecords().then((records) => {
     if (!goneFromStore(records, assessment)) return;
     confirmStep({
