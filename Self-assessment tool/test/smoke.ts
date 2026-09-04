@@ -34,7 +34,7 @@ function blank(stage: string): Assessment {
   return {
     fileType: 'gc-arch-assessment', formatVersion: 1,
     rubric: { id: rubric.id, version: rubric.version, title: rubric.title },
-    initiative: { name: 'Test initiative', department: 'TC', contact: 'a@b.c', lifecycleStage: stage, summary: 's' },
+    initiative: { name: 'Test initiative', department: 'TC', contact: 'a@b.c', lifecycleStage: stage, summary: 's', classification: 'Unclassified' },
     answers: {}, meta: { createdAt: 'x', updatedAt: 'x', appVersion: 'test' },
   };
 }

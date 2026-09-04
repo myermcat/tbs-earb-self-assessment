@@ -95,6 +95,36 @@ async function firestoreRecords(): Promise<StoredRecord[] | null> {
 }
 
 /**
+ * What the shared pool has for this person, and when it has nothing, why.
+ *
+ * The dashboard could get away with a list and a silence, because an empty portfolio and a
+ * refused one look the same from a distance. An assessor cannot: being told the pool is empty
+ * when the truth is that nobody has granted you a role sends you looking for the submission
+ * instead of asking for access. So the reasons are separate values and the screen says which.
+ */
+export type PoolAnswer =
+  | { state: 'off' }
+  | { state: 'anonymous' }
+  | { state: 'ok'; records: StoredRecord[] }
+  | { state: 'refused'; problem: string }
+  | { state: 'failed'; problem: string };
+
+export async function poolRecords(): Promise<PoolAnswer> {
+  if (!isConfigured()) return { state: 'off' };
+  if (!currentUser()) return { state: 'anonymous' };
+  try {
+    const rows = await listAssessments();
+    return { state: 'ok', records: rows.map((a, i) => recordOf(a, 'hosted', a.id ?? `hosted-${i}`)) };
+  } catch (err) {
+    const problem = (err as Error).message;
+    // Firestore says 403 both for a missing role and for a rule that does not match. From here
+    // they are the same thing and the same sentence answers both: ask an admin.
+    if (/403|permission/i.test(problem)) return { state: 'refused', problem };
+    return { state: 'failed', problem };
+  }
+}
+
+/**
  * Every record the dashboard can currently see: the draft in this browser, plus anything the
  * assessor opened this session. With a hosted store this becomes one request and the two local
  * sources become a fallback for working offline.
@@ -145,7 +175,14 @@ function notSaved(err: unknown): string {
  */
 export async function putRecord(a: Assessment): Promise<{ ok: true } | { ok: false; problem: string }> {
   if (isConfigured()) {
-    if (!currentUser()) return { ok: false, problem: 'Sign in before saving to the shared store.' };
+    if (!currentUser()) {
+      // Returning quietly here is what made the submit button look like it worked. The badge
+      // has a state for this, so use it: the person pressed something and deserves an answer.
+      const problem = 'Sign in before saving to the shared store.';
+      beginWrite();
+      writeFailed(problem);
+      return { ok: false, problem };
+    }
     beginWrite();
     try {
       a.id = await putAssessment(a);
@@ -243,7 +280,12 @@ let pending: ReturnType<typeof setTimeout> | null = null;
 
 registerAfterSave((a: Assessment) => {
   if (!isHosted()) return;
-  if (!a.meta?.submittedAt) return;
+  if (!a.meta?.submittedAt) {
+    // A submit that did not go through removes the stamp and saves again. Any write already
+    // scheduled belongs to the attempt that failed, so it goes with it.
+    if (pending) { clearTimeout(pending); pending = null; }
+    return;
+  }
   if (pending) clearTimeout(pending);
   pending = setTimeout(() => {
     pending = null;

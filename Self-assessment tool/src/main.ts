@@ -2,20 +2,19 @@ import type { Assessment, Rubric } from './types';
 import { el, clear } from './dom';
 import { validate } from './rubric';
 import { goToFirstGap, overviewFieldProgress, renderSubmit, resetOverviewToFirstGap, setRepaint,
-  setStopKey, showMarkingStep, takeSubmitTabs } from './views-submit';
+  setStopKey, showMarkingStep, takeSubmitTabs, currentStopKey } from './views-submit';
 import { renderResults } from './views-results';
-import { openedThisSession, renderReview, setAuditor } from './views-review';
+import { forgetPool, openedThisSession, renderReview, setAuditor } from './views-review';
 import { renderDashboard } from './views-dashboard';
 import { addToLibrary, canRemove, currentId, currentRubric, libraryList, removeFromLibrary,
   setCurrentId } from './library';
 import { closeMenusOnOutsideClick, closeOnOutsideClick, confirmStep, openDialog } from './confirm';
 import { saveBadge } from './save-badge';
-import { bootLang, coverage, lang, setLang } from './i18n';
+import { bootLang, coverage, lang, type Lang, setLang } from './i18n';
 import { endpointHost, goneFromStore, isHosted, listRecords, putRecord } from './store';
-import { currentUser, isConfigured as firebaseConfigured, lastSignInProblem, signInWithGoogle,
-  signInWithMicrosoft } from './firebase';
+import { currentUser, forgetRole, isConfigured as firebaseConfigured, knownRole, lastSignInProblem,
+  loadRole, resumeSignIn, signInWithGoogle, signInWithMicrosoft, signOut } from './firebase';
 import { t } from './i18n';
-import { resumeSignIn } from './firebase';
 import { answeredCount, APP_VERSION, autosave, blankAssessment, clearDraft, download, ensureRef,
   hasWork, lastSaveInfo, loadDraft, readJsonFiles, saveAssessmentFile, slug } from './storage';
 import { bannerFor, evidenceNote } from './marking';
@@ -41,22 +40,61 @@ const SIDE_OF: Record<Mode, Side | null> = {
   settings: null,             // settings belongs to whoever is looking at it
 };
 
-function bootSide(): Side {
-  // A bookmarked #assessor wins, so an assessor can pin the door they use.
+/**
+ * Where the reader is, as one value, and as an address.
+ *
+ * Back used to work in the questionnaire and nowhere else: the 21 stops pushed history and
+ * every other screen changed silently, so leaving the results page took you two stops back into
+ * the questions, and an assessor pressing Back was dropped into somebody's submitter view. One
+ * router fixes both, and it makes every screen a link that can be sent.
+ *
+ * The stop lives in the hash unprefixed, because that is the shape the questionnaire already
+ * pushed and links to those exist.
+ */
+interface Route { side: Side; mode: Mode; stop?: string }
+
+function routeToHash(r: Route): string {
+  if (r.side === 'assess') {
+    return r.mode === 'admin' ? '#assessor/admin'
+      : r.mode === 'settings' ? '#assessor/settings'
+      : '#assessor';
+  }
+  if (r.mode === 'home') return '';
+  if (r.mode === 'submit') return r.stop ? `#${r.stop}` : '#submit';
+  return `#${r.mode}`;
+}
+
+function hashToRoute(hash: string): Route {
+  const h = hash.replace(/^#/, '');
+  if (!h) return { side: 'submit', mode: 'home' };
+  if (h === 'assessor') return { side: 'assess', mode: 'review' };
+  if (h === 'assessor/admin') return { side: 'assess', mode: 'admin' };
+  if (h === 'assessor/settings') return { side: 'assess', mode: 'settings' };
+  if (h === 'results' || h === 'settings' || h === 'submit') return { side: 'submit', mode: h as Mode };
+  // Everything else is a questionnaire stop, which is what the hash held before there was a
+  // router at all. An unknown one is harmless: the questionnaire opens at its first page.
+  return { side: 'submit', mode: 'submit', stop: h };
+}
+
+function bootRoute(): Route {
+  // A bookmarked address wins, so an assessor can pin the door they use and a section link
+  // opens that section.
   try {
-    if (window.location.hash === '#assessor') return 'assess';
-    if (localStorage.getItem(SIDE_KEY) === 'assess') return 'assess';
+    if (window.location.hash) return hashToRoute(window.location.hash);
+    if (localStorage.getItem(SIDE_KEY) === 'assess') return { side: 'assess', mode: 'review' };
   } catch {
     /* private window, or storage disabled. The submitter side is the right default. */
   }
-  return 'submit';
+  return { side: 'submit', mode: 'home' };
 }
 
 // The set in use is remembered, so a reload does not silently go back to the built-in one.
 let rubric: Rubric = currentRubric(BUILTIN as unknown as Rubric);
 let assessment: Assessment = loadDraft() ?? blankAssessment(rubric);
-let side: Side = bootSide();
-let mode: Mode = side === 'assess' ? 'review' : 'home';
+const booted: Route = bootRoute();
+let side: Side = booted.side;
+let mode: Mode = booted.mode;
+if (booted.stop) setStopKey(booted.stop);
 
 type SettingsPane = 'questions' | 'answers' | 'build' | 'danger';
 let settingsPane: SettingsPane = 'questions';
@@ -83,10 +121,30 @@ function questionCount(r: Rubric): number {
   return r.domains.reduce((n, d) => n + d.sections.reduce((m, x) => m + x.questions.length, 0), 0);
 }
 
+/**
+ * Record where we are, so Back can come here.
+ *
+ * Wrapped, because pushState throws a SecurityError on a file:// page in some browsers and the
+ * tool has to work from a file. When it throws, navigation still works and only Back does not.
+ */
+function pushRoute(): void {
+  try {
+    const here: Route = { side, mode, stop: currentStopKey() };
+    const hash = routeToHash(here);
+    const url = hash || `${window.location.pathname}${window.location.search}`;
+    const was = window.history.state as Partial<Route> | null;
+    if (was?.mode === mode && was?.side === side && window.location.hash === hash) return;
+    window.history.pushState(here, '', url);
+  } catch {
+    /* file:// without history support. Navigation is unaffected. */
+  }
+}
+
 function go(next: Mode) {
   mode = next;
   const owner = SIDE_OF[next];
   if (owner && owner !== side) setSide(owner, false);
+  pushRoute();
   paint();
   window.scrollTo({ top: 0 });
 }
@@ -96,11 +154,11 @@ function setSide(next: Side, move = true, target?: Mode) {
   side = next;
   try {
     localStorage.setItem(SIDE_KEY, next);
-    window.location.hash = next === 'assess' ? '#assessor' : '';
   } catch {
-    /* storage or history unavailable. The side still holds for this visit. */
+    /* storage unavailable. The side still holds for this visit. */
   }
   if (move) go(target ?? (next === 'assess' ? 'review' : 'home'));
+  else pushRoute();
 }
 
 const GEAR =
@@ -108,8 +166,31 @@ const GEAR =
   'stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
   '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6 1.65 1.65 0 0 0 10 3.09V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9c.14.35.42.63.77.77H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>';
 
+/**
+ * Who this browser is, decided once, before anything asks.
+ *
+ * A real sign-in and the mockup used to write different variables in different files, so a
+ * Google account could be signed in and the gate would still believe nobody was there. That
+ * cost an infinite repaint and a blank page. Both names are set here, together: `assessorName`
+ * is what the gate and the header read, and views-review's `auditor` is what every audit entry
+ * is attributed to. Setting one without the other is the bug, so they are set in one line each,
+ * side by side, where the next person can see they belong together.
+ */
+function adoptSignedIn(): void {
+  const me = currentUser();
+  if (!me || assessorName.trim()) return;
+  assessorName = me.email;
+  setAuditor(me.email);
+  // The pool answers differently to somebody it knows, so whatever it said before is stale.
+  forgetPool();
+  // What this account is allowed to do decides which screens are offered. It is one request,
+  // made once, and the header redraws when it lands.
+  void loadRole().then((r) => { if (r) paint(); });
+}
+
 function paint() {
   clear(app);
+  adoptSignedIn();
   // The sign-in gate is its own shell: one screen, nothing to scroll, like any sign-in.
   const gate = (mode === 'admin' || mode === 'review') && !assessorName.trim();
   app.className = mode === 'home' ? 'app-home'
@@ -181,7 +262,9 @@ function header(): HTMLElement {
       el('strong', {}, [rubric.title]),
       side === 'assess'
         ? el('span', { class: 'side-badge' }, [
-            assessorName.trim() ? `${assessorName.trim()} · ${t('unverified', 'non vérifié')}` : t('Assessor', 'Évaluateur'),
+            !assessorName.trim() ? t('Assessor', 'Évaluateur')
+              : firebaseConfigured() ? assessorName.trim()
+              : `${assessorName.trim()} · ${t('unverified', 'non vérifié')}`,
           ])
         : null,
     ]),
@@ -189,24 +272,26 @@ function header(): HTMLElement {
       // Where the work is kept, on every screen, and one click from the detail.
       saveBadge(() => openSettings('answers')),
       /**
-       * The language switch. It is here from the start because retrofitting one is how a page
-       * ends up with a French version that is missing a third of its screens.
+       * Signing in is not a gate on this side. A submitter can answer all 176 questions with no
+       * account at all; the account is what the store asks for when the work is sent. So the
+       * offer is here, beside the save state, where somebody wondering where their work lives
+       * is already looking.
        */
-      el('div', { class: 'lang-switch', role: 'group', 'aria-label': t('Language', 'Langue') }, [
-        el('button', {
-          class: `lang-btn ${lang() === 'en' ? 'on' : ''}`,
-          'aria-pressed': lang() === 'en' ? 'true' : 'false',
-          onclick: () => { setLang('en'); paint(); },
-        }, ['EN']),
-        el('button', {
-          class: `lang-btn ${lang() === 'fr' ? 'on' : ''}`,
-          'aria-pressed': lang() === 'fr' ? 'true' : 'false',
-          onclick: () => { setLang('fr'); paint(); },
-        }, ['FR']),
-      ]),
+      isHosted() && firebaseConfigured() && !currentUser()
+        ? el('button', {
+            class: 'linkish small',
+            onclick: () => { void signInWithGoogle(); },
+          }, [t('Sign in to send', 'Se connecter pour envoyer')])
+        : null,
       side === 'assess'
         ? el('nav', { class: 'path', 'aria-label': t('Where you are', 'Où vous êtes') }, [
-            tab(t('Submissions', 'Soumissions'), 'review'), chev(), tab(t('Admin', 'Administration'), 'admin'),
+            tab(t('Submissions', 'Soumissions'), 'review'),
+            // No store means no roles, so the mockup keeps both tabs. With a store, the tab
+            // appears once the role has come back and says admin.
+            !firebaseConfigured() || knownRole() === 'admin' ? chev() : null,
+            !firebaseConfigured() || knownRole() === 'admin'
+              ? tab(t('Admin', 'Administration'), 'admin')
+              : null,
           ])
         : el('nav', { class: 'path', 'aria-label': t('Where you are', 'Où vous êtes') }, [
             tab(t('Start', 'Début'), 'home'), chev(),
@@ -216,6 +301,23 @@ function header(): HTMLElement {
       side === 'assess'
         ? el('button', { class: 'linkish small', onclick: () => setSide('submit') }, [t('Leave assessor view', 'Quitter la vue de l\u2019évaluateur')])
         : null,
+      /**
+       * One link, naming the other language in that language, which is the Canada.ca and WET
+       * pattern. The href is real: bootLang() reads ?lang=, so the French page is something a
+       * person can send to somebody. `lang` on the link is what makes a screen reader say
+       * "Français" with a French voice inside an English page.
+       */
+      (() => {
+        const other: Lang = lang() === 'en' ? 'fr' : 'en';
+        const label = other === 'fr' ? 'Français' : 'English';
+        return el('a', {
+          class: 'lang-link', lang: other, hreflang: other, href: `?lang=${other}`,
+          onclick: (e: Event) => { e.preventDefault(); setLang(other); paint(); },
+        }, [
+          el('span', { class: 'lang-full' }, [label]),
+          el('abbr', { class: 'lang-abbr', title: label }, [other.toUpperCase()]),
+        ]);
+      })(),
       el('button', {
         class: `icon-btn ${mode === 'settings' ? 'on' : ''}`,
         title: t('Settings', 'Paramètres'), 'aria-label': t('Settings', 'Paramètres'),
@@ -231,7 +333,9 @@ function footer(): HTMLElement {
   // unowned prototype with no end date is the objection; saying so first is the answer.
   if (isHosted()) {
     return el('footer', { class: 'sitefoot' }, [
-      el('span', { class: 'proto' }, ['Prototype. Unclassified drafts only, and not a record of decision. ']),
+      el('span', { class: 'proto' }, [
+          `Prototype. Unclassified only, and not an official EARB decision. What you send is kept at ${endpointHost()}. `,
+        ]),
       el('button', { class: 'linkish', onclick: () => openSettings('build') }, ['Where this goes']),
       el('span', {}, [`  \u00b7  rubric ${rubric.version}  \u00b7  v${APP_VERSION}`]),
     ]);
@@ -486,16 +590,8 @@ let assessorName = '';
  * their departmental account. Which one a person picks changes nothing downstream: the store's
  * rules key off the address, and a role is a document an admin writes.
  */
-function renderRealSignIn(root: HTMLElement, onDone: () => void) {
+function renderRealSignIn(root: HTMLElement) {
   const problem = lastSignInProblem();
-  const user = currentUser();
-
-  if (user) {
-    // Already signed in, which happens on the way back from the provider.
-    setAuditor(user.email);
-    onDone();
-    return;
-  }
 
   const card = el('section', { class: 'card signin' }, [
     el('div', { class: 'head-row' }, [
@@ -530,7 +626,7 @@ function renderRealSignIn(root: HTMLElement, onDone: () => void) {
 
 function renderSignIn(root: HTMLElement, onDone: () => void) {
   // With a store configured, the mockup has nothing to do: a real sign-in exists.
-  if (firebaseConfigured()) { renderRealSignIn(root, onDone); return; }
+  if (firebaseConfigured()) { renderRealSignIn(root); return; }
 
   const input = el('input', {
     type: 'text', value: assessorName, placeholder: 'First and last name',
@@ -858,16 +954,30 @@ function paneAnswers(pane: HTMLElement) {
     `Every browser keeps a small private store on disk for each site it visits. This page writes the whole assessment there as you type, so closing the tab or reloading is safe. It is holding ${answeredCount(assessment)} answers now. That store belongs to one browser on one machine, and clearing your browsing data clears it.`,
     null,
   ));
-  pane.appendChild(setRow(
-    'Nothing is sent anywhere today',
-    'There is no submit button yet, and this page cannot reach the network at all: it carries a browser rule that blocks every outbound request. When submitting is built it will be one deliberate act, and it will name what is about to go before it goes.',
-    null,
-  ));
-  pane.appendChild(setRow(
-    'One shared copy, once it is hosted',
-    'The plan is for submitted assessments to live in one place, so you and your assessor read the same record and nobody works from an older file. That store does not exist yet: today this page can only write to this browser and to a file you save. Nothing about your answers changes when it arrives.',
-    null,
-  ));
+  if (isHosted()) {
+    const me = currentUser();
+    pane.appendChild(setRow(
+      'Sending it is one deliberate act',
+      `Nothing leaves this browser until you press Send it to TBS, at the bottom of My results. It names what is about to go and asks you to confirm. After that, changes you make are written to ${endpointHost()} as you work, so your assessor is never reading an older copy.`,
+      null,
+    ));
+    pane.appendChild(setRow(
+      me ? 'Signed in' : 'Sending needs you to sign in',
+      me
+        ? `You are signed in as ${me.email}. That is the name on anything you send, and the store answers only accounts it knows.`
+        : 'The store only accepts work from somebody it knows, so pressing Send asks you to sign in first. It reads your name and address from the account you use, and it never sees a password.',
+      me
+        ? el('button', { class: 'ghost', onclick: () => { signOut(); forgetPool(); forgetRole(); assessorName = ''; paint(); } }, ['Sign out'])
+        : el('button', { class: 'primary', onclick: () => { void signInWithGoogle(); } }, ['Sign in with Google']),
+      me ? {} : { tier: 'caution', badge: 'Not signed in' },
+    ));
+  } else {
+    pane.appendChild(setRow(
+      'Nothing is sent anywhere in this copy',
+      'This build was made with no store, so the page cannot reach the network at all: it carries a browser rule that blocks every outbound request. Saving to a file and sending that file is the whole route.',
+      null,
+    ));
+  }
   pane.appendChild(setRow(
     'Nothing will be recalled once submitted',
     'Planned, not built. A submitted assessment will not be deleted. It will be withdrawn and left out of the statistics, which is a different thing: a copy may already exist in a backup or in somebody else\'s download, so nothing here will claim to erase it.',
@@ -1124,11 +1234,16 @@ function openEverythingForPrint(): void {
 function wireHistory(): void {
   if (typeof window.addEventListener !== 'function') return;
   window.addEventListener('popstate', (e) => {
-    const stop = (e as PopStateEvent).state?.stop;
-    if (typeof stop !== 'string') return;
-    setStopKey(stop);
-    mode = 'submit';
-    side = 'submit';
+    // The questionnaire pushes its own entries carrying only a stop, so an entry without a mode
+    // is read from the address instead. Both end up as one route.
+    const was = (e as PopStateEvent).state as Partial<Route> | null;
+    const r: Route = was?.mode && was?.side
+      ? { side: was.side, mode: was.mode, stop: was.stop }
+      : hashToRoute(window.location.hash);
+    side = r.side;
+    mode = r.mode;
+    try { localStorage.setItem(SIDE_KEY, side); } catch { /* storage unavailable */ }
+    if (r.stop) setStopKey(r.stop);
     paint();
   });
 }
@@ -1190,4 +1305,8 @@ if (!check.ok) {
  * address, so the last step of it belongs in the boot sequence. A build with no Firebase
  * project answers false before it touches the network, and nothing here runs.
  */
-void resumeSignIn().then((came) => { if (came) paint(); });
+void resumeSignIn()
+  .then((came) => { if (came) paint(); })
+  .catch((err: unknown) => {
+    app.textContent = `This page could not finish loading: ${(err as Error).message}`;
+  });

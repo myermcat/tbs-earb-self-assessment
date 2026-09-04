@@ -316,6 +316,14 @@ function submitBlock(rubric: Rubric, a: Assessment, r: Result, blocked: boolean)
               autosave(a);
             }
             const fresh = submitBlock(rubric, a, r, blocked);
+            // The reason used to be computed and dropped, so a refused send looked like a
+            // button that did nothing at all.
+            if (!res.ok) {
+              fresh.appendChild(el('p', { class: 'card warn tight small' }, [
+                el('strong', {}, [t('It did not send. ', 'L\u2019envoi n\u2019a pas abouti. ')]),
+                res.problem,
+              ]));
+            }
             box.replaceWith(fresh);
           });
         },

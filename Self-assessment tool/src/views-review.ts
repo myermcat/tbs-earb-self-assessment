@@ -8,7 +8,8 @@ import { humanSize, openAttachment } from './attach';
 import { rubricFor } from './library';
 import { confirmStep } from './confirm';
 import { SAD_CAT } from './cat';
-import { isHosted } from './store';
+import { isHosted, poolRecords, type PoolAnswer } from './store';
+import { repaint } from './views-submit';
 import BUILTIN from '../rubric/rubric.v1-dan.json';
 
 /**
@@ -74,9 +75,66 @@ export function auditChanged(): void { keepSession(); }
 export function openedThisSession(): Assessment[] { return loaded.map((l) => l.a); }
 
 /**
- * Why there is nothing from the shared store. Three different situations, and an assessor
- * should be able to tell them apart: it does not exist yet, this machine cannot reach it, or
- * it is reachable and empty.
+ * The shared pool, fetched once a visit and remembered.
+ *
+ * This screen used to read files and nothing else, which meant an assessor could sign in, be
+ * handed a perfectly working store, and be told the pool was empty while a submission was
+ * sitting in it. The fetch happens here rather than in the boot sequence because this is the
+ * only screen that needs it, and it is guarded so a repaint does not re-ask.
+ */
+type Pool =
+  | { state: 'idle' }
+  | { state: 'loading' }
+  | { state: 'ok'; found: number }
+  | { state: 'anonymous' }
+  | { state: 'refused'; problem: string }
+  | { state: 'failed'; problem: string };
+
+let poolNow: Pool = { state: 'idle' };
+let asked = false;
+
+/** Ask again after signing in, after a delete, or when the assessor presses Check again. */
+export function forgetPool(): void { asked = false; poolNow = { state: 'idle' }; }
+
+function absorb(rubric: Rubric, answer: PoolAnswer): void {
+  if (answer.state !== 'ok') {
+    poolNow = answer.state === 'off' ? { state: 'idle' } : answer as Pool;
+    return;
+  }
+  let added = 0;
+  for (const rec of answer.records) {
+    const a = rec.assessment;
+    if (a?.fileType !== 'gc-arch-assessment') continue;
+    // A record already open from a file is the same submission, and two copies of one
+    // assessment on the screen is worse than a missing one.
+    if (loaded.some((l) => (a.ref && l.a.ref === a.ref) || (a.id && l.a.id === a.id))) continue;
+    const own = rubricFor(BUILTIN as unknown as Rubric, a.rubric);
+    const use = own ?? rubric;
+    const r = score(use, a);
+    loaded.push({
+      file: a.initiative?.name?.trim() || a.ref || rec.id,
+      a, rubric: use, substituted: !own, r, fs: flags(use, a, r),
+    });
+    added++;
+  }
+  if (added) keepSession();
+  poolNow = { state: 'ok', found: answer.records.length };
+}
+
+function askPool(rubric: Rubric): void {
+  if (asked || !isHosted()) return;
+  asked = true;
+  poolNow = { state: 'loading' };
+  void poolRecords()
+    .then((answer) => { absorb(rubric, answer); })
+    .catch((err: unknown) => { poolNow = { state: 'failed', problem: (err as Error).message }; })
+    .then(() => { repaint(); });
+}
+
+/**
+ * Why there is nothing from the shared store. An assessor should be able to tell the reasons
+ * apart: it does not exist yet, it is still being fetched, this machine cannot reach it, the
+ * rules refused this account, or it is reachable and empty.
  */
 function poolState(): { title: string; detail: string; badge: string; tone: string } {
   if (!isHosted()) {
@@ -92,6 +150,38 @@ function poolState(): { title: string; detail: string; badge: string; tone: stri
       title: 'Cannot reach the pool',
       detail: 'This machine is offline. Your submissions are still there and will appear when the connection is back.',
       badge: 'Offline',
+      tone: 'badge-warn',
+    };
+  }
+  if (poolNow.state === 'loading') {
+    return {
+      title: 'Looking in the pool',
+      detail: 'Asking the store what it has for you.',
+      badge: 'Checking',
+      tone: '',
+    };
+  }
+  if (poolNow.state === 'anonymous') {
+    return {
+      title: 'Sign in to see the pool',
+      detail: 'The store only answers somebody it knows. Files you were sent still open here without signing in.',
+      badge: 'Not signed in',
+      tone: 'badge-warn',
+    };
+  }
+  if (poolNow.state === 'refused') {
+    return {
+      title: 'Your account cannot read the pool',
+      detail: `Signing in worked. The store then refused to list submissions for this address, which is what it does until an admin grants you the assessor role. The store's words: ${poolNow.problem}`,
+      badge: 'No access',
+      tone: 'badge-warn',
+    };
+  }
+  if (poolNow.state === 'failed') {
+    return {
+      title: 'The pool did not answer',
+      detail: `Something went wrong reaching the store: ${poolNow.problem}`,
+      badge: 'Unreachable',
       tone: 'badge-warn',
     };
   }
@@ -112,6 +202,7 @@ export function setAuditor(name: string): void { auditor = name; }
 export function renderReview(root: HTMLElement, rubric: Rubric): void {
   clear(root);
   restoreSession(rubric);
+  askPool(rubric);
   // With nothing loaded this screen is one card, and it centres. A toggle, because clear()
   // empties children and leaves classes, and loading a file re-enters here.
   root.classList.toggle('body-empty', loaded.length === 0);
@@ -123,16 +214,42 @@ export function renderReview(root: HTMLElement, rubric: Rubric): void {
    */
   const pool = poolState();
 
+  const again = isHosted()
+    ? el('button', { class: 'ghost small', onclick: () => { forgetPool(); repaint(); } }, ['Check again'])
+    : null;
+
+  /**
+   * The sad cat is for an empty screen. Once submissions are on the page, telling the assessor
+   * that nothing is assigned to them contradicts the list directly underneath, so what is left
+   * is one line saying where they came from and a way to ask again.
+   */
+  const head = loaded.length
+    ? el('div', { class: 'pool-in' }, [
+        el('span', { class: 'badge' }, [
+          poolNow.state === 'ok'
+            ? `${poolNow.found} from the pool`
+            : 'From files',
+        ]),
+        el('span', { class: 'muted small' }, [
+          `${loaded.length} submission${loaded.length === 1 ? '' : 's'} open.`,
+        ]),
+        again,
+      ])
+    : el('div', { class: 'pool-out' }, [
+        el('div', { class: 'pool-art', html: SAD_CAT }),
+        el('div', {}, [
+          el('h2', {}, [pool.title]),
+          el('p', { class: 'muted' }, [pool.detail]),
+          el('span', { class: `badge ${pool.tone}` }, [pool.badge]),
+          again ? el('p', {}, [again]) : null,
+        ]),
+      ]);
+
   const drop = el('section', { class: 'card dropzone' }, [
-    el('div', { class: 'pool-out' }, [
-      el('div', { class: 'pool-art', html: SAD_CAT }),
-      el('div', {}, [
-        el('h2', {}, [pool.title]),
-        el('p', { class: 'muted' }, [pool.detail]),
-        el('span', { class: `badge ${pool.tone}` }, [pool.badge]),
-      ]),
+    head,
+    el('h3', { class: 'pool-alt-h' }, [
+      loaded.length ? 'Load more from files' : 'Load submissions from files instead',
     ]),
-    el('h3', { class: 'pool-alt-h' }, ['Load submissions from files instead']),
     el('p', { class: 'muted small' }, [
       'Drop the .json files people sent you, or pick them. They are read here in your browser, and nothing is uploaded.',
     ]),
