@@ -55,11 +55,11 @@ const asDoc = (a) => ({ name: `projects/p/databases/(default)/documents/assessme
  * One page, booted with whatever storage and whatever store answer a case needs.
  * `listAnswer` decides what the assessments list does: a page of documents, or a refusal.
  */
-async function boot({ session = null, side = null, listAnswer = { documents: [] }, role = null } = {}) {
+async function boot({ session = null, side = null, listAnswer = { documents: [] }, role = null, hash = '' } = {}) {
   const seen = [];
   const dom = new JSDOM(html, {
     runScripts: 'dangerously',
-    url: 'https://example.gc.ca/tool/',
+    url: `https://example.gc.ca/tool/${hash}`,
     pretendToBeVisual: true,
     beforeParse(w) {
       if (session) w.localStorage.setItem(SESSION, JSON.stringify(session));
@@ -108,7 +108,7 @@ console.log('\nThe published build, signed in\n');
 {
   // The defect that shipped: a session existed, the gate did not know it, and paint() called
   // itself until the stack gave out. The page was blank and stayed blank on every reload.
-  const { doc, dom } = await boot({ session: live, side: 'assess' });
+  const { doc, dom } = await boot({ session: live, side: 'assess', role: 'assessor' });
   const app = doc.querySelector('#app');
   ok('a signed-in assessor gets a page at all', app.children.length > 0, `children=${app.children.length}`);
   ok('and it is not the sign-in screen', !/Continue with Google/.test(body(doc)));
@@ -123,7 +123,7 @@ console.log('\nThe published build, signed in\n');
   // sitting in the store was reported as an empty pool.
   const rows = [submission('AB12', 'Licensing Renewal'), submission('CD34', 'Fleet Scheduling')];
   const { doc, dom, seen } = await boot({
-    session: live, side: 'assess', listAnswer: { documents: rows.map(asDoc) },
+    session: live, side: 'assess', role: 'assessor', listAnswer: { documents: rows.map(asDoc) },
   });
   ok('the assessor screen asks the store', seen.some((r) => r.href.includes('/assessments')));
   ok('and lists what came back', body(doc).includes('Licensing Renewal'), body(doc).slice(0, 160));
@@ -137,7 +137,7 @@ console.log('\nThe published build, signed in\n');
   // A refusal is not an empty pool. Being told the pool is empty when the truth is that
   // nobody has granted a role sends an assessor looking for the submission instead of asking
   // for access, and the store answers 403 for exactly that case.
-  const { doc, dom } = await boot({ session: live, side: 'assess', listAnswer: { error: true } });
+  const { doc, dom } = await boot({ session: live, side: 'assess', role: 'assessor', listAnswer: { error: true } });
   const t = body(doc);
   ok('a refusal says the account cannot read the pool', /cannot read the pool/i.test(t), t.slice(0, 200));
   ok('and quotes what the store said', /insufficient permissions/i.test(t));
@@ -159,6 +159,31 @@ console.log('\nThe published build, signed in\n');
 {
   const { doc, dom } = await boot({ session: live, side: 'assess', role: 'admin' });
   ok('an admin is', /Admin/.test(body(doc)), body(doc).slice(0, 140));
+  dom.window.close();
+}
+
+/* --------------------------------------------------------------------------------------- */
+{
+  // Signing in and being allowed in are two different things. An address nobody has added used
+  // to reach the assessor screen and be told the pool was empty, which reads as a lost
+  // submission rather than a missing role.
+  const { doc, dom, seen } = await boot({ session: live, side: 'assess' });
+  const t = body(doc);
+  ok('an address nobody has added is told so', /does not have access/i.test(t), t.slice(0, 160));
+  ok('and is given the address to send to an admin', t.includes(ME));
+  ok('and a way back to the home page', /Go to the home page/.test(t));
+  ok('and a way to try another account', /different account/i.test(t));
+  ok('and the cat is on it', !!doc.querySelector('.no-access .pool-art svg'));
+  ok('and it does not ask the store for a list it cannot have',
+     !seen.some((r) => /assessments\?/.test(r.href)), JSON.stringify(seen).slice(0, 160));
+  dom.window.close();
+}
+
+{
+  // An assessor is not an admin, and the admin view can delete things.
+  const { doc, dom } = await boot({ session: live, side: 'assess', role: 'assessor', hash: '#assessor/admin' });
+  ok('an assessor asking for the admin view is turned back', /admin view is for admins/i.test(body(doc)),
+     body(doc).slice(0, 160));
   dom.window.close();
 }
 

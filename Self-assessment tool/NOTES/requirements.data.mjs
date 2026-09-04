@@ -87,6 +87,8 @@ export const sections = [
       { id: 'S8', state: 'open', owner: 'Mariia', text: 'The Firebase web key answers only from the addresses the tool is served from, and only for the three APIs it uses.',
         note: 'The published page carries the key, which is how Firebase is meant to work: it names the project and authorises nothing by itself. GitHub secret scanning flags it anyway, because the same shape of key can carry billable access on other Google APIs. A command-line call reached the project with no site attached, so the key today carries no restriction. The restriction to write is websites myermcat.github.io and localhost, APIs Identity Toolkit, Token Service and Cloud Firestore. What guards the data is the sign-in and the published rules, so this is about somebody else spending the project’s free quota.' },
       { id: 'S4', state: 'built', text: 'Until sign-in exists, the assessor side opens on a screen shaped like a sign-in that says it is a mockup, and everything it produces is labelled unverified.' },
+      { id: 'S9', state: 'built', text: 'An account that signs in without an assessor role is told so, by name, with a way onward.',
+        note: 'Signing in and being allowed in are two different things. An address nobody has added used to reach the assessor screen and be told the pool was empty, which reads as a lost submission. It now gets one screen: what happened, the address to send to an admin, a way back to the home page, and a way to sign in as somebody else. An assessor who asks for the admin view is turned back the same way.' },
       { id: 'S5', state: 'agreed', text: 'A submitter may read and change their own submission, and no other.',
         note: 'And any submission they have been added to.' },
     ],

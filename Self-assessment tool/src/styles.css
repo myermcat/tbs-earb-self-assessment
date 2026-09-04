@@ -511,6 +511,13 @@ a.faint-link:hover { color: var(--accent); }
   display: flex; flex-direction: column; justify-content: center;
   margin: 0 auto; padding: 1rem 1.15rem; }
 .app-signin .signin { flex: 0 0 auto; width: 100%; margin: 0 auto; }
+/* The screen an account without access meets. It borrows the sign-in shell, because it is the
+   same kind of moment: one screen, nothing to scroll, and a way onward. */
+.app-signin .no-access { flex: 0 0 auto; width: 100%; max-width: 44rem; margin: 0 auto; }
+.no-access h1 { margin: 0 0 .4rem; font-size: 1.35rem; }
+.no-access .addr { display: inline-block; margin: 0 0 .8rem; padding: .18rem .45rem;
+  background: var(--surface-2); border: 1px solid var(--line); border-radius: .35rem; }
+.no-access .actions { margin-top: .2rem; }
 .app-signin .sitefoot { padding: .5rem 1rem 1rem; }
 
 /* One card on an otherwise empty screen centres, instead of hanging off the top edge with the
