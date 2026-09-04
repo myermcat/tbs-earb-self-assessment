@@ -13,5 +13,5 @@
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true
   },
-  "include": ["src/**/*.ts", "build.mjs"]
+  "include": ["src/**/*.ts", "test/**/*.ts", "build.mjs"]
 }

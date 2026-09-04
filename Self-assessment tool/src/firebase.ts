@@ -29,6 +29,18 @@ const FIRESTORE = 'https://firestore.googleapis.com/v1';
 export interface FirebaseConfig {
   apiKey: string;
   projectId: string;
+  /**
+   * Addresses this build treats as admin when the store has no role document for them.
+   *
+   * The rules are what actually enforce admin, on Google's side, reading roles/{email}. This
+   * list only changes what the page offers, so somebody who edits the JavaScript to name
+   * themselves still gets refused on every call that matters. What it buys is a store whose
+   * roles collection has been emptied, or a fresh project, without locking the owner out of
+   * the screen that would let them fix it.
+   *
+   * It lives in deploy/firebase-config.json, which is not in git, because it names a person.
+   */
+  admins?: string[];
 }
 
 function isRecord(v: unknown): v is Record<string, unknown> {
@@ -635,10 +647,46 @@ export type Role = 'submitter' | 'assessor' | 'admin';
  * the signed-in address and a 403 for any other one. No document means no grant has been made,
  * and everybody starts there.
  */
+/** What this build assumes about an address the store has no role document for. */
+function defaultRole(email: string): Role {
+  const list = CONFIG?.admins ?? [];
+  return list.some((a) => a.trim().toLowerCase() === email.trim().toLowerCase())
+    ? 'admin'
+    : 'submitter';
+}
+
 export async function roleOf(email: string): Promise<Role> {
   const reply = await authorized(`${docsRoot()}/roles/${encodeURIComponent(email)}`);
-  if (reply.status === 404) return 'submitter';
+  if (reply.status === 404) return defaultRole(email);
   if (reply.status !== 200) throw new Error(problemFrom(reply));
   const role = fromFields(isRecord(reply.body) ? reply.body.fields : null).role;
-  return role === 'assessor' || role === 'admin' ? role : 'submitter';
+  return role === 'assessor' || role === 'admin' ? role : defaultRole(email);
+}
+
+/**
+ * The signed-in person's role, asked once and remembered.
+ *
+ * Nothing used to call roleOf at all, so every signed-in account was offered the admin screen
+ * and the delete button, and Firestore did the refusing afterwards. Offering somebody a control
+ * that cannot work is its own defect, so the answer is fetched and the screens read it.
+ */
+let myRoleValue: Role | null = null;
+let roleAsked = false;
+
+export function knownRole(): Role | null { return myRoleValue; }
+export function forgetRole(): void { myRoleValue = null; roleAsked = false; }
+
+export async function loadRole(): Promise<Role | null> {
+  const me = currentUser();
+  if (!me) { forgetRole(); return null; }
+  if (roleAsked) return myRoleValue;
+  roleAsked = true;
+  try {
+    myRoleValue = await roleOf(me.email);
+  } catch {
+    // A refused read means the rules do not know this address, which is what a submitter is.
+    // The build's own list still applies, so an owner is not locked out of a wiped project.
+    myRoleValue = defaultRole(me.email);
+  }
+  return myRoleValue;
 }

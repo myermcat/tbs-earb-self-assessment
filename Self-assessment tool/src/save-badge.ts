@@ -1,6 +1,7 @@
 import { el, clear } from './dom';
 import { onSaveStateChange, saveStatus } from './storage';
 import { t } from './i18n';
+import { isHosted } from './store';
 
 /**
  * Where the work is, on every screen.
@@ -25,10 +26,15 @@ export function saveBadge(openDetail: () => void): HTMLElement {
   const TITLE: Record<string, string> = {
     idle: t('Nothing written yet', 'Rien n\u2019a encore été enregistré'),
     saving: t('Writing to the TBS store', 'Enregistrement dans le dépôt du SCT'),
-    local: t(
-      'Kept in this browser only. There is no online copy yet, and no way to make one: submitting is not built. Click for the detail.',
-      'Conservé dans ce navigateur seulement. Il n\u2019y a pas encore de copie en ligne et aucun moyen d\u2019en faire une : la soumission n\u2019est pas construite. Cliquez pour le détail.',
-    ),
+    local: isHosted()
+      ? t(
+          'Kept in this browser only. Sending it to TBS is a separate step, at the bottom of My results. Click for the detail.',
+          'Conservé dans ce navigateur seulement. L\u2019envoi au SCT est une étape distincte, au bas de Mes résultats. Cliquez pour le détail.',
+        )
+      : t(
+          'Kept in this browser only. This build has no store to send to. Click for the detail.',
+          'Conservé dans ce navigateur seulement. Cette version n\u2019a aucun dépôt où envoyer. Cliquez pour le détail.',
+        ),
     online: t('Written to the TBS store. Your assessor sees this copy.', 'Enregistré dans le dépôt du SCT. Votre évaluateur voit cette copie.'),
     failed: t('The last write did not go through. Click for what to do.', 'Le dernier enregistrement n\u2019a pas abouti. Cliquez pour savoir quoi faire.'),
   };

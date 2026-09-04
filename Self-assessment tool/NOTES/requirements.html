@@ -116,10 +116,10 @@ background:var(--surface);border:1px solid var(--line);border-radius:10px;list-s
 .kpi a{color:inherit;text-decoration:none}
 </style>
 <div class="head"><div class="head-in"><h1>GC EA self-assessment: requirements specification</h1>
-<p class="sub">Living document, updated 2026-09-01. 86 requirements, baselined at each release. Following ISO/IEC/IEEE 29148:2018, tailored.</p></div></div>
+<p class="sub">Living document, updated 2026-09-01. 88 requirements, baselined at each release. Following ISO/IEC/IEEE 29148:2018, tailored.</p></div></div>
 <nav class="topnav"><div class="topnav-in">
-<span class="nav-kpi"><b>43</b><span>built</span></span>
-<span class="nav-kpi"><b>24</b><span>agreed, not built</span></span>
+<span class="nav-kpi"><b>46</b><span>built</span></span>
+<span class="nav-kpi"><b>23</b><span>agreed, not built</span></span>
 <span class="nav-kpi"><b>4</b><span>proposed</span></span>
 <span class="nav-kpi"><b>15</b><span>open</span></span>
 <span class="nav-sep"></span>
@@ -210,7 +210,7 @@ background:var(--surface);border:1px solid var(--line);border-radius:10px;list-s
 <div class="req">
 <span class="req-id mono">R2</span>
 <span class="req-t">The views are separate. A submitter cannot reach the assessor view or the admin view.</span>
-<span class="st st-next">Agreed</span>
+<span class="st st-done">Built</span>
 <span class="req-note">They are reachable from one page today so the shape can be shown and argued about. That is a property of the prototype.</span>
 </div>
 <div class="req">
@@ -678,6 +678,18 @@ background:var(--surface);border:1px solid var(--line);border-radius:10px;list-s
 <span class="req-note">This replaces the earlier rule that nothing could ever be deleted, which does not survive a prototype full of test data.</span>
 </div>
 <div class="req">
+<span class="req-id mono">X10</span>
+<span class="req-t">Every screen has an address, and the browser back button behaves.</span>
+<span class="st st-done">Built</span>
+<span class="req-note">One hash router. #assessor, #assessor/admin, #results, #settings and a questionnaire stop are all links somebody can send, and Back walks them in the order they were visited. Before this, Back worked inside the questionnaire only: leaving the results page went two stops back into the questions, and an assessor pressing Back was dropped into the submitter view. Held by test/routes.mjs.</span>
+</div>
+<div class="req">
+<span class="req-id mono">X11</span>
+<span class="req-t">The build that gets published is the build that gets tested.</span>
+<span class="st st-done">Built</span>
+<span class="req-note">Every suite used to build with no store, so none of the hosted branches ever ran and a page that went blank for anybody signed in reached the live site behind 556 green assertions. test/hosted.mjs now builds with a placeholder project, seeds a session the way a sign-in does, answers Firestore from a stub, and drives the screens a signed-in person meets. tsc is also part of npm test now, which found a type error in the tests themselves on its first run.</span>
+</div>
+<div class="req">
 <span class="req-id mono">X8</span>
 <span class="req-t">Where a decision about how something should behave is not obvious, copy what GitHub does.</span>
 <span class="st st-next">Agreed</span>
@@ -685,7 +697,7 @@ background:var(--surface);border:1px solid var(--line);border-radius:10px;list-s
 </div>
 <div class="req">
 <span class="req-id mono">X7</span>
-<span class="req-t">The page is built to be bilingual: every reader-facing string goes through one function that returns English or French, and a switch in the header changes language without a reload.</span>
+<span class="req-t">The page is built to be bilingual: every reader-facing string goes through one function that returns English or French, and the header carries the Canada.ca language control, one link naming the other language in that language.</span>
 <span class="st st-done">Built</span>
 <span class="req-note">Keyed on the English text, so no key can be invented or go stale, and a string with no French shows in English and is counted. Settings reports how far the translation has got.</span>
 </div>

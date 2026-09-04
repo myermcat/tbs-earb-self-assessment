@@ -145,10 +145,13 @@ function paint(
   const ordered = [...rows].sort((a, b) => (a.r.overall ?? 99) - (b.r.overall ?? 99));
   for (const row of ordered) {
     const a = row.rec.assessment;
+    // Records come from a store, and a store holds whatever was written to it. One document
+    // saved by an older version, or half-written, must not take the whole portfolio down.
+    const about = a.initiative ?? {};
     body.appendChild(el('tr', { class: row.redFlags ? 'red-flag' : '' }, [
-      el('td', {}, [a.initiative.name || el('span', { class: 'muted' }, ['(unnamed)'])]),
-      el('td', {}, [a.initiative.department || '--']),
-      el('td', {}, [a.initiative.lifecycleStage || '--']),
+      el('td', {}, [about.name || el('span', { class: 'muted' }, ['(unnamed)'])]),
+      el('td', {}, [about.department || '--']),
+      el('td', {}, [about.lifecycleStage || '--']),
       el('td', { class: tone(row.r.overall) }, [row.r.overall === null ? '--' : row.r.overall.toFixed(1)]),
       el('td', { class: 'small' }, [row.r.band?.label ?? '--']),
       el('td', { class: 'small' }, [`${Math.round(row.r.completeness * 100)}%`]),

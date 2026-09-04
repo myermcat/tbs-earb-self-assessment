@@ -145,8 +145,10 @@ ok('and explains that the browser keeps the work', view().includes('keeps your w
 ok('and that nothing will be recalled once submitted',
    view().includes('Nothing will be recalled once submitted'));
 // Copy that describes a feature has to say whether the feature exists.
+// This suite builds with no store, so the copy has to describe that build and not the hosted one.
 ok('the copy marks the unbuilt parts as unbuilt',
-   view().includes('Nothing is sent anywhere today') && view().includes('Planned, not built'));
+   view().includes('Nothing is sent anywhere in this copy') && view().includes('Planned, not built'),
+   view().slice(0, 200));
 
 pane('Start again');
 ok('the discard control lives here, not on the start page', !!q('.set-row.danger button.danger'));
@@ -500,22 +502,30 @@ ok('and the indicator is a live region', q('.save-state')?.getAttribute('role') 
 ok('it lives in the chrome, not in the questionnaire footer',
    !!q('.topbar .save-state') && !q('.sticky-footer .save-state'));
 ok('it carries a short wording for a narrow screen', !!q('.save-state .ss-short'));
-// The language switch is in the chrome from the start, because retrofitting one is how a page
-// ends up with a French version missing a third of its screens.
-ok('both languages are offered in the chrome',
-   qa('.lang-switch .lang-btn').map((b) => b.textContent).join('|') === 'EN|FR',
-   qa('.lang-switch .lang-btn').map((b) => b.textContent).join('|'));
+// The language control is in the chrome from the start, because retrofitting one is how a page
+// ends up with a French version missing a third of its screens. It is one link naming the other
+// language in that language, which is the Canada.ca pattern, and its href is real so the French
+// page can be sent to somebody.
+ok('the other language is offered in the chrome, named in itself',
+   q('.lang-link')?.getAttribute('lang') === 'fr' && /Français/.test(q('.lang-link')?.textContent ?? ''),
+   q('.lang-link')?.outerHTML);
+ok('and it is a link somebody can send',
+   (q('.lang-link')?.getAttribute('href') ?? '').includes('lang=fr'));
+ok('and it carries a two-letter form for a narrow header', !!q('.lang-link .lang-abbr'));
+ok('and it comes immediately before the settings button',
+   q('.lang-link')?.nextElementSibling?.classList.contains('icon-btn') === true);
 ok('and the page says which one it is in',
    document.documentElement.getAttribute('lang') === 'en',
    document.documentElement.getAttribute('lang'));
 {
   // Switching shows French where it exists and English where it does not, and says so.
-  byText('.lang-btn', 'FR').click();
+  q('.lang-link').click();
   ok('switching to French takes effect', document.documentElement.getAttribute('lang') === 'fr');
   ok('and a translated string is translated',
      view().includes('Brouillon enregistré') || !!q('.save-state.hidden'),
      q('.save-state')?.textContent);
-  byText('.lang-btn', 'EN').click();
+  ok('and the link now offers English back', /English/.test(q('.lang-link')?.textContent ?? ''));
+  q('.lang-link').click();
   ok('and back again', document.documentElement.getAttribute('lang') === 'en');
 }
 ok('and one click opens the detail', q('.save-state').tagName === 'BUTTON');

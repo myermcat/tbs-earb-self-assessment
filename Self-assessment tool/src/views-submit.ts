@@ -106,6 +106,8 @@ export function goToFirstGap(rubric: Rubric, a: Assessment): boolean {
  */
 let repaintApp: () => void = () => {};
 export function setRepaint(fn: () => void): void { repaintApp = fn; }
+/** Redraw the whole shell. Anything that changes what a screen should show can call it. */
+export function repaint(): void { repaintApp(); }
 
 /**
  * Scoring a question used to rebuild the entire page, about four thousand nodes, because the
