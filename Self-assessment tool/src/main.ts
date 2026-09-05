@@ -12,7 +12,7 @@ import { closeMenusOnOutsideClick, closeOnOutsideClick, confirmStep, openDialog 
 import { saveBadge } from './save-badge';
 import { SAD_CAT } from './cat';
 import { bootLang, coverage, lang, type Lang, setLang } from './i18n';
-import { endpointHost, goneFromStore, isHosted, listRecords, putRecord } from './store';
+import { endpointHost, flushWrites, goneFromStore, isHosted, listRecords, putRecord } from './store';
 import { currentUser, forgetRole, isConfigured as firebaseConfigured, knownRole, lastSignInProblem,
   loadRole, resumeSignIn, signInWithGoogle, signInWithMicrosoft, signOut } from './firebase';
 import { t } from './i18n';
@@ -274,6 +274,23 @@ function renderNoAccess(root: HTMLElement, state: Access) {
   ]));
 }
 
+/** Two letters for the account button, which is what an avatar would be if there were one. */
+function initialsOf(email: string): string {
+  const name = email.split('@')[0] ?? '';
+  const parts = name.split(/[._-]+/).filter(Boolean);
+  const letters = parts.length > 1 ? `${parts[0][0]}${parts[1][0]}` : name.slice(0, 2);
+  return letters.toUpperCase() || '??';
+}
+
+/** Sign out, from wherever it was asked for. Everything the account decided goes with it. */
+function leave(): void {
+  signOut();
+  forgetPool();
+  forgetRole();
+  assessorName = '';
+  setSide('submit');
+}
+
 function paint() {
   clear(app);
   adoptSignedIn();
@@ -361,15 +378,15 @@ function header(): HTMLElement {
       saveBadge(() => openSettings('answers')),
       /**
        * Signing in is not a gate on this side. A submitter can answer all 176 questions with no
-       * account at all; the account is what the store asks for when the work is sent. So the
-       * offer is here, beside the save state, where somebody wondering where their work lives
-       * is already looking.
+       * account at all. What the account buys is that the work is kept at TBS as they go, so the
+       * offer is beside the save state, where somebody wondering where their work lives is
+       * already looking.
        */
       isHosted() && firebaseConfigured() && !currentUser()
         ? el('button', {
             class: 'linkish small',
             onclick: () => { void signInWithGoogle(); },
-          }, [t('Sign in to send', 'Se connecter pour envoyer')])
+          }, [t('Sign in to save online', 'Se connecter pour enregistrer en ligne')])
         : null,
       side === 'assess'
         ? el('nav', { class: 'path', 'aria-label': t('Where you are', 'Où vous êtes') }, [
@@ -388,6 +405,30 @@ function header(): HTMLElement {
           ]),
       side === 'assess'
         ? el('button', { class: 'linkish small', onclick: () => setSide('submit') }, [t('Leave assessor view', 'Quitter la vue de l\u2019évaluateur')])
+        : null,
+      /**
+       * The account menu.
+       *
+       * Sign-out lives at the top right of the header behind the signed-in identity, because
+       * that is where GitHub, Google, Microsoft and every Canada.ca signed-in service keep it,
+       * and somebody looking for it looks there first. Settings holds the same control, which
+       * is a second home rather than the only one.
+       */
+      firebaseConfigured() && currentUser()
+        ? el('details', { class: 'set-menu account-menu' }, [
+            el('summary', {
+              class: 'set-menu-btn account-btn',
+              title: t('Your account', 'Votre compte'),
+              'aria-label': t('Your account', 'Votre compte'),
+            }, [initialsOf(currentUser()!.email)]),
+            el('div', { class: 'set-menu-pop' }, [
+              el('span', { class: 'menu-head' }, [t('Signed in as', 'Connecté en tant que')]),
+              el('span', { class: 'menu-head mono' }, [currentUser()!.email]),
+              el('button', { class: 'menu-item', onclick: () => leave() }, [
+                t('Sign out', 'Se déconnecter'),
+              ]),
+            ]),
+          ])
         : null,
       /**
        * One link, naming the other language in that language, which is the Canada.ca and WET
@@ -807,12 +848,12 @@ function renderSettings(root: HTMLElement) {
    */
   function paintPane() {
     clear(nav);
-    nav.appendChild(el('span', { class: 'set-navgroup' }, ['Settings']));
-    nav.appendChild(navRow('Question set', 'questions'));
-    nav.appendChild(navRow('Your answers', 'answers'));
-    nav.appendChild(navRow('This build', 'build'));
+    nav.appendChild(el('span', { class: 'set-navgroup' }, [t('Settings', 'Paramètres')]));
+    nav.appendChild(navRow(t('Question set', 'Jeu de questions'), 'questions'));
+    nav.appendChild(navRow(t('Your answers', 'Vos réponses'), 'answers'));
+    nav.appendChild(navRow(t('This build', 'Cette version'), 'build'));
     nav.appendChild(el('span', { class: 'set-navsep', 'aria-hidden': true }));
-    nav.appendChild(navRow('Start again', 'danger', true));
+    nav.appendChild(navRow(t('Start again', 'Recommencer'), 'danger', true));
 
     clear(pane);
     if (settingsPane === 'questions') paneQuestions(pane);
@@ -849,7 +890,7 @@ function setRow(
 }
 
 function paneQuestions(pane: HTMLElement) {
-  pane.appendChild(el('h1', { tabindex: -1 }, ['Question set']));
+  pane.appendChild(el('h1', { tabindex: -1 }, [t('Question set', 'Jeu de questions')]));
   pane.appendChild(el('p', { class: 'set-lead' }, ['The active questions, weights and scale.']));
 
   pane.appendChild(el('dl', { class: 'kv' }, [
@@ -1030,14 +1071,14 @@ function paneQuestions(pane: HTMLElement) {
 }
 
 function paneAnswers(pane: HTMLElement) {
-  pane.appendChild(el('h1', { tabindex: -1 }, ['Where your answers go']));
+  pane.appendChild(el('h1', { tabindex: -1 }, [t('Where your answers go', 'Où vont vos réponses')]));
   pane.appendChild(el('p', { class: 'set-lead' }, [
-    'Everything in this tool is unclassified. Nothing protected or classified belongs in it, ',
-    'which is what keeps the rest of this simple.',
+    t('Everything in this tool is unclassified. Nothing protected or classified belongs in it, which is what keeps the rest of this simple.',
+      'Tout dans cet outil est non classifié. Rien de protégé ni de classifié n\u2019y a sa place, et c\u2019est ce qui garde le reste simple.'),
   ]));
 
   pane.appendChild(setRow(
-    'Unclassified only',
+    t('Unclassified only', 'Non classifié seulement'),
     'Not the answers and not the evidence. Point at where an artefact already lives and make sure your assessor can open it. Where something cannot be linked because of its marking, send it to your assessor by email and record here that you did, with its marking and the subject line.',
     null,
   ));
@@ -1049,8 +1090,13 @@ function paneAnswers(pane: HTMLElement) {
   if (isHosted()) {
     const me = currentUser();
     pane.appendChild(setRow(
-      'Sending it is one deliberate act',
-      `Nothing leaves this browser until you press Send it to TBS, at the bottom of My results. It names what is about to go and asks you to confirm. After that, changes you make are written to ${endpointHost()} as you work, so your assessor is never reading an older copy.`,
+      me ? 'Signed in means saved at TBS' : 'Signing in keeps your work at TBS',
+      `Your work is written to ${endpointHost()} a few seconds after you stop typing, so a closed tab or a broken laptop costs you nothing. Up to twenty seconds of the newest work exists only in this browser, which is the gap between writes that keeps the shared store inside its daily allowance. Telling TBS it is ready to review is a separate act, at the bottom of My results, and it saves nothing new: it puts your assessment in front of an assessor.`,
+      null,
+    ));
+    pane.appendChild(setRow(
+      'Nothing goes until you have said how your evidence is marked',
+      'The questionnaire asks that before it will save a file, and the same answer gates what goes to TBS. Until it is answered, everything stays on this machine.',
       null,
     ));
     pane.appendChild(setRow(
@@ -1059,7 +1105,7 @@ function paneAnswers(pane: HTMLElement) {
         ? `You are signed in as ${me.email}. That is the name on anything you send, and the store answers only accounts it knows.`
         : 'The store only accepts work from somebody it knows, so pressing Send asks you to sign in first. It reads your name and address from the account you use, and it never sees a password.',
       me
-        ? el('button', { class: 'ghost', onclick: () => { signOut(); forgetPool(); forgetRole(); assessorName = ''; paint(); } }, ['Sign out'])
+        ? el('button', { class: 'ghost', onclick: () => leave() }, ['Sign out'])
         : el('button', { class: 'primary', onclick: () => { void signInWithGoogle(); } }, ['Sign in with Google']),
       me ? {} : { tier: 'caution', badge: 'Not signed in' },
     ));
@@ -1082,7 +1128,7 @@ function paneAnswers(pane: HTMLElement) {
  * for the backlog looks in Settings, which is where this puts it.
  */
 function paneBuild(pane: HTMLElement) {
-  pane.appendChild(el('h1', { tabindex: -1 }, ['This build']));
+  pane.appendChild(el('h1', { tabindex: -1 }, [t('This build', 'Cette version')]));
   pane.appendChild(el('p', { class: 'set-lead' }, [
     'Which version of the tool and the questions you are looking at, and what is being worked on.',
   ]));
@@ -1096,14 +1142,28 @@ function paneBuild(pane: HTMLElement) {
   ]));
 
   (() => {
+    /**
+     * What the count can and cannot say.
+     *
+     * coverage() sees a string only once it has passed through t(), and every string that has
+     * carries French. So the fraction it can compute is always one, on a screen that may be
+     * entirely English. A number that reassures a French reader wrongly is worse than no
+     * number, so this row says what is done and what is not.
+     */
     const c = coverage();
     pane.appendChild(setRow(
-      'Languages',
-      `English is complete. French is being written: ${c.seen - c.missing} of the ${c.seen} strings this screen has needed so far have it. Anything without French shows in English. The questions themselves need their French from TBS.`,
+      t('Languages', 'Langues'),
+      t(`English is complete. French is partly written: the home page, the header, the questionnaire, the results and the dialogs carry it, and ${c.seen} strings have been asked for on the screens visited so far. The settings, the assessor screens and the admin screens are still English. The 176 questions and the scale are data from TBS, and their French is Dan's to write.`,
+        `L'anglais est complet. Le français est partiellement rédigé : la page d'accueil, l'en-tête, le questionnaire, les résultats et les fenêtres de confirmation en disposent, et ${c.seen} chaînes ont été demandées sur les écrans visités jusqu'ici. Les paramètres, les écrans de l'évaluateur et ceux de l'administration sont encore en anglais. Les 176 questions et l'échelle sont des données du SCT, et leur français revient à Dan.`),
       null,
-      c.missing > 0 ? { tier: 'caution', badge: 'French incomplete' } : {},
+      { tier: 'caution', badge: t('French incomplete', 'Français incomplet') },
     ));
-  })(),
+  })();
+
+  // The requirements and the backlog are the build team's own working pages. They name
+  // colleagues and the state of internal decisions, so they are offered to an admin and to a
+  // build with no project, which is somebody working on the tool itself.
+  if (!firebaseConfigured() || knownRole() === 'admin') {
   pane.appendChild(setRow(
     'The requirements specification',
     'Every requirement, numbered, with its state and whoever owes an answer. Decisions are written here the day they are made, and the open ones are listed at the top.',
@@ -1122,10 +1182,11 @@ function paneBuild(pane: HTMLElement) {
       target: '_blank', rel: 'noopener',
     }, ['Open the backlog']),
   ));
+  }
 }
 
 function paneDanger(pane: HTMLElement) {
-  pane.appendChild(el('h1', { tabindex: -1 }, ['Start again']));
+  pane.appendChild(el('h1', { tabindex: -1 }, [t('Start again', 'Recommencer')]));
   pane.appendChild(el('p', { class: 'set-lead' }, [
     'Nothing here can be taken back once this tab is closed.',
   ]));
@@ -1191,7 +1252,9 @@ function paneDanger(pane: HTMLElement) {
     onclick: () => confirmDestructive({
       tier: 'danger',
       title: n > 0 ? `Discard ${n} answer${n === 1 ? '' : 's'}?` : 'Discard this assessment?',
-      body: 'Discarding empties the form and erases the draft this browser is holding. The questions themselves stay the same.',
+      body: assessment.id && isHosted() && currentUser()
+        ? `Discarding empties the form and erases the draft this browser is holding. The questions themselves stay the same. The copy already kept at ${endpointHost()} is not touched: an admin is the only person who can remove that one, so ask yours if it has to go.`
+        : 'Discarding empties the form and erases the draft this browser is holding. The questions themselves stay the same.',
       saveLabel: 'Save a file, then discard',
       commitLabel: 'Discard permanently',
       cancelLabel: 'Keep my answers',
@@ -1380,6 +1443,16 @@ function wireScrollLift(): void {
 setLang(bootLang());
 openEverythingForPrint();
 wireHistory();
+/**
+ * The floor between writes means the newest twenty seconds of work can exist only in this
+ * browser. A tab closing is the one moment that matters, so it pushes rather than waits.
+ */
+if (typeof window.addEventListener === 'function') {
+  window.addEventListener('pagehide', () => { void flushWrites(); });
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden') void flushWrites();
+  });
+}
 warnGoneFromStore();
 wireScrollLift();
 closeMenusOnOutsideClick(document);

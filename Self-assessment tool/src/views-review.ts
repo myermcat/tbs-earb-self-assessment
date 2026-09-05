@@ -26,6 +26,8 @@ interface Loaded {
   substituted: boolean;
   r: Result;
   fs: Flag[];
+  /** The store handed back a newer version of this one after the assessor had opened it. */
+  changed?: boolean;
 }
 
 let loaded: Loaded[] = [];
@@ -105,16 +107,32 @@ function absorb(rubric: Rubric, answer: PoolAnswer): void {
   for (const rec of answer.records) {
     const a = rec.assessment;
     if (a?.fileType !== 'gc-arch-assessment') continue;
-    // A record already open from a file is the same submission, and two copies of one
-    // assessment on the screen is worse than a missing one.
-    if (loaded.some((l) => (a.ref && l.a.ref === a.ref) || (a.id && l.a.id === a.id))) continue;
     const own = rubricFor(BUILTIN as unknown as Rubric, a.rubric);
     const use = own ?? rubric;
     const r = score(use, a);
-    loaded.push({
+    const row: Loaded = {
       file: a.initiative?.name?.trim() || a.ref || rec.id,
       a, rubric: use, substituted: !own, r, fs: flags(use, a, r),
-    });
+    };
+    /**
+     * A submission is no longer a thing that stops moving. A submitter keeps working after
+     * telling TBS it is ready, and their changes are written as they go, so a copy this browser
+     * opened last week is a copy of last week. Where the store holds something newer, it wins,
+     * and the audit written here travels across to it.
+     */
+    const held = loaded.findIndex((l) => (a.ref && l.a.ref === a.ref) || (a.id && l.a.id === a.id));
+    if (held >= 0) {
+      const mine = loaded[held];
+      const theirs = a.meta?.updatedAt ?? '';
+      const ours = mine.a.meta?.updatedAt ?? '';
+      if (!(theirs > ours)) continue;
+      if (mine.a.audit && !row.a.audit) row.a.audit = mine.a.audit;
+      row.changed = true;
+      loaded[held] = row;
+      added++;
+      continue;
+    }
+    loaded.push(row);
     added++;
   }
   if (added) keepSession();
@@ -240,8 +258,10 @@ export function renderReview(root: HTMLElement, rubric: Rubric): void {
         el('div', {}, [
           el('h2', {}, [pool.title]),
           el('p', { class: 'muted' }, [pool.detail]),
-          el('span', { class: `badge ${pool.tone}` }, [pool.badge]),
-          again ? el('p', {}, [again]) : null,
+          el('div', { class: 'actions' }, [
+            el('span', { class: `badge ${pool.tone}` }, [pool.badge]),
+            again,
+          ]),
         ]),
       ]);
 
@@ -337,9 +357,17 @@ function paintList(rubric: Rubric, root: HTMLElement) {
   for (const l of rows) {
     const highs = l.fs.filter((f) => f.severity === 'high').length;
     tb.appendChild(el('tr', {}, [
-      el('td', {}, [l.a.initiative.name || l.file]),
-      el('td', {}, [l.a.initiative.department]),
-      el('td', { class: 'small' }, [l.a.initiative.classification || 'unmarked']),
+      el('td', {}, [
+        l.a.initiative?.name || l.file,
+        // A submitter keeps working after they say it is ready, so a row can be newer than the
+        // copy this assessor last read. Saying so is what stops an audit being written against
+        // a version nobody is looking at any more.
+        l.changed
+          ? el('span', { class: 'badge badge-warn tiny', title: 'The store had a newer version than the one you opened' }, ['updated'])
+          : null,
+      ]),
+      el('td', {}, [l.a.initiative?.department ?? '--']),
+      el('td', { class: 'small' }, [l.a.initiative?.classification || 'unmarked']),
       el('td', { class: 'small mono' }, [
         l.a.ref ? el('span', { class: 'ref-chip', title: 'The code in this submission\u2019s email subjects' }, [l.a.ref]) : null,
         ' ',

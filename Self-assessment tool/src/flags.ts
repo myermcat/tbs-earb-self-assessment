@@ -200,7 +200,7 @@ export function flags(rubric: Rubric, a: Assessment, r: Result): Flag[] {
   }
 
   // Stage sanity: confident about cost while still in discovery.
-  const stage = a.initiative.lifecycleStage;
+  const stage = (a.initiative?.lifecycleStage ?? '');
   if (stage === 'discovery' || stage === 'alpha') {
     for (const qs of all) {
       if (qs.expectation === 'low-ok' && qs.answered && (qs.raw as number) >= 9) {

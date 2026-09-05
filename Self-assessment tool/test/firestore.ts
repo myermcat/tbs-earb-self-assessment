@@ -10,9 +10,9 @@
  * leaving the bearer token off. It also holds the two rights the rules give: an assessor lists
  * the collection, and a submitter whose list is refused reads the one record they own.
  */
-import { listRecords, putRecord, deleteRecord, endpointHost, isHosted } from '../src/store';
+import { listRecords, putRecord, deleteRecord, endpointHost, flushWrites, isHosted } from '../src/store';
 import { currentUser, roleOf } from '../src/firebase';
-import { saveStatus } from '../src/storage';
+import { autosave, saveStatus } from '../src/storage';
 import type { Assessment } from '../src/types';
 
 const mem = new Map<string, string>();
@@ -177,6 +177,103 @@ ok('and the new one is used on the write',
    (sent[1].init.headers as Record<string, string>).authorization === 'Bearer NEW',
    JSON.stringify(sent[1].init.headers));
 ok('and the new token is kept', currentUser()?.idToken === 'NEW');
+
+/* -------------------------------------------------------------------------------------------
+   Continuous saving. Signed in means the work is at TBS, so the guards on that write are the
+   thing standing between an unmarked assessment and the internet. None of this was tested
+   before it existed, which is how the gate that was supposed to stop it got to be untested too.
+   ------------------------------------------------------------------------------------------- */
+const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
+const writes = () => sent.filter((x) => x.init.method === 'PATCH');
+
+function quiet(): void {
+  sent.length = 0;
+  globalThis.fetch = ((url: string, init: RequestInit = {}) => {
+    sent.push({ url: String(url), init });
+    return Promise.resolve({
+      status: 200, ok: true,
+      text: () => Promise.resolve(JSON.stringify({
+        name: 'projects/p/databases/(default)/documents/assessments/ABC', fields: {},
+      })),
+    } as Response);
+  }) as typeof fetch;
+}
+
+mem.set('gc-arch-assessment:firebase-session', JSON.stringify({
+  email: 'someone@example.gc.ca', idToken: 'T', refreshToken: 'R', expiresAt: Date.now() + 3600e3,
+}));
+
+// The classification gate. Until somebody says how their evidence is marked, nothing goes.
+{
+  quiet();
+  const unmarked: Assessment = JSON.parse(JSON.stringify(a));
+  unmarked.initiative.classification = '';
+  delete unmarked.id;
+  delete unmarked.ownerEmail;
+  autosave(unmarked);
+  await flushWrites();
+  ok('an unmarked assessment is never written to the store', writes().length === 0,
+     JSON.stringify(writes().map((w) => w.url)));
+  ok('and the badge says the work is here only', saveStatus().state === 'local', saveStatus().state);
+}
+
+// The same record, once it carries a marking.
+{
+  quiet();
+  const marked: Assessment = JSON.parse(JSON.stringify(a));
+  delete marked.id;
+  delete marked.ownerEmail;
+  autosave(marked);
+  await flushWrites();
+  ok('a marked assessment goes without anybody pressing anything', writes().length === 1,
+     String(writes().length));
+  ok('and the record is owned by whoever is signed in', marked.ownerEmail === 'someone@example.gc.ca',
+     String(marked.ownerEmail));
+  const first = String(marked.id ?? '');
+  ok('and it carries the id it was written under', first.length > 0, first);
+
+  // Two saves close together are one record, not two documents.
+  quiet();
+  marked.initiative.summary = 'changed';
+  autosave(marked);
+  marked.initiative.summary = 'changed again';
+  autosave(marked);
+  await flushWrites();
+  ok('two changes in a moment make one write', writes().length === 1, String(writes().length));
+  ok('to the document that already exists', writes()[0]?.url.includes(first), writes()[0]?.url);
+
+  // Nothing changed means nothing to send.
+  quiet();
+  autosave(marked);
+  await flushWrites();
+  ok('a save that changes nothing writes nothing', writes().length === 0, String(writes().length));
+}
+
+// Somebody else's file stays theirs.
+{
+  quiet();
+  const theirs: Assessment = JSON.parse(JSON.stringify(a));
+  theirs.ownerEmail = 'someone.else@example.gc.ca';
+  theirs.id = 'THEIRS';
+  autosave(theirs);
+  await flushWrites();
+  ok('a file owned by somebody else is never written to your account', writes().length === 0,
+     JSON.stringify(writes().map((w) => w.url)));
+}
+
+// Signed out, there is nothing to write with.
+{
+  quiet();
+  mem.delete('gc-arch-assessment:firebase-session');
+  const mine: Assessment = JSON.parse(JSON.stringify(a));
+  delete mine.id;
+  delete mine.ownerEmail;
+  autosave(mine);
+  await flushWrites();
+  ok('signed out, nothing reaches the store', writes().length === 0, String(writes().length));
+  ok('and the badge says so', saveStatus().state === 'local', saveStatus().state);
+}
+await wait(0);
 
 console.log(fails === 0 ? '\nall wiring checks passed' : `\n${fails} FAILED`);
 process.exit(fails === 0 ? 0 : 1);

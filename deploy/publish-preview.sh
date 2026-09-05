@@ -30,6 +30,14 @@ else
   read -r _
 fi
 
+# The gate. This script is how the tool actually reaches people, and it used to build and push
+# without running a single test.
+echo "Testing..."
+( cd "$HERE/Self-assessment tool" && npm test >/dev/null ) || {
+  echo "Tests failed. Nothing published. Run npm test in the tool directory to see what."
+  exit 1
+}
+
 echo "Building..."
 ( cd "$HERE/Self-assessment tool" && npm run --silent build )
 ( cd "$HERE/Self-assessment tool" && node tools/build-backlog.mjs >/dev/null )

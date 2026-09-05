@@ -9,7 +9,7 @@ function effectiveExpectation(q, s, stage) {
   return q.stageExpectation?.[stage] ?? s.stageExpectation?.[stage] ?? "expected";
 }
 function score(rubric2, a) {
-  const stage = a.initiative.lifecycleStage;
+  const stage = a.initiative?.lifecycleStage ?? "";
   let answered = 0;
   let scoreable = 0;
   const domains = rubric2.domains.map((domain) => {
@@ -247,7 +247,7 @@ function flags(rubric2, a, r) {
       detail: `${r.answered} of ${r.scoreable} questions answered (${Math.round(r.completeness * 100)}%). Every score below is calculated from that fraction.`
     });
   }
-  const stage = a.initiative.lifecycleStage;
+  const stage = a.initiative?.lifecycleStage ?? "";
   if (stage === "discovery" || stage === "alpha") {
     for (const qs of all) {
       if (qs.expectation === "low-ok" && qs.answered && qs.raw >= 9) {

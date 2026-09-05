@@ -956,7 +956,7 @@ ok('with a fallback for short viewports and reduced motion',
 ok('the results page has a submit block', !!q('.submit-box'));
 ok('and with no store it says so and points at the file',
    view().includes('Not hosted yet') && view().includes('nowhere to send it yet'));
-ok('with no button that cannot work', !byText('.submit-box button', 'Send it to TBS'));
+ok('with no button that cannot work', !byText('.submit-box button', 'ready to review'));
 
 ok('backlog section present', view().includes('weakest five'));
 ok('assessor questions previewed to the submitter', view().includes('What an assessor will probably ask'));

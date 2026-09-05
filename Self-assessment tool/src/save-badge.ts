@@ -25,17 +25,22 @@ export function saveBadge(openDetail: () => void): HTMLElement {
   // see this yet.
   const TITLE: Record<string, string> = {
     idle: t('Nothing written yet', 'Rien n\u2019a encore été enregistré'),
-    saving: t('Writing to the TBS store', 'Enregistrement dans le dépôt du SCT'),
     local: isHosted()
       ? t(
-          'Kept in this browser only. Sending it to TBS is a separate step, at the bottom of My results. Click for the detail.',
-          'Conservé dans ce navigateur seulement. L\u2019envoi au SCT est une étape distincte, au bas de Mes résultats. Cliquez pour le détail.',
+          'Kept on this machine only. Sign in and your work is kept at TBS as you go. Click for the detail.',
+          'Conservé sur cet appareil seulement. Connectez-vous et votre travail sera conservé au SCT à mesure. Cliquez pour le détail.',
         )
       : t(
           'Kept in this browser only. This build has no store to send to. Click for the detail.',
           'Conservé dans ce navigateur seulement. Cette version n\u2019a aucun dépôt où envoyer. Cliquez pour le détail.',
         ),
-    online: t('Written to the TBS store. Your assessor sees this copy.', 'Enregistré dans le dépôt du SCT. Votre évaluateur voit cette copie.'),
+    pending: t('Kept here, and on its way to TBS', 'Conservé ici, et en route vers le SCT'),
+    saving: t('Writing to the TBS store', 'Enregistrement dans le dépôt du SCT'),
+    online: t('Kept at TBS. Your assessor reads this copy.', 'Conservé au SCT. Votre évaluateur lit cette copie.'),
+    offline: t(
+      'Kept on this machine. It goes to TBS when the connection is back.',
+      'Conservé sur cet appareil. L\u2019envoi au SCT se fera au retour de la connexion.',
+    ),
     failed: t('The last write did not go through. Click for what to do.', 'Le dernier enregistrement n\u2019a pas abouti. Cliquez pour savoir quoi faire.'),
   };
 
@@ -48,9 +53,11 @@ export function saveBadge(openDetail: () => void): HTMLElement {
       node.classList.add('hidden');
       return;
     }
-    if (state === 'saving') {
-      node.appendChild(el('span', { class: 'spin', 'aria-hidden': true }));
-      node.appendChild(el('span', { class: 'ss-long' }, ['Saving']));
+    if (state === 'saving' || state === 'pending') {
+      if (state === 'saving') node.appendChild(el('span', { class: 'spin', 'aria-hidden': true }));
+      else node.appendChild(el('span', { class: 'ss-dot', 'aria-hidden': true }));
+      node.appendChild(el('span', { class: 'ss-long' }, [t('Saving to TBS', 'Enregistrement au SCT')]));
+      node.appendChild(el('span', { class: 'ss-short' }, [t('Saving', 'En cours')]));
     } else if (state === 'local') {
       node.appendChild(el('span', { class: 'ss-dot', 'aria-hidden': true }));
       node.appendChild(el('span', { class: 'ss-long' }, [t('Draft saved in browser', 'Brouillon enregistré dans le navigateur')]));
@@ -59,6 +66,10 @@ export function saveBadge(openDetail: () => void): HTMLElement {
       node.appendChild(el('span', { class: 'ss-dot', 'aria-hidden': true }));
       node.appendChild(el('span', { class: 'ss-long' }, [t('Saved to TBS', 'Enregistré au SCT')]));
       node.appendChild(el('span', { class: 'ss-short' }, [t('Saved', 'Enregistré')]));
+    } else if (state === 'offline') {
+      node.appendChild(el('span', { class: 'ss-dot', 'aria-hidden': true }));
+      node.appendChild(el('span', { class: 'ss-long' }, [t('Saved here, waiting for a connection', 'Enregistré ici, en attente d\u2019une connexion')]));
+      node.appendChild(el('span', { class: 'ss-short' }, [t('Waiting', 'En attente')]));
     } else {
       node.appendChild(el('span', { class: 'ss-long' }, [detail || t('Not saved. Check your connection.', 'Non enregistré. Vérifiez votre connexion.')]));
       node.appendChild(el('span', { class: 'ss-short' }, [t('Not saved', 'Non enregistré')]));

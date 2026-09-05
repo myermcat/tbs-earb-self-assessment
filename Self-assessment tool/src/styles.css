@@ -172,7 +172,12 @@ li { margin-bottom: .22rem; }
 .brand strong { font-size: .95rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .brand .ver { font-family: var(--mono); font-size: .72rem; color: var(--ink-3); }
 
-.topbar-right { display: flex; align-items: center; gap: .8rem; }
+.topbar-right { display: flex; align-items: center; gap: .8rem;
+  /* The assessor header is wider than the submitter one, by the signed-in address and the way
+     out, so it wraps at ordinary laptop widths. A lone item on a wrapped space-between line
+     falls to the left, which is what reads as the header having floated. An auto margin takes
+     the free space on whichever line this group ends up on. */
+  margin-left: auto; }
 .topbar nav.path { display: flex; align-items: center; gap: .1rem; background: var(--surface-2);
   padding: .18rem .3rem; border-radius: 9px; border: 1px solid var(--line); }
 .chev { color: var(--ink-3); font-size: .9rem; padding: 0 .05rem; user-select: none; }
@@ -640,6 +645,16 @@ dialog.confirm::backdrop { background: rgba(10, 12, 16, .55); }
 .typed-field { width: 100%; margin-bottom: .2rem; }
 /* A menu inside a table row sits above the rows below it. */
 .row-menu .set-menu-pop { right: 0; min-width: 13rem; }
+/* The account button. Two letters where a product with avatars would put a face. */
+.account-menu { position: relative; }
+.account-btn { display: inline-flex; align-items: center; justify-content: center;
+  width: 33px; height: 33px; border-radius: 999px; border: 1px solid var(--line);
+  background: var(--surface-2); color: var(--ink-2); font-size: .68rem; font-weight: 700;
+  letter-spacing: .04em; cursor: pointer; }
+.account-btn:hover { border-color: var(--accent-line); color: var(--accent); }
+.account-menu .set-menu-pop { right: 0; min-width: 15rem; }
+.menu-head { display: block; padding: .1rem .55rem; font-size: .72rem; color: var(--ink-3); }
+.menu-head.mono { color: var(--ink-2); padding-bottom: .35rem; }
 dialog.confirm .danger-solid[disabled] { opacity: .45; cursor: not-allowed; }
 dialog.confirm .danger-solid.armed { box-shadow: 0 0 0 2px color-mix(in srgb, var(--bad) 35%, transparent); }
 
@@ -929,6 +944,10 @@ code.mark-subject { display: block; margin: .25rem 0; }
 .set-list-row p { margin: .15rem 0 0; }
 /* The empty-pool state. The cat takes the page's ink colour, so it belongs to the theme. */
 .pool-out { display: flex; gap: 1rem; align-items: center; flex-wrap: wrap; }
+/* The row above a list of loaded submissions. Without a rule of its own its three children
+   touched, which is the same crowding the empty state had between its badge and its button. */
+.pool-in { display: flex; align-items: center; gap: .55rem; flex-wrap: wrap;
+  margin-bottom: .7rem; }
 .pool-art { flex: none; width: 148px; color: var(--accent); }
 .sad-cat { display: block; width: 100%; height: auto; }
 .pool-out h2 { margin: 0 0 .3rem; }

@@ -7,6 +7,8 @@ import { humanSize, openAttachment, totalAttachedBytes, TOTAL_WARN } from './att
 import { demandPledge } from './pledge';
 import { confirmStep } from './confirm';
 import { t } from './i18n';
+import { isHosted } from './store';
+import { currentUser, isConfigured as firebaseConfigured, signInWithGoogle } from './firebase';
 import { canSave, markingProblems } from './marking';
 
 const KINDS: EvidenceRef['kind'][] = ['document', 'diagram', 'dashboard', 'system', 'report', 'other'];
@@ -641,6 +643,16 @@ function footerBar(
           register((rr) => { jump.hidden = rr.answered >= rr.scoreable; }, r);
           return jump;
         })(),
+        /**
+         * The offer to sign in belongs here as well as in the header, because this is the bar
+         * somebody looks at when they wonder where their work is going. Signed in there is
+         * nothing to press: the save badge in the chrome already says where the work stands.
+         */
+        isHosted() && firebaseConfigured() && !currentUser()
+          ? el('button', { class: 'linkish', onclick: () => { void signInWithGoogle(); } }, [
+              t('Sign in to save online', 'Se connecter pour enregistrer en ligne'),
+            ])
+          : null,
         save,
         el('button', { class: 'primary', onclick: onDone }, [t('See my results', 'Voir mes résultats')]),
       ]),

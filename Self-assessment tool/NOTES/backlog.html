@@ -97,7 +97,7 @@ background:var(--surface);border:1px solid var(--line);border-radius:10px;list-s
 <nav class="topnav"><div class="topnav-in">
 <a class="nav-kpi" href="#quick"><b>29</b><span>next</span></a>
 <a class="nav-kpi" href="#waiting"><b>8</b><span>waiting on somebody</span></a>
-<a class="nav-kpi" href="#done"><b>77</b><span>done</span></a>
+<a class="nav-kpi" href="#done"><b>79</b><span>done</span></a>
 <a class="nav-kpi" href="#questions"><b>12</b><span>open questions</span></a>
 <span class="nav-sep"></span>
 <a class="nav-lay" href="#layer-0">In your name</a>
@@ -391,11 +391,11 @@ background:var(--surface);border:1px solid var(--line);border-radius:10px;list-s
 </div>
 </div>
 <h2 id="done">Done</h2>
-<p class="hint">Built and tested, kept for good, newest first. 75 items since Dan's review on 1 September.</p>
+<p class="hint">Built and tested, kept for good, newest first. 77 items since Dan's review on 1 September.</p>
 <details class="done-fold"><summary class="done-summary">
-<span class="section-title">Everything done</span><span class="muted small">77 items, by layer</span>
+<span class="section-title">Everything done</span><span class="muted small">79 items, by layer</span>
 </summary>
-<h3 class="h3sub">Quick action <span class="muted small">41</span></h3>
+<h3 class="h3sub">Quick action <span class="muted small">43</span></h3>
 <div class="card done-card">
 <div class="leaf solo">
 <span class="t">Settings marks the unbuilt parts as unbuilt</span><span class="st st-done">Done</span>
@@ -560,6 +560,14 @@ background:var(--surface);border:1px solid var(--line);border-radius:10px;list-s
 <div class="leaf solo">
 <span class="t">Signing in without access says so</span><span class="st st-done">Done</span>
 <span class="w">An account nobody has added as an assessor now meets one screen naming the address, with the way back to the home page and the way to sign in as somebody else. Before this it reached the assessor screen and was told the pool was empty, which reads as a lost submission.</span>
+</div>
+<div class="leaf solo">
+<span class="t">The tests run on every push, and publishing runs them too</span><span class="st st-done">Done</span>
+<span class="w">Neither existed. A build that broke for anybody who signed in reached the live site behind 556 green assertions, because every suite built the tool with no store and the publish script never ran a test at all.</span>
+</div>
+<div class="leaf solo">
+<span class="t">Signed in means saved at TBS as you go</span><span class="st st-done">Done</span>
+<span class="w">The work is written a few seconds after you stop typing, with a floor between writes so one afternoon cannot spend the whole project allowance. Four guards stand on it, and the one that matters is the marking: nothing leaves the machine until you have said how your evidence is marked. Telling TBS it is ready is now a separate act that saves nothing new.</span>
 </div>
 </div>
 <h3 class="h3sub">In your name <span class="muted small">1</span></h3>
@@ -754,4 +762,4 @@ background:var(--surface);border:1px solid var(--line);border-radius:10px;list-s
 <tr><td>Who performs the canada-ca transfer</td><td>Nick</td><td>The repo move</td><td>Asked. An issue on canada-ca/welcome is the route he named</td></tr>
 <tr><td>What the production intake should be</td><td>TBS</td><td>Production only</td><td>The prototype answer is an Azure Function plus one CSP line</td></tr>
 </tbody></table></div>
-<footer>56 open, 77 done. Generated from NOTES/backlog.data.mjs by tools/build-backlog.mjs.</footer></div>
+<footer>56 open, 79 done. Generated from NOTES/backlog.data.mjs by tools/build-backlog.mjs.</footer></div>
