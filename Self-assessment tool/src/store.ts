@@ -1,5 +1,7 @@
 import type { Assessment } from './types';
-import { beginWrite, keepDraft, loadDraft, registerAfterSave, writeFailed, writeLanded } from './storage';
+import { beginWrite, keepDraft, loadDraft, localOnly, registerAfterSave, writeFailed, writeLanded,
+  writeOffline, writePending } from './storage';
+import { markingProblems } from './marking';
 import { currentUser, deleteAssessment, getAssessment, isConfigured, listAssessments,
   putAssessment, storeHost } from './firebase';
 
@@ -158,10 +160,28 @@ export async function listRecords(sessionFiles: Assessment[] = []): Promise<Stor
  * reason, because "check your connection" to somebody whose connection is fine wastes the one
  * chance the page has to say what happened.
  */
+function offline(): boolean {
+  return typeof navigator !== 'undefined' && navigator.onLine === false;
+}
+
+/**
+ * Why a write did not go through, in the words the badge shows.
+ *
+ * Two of these read as a broken tool unless they are named. A store that has spent its daily
+ * allowance is silent about it and the allowance belongs to everybody, so one person's
+ * afternoon can stop another's. A record carrying an old attachment is refused for its size on
+ * every keystroke, which looks like the tool having stopped working.
+ */
 function notSaved(err: unknown): string {
-  return typeof navigator !== 'undefined' && navigator.onLine === false
-    ? 'Not saved. Check your connection.'
-    : `Not saved: ${(err as Error).message}`;
+  if (offline()) return 'Not saved. Check your connection.';
+  const why = (err as Error).message;
+  if (/RESOURCE_EXHAUSTED|quota/i.test(why)) {
+    return 'The shared store has had all the writes it is allowed today. Your work is kept in this browser. Save a file.';
+  }
+  if (/INVALID_ARGUMENT/i.test(why) && /byte|size|large/i.test(why)) {
+    return 'This assessment is too big for the store, because a file is attached to it. Remove the attachment, or keep working from a file.';
+  }
+  return `Not saved: ${why}`;
 }
 
 /**
@@ -194,7 +214,7 @@ export async function putRecord(a: Assessment): Promise<{ ok: true } | { ok: fal
       return { ok: true };
     } catch (err) {
       const problem = notSaved(err);
-      writeFailed(problem);
+      if (offline()) writeOffline(); else writeFailed(problem);
       return { ok: false, problem };
     }
   }
@@ -212,7 +232,7 @@ export async function putRecord(a: Assessment): Promise<{ ok: true } | { ok: fal
     return { ok: true };
   } catch (err) {
     const problem = notSaved(err);
-    writeFailed(problem);
+    if (offline()) writeOffline(); else writeFailed(problem);
     return { ok: false, problem };
   }
 }
@@ -275,20 +295,111 @@ export function goneFromStore(records: StoredRecord[], local: Assessment): boole
  * Debounced, because typing a justification is thirty keystrokes and a key-value store counts
  * every write. The wait is generous for that reason.
  */
-const WRITE_THROUGH_WAIT = 4000;
-let pending: ReturnType<typeof setTimeout> | null = null;
+/**
+ * Quiet time before a write, and the shortest gap the store will be asked to accept two.
+ *
+ * The settle is what turns thirty keystrokes into one write. The floor is what stops a
+ * determined typist from spending the whole project's daily allowance on their own afternoon:
+ * the free plan gives twenty thousand writes a day for everybody, and a settle on its own
+ * permits nine hundred an hour from one person.
+ */
+const SETTLE_MS = 3000;
+const FLOOR_MS = 20000;
 
-registerAfterSave((a: Assessment) => {
-  if (!isHosted()) return;
-  if (!a.meta?.submittedAt) {
-    // A submit that did not go through removes the stamp and saves again. Any write already
-    // scheduled belongs to the attempt that failed, so it goes with it.
-    if (pending) { clearTimeout(pending); pending = null; }
-    return;
-  }
+let pending: ReturnType<typeof setTimeout> | null = null;
+let inFlight: Promise<unknown> | null = null;
+let lastWriteAt = 0;
+let lastSent = '';
+let latest: Assessment | null = null;
+
+/**
+ * Whether this record may go to the store at all. Four questions, and every one of them has
+ * been the answer to a real defect.
+ */
+function sendable(a: Assessment): boolean {
+  if (!isHosted()) return false;
+  // A Firestore build needs somebody signed in. A build pointed at a plain endpoint has no
+  // sign-in to do, and asking it for one turns the whole feature off.
+  if (isConfigured() ? !currentUser() : !ENDPOINT) return false;
+  /**
+   * The classification gate. Until the person has said how their evidence is marked, the
+   * questionnaire refuses to save a file, and continuous saving has to refuse for the same
+   * reason: unmarked material is the one thing that must not leave the machine by itself.
+   */
+  if (markingProblems(a).length) return false;
+  // Opening a file somebody else owns must not write it into your account. Their copy stays
+  // theirs, and this browser keeps working on it locally.
+  const me = currentUser();
+  if (me && a.ownerEmail && a.ownerEmail.toLowerCase() !== me.email.trim().toLowerCase()) return false;
+  return true;
+}
+
+/**
+ * What this record is, ignoring the clock.
+ *
+ * autosave restamps meta.updatedAt on every call, so comparing whole documents would never
+ * find two the same and every idle repaint would buy a write.
+ */
+function fingerprint(a: Assessment): string {
+  const { meta, ...rest } = a;
+  const { updatedAt: _when, ...restMeta } = meta ?? ({} as Assessment['meta']);
+  return JSON.stringify({ ...rest, meta: restMeta });
+}
+
+function schedule(): void {
   if (pending) clearTimeout(pending);
-  pending = setTimeout(() => {
-    pending = null;
-    void putRecord(a);
-  }, WRITE_THROUGH_WAIT);
+  const since = Date.now() - lastWriteAt;
+  const wait = Math.max(SETTLE_MS, FLOOR_MS - since);
+  pending = setTimeout(() => { pending = null; void run(); }, wait);
+}
+
+async function run(force = false): Promise<void> {
+  // A second write while one is in the air is how one record becomes two documents, because the
+  // id only comes back at the end of the round trip.
+  if (inFlight) { schedule(); return; }
+  const a = latest;
+  if (!a || !sendable(a)) { localOnly(); return; }
+  if (!force && Date.now() - lastWriteAt < FLOOR_MS) { schedule(); return; }
+  const print = fingerprint(a);
+  if (print === lastSent) return;
+  lastWriteAt = Date.now();
+  const work = putRecord(a).then((res) => { if (res.ok) lastSent = print; });
+  inFlight = work;
+  try {
+    await work;
+  } finally {
+    if (inFlight === work) inFlight = null;
+  }
+}
+
+/**
+ * Send whatever is queued, now.
+ *
+ * The floor means the last edits of a session can be twenty seconds from the store, so the page
+ * closing or the connection returning has to push them rather than wait.
+ */
+export async function flushWrites(): Promise<void> {
+  if (pending) { clearTimeout(pending); pending = null; }
+  await run(true);
+  if (inFlight) await inFlight;
+}
+
+/**
+ * Signed in means saved online, from the first answer.
+ *
+ * Before this, nothing left the browser until somebody pressed a button on the results page,
+ * and that button was named as though it were the end of the process. Now the button says the
+ * work is ready to be read and this keeps the copy current on its own.
+ */
+registerAfterSave((a: Assessment) => {
+  latest = a;
+  if (!sendable(a)) { localOnly(); return; }
+  writePending();
+  schedule();
 });
+
+if (typeof window !== 'undefined' && typeof window.addEventListener === 'function') {
+  // A connection coming back is the one moment a queued write can go without anybody pressing
+  // anything, and a person who was offline has no reason to know they should.
+  window.addEventListener('online', () => { void flushWrites(); });
+}

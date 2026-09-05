@@ -116,12 +116,12 @@ background:var(--surface);border:1px solid var(--line);border-radius:10px;list-s
 .kpi a{color:inherit;text-decoration:none}
 </style>
 <div class="head"><div class="head-in"><h1>GC EA self-assessment: requirements specification</h1>
-<p class="sub">Living document, updated 2026-09-01. 89 requirements, baselined at each release. Following ISO/IEC/IEEE 29148:2018, tailored.</p></div></div>
+<p class="sub">Living document, updated 2026-09-01. 94 requirements, baselined at each release. Following ISO/IEC/IEEE 29148:2018, tailored.</p></div></div>
 <nav class="topnav"><div class="topnav-in">
-<span class="nav-kpi"><b>47</b><span>built</span></span>
+<span class="nav-kpi"><b>51</b><span>built</span></span>
 <span class="nav-kpi"><b>23</b><span>agreed, not built</span></span>
 <span class="nav-kpi"><b>4</b><span>proposed</span></span>
-<span class="nav-kpi"><b>15</b><span>open</span></span>
+<span class="nav-kpi"><b>16</b><span>open</span></span>
 <span class="nav-sep"></span>
 <a class="nav-lay" href="#open">Open decisions</a>
 <a class="nav-lay" href="#purpose">Purpose and scope</a>
@@ -145,7 +145,7 @@ background:var(--surface);border:1px solid var(--line);border-radius:10px;list-s
 <span class="st st-done">Built</span> <span class="st st-next">Agreed</span> <span class="st st-wait">Proposed</span> <span class="st st-later">Open</span>
 <span class="muted">Built is in the tool today. Agreed is decided and not built. Proposed is our reading, waiting on somebody. Open is undecided.</span>
 </div>
-<h2 id="open">Open decisions <span class="muted small">15</span></h2>
+<h2 id="open">Open decisions <span class="muted small">16</span></h2>
 <p class="hint">Every requirement below that nobody has decided, in one place. Each is also in its own section.</p>
 <div class="tw"><table><thead><tr><th>Number</th><th>Decision</th><th>Who owes it</th><th>Section</th></tr></thead><tbody>
 <tr><td class="mono">P4</td><td>Which initiatives have to submit one.</td><td>Dan</td><td>Purpose and scope</td></tr>
@@ -162,6 +162,7 @@ background:var(--surface);border:1px solid var(--line);border-radius:10px;list-s
 <tr><td class="mono">H8</td><td>The code moving into the canada-ca organisation.</td><td>Nick</td><td>Data, storage and hosting</td></tr>
 <tr><td class="mono">H9</td><td>Whether the 176 draft questions can be public.</td><td>Dan</td><td>Data, storage and hosting</td></tr>
 <tr><td class="mono">N3</td><td>What triggers one, and who receives it.</td><td>Dan</td><td>Notifications</td></tr>
+<tr><td class="mono">X14</td><td>Whether a submitter may remove their own record from the store before it is reviewed.</td><td>Mariia</td><td>How it has to behave</td></tr>
 <tr><td class="mono">X10</td><td>French for the question set: 176 questions, their descriptions and the eleven rungs of the scale.</td><td>Dan</td><td>How it has to behave</td></tr>
 </tbody></table></div>
 <h2 id="standard">What this follows, and where it departs</h2>
@@ -576,6 +577,18 @@ background:var(--surface);border:1px solid var(--line);border-radius:10px;list-s
 <span class="req-note">Live on 1 September in project tbs-earb-self-assessment, region northamerica-northeast1. The rules from deploy/firestore.rules are published, Google sign-in is on, myermcat.github.io is an authorised domain, and roles/yermolenko.maria@gmail.com carries role admin. Free plan.</span>
 </div>
 <div class="req">
+<span class="req-id mono">H11</span>
+<span class="req-t">Signed in means the work is kept at TBS as it is answered. Telling TBS it is ready to review is a separate act.</span>
+<span class="st st-done">Built</span>
+<span class="req-note">The write goes three seconds after somebody stops typing, with twenty seconds between writes, which holds one person to 180 an hour against a shared allowance of 20,000 a day. Four guards stand on that write: a build that has a store it can reach, somebody signed in, a marking chosen, and the record owned by the person signed in. The marking guard is the important one: until the person has said how their evidence is marked, nothing leaves the machine. The tab closing and the connection returning both push whatever is queued.</span>
+</div>
+<div class="req">
+<span class="req-id mono">H12</span>
+<span class="req-t">An assessor reading a submission is told when the store has a newer version than the one they opened.</span>
+<span class="st st-done">Built</span>
+<span class="req-note">A submission stopped being a thing that holds still the moment saving became continuous. A copy opened last week is a copy of last week, and an audit written against it is written against a version nobody is looking at. The newer one replaces the held one, the audit written here travels across, and the row is marked updated.</span>
+</div>
+<div class="req">
 <span class="req-id mono">H10</span>
 <span class="req-t">Attached files do not go into the store as part of the assessment.</span>
 <span class="st st-next">Agreed</span>
@@ -696,6 +709,18 @@ background:var(--surface);border:1px solid var(--line);border-radius:10px;list-s
 <span class="req-note">Every suite used to build with no store, so none of the hosted branches ever ran and a page that went blank for anybody signed in reached the live site behind 556 green assertions. test/hosted.mjs now builds with a placeholder project, seeds a session the way a sign-in does, answers Firestore from a stub, and drives the screens a signed-in person meets. tsc is also part of npm test now, which found a type error in the tests themselves on its first run.</span>
 </div>
 <div class="req">
+<span class="req-id mono">X12</span>
+<span class="req-t">The tests run on every push, and nothing publishes without them.</span>
+<span class="st st-done">Built</span>
+<span class="req-note">.github/workflows/tests.yml runs the seven gates on push and on every pull request. deploy/publish-preview.sh, which is the route that actually reaches people, runs them before it builds and refuses to publish if they fail. Neither existed, which is how a build that broke for anybody signed in reached the live site.</span>
+</div>
+<div class="req">
+<span class="req-id mono">X13</span>
+<span class="req-t">Sign-out is in the header, behind the signed-in identity.</span>
+<span class="st st-done">Built</span>
+<span class="req-note">Where GitHub, Google, Microsoft and Canada.ca signed-in services keep it. Settings holds the same control as a second home.</span>
+</div>
+<div class="req">
 <span class="req-id mono">X8</span>
 <span class="req-t">Where a decision about how something should behave is not obvious, copy what GitHub does.</span>
 <span class="st st-next">Agreed</span>
@@ -708,8 +733,15 @@ background:var(--surface);border:1px solid var(--line);border-radius:10px;list-s
 <span class="req-note">Keyed on the English text, so no key can be invented or go stale, and a string with no French shows in English and is counted. Settings reports how far the translation has got.</span>
 </div>
 <div class="req">
+<span class="req-id mono">X14</span>
+<span class="req-t">Whether a submitter may remove their own record from the store before it is reviewed.</span>
+<span class="st st-later">Open</span>
+<span class="req-owner">Mariia owes this</span>
+<span class="req-note">Continuous saving means discarding a draft, switching question set or opening another file each leaves a live document online that the submitter can no longer reach and cannot delete, because delete is admin-only. The screens now say so. The alternative is one line in the rules letting an owner delete a record that has not been marked ready. Somebody has to decide which way it goes.</span>
+</div>
+<div class="req">
 <span class="req-id mono">X9</span>
-<span class="req-t">The French text itself, for about 960 strings.</span>
+<span class="req-t">The French text itself, for about 610 of 749 reader-facing strings.</span>
 <span class="st st-next">Agreed</span>
 <span class="req-owner">Build team owes this</span>
 <span class="req-note">Mechanical from here: each string gets its French beside the English. It is writing, and the architecture is done.</span>

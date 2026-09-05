@@ -610,7 +610,15 @@ export async function putAssessment(a: Assessment): Promise<string> {
     throw new Error(`This assessment belongs to ${owner}, and you are signed in as ${me.email}.`);
   }
 
-  const id = a.id ?? newDocId();
+  /**
+   * The id and the owner are written onto the record before the request goes, rather than after
+   * it comes back. Two writes started close together would otherwise each mint an id and the
+   * one record would become two documents; and the guard that stops somebody else's file being
+   * written into your account has nothing to read until the owner is on the local copy.
+   */
+  a.id = a.id ?? newDocId();
+  a.ownerEmail = owner;
+  const id = a.id;
   const body: Record<string, unknown> = { ...a, ownerEmail: owner };
   // The id is the document's path. Keeping a second copy of it in the fields gives two answers
   // to one question the first time a record is copied.

@@ -1,0 +1,35 @@
+# Runs the test suite on every push and every pull request.
+#
+# This is the gate that was missing. Every suite used to build the tool with no store, so the
+# published build had never been run by any test, and a page that went blank for anybody who
+# signed in reached the live site behind 556 green assertions. test/hosted.mjs builds the way
+# the published page is built; this makes sure it runs whether or not somebody remembered.
+#
+# It publishes nothing. Publishing is still deploy/publish-preview.sh, which runs the same
+# suite before it builds.
+name: Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: Self-assessment tool
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci
+      # Seven gates: prose, types, logic, the Firestore seam, the built page, routing, and the
+      # published build driven signed in.
+      - run: npm test

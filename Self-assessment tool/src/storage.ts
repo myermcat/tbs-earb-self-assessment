@@ -47,7 +47,7 @@ export function blankAssessment(rubric: Rubric): Assessment {
  * It starts idle. Starting at 'local' meant a page with nothing on it announced "draft saved
  * in browser" before anything had been saved, which is a claim ahead of the fact.
  */
-export type SaveState = 'idle' | 'saving' | 'local' | 'online' | 'failed';
+export type SaveState = 'idle' | 'local' | 'pending' | 'saving' | 'online' | 'offline' | 'failed';
 let saveState: SaveState = 'idle';
 let saveDetail = '';
 const saveWatchers = new Set<() => void>();
@@ -65,12 +65,17 @@ export function onSaveStateChange(fn: () => void): () => void {
 export function clearSaveWatchers(): void { saveWatchers.clear(); }
 
 /**
- * The three calls a real write needs. Nothing drives them yet: there is no endpoint, so the
- * only reachable states are idle, local and failed. They exist so the seam in src/store.ts has
- * something to call, and so the indicator's wording is settled before the write is built.
+ * The calls a real write needs. src/store.ts drives all of them.
+ *
+ * 'local' used to mean two different things at once: there is nowhere else for this to go, and
+ * this is on its way online. A badge cannot tell the truth about a queued write while those
+ * share a name, so 'pending' is the queue and 'local' is the end of the road.
  */
+export function writePending(): void { setSaveState('pending'); }
+export function localOnly(): void { setSaveState('local'); }
 export function beginWrite(): void { setSaveState('saving'); }
 export function writeLanded(): void { setSaveState('online'); }
+export function writeOffline(): void { setSaveState('offline'); }
 export function writeFailed(reason: string): void { setSaveState('failed', reason); }
 export function saveStatus(): { state: SaveState; detail: string } {
   return { state: saveState, detail: saveDetail };
@@ -114,8 +119,11 @@ export function registerAfterSave(fn: AfterSave): void { afterSave = fn; }
 export function autosave(a: Assessment): void {
   a.meta.updatedAt = new Date().toISOString();
   if (keepDraft(a)) {
-    setSaveState('local');
-    afterSave?.(a);
+    // Where the work stands is store.ts's answer, because only it knows whether there is a
+    // store, whether anybody is signed in, and whether this record may be sent at all. With no
+    // listener at all the browser is the whole story, which is what 'local' says.
+    if (afterSave) afterSave(a);
+    else setSaveState('local');
     return;
   }
   // A private window, or storage turned off. Saying nothing here is how somebody loses an

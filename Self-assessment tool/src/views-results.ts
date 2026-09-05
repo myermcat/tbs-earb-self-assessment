@@ -8,6 +8,7 @@ import { humanSize, totalAttachedBytes } from './attach';
 import { markingProblems } from './marking';
 import { t } from './i18n';
 import { isHosted, putRecord } from './store';
+import { currentUser } from './firebase';
 import { confirmStep } from './confirm';
 
 /**
@@ -275,36 +276,47 @@ function submitBlock(rubric: Rubric, a: Assessment, r: Result, blocked: boolean)
   }
 
   box.appendChild(el('div', { class: 'head-row' }, [
-    el('h2', {}, [submitted ? t('Submitted to TBS', 'Soumis au SCT') : t('Send it to TBS', 'Envoyer au SCT')]),
-    submitted ? el('span', { class: 'badge' }, [t('Submitted', 'Soumis')]) : null,
+    el('h2', {}, [
+      submitted
+        ? t('TBS has been told it is ready', 'Le SCT a été informé que c\u2019est prêt')
+        : t('Telling TBS it is ready to review', 'Dire au SCT que c\u2019est prêt à évaluer'),
+    ]),
+    submitted ? el('span', { class: 'badge' }, [t('Ready to review', 'Prêt à évaluer')]) : null,
   ]));
 
   if (submitted) {
     const when = new Date(a.meta.submittedAt as string);
     box.appendChild(el('p', { class: 'muted' }, [
-      `Sent on ${Number.isNaN(when.getTime()) ? 'an earlier visit' : when.toLocaleString()}. `,
-      t('Every change you make now goes through on its own, so there is nothing else to press.', 'Chaque modification que vous faites maintenant part d\u2019elle-même; il n\u2019y a rien d\u2019autre à cliquer.'),
+      `${Number.isNaN(when.getTime()) ? t('Told on an earlier visit. ', 'Signalé lors d\u2019une visite précédente. ') : t(`Told on ${when.toLocaleString()}. `, `Signalé le ${when.toLocaleString()}. `)}`,
+      t('You can keep working. Changes are kept at TBS as you make them, and your assessor reads the current version.', 'Vous pouvez continuer à travailler. Les modifications sont conservées au SCT à mesure, et votre évaluateur lit la version actuelle.'),
     ]));
     return box;
   }
 
+  /**
+   * Saving and handing in are two different acts, and naming them as one is what made this
+   * screen confusing. Signed in, the work is already at TBS. This button is the sentence that
+   * tells an assessor to read it.
+   */
   box.appendChild(el('p', { class: 'muted' }, [
-    t('Nothing has been sent yet. Your answers are in this browser and nowhere else.', 'Rien n\u2019a encore été envoyé. Vos réponses sont dans ce navigateur et nulle part ailleurs.'),
+    isHosted() && currentUser()
+      ? t('Your work is kept at TBS as you go. Nobody has been asked to read it yet.', 'Votre travail est conservé au SCT à mesure. Personne n\u2019a encore été invité à le lire.')
+      : t('Your answers are in this browser and nowhere else. Signing in keeps them at TBS as you work.', 'Vos réponses sont dans ce navigateur et nulle part ailleurs. La connexion les conserve au SCT pendant que vous travaillez.'),
   ]));
 
   const go = el('button', {
     class: 'primary', disabled: blocked,
     title: blocked
       ? t('Fix what is listed above first', 'Corrigez d\u2019abord ce qui est indiqué ci-dessus')
-      : t('Send this assessment to TBS', 'Envoyer cette évaluation au SCT'),
+      : t('Tell TBS this assessment is ready to review', 'Dire au SCT que cette évaluation est prête à évaluer'),
     onclick: () => {
       const ev = Object.values(a.answers).reduce((n, x) => n + (x.evidence ?? []).length, 0);
       confirmStep({
         tier: 'caution',
-        title: t('Send this assessment to TBS?', 'Envoyer cette évaluation au SCT?'),
-        body: `${r.answered} of ${r.scoreable} answers, ${ev} piece${ev === 1 ? '' : 's'} of evidence, and everything you wrote about the initiative. Your assessor sees all of it.`,
-        stake: t('Everything in this tool is unclassified. By sending it you are saying this is too.', 'Tout dans cet outil est non classifié. En l\u2019envoyant, vous affirmez que ceci l\u2019est aussi.'),
-        commitLabel: t('It is unclassified. Send it', 'C\u2019est non classifié. Envoyer'),
+        title: t('Tell TBS this is ready to review?', 'Dire au SCT que c\u2019est prêt à évaluer?'),
+        body: `${r.answered} of ${r.scoreable} answers, ${ev} piece${ev === 1 ? '' : 's'} of evidence, and everything you wrote about the initiative. Your assessor sees all of it. This saves nothing new: your work is already kept at TBS. It puts your assessment in front of an assessor, and you can keep working on it afterwards.`,
+        stake: t('Everything in this tool is unclassified. By telling them it is ready you are saying this is too.', 'Tout dans cet outil est non classifié. En disant que c\u2019est prêt, vous affirmez que ceci l\u2019est aussi.'),
+        commitLabel: t('It is unclassified. Tell them', 'C\u2019est non classifié. Les informer'),
         cancelLabel: t('Not yet', 'Pas encore'),
         onCommit: () => {
           a.meta.submittedAt = new Date().toISOString();
@@ -329,7 +341,7 @@ function submitBlock(rubric: Rubric, a: Assessment, r: Result, blocked: boolean)
         },
       });
     },
-  }, [t('Send it to TBS', 'Envoyer au SCT')]);
+  }, [t('Tell TBS it is ready to review', 'Dire au SCT que c\u2019est prêt')]);
 
   box.appendChild(el('div', { class: 'actions' }, [go]));
   box.appendChild(el('p', { class: 'tiny dim' }, [

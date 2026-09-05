@@ -86,7 +86,7 @@ function effectiveExpectation(q: Question, s: Section, stage: string): Expectati
  * punished for the questions it has not reached. Weights that do not sum to 100 normalise.
  */
 export function score(rubric: Rubric, a: Assessment): Result {
-  const stage = a.initiative.lifecycleStage;
+  const stage = (a.initiative?.lifecycleStage ?? '');
   let answered = 0;
   let scoreable = 0;
 
