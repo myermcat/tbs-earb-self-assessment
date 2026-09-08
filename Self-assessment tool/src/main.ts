@@ -1,5 +1,5 @@
 import type { Assessment, Rubric } from './types';
-import { el, clear } from './dom';
+import { el, clear, mockupTag } from './dom';
 import { validate } from './rubric';
 import { goToFirstGap, overviewFieldProgress, renderSubmit, resetOverviewToFirstGap, setRepaint,
   setStopKey, showMarkingStep, takeSubmitTabs, currentStopKey } from './views-submit';
@@ -13,8 +13,8 @@ import { saveBadge } from './save-badge';
 import { SAD_CAT } from './cat';
 import { bootLang, coverage, lang, type Lang, setLang } from './i18n';
 import { endpointHost, flushWrites, goneFromStore, isHosted, listRecords, putRecord } from './store';
-import { currentUser, forgetRole, isConfigured as firebaseConfigured, knownRole, lastSignInProblem,
-  loadRole, resumeSignIn, signInWithGoogle, signInWithMicrosoft, signOut } from './firebase';
+import { canSignIn, currentUser, forgetRole, isConfigured as firebaseConfigured, knownRole, lastSignInProblem,
+  loadRole, resumeSignIn, signInWithGoogle, signOut } from './firebase';
 import { t } from './i18n';
 import { answeredCount, APP_VERSION, autosave, blankAssessment, clearDraft, download, ensureRef,
   hasWork, lastSaveInfo, loadDraft, readJsonFiles, saveAssessmentFile, slug } from './storage';
@@ -254,7 +254,7 @@ function renderNoAccess(root: HTMLElement, state: Access) {
         forgetPool();
         forgetRole();
         assessorName = '';
-        void signInWithGoogle();
+        void signInWithGoogle().then((went) => { if (!went) paint(); });
       },
     }, [t('Sign in with a different account', 'Se connecter avec un autre compte')]),
   ];
@@ -324,7 +324,7 @@ function paint() {
 
   // Header, marking and the domain tabs travel as one sticky block. Separately pinned strips
   // leave a seam that page content shows through.
-  const chrome = el('div', { class: 'chrome' }, [header()]);
+  const chrome = el('div', { class: 'chrome' }, [header(gate || access !== 'ok')]);
   if (mode === 'submit' || mode === 'results') chrome.appendChild(banner());
   const tabs = takeSubmitTabs();
   if (mode === 'submit' && tabs) chrome.appendChild(tabs);
@@ -356,7 +356,12 @@ function measureChrome(): void {
  * have it reviewed. Settings is not a step on that path, so it takes the usual place and the
  * usual icon at the far right.
  */
-function header(): HTMLElement {
+/**
+ * The chrome. On a sign-in screen it carries the name of the tool and the language, and nothing
+ * else: a save badge saying work is kept in this browser, an offer to sign in to save online and
+ * a breadcrumb to submissions are all answers to questions nobody has been allowed to ask yet.
+ */
+function header(bare = false): HTMLElement {
   const tab = (label: string, m: Mode) =>
     el('button', { class: `tab ${mode === m ? 'on' : ''}`, onclick: () => go(m) }, [label]);
   const chev = () => el('span', { class: 'chev', 'aria-hidden': true }, ['\u203A']);
@@ -365,7 +370,7 @@ function header(): HTMLElement {
     el('div', { class: 'brand', onclick: () => go(side === 'assess' ? 'review' : 'home') }, [
       el('span', { class: 'brand-mark' }, ['EA']),
       el('strong', {}, [rubric.title]),
-      side === 'assess'
+      side === 'assess' && !bare
         ? el('span', { class: 'side-badge' }, [
             !assessorName.trim() ? t('Assessor', 'Évaluateur')
               : firebaseConfigured() ? assessorName.trim()
@@ -375,20 +380,20 @@ function header(): HTMLElement {
     ]),
     el('div', { class: 'topbar-right' }, [
       // Where the work is kept, on every screen, and one click from the detail.
-      saveBadge(() => openSettings('answers')),
+      bare ? null : saveBadge(() => openSettings('answers')),
       /**
        * Signing in is not a gate on this side. A submitter can answer all 176 questions with no
        * account at all. What the account buys is that the work is kept at TBS as they go, so the
        * offer is beside the save state, where somebody wondering where their work lives is
        * already looking.
        */
-      isHosted() && firebaseConfigured() && !currentUser()
+      !bare && isHosted() && canSignIn() && !currentUser()
         ? el('button', {
             class: 'linkish small',
-            onclick: () => { void signInWithGoogle(); },
+            onclick: () => { void signInWithGoogle().then((went) => { if (!went) paint(); }); },
           }, [t('Sign in to save online', 'Se connecter pour enregistrer en ligne')])
         : null,
-      side === 'assess'
+      bare ? null : side === 'assess'
         ? el('nav', { class: 'path', 'aria-label': t('Where you are', 'Où vous êtes') }, [
             tab(t('Submissions', 'Soumissions'), 'review'),
             // No store means no roles, so the mockup keeps both tabs. With a store, the tab
@@ -404,8 +409,27 @@ function header(): HTMLElement {
             tab(t('My results', 'Mes résultats'), 'results'),
           ]),
       side === 'assess'
-        ? el('button', { class: 'linkish small', onclick: () => setSide('submit') }, [t('Leave assessor view', 'Quitter la vue de l\u2019évaluateur')])
+        ? el('button', { class: 'linkish small', onclick: () => setSide('submit') }, [
+            t('Leave assessor view', 'Quitter la vue de l\u2019évaluateur'),
+          ])
         : null,
+      /**
+       * One link, naming the other language in that language, which is the Canada.ca and WET
+       * pattern. The href is real: bootLang() reads ?lang=, so the French page is something a
+       * person can send to somebody. `lang` on the link is what makes a screen reader say
+       * "Français" with a French voice inside an English page.
+       */
+      (() => {
+        const other: Lang = lang() === 'en' ? 'fr' : 'en';
+        const label = other === 'fr' ? 'Français' : 'English';
+        return el('a', {
+          class: 'lang-link', lang: other, hreflang: other, href: `?lang=${other}`,
+          onclick: (e: Event) => { e.preventDefault(); setLang(other); paint(); },
+        }, [
+          el('span', { class: 'lang-full' }, [label]),
+          el('abbr', { class: 'lang-abbr', title: label }, [other.toUpperCase()]),
+        ]);
+      })(),
       /**
        * The account menu.
        *
@@ -430,23 +454,6 @@ function header(): HTMLElement {
             ]),
           ])
         : null,
-      /**
-       * One link, naming the other language in that language, which is the Canada.ca and WET
-       * pattern. The href is real: bootLang() reads ?lang=, so the French page is something a
-       * person can send to somebody. `lang` on the link is what makes a screen reader say
-       * "Français" with a French voice inside an English page.
-       */
-      (() => {
-        const other: Lang = lang() === 'en' ? 'fr' : 'en';
-        const label = other === 'fr' ? 'Français' : 'English';
-        return el('a', {
-          class: 'lang-link', lang: other, hreflang: other, href: `?lang=${other}`,
-          onclick: (e: Event) => { e.preventDefault(); setLang(other); paint(); },
-        }, [
-          el('span', { class: 'lang-full' }, [label]),
-          el('abbr', { class: 'lang-abbr', title: label }, [other.toUpperCase()]),
-        ]);
-      })(),
       el('button', {
         class: `icon-btn ${mode === 'settings' ? 'on' : ''}`,
         title: t('Settings', 'Paramètres'), 'aria-label': t('Settings', 'Paramètres'),
@@ -741,17 +748,40 @@ function renderRealSignIn(root: HTMLElement) {
           el('p', { class: 'small' }, [problem]),
         ])
       : null,
+    /**
+     * A page opened from a file cannot sign in at all: there is no address for a provider to
+     * return to. The button used to be offered anyway and pressing it did nothing, because the
+     * refusal went into a promise nobody read. Now the screen says it before it is pressed.
+     */
+    !canSignIn()
+      ? el('div', { class: 'card warn tight' }, [
+          el('strong', { class: 'small' }, [t('This copy was opened from a file', 'Cette copie a été ouverte depuis un fichier')]),
+          el('p', { class: 'small' }, [
+            t('Signing in needs the page served over http or https, because the provider has to have somewhere to send you back to. Open the published address and sign in there.',
+              'La connexion exige que la page soit servie en http ou https, car le fournisseur doit avoir une adresse de retour. Ouvrez l\u2019adresse publiée et connectez-vous là.'),
+          ]),
+        ])
+      : null,
     el('div', { class: 'actions signin-providers' }, [
-      el('button', { class: 'primary', onclick: () => { void signInWithGoogle(); } }, [
-        t('Continue with Google', 'Continuer avec Google'),
-      ]),
-      el('button', { class: 'ghost', onclick: () => { void signInWithMicrosoft(); } }, [
-        t('Continue with your Microsoft or departmental account', 'Continuer avec votre compte Microsoft ou ministériel'),
+      el('button', {
+        class: 'primary', disabled: !canSignIn(),
+        onclick: () => { void signInWithGoogle().then((went) => { if (!went) paint(); }); },
+      }, [t('Continue with Google', 'Continuer avec Google')]),
+      /**
+       * Microsoft is on the screen because it is how somebody uses their departmental account,
+       * and it is disabled because Firebase needs an application registered in an Azure
+       * directory first. A button that looks ordinary and does nothing is worse than no button.
+       */
+      el('div', { class: 'mockup-row' }, [
+        el('button', { class: 'ghost is-mockup', disabled: true }, [
+          t('Continue with your Microsoft or departmental account', 'Continuer avec votre compte Microsoft ou ministériel'),
+        ]),
+        mockupTag(t('Not built', 'Pas construit')),
       ]),
     ]),
     el('p', { class: 'tiny dim' }, [
-      t('A departmental account may need somebody at TBS to allow this application first. Google works either way while that is being arranged.',
-        'Un compte ministériel peut nécessiter l\u2019autorisation préalable de quelqu\u2019un au SCT. Google fonctionne entre-temps.'),
+      t('A departmental account needs somebody with Azure rights at TBS to register this application first. Until they do, that button does nothing and says so. Google works meanwhile.',
+        'Un compte ministériel exige que quelqu\u2019un ayant les droits Azure au SCT enregistre d\u2019abord cette application. D\u2019ici là, ce bouton ne fait rien et le dit. Google fonctionne entre-temps.'),
     ]),
   ]);
   root.appendChild(card);
@@ -1106,7 +1136,7 @@ function paneAnswers(pane: HTMLElement) {
         : 'The store only accepts work from somebody it knows, so pressing Send asks you to sign in first. It reads your name and address from the account you use, and it never sees a password.',
       me
         ? el('button', { class: 'ghost', onclick: () => leave() }, ['Sign out'])
-        : el('button', { class: 'primary', onclick: () => { void signInWithGoogle(); } }, ['Sign in with Google']),
+        : el('button', { class: 'primary', onclick: () => { void signInWithGoogle().then((went) => { if (!went) paint(); }); } }, ['Sign in with Google']),
       me ? {} : { tier: 'caution', badge: 'Not signed in' },
     ));
   } else {

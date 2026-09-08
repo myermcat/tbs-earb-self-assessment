@@ -1046,13 +1046,12 @@ byText('.crossover button', 'Open the admin view').click();
 ok('the admin view asks who you are first', view().includes('Sign in'));
 byText('button', 'Leave assessor view').click();
 byText('.crossover button', 'Open the assessor view').click();
-ok('the assessor side announces itself', !!q('.side-badge'), q('.brand')?.textContent);
-ok("the assessor's path is Submissions then Admin",
-   qa('nav.path .tab').map((t) => t.textContent).join('|') === 'Submissions|Admin',
-   qa('nav.path .tab').map((t) => t.textContent).join('|'));
-ok('the assessor path offers an admin view', !!byText('.tab', 'Admin'));
-ok('the submitter path is gone from the assessor view',
-   !qa('nav.path .tab').some((t) => /Start|Fill it in|My results/.test(t.textContent)));
+// The sign-in screen carries the name of the tool, the language and the way out, and nothing
+// else. A save badge, an offer to sign in and a breadcrumb to submissions are all answers to
+// questions this person has not been allowed to ask yet.
+ok('the sign-in screen carries no save badge', !q('.topbar .save-state'));
+ok('and no breadcrumb', !q('.topbar nav.path'));
+ok('and no assessor badge yet', !q('.side-badge'));
 ok('and there is a way back', !!byText('button', 'Leave assessor view'));
 ok('the side is remembered', window.localStorage.getItem('gc-arch-assessment:side') === 'assess');
 
@@ -1072,6 +1071,13 @@ ok('the real route is shown but not wired',
   ok('the badge carries the name and the word unverified',
      q('.side-badge').textContent.includes('Allison') && q('.side-badge').textContent.includes('unverified'),
      q('.side-badge')?.textContent);
+  // Signed in, the full header comes back.
+  ok("the assessor's path is Submissions then Admin",
+     qa('nav.path .tab').map((t) => t.textContent).join('|') === 'Submissions|Admin',
+     qa('nav.path .tab').map((t) => t.textContent).join('|'));
+  ok('the assessor path offers an admin view', !!byText('.tab', 'Admin'));
+  ok('the submitter path is gone from the assessor view',
+     !qa('nav.path .tab').some((t) => /Start|Fill it in|My results/.test(t.textContent)));
 }
 // The screen says why there is nothing from the shared store, and leaves a way to work.
 ok('the empty pool explains itself', view().includes('No shared pool yet'));

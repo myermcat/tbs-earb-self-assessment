@@ -58,3 +58,14 @@ export function tone(v: number | null): string {
 export function bar(v: number | null): string {
   return v === null ? 'bnone' : `b${Math.max(0, Math.min(10, Math.round(v)))}`;
 }
+
+/**
+ * The mark on a control that does not work yet.
+ *
+ * A prototype is full of screens that exist before the thing behind them does, and a button
+ * that looks ordinary and does nothing is worse than no button. Every one of them carries this,
+ * and every one of them is also disabled, so it reads as unfinished before it is pressed.
+ */
+export function mockupTag(label = 'Mockup'): HTMLElement {
+  return el('span', { class: 'badge badge-mockup tiny' }, [label]);
+}

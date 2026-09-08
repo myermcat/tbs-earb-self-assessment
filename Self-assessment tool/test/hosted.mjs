@@ -55,15 +55,19 @@ const asDoc = (a) => ({ name: `projects/p/databases/(default)/documents/assessme
  * One page, booted with whatever storage and whatever store answer a case needs.
  * `listAnswer` decides what the assessments list does: a page of documents, or a refusal.
  */
-async function boot({ session = null, side = null, listAnswer = { documents: [] }, role = null, hash = '' } = {}) {
+async function boot({ session = null, side = null, listAnswer = { documents: [] }, role = null, hash = '', url = null } = {}) {
   const seen = [];
   const dom = new JSDOM(html, {
     runScripts: 'dangerously',
-    url: `https://example.gc.ca/tool/${hash}`,
+    url: url ?? `https://example.gc.ca/tool/${hash}`,
     pretendToBeVisual: true,
     beforeParse(w) {
-      if (session) w.localStorage.setItem(SESSION, JSON.stringify(session));
-      if (side) w.localStorage.setItem(SIDE, side);
+      // A file:// origin is opaque, so jsdom throws on any storage access. That is the same
+      // thing a browser does in a locked-down private window, and the tool has to survive it.
+      try {
+        if (session) w.localStorage.setItem(SESSION, JSON.stringify(session));
+        if (side) w.localStorage.setItem(SIDE, side);
+      } catch { /* no storage on this origin */ }
       w.scrollTo = () => {};
       w.alert = () => {};
       w.print = () => {};
@@ -193,6 +197,54 @@ console.log('\nThe published build, signed in\n');
   const { doc, dom, seen } = await boot({ side: 'assess' });
   ok('signed out, the sign-in card draws', /Continue with Google/.test(body(doc)));
   ok('and nothing is fetched before somebody signs in', seen.length === 0, JSON.stringify(seen).slice(0, 200));
+  dom.window.close();
+}
+
+/* --------------------------------------------------------------------------------------- */
+{
+  // The same configured build, opened from a file. There is no address for a provider to
+  // return to, so the button used to be offered and then do nothing at all, because the
+  // refusal went into a promise nobody was reading.
+  // Storage is unavailable on this origin, so the address is what puts us on the assessor side.
+  const { doc, dom } = await boot({ url: 'file:///Users/someone/dist/index.html#assessor' });
+  const t = body(doc);
+  ok('opened from a file, the screen says why sign-in cannot work', /opened from a file/i.test(t), t.slice(0, 200));
+  const google = [...doc.querySelectorAll('.signin-providers button')]
+    .find((b) => /Continue with Google/.test(b.textContent));
+  ok('and the Google button is dead rather than silent', google?.disabled === true);
+  dom.window.close();
+}
+
+{
+  // Microsoft is on the screen and is not built. It has to read as unfinished before it is
+  // pressed, which means disabled and labelled.
+  const { doc, dom } = await boot({ side: 'assess' });
+  const ms = [...doc.querySelectorAll('.signin-providers button')]
+    .find((b) => /Microsoft/.test(b.textContent));
+  ok('the Microsoft button is disabled', ms?.disabled === true);
+  ok('and carries a mockup mark', !!doc.querySelector('.signin-providers .badge-mockup'));
+  ok('and the copy says who has to register it', /Azure rights/.test(body(doc)));
+  dom.window.close();
+}
+
+{
+  // The sign-in screen is not the place for a save badge, an offer to sign in, or a breadcrumb
+  // to submissions. None of those are questions this person has been allowed to ask yet.
+  const { doc, dom } = await boot({ side: 'assess' });
+  const right = doc.querySelector('.topbar-right');
+  const kinds = [...right.children].map((n) => n.className.split(' ')[0]);
+  ok('the sign-in header carries no save badge', !kinds.includes('save-state'), kinds.join(','));
+  ok('and no breadcrumb', !kinds.includes('path'), kinds.join(','));
+  ok('and the language link is still there', kinds.includes('lang-link'), kinds.join(','));
+  dom.window.close();
+}
+
+{
+  // Signed in, the language link comes before the account menu.
+  const { doc, dom } = await boot({ session: live, side: 'assess', role: 'admin' });
+  const kinds = [...doc.querySelector('.topbar-right').children].map((n) => n.className.split(' ')[0]);
+  ok('the language link is to the left of the account menu',
+     kinds.indexOf('lang-link') < kinds.indexOf('set-menu'), kinds.join(','));
   dom.window.close();
 }
 
