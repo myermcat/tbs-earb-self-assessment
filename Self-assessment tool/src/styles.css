@@ -535,16 +535,22 @@ a.faint-link:hover { color: var(--accent); }
 .app-results { height: 100dvh; display: flex; flex-direction: column; overflow: hidden; }
 .body-results {
   flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior-y: contain;
-  scroll-snap-type: y mandatory; scroll-behavior: smooth;
-  margin: 0 auto; padding: 0 1.15rem 3rem;
-  scrollbar-width: none;                 /* the dots on the right are the scrollbar */
+  /* Proximity, because mandatory fought every gesture: a short scroll was dragged back to the
+     nearest section edge, and a section taller than the window could not be read at all. The
+     dots on the right still take you to a section; this only stops the page arguing on the way. */
+  scroll-snap-type: y proximity; scroll-behavior: smooth;
+  margin: 0 auto; padding: 1.15rem 1.15rem 3rem; max-width: 940px;
+  scrollbar-width: thin;                 /* an affordance, as well as the dots on the right */
 }
 .body-results::-webkit-scrollbar { display: none; }
+/* Every block on this page is a section.card. This used to strip the background, the border and
+   the shadow off all of them, so the whole results page read as one flat surface with no
+   separation anywhere. The snap target and the card are the same box here, and that is fine. */
 .body-results > section {
-  scroll-snap-align: start; scroll-snap-stop: always; scroll-margin-top: 1rem;
-  padding: 1.4rem 0 1.8rem; margin: 0; border: 0; box-shadow: none; background: none;
+  scroll-snap-align: start; scroll-margin-top: 1.15rem;
+  margin: 0 0 1.15rem;
 }
-/* Each part carries its own card, so the snap target and the card are not the same box. */
+.body-results > section:last-child { margin-bottom: 0; }
 
 
 .snap-hint { position: fixed; right: 1rem; bottom: 1.2rem; z-index: 20;
