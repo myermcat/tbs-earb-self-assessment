@@ -310,7 +310,16 @@ function clearSession(): void {
 export function currentUser(): CurrentUser | null {
   if (!CONFIG) return null;
   const s = readSession();
-  return s ? { email: s.email, idToken: s.idToken } : null;
+  if (!s) return null;
+  /**
+   * A session whose token has run out and which has no refresh token is nobody.
+   *
+   * This used to answer with whatever was in storage, so a page could believe somebody was
+   * signed in while every request they made came back refused. Where a refresh token exists
+   * there is still a way back and freshToken() takes it, so that case stays signed in.
+   */
+  if (Date.now() >= s.expiresAt && !s.refreshToken) return null;
+  return { email: s.email, idToken: s.idToken };
 }
 
 /**
@@ -418,6 +427,15 @@ async function startSignIn(providerId: Provider): Promise<void> {
 export function canSignIn(): boolean {
   if (!CONFIG || typeof window === 'undefined') return false;
   return /^https?:$/.test(window.location.protocol);
+}
+
+/** Where this page was loaded from, for a screen that has to say why sign-in is unavailable. */
+export function pageAddress(): string {
+  try {
+    return window.location.href;
+  } catch {
+    return '';
+  }
 }
 
 /**

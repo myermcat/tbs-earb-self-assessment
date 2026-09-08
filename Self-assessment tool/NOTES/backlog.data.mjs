@@ -129,6 +129,21 @@ export const quick = {
 
 export const layers = [
   {
+    title: 'Known problems', owner: 'Build team',
+    groups: [
+      { t: 'The assessor\u2019s audit never reaches the store', status: 'next',
+        why: 'The biggest one. An assessor scores a submission and the only thing that happens is a file downloads to their laptop. So the portfolio\u2019s audited count can never leave zero, and a review exists nowhere the department can see. It is a decision before it is a patch: the published rules describe the audit as a separate document beside the assessment, so an assessor can write a score without being able to touch an answer, and the code keeps it as a field inside the assessment, which the rules refuse to let an assessor write at all. One of the two has to move. Writing it where the rules already allow means a second small write beside the assessment; keeping it as a field means widening the rules so an assessor may update the document, and then something has to stop them editing answers.' },
+      { t: 'Nothing tests the sign-in round trip', status: 'next',
+        why: 'Every test seeds a session by hand, so the three legs of a real sign-in are untested: asking Google for an address to send somebody to, holding the reference while the browser is away, and trading the code that comes back for a token. That is the one leg that reached you broken, twice.' },
+      { t: 'The rules are only ever tested signed out', status: 'next',
+        why: 'deploy/check-rules.sh makes four calls with no account and asserts all four are refused, which is worth having. What nothing covers is the part that matters once there are two departments in the store: that one submitter cannot read another\u2019s assessment. Proving that needs two signed-in identities, which means the Firebase emulator and its rules-testing library, run from the tests.' },
+      { t: 'The question-set lock only warns, and its own importer overwrites it', status: 'next',
+        why: 'rubric/rubric-ids.lock.json records what each of Dan\u2019s 176 question ids meant, so that a question changing meaning while keeping its id can be caught. Every assessment records the ids it answered, so a changed meaning makes old scores wrong without anything looking wrong. The lock only prints a warning, it is not part of npm test, and the importer rewrites it at the end of its own run, so a drift is absorbed after one pass. Reading it in the tests and failing on a changed meaning is half an hour.' },
+      { t: 'A submitter cannot remove their own record', status: 'wait',
+        why: 'Yours to decide, and parked until you do. Discarding a draft leaves the copy at TBS untouched, because delete is admin-only. The screens say so. The alternative is one line in the rules letting an owner delete a record nobody has been asked to review yet.' },
+    ],
+  },
+  {
     title: 'In your name', owner: 'Mariia',
     groups: [
       { t: 'GitHub, myermcat', status: 'next',

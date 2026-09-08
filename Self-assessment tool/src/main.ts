@@ -1,10 +1,10 @@
 import type { Assessment, Rubric } from './types';
-import { el, clear, mockupTag } from './dom';
+import { el, clear } from './dom';
 import { validate } from './rubric';
 import { score } from './scoring';
 import { goToFirstGap, overviewFieldProgress, renderSubmit, resetOverviewToFirstGap, setRepaint,
-  setStopKey, showMarkingStep, takeSubmitTabs, currentStopKey } from './views-submit';
-import { renderResults } from './views-results';
+  setSaveOnline, setStopKey, showMarkingStep, takeSubmitTabs, currentStopKey } from './views-submit';
+import { handOff, renderResults } from './views-results';
 import { forgetPool, openedThisSession, renderReview, setAuditor } from './views-review';
 import { renderDashboard } from './views-dashboard';
 import { addToLibrary, canRemove, currentId, currentRubric, libraryList, removeFromLibrary,
@@ -16,7 +16,7 @@ import { openShareDialog, sharedCount } from './views-share';
 import { bootLang, coverage, lang, type Lang, setLang } from './i18n';
 import { endpointHost, flushWrites, goneFromStore, isHosted, listRecords, putRecord, saveOnlineNow,
   savedOnline } from './store';
-import { canSignIn, currentUser, forgetRole, isConfigured as firebaseConfigured, knownRole, lastSignInProblem,
+import { canSignIn, currentUser, forgetRole, pageAddress, isConfigured as firebaseConfigured, knownRole, lastSignInProblem,
   loadRole, resumeSignIn, signInWithGoogle, signOut } from './firebase';
 import { t } from './i18n';
 import { answeredCount, APP_VERSION, autosave, blankAssessment, clearDraft, download, ensureRef,
@@ -164,6 +164,12 @@ function setSide(next: Side, move = true, target?: Mode) {
   if (move) go(target ?? (next === 'assess' ? 'review' : 'home'));
   else pushRoute();
 }
+
+const PERSON_PLUS =
+  '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" ' +
+  'stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+  '<path d="M15 19v-1a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v1"/><circle cx="8.5" cy="7" r="4"/>' +
+  '<path d="M19 8v6M22 11h-6"/></svg>';
 
 const GEAR =
   '<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" ' +
@@ -424,6 +430,37 @@ function header(bare = false): HTMLElement {
           ])
         : null,
     ]),
+    /**
+     * File, where a document editor keeps it.
+     *
+     * Everything you do to a whole assessment lives here: who can see it, sending it, taking a
+     * copy away. Saving to a file used to be a button on the questionnaire footer, which is the
+     * wrong offer in the wrong place, because a file is a thing you do at the end and the
+     * question somebody has while answering is where their work is going.
+     */
+    !bare && side === 'submit'
+      ? el('details', { class: 'set-menu file-menu' }, [
+          el('summary', { class: 'set-menu-btn file-btn' }, [t('File', 'Fichier')]),
+          el('div', { class: 'set-menu-pop' }, [
+            el('button', {
+              class: 'menu-item',
+              onclick: () => openShareDialog(assessment, currentUser()?.email ?? assessorName, () => paint()),
+            }, [t('Share access', 'Gérer l\u2019accès')]),
+            el('button', {
+              class: 'menu-item',
+              onclick: () => handOff(assessment),
+            }, [t('Email this assessment', 'Envoyer cette évaluation par courriel')]),
+            el('button', {
+              class: 'menu-item',
+              onclick: () => { saveAssessmentFile(assessment); paint(); },
+            }, [t('Download as a file', 'Télécharger comme fichier')]),
+            el('button', {
+              class: 'menu-item',
+              onclick: () => window.print(),
+            }, [t('Print or save as PDF', 'Imprimer ou enregistrer en PDF')]),
+          ]),
+        ])
+      : null,
     el('div', { class: 'topbar-right' }, [
       // Where the work is kept, on every screen, and one click from the detail.
       bare ? null : saveBadge(() => openSettings('answers')),
@@ -473,10 +510,12 @@ function header(bare = false): HTMLElement {
        */
       !bare && side === 'submit' && (mode === 'submit' || mode === 'results')
         ? el('button', {
-            class: 'ghost small',
-            title: t('See who this is shared with', 'Voir avec qui cette évaluation est partagée'),
+            class: 'ghost small share-btn',
+            title: t('Manage who can see and work on this assessment',
+              'Gérer qui peut voir cette évaluation et y travailler'),
             onclick: () => openShareDialog(assessment, currentUser()?.email ?? assessorName, () => paint()),
           }, [
+            el('span', { class: 'share-ico', html: PERSON_PLUS }),
             t('Share', 'Partager'),
             sharedCount(assessment) ? el('span', { class: 'ref-chip' }, [String(sharedCount(assessment))]) : null,
           ])
@@ -804,7 +843,6 @@ function renderRealSignIn(root: HTMLElement) {
   const card = el('section', { class: 'card signin' }, [
     el('div', { class: 'head-row' }, [
       el('h1', {}, [t('Sign in', 'Connexion')]),
-      el('span', { class: 'badge' }, [t('Prototype', 'Prototype')]),
     ]),
     el('p', { class: 'muted' }, [
       t('The tool needs to know who you are before it can show you anything. It reads your name and address from whichever account you use, and it never sees a password.',
@@ -823,10 +861,21 @@ function renderRealSignIn(root: HTMLElement) {
      */
     !canSignIn()
       ? el('div', { class: 'card warn tight' }, [
-          el('strong', { class: 'small' }, [t('This copy was opened from a file', 'Cette copie a été ouverte depuis un fichier')]),
+          el('strong', { class: 'small' }, [
+            t('Sign-in needs a web address, and this page has none',
+              'La connexion exige une adresse web, et cette page n\u2019en a pas'),
+          ]),
           el('p', { class: 'small' }, [
-            t('Signing in needs the page served over http or https, because the provider has to have somewhere to send you back to. Open the published address and sign in there.',
-              'La connexion exige que la page soit servie en http ou https, car le fournisseur doit avoir une adresse de retour. Ouvrez l\u2019adresse publiée et connectez-vous là.'),
+            t('Google has to be given somewhere to send you back to, and it will only accept an address registered in advance. This page was loaded from:',
+              'Google doit recevoir une adresse de retour, et il n\u2019accepte qu\u2019une adresse enregistrée d\u2019avance. Cette page a été chargée depuis :'),
+          ]),
+          el('p', { class: 'mono tiny' }, [pageAddress()]),
+          el('p', { class: 'small' }, [
+            t('Open the published address and sign in there: ', 'Ouvrez l\u2019adresse publiée et connectez-vous là : '),
+            el('a', {
+              href: 'https://myermcat.github.io/tbs-earb-self-assessment-preview/',
+              target: '_blank', rel: 'noopener',
+            }, ['myermcat.github.io/tbs-earb-self-assessment-preview']),
           ]),
         ])
       : null,
@@ -840,11 +889,12 @@ function renderRealSignIn(root: HTMLElement) {
        * and it is disabled because Firebase needs an application registered in an Azure
        * directory first. A button that looks ordinary and does nothing is worse than no button.
        */
-      el('div', { class: 'mockup-row' }, [
-        el('button', { class: 'ghost is-mockup', disabled: true }, [
-          t('Continue with your Microsoft or departmental account', 'Continuer avec votre compte Microsoft ou ministériel'),
-        ]),
-        mockupTag(t('Not built', 'Pas construit')),
+      el('button', {
+        class: 'ghost is-mockup', disabled: true,
+        title: t('Mockup. No working sign-in behind it yet. To build it, somebody with Azure rights at TBS has to register this application in the departmental directory.',
+          'Maquette. Aucune connexion fonctionnelle derrière pour l\u2019instant. Pour la construire, une personne ayant les droits Azure au SCT doit enregistrer cette application dans l\u2019annuaire ministériel.'),
+      }, [
+        t('Continue with your Microsoft or departmental account', 'Continuer avec votre compte Microsoft ou ministériel'),
       ]),
     ]),
     el('p', { class: 'tiny dim' }, [
@@ -1577,6 +1627,7 @@ warnGoneFromStore();
 wireScrollLift();
 closeMenusOnOutsideClick(document);
 setRepaint(() => paint());
+setSaveOnline(() => offerOnlineSave());
 
 const check = validate(rubric);
 if (!check.ok) {

@@ -95,20 +95,21 @@ background:var(--surface);border:1px solid var(--line);border-radius:10px;list-s
 <div class="head"><div class="head-in"><h1>EARB self-assessment: backlog</h1>
 <p class="sub">Updated 2026-09-01.</p></div></div>
 <nav class="topnav"><div class="topnav-in">
-<a class="nav-kpi" href="#quick"><b>31</b><span>next</span></a>
-<a class="nav-kpi" href="#waiting"><b>8</b><span>waiting on somebody</span></a>
+<a class="nav-kpi" href="#quick"><b>35</b><span>next</span></a>
+<a class="nav-kpi" href="#waiting"><b>9</b><span>waiting on somebody</span></a>
 <a class="nav-kpi" href="#done"><b>80</b><span>done</span></a>
 <a class="nav-kpi" href="#questions"><b>12</b><span>open questions</span></a>
 <span class="nav-sep"></span>
-<a class="nav-lay" href="#layer-0">In your name</a>
-<a class="nav-lay" href="#layer-1">Question set</a>
-<a class="nav-lay" href="#layer-2">Engine</a>
-<a class="nav-lay" href="#layer-3">the submitter</a>
-<a class="nav-lay" href="#layer-4">the assessor</a>
-<a class="nav-lay" href="#layer-5">admin</a>
-<a class="nav-lay" href="#layer-6">the executive view</a>
-<a class="nav-lay" href="#layer-7">Data and hosting</a>
-<a class="nav-lay" href="#layer-8">Process, for people</a>
+<a class="nav-lay" href="#layer-0">Known problems</a>
+<a class="nav-lay" href="#layer-1">In your name</a>
+<a class="nav-lay" href="#layer-2">Question set</a>
+<a class="nav-lay" href="#layer-3">Engine</a>
+<a class="nav-lay" href="#layer-4">the submitter</a>
+<a class="nav-lay" href="#layer-5">the assessor</a>
+<a class="nav-lay" href="#layer-6">admin</a>
+<a class="nav-lay" href="#layer-7">the executive view</a>
+<a class="nav-lay" href="#layer-8">Data and hosting</a>
+<a class="nav-lay" href="#layer-9">Process, for people</a>
 <a class="nav-lay" href="#resolved">Resolved</a>
 </div></nav>
 <div class="wrap">
@@ -153,6 +154,7 @@ background:var(--surface);border:1px solid var(--line);border-radius:10px;list-s
 </div>
 <h2 id="waiting">Waiting on somebody</h2><p class="hint">Chased, and not ours to finish. Each of these is also in its layer below.</p>
 <div class="tw"><table><thead><tr><th>Item</th><th>Who</th><th>Layer</th><th>Meanwhile</th></tr></thead><tbody>
+<tr><td>A submitter cannot remove their own record</td><td>Build team</td><td>Known problems</td><td>Yours to decide, and parked until you do. Discarding a draft leaves the copy at TBS untouched, because delete is admin-only. The screens say so. The alternative is one line in the rules letting an owner delete a record nobody has been asked to review yet.</td></tr>
 <tr><td>Confirm the answer type for every question</td><td>Dan</td><td>Question set</td><td>Ten are yes/no on our reading of the wording. The other 166 are scored 0 to 10.</td></tr>
 <tr><td>Confirm which no answers matter most</td><td>Dan</td><td>Question set</td><td>Every no colours its section red today. If some should not, that is his call.</td></tr>
 <tr><td>Set per-question criticality</td><td>Dan</td><td>Question set</td><td>Separate from section weight, and nothing in his workbook carries it.</td></tr>
@@ -162,7 +164,30 @@ background:var(--surface);border:1px solid var(--line);border-radius:10px;list-s
 <tr><td>Nick’s answer on who performs the transfer</td><td>Nick</td><td>Data and hosting</td><td>Open an issue on canada-ca/welcome is the route he named. Whether he moves it or you do is the part still unanswered.</td></tr>
 <tr><td>Decide the triggers</td><td>Dan</td><td>Data and hosting</td><td>Submission, assignment, a changed score and a reminder are four different decisions.</td></tr>
 </tbody></table></div>
-<h2 id="layer-0">In your name <span class="owner">Mariia</span></h2>
+<h2 id="layer-0">Known problems <span class="owner">Build team</span></h2>
+<div class="card">
+<div class="leaf solo">
+<span class="t">The assessor’s audit never reaches the store</span><span class="st st-next">Next</span>
+<span class="w">The biggest one. An assessor scores a submission and the only thing that happens is a file downloads to their laptop. So the portfolio’s audited count can never leave zero, and a review exists nowhere the department can see. It is a decision before it is a patch: the published rules describe the audit as a separate document beside the assessment, so an assessor can write a score without being able to touch an answer, and the code keeps it as a field inside the assessment, which the rules refuse to let an assessor write at all. One of the two has to move. Writing it where the rules already allow means a second small write beside the assessment; keeping it as a field means widening the rules so an assessor may update the document, and then something has to stop them editing answers.</span>
+</div>
+<div class="leaf solo">
+<span class="t">Nothing tests the sign-in round trip</span><span class="st st-next">Next</span>
+<span class="w">Every test seeds a session by hand, so the three legs of a real sign-in are untested: asking Google for an address to send somebody to, holding the reference while the browser is away, and trading the code that comes back for a token. That is the one leg that reached you broken, twice.</span>
+</div>
+<div class="leaf solo">
+<span class="t">The rules are only ever tested signed out</span><span class="st st-next">Next</span>
+<span class="w">deploy/check-rules.sh makes four calls with no account and asserts all four are refused, which is worth having. What nothing covers is the part that matters once there are two departments in the store: that one submitter cannot read another’s assessment. Proving that needs two signed-in identities, which means the Firebase emulator and its rules-testing library, run from the tests.</span>
+</div>
+<div class="leaf solo">
+<span class="t">The question-set lock only warns, and its own importer overwrites it</span><span class="st st-next">Next</span>
+<span class="w">rubric/rubric-ids.lock.json records what each of Dan’s 176 question ids meant, so that a question changing meaning while keeping its id can be caught. Every assessment records the ids it answered, so a changed meaning makes old scores wrong without anything looking wrong. The lock only prints a warning, it is not part of npm test, and the importer rewrites it at the end of its own run, so a drift is absorbed after one pass. Reading it in the tests and failing on a changed meaning is half an hour.</span>
+</div>
+<div class="leaf solo">
+<span class="t">A submitter cannot remove their own record</span><span class="st st-wait">Waiting</span>
+<span class="w">Yours to decide, and parked until you do. Discarding a draft leaves the copy at TBS untouched, because delete is admin-only. The screens say so. The alternative is one line in the rules letting an owner delete a record nobody has been asked to review yet.</span>
+</div>
+</div>
+<h2 id="layer-1">In your name <span class="owner">Mariia</span></h2>
 <div class="card">
 <details class="grp" open><summary class="row">
 <span class="t">GitHub, myermcat</span><span class="st st-next">Next</span>
@@ -203,7 +228,7 @@ background:var(--surface);border:1px solid var(--line);border-radius:10px;list-s
 </div>
 </div></details>
 </div>
-<h2 id="layer-1">Question set <span class="owner">Dan</span></h2>
+<h2 id="layer-2">Question set <span class="owner">Dan</span></h2>
 <div class="card">
 <details class="grp" open><summary class="row">
 <span class="t">Answer types and criticality</span><span class="st st-wait">Waiting</span>
@@ -240,7 +265,7 @@ background:var(--surface);border:1px solid var(--line);border-radius:10px;list-s
 </div>
 </div></details>
 </div>
-<h2 id="layer-2">Engine <span class="owner">ours</span></h2>
+<h2 id="layer-3">Engine <span class="owner">ours</span></h2>
 <div class="card">
 <details class="grp" open><summary class="row">
 <span class="t">Storage and concurrency</span><span class="st st-next">Next</span>
@@ -264,7 +289,7 @@ background:var(--surface);border:1px solid var(--line);border-radius:10px;list-s
 </div>
 </div></details>
 </div>
-<h2 id="layer-3">Interface: the submitter <span class="owner">ours</span></h2>
+<h2 id="layer-4">Interface: the submitter <span class="owner">ours</span></h2>
 <div class="card">
 <details class="grp" open><summary class="row">
 <span class="t">Marking</span><span class="st st-next">Next</span>
@@ -285,7 +310,7 @@ background:var(--surface);border:1px solid var(--line);border-radius:10px;list-s
 </div>
 </div></details>
 </div>
-<h2 id="layer-4">Interface: the assessor <span class="owner">ours</span></h2>
+<h2 id="layer-5">Interface: the assessor <span class="owner">ours</span></h2>
 <div class="card">
 <details class="grp" open><summary class="row">
 <span class="t">Identity</span><span class="st st-wait">Waiting</span>
@@ -297,7 +322,7 @@ background:var(--surface);border:1px solid var(--line);border-radius:10px;list-s
 </div>
 </div></details>
 </div>
-<h2 id="layer-5">Interface: admin <span class="owner">ours</span></h2>
+<h2 id="layer-6">Interface: admin <span class="owner">ours</span></h2>
 <div class="card">
 <details class="grp" open><summary class="row">
 <span class="t">Admin-only actions</span><span class="st st-later">Later</span>
@@ -317,7 +342,7 @@ background:var(--surface);border:1px solid var(--line);border-radius:10px;list-s
 </div>
 </div></details>
 </div>
-<h2 id="layer-6">Interface: the executive view <span class="owner">ours</span></h2>
+<h2 id="layer-7">Interface: the executive view <span class="owner">ours</span></h2>
 <div class="card">
 <details class="grp" open><summary class="row">
 <span class="t">Dan’s twelve-month questions</span><span class="st st-later">Later</span>
@@ -337,7 +362,7 @@ background:var(--surface);border:1px solid var(--line);border-radius:10px;list-s
 </div>
 </div></details>
 </div>
-<h2 id="layer-7">Data and hosting <span class="owner">ours and TBS</span></h2>
+<h2 id="layer-8">Data and hosting <span class="owner">ours and TBS</span></h2>
 <div class="card">
 <details class="grp" open><summary class="row">
 <span class="t">Get into canada-ca</span><span class="st st-next">Next</span>
@@ -383,7 +408,7 @@ background:var(--surface);border:1px solid var(--line);border-radius:10px;list-s
 </div>
 </div></details>
 </div>
-<h2 id="layer-8">Process, for people <span class="owner">Dan and John</span></h2>
+<h2 id="layer-9">Process, for people <span class="owner">Dan and John</span></h2>
 <div class="card">
 <div class="leaf solo">
 <span class="t">How John’s team validates evidence</span><span class="st st-later">Later</span>
@@ -774,4 +799,4 @@ background:var(--surface);border:1px solid var(--line);border-radius:10px;list-s
 <tr><td>Who performs the canada-ca transfer</td><td>Nick</td><td>The repo move</td><td>Asked. An issue on canada-ca/welcome is the route he named</td></tr>
 <tr><td>What the production intake should be</td><td>TBS</td><td>Production only</td><td>The prototype answer is an Azure Function plus one CSP line</td></tr>
 </tbody></table></div>
-<footer>58 open, 80 done. Generated from NOTES/backlog.data.mjs by tools/build-backlog.mjs.</footer></div>
+<footer>63 open, 80 done. Generated from NOTES/backlog.data.mjs by tools/build-backlog.mjs.</footer></div>
