@@ -116,9 +116,9 @@ background:var(--surface);border:1px solid var(--line);border-radius:10px;list-s
 .kpi a{color:inherit;text-decoration:none}
 </style>
 <div class="head"><div class="head-in"><h1>GC EA self-assessment: requirements specification</h1>
-<p class="sub">Living document, updated 2026-09-01. 103 requirements, baselined at each release. Following ISO/IEC/IEEE 29148:2018, tailored.</p></div></div>
+<p class="sub">Living document, updated 2026-09-01. 104 requirements, baselined at each release. Following ISO/IEC/IEEE 29148:2018, tailored.</p></div></div>
 <nav class="topnav"><div class="topnav-in">
-<span class="nav-kpi"><b>53</b><span>built</span></span>
+<span class="nav-kpi"><b>54</b><span>built</span></span>
 <span class="nav-kpi"><b>26</b><span>agreed, not built</span></span>
 <span class="nav-kpi"><b>6</b><span>proposed</span></span>
 <span class="nav-kpi"><b>18</b><span>open</span></span>
@@ -756,6 +756,12 @@ background:var(--surface);border:1px solid var(--line);border-radius:10px;list-s
 <span class="req-t">Only an admin can delete, and only by typing the name of the thing being deleted.</span>
 <span class="st st-next">Agreed</span>
 <span class="req-note">This replaces the earlier rule that nothing could ever be deleted, which does not survive a prototype full of test data.</span>
+</div>
+<div class="req">
+<span class="req-id mono">X15</span>
+<span class="req-t">The results page has one dominant element, one box for anything that blocks, and four regions with no box at all.</span>
+<span class="st st-done">Built</span>
+<span class="req-note">It was ten cards of one size, one fill and one width, with the gap between them equal to the padding inside them, so proximity said nothing and the whole page read as one striped surface. The number first, the diagnosis second, the raw record last, and a box around the number only, which is what every results page that works does. The rhythm is the ratio: .5rem inside a part, 1.9rem between parts, 2.9rem and a rule between regions. The gates are numeric relations, because the gate written before this one grepped for a declaration another rule was cancelling and passed on a broken page.</span>
 </div>
 <div class="req">
 <span class="req-id mono">X10</span>

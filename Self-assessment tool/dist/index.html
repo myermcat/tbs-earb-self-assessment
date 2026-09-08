@@ -1226,6 +1226,19 @@ td.t0, td.t1, td.t2, td.t3, td.t4, td.t5, td.t6, td.t7, td.t8, td.t9, td.t10 { f
 .band.bad     { border-color: var(--bad);  background: var(--bad-bg); }
 .maturity     { border-color: var(--accent); background: var(--accent-soft); }
 
+/**
+ * Inside the verdict, one tinted panel and no more.
+ *
+ * A card holding four bordered, tinted panels is the same fault as a page holding ten cards,
+ * one level down: everything emphasised, so nothing is. The routing band keeps its fill,
+ * because routing is the one thing on this card somebody is looking for. The maturity line and
+ * the completeness line keep their coloured left rule, which is what carries the meaning, and
+ * lose the fill and the padding that made them boxes.
+ */
+.verdict .maturity, .verdict .completeness { background: none; padding: .1rem 0 .1rem .7rem;
+  border-radius: 0; margin: .5rem 0; }
+.verdict .completeness.partial, .verdict .completeness.full { background: none; }
+
 .completeness { border-left: 3px solid var(--line-2); padding: .45rem .7rem; margin: .55rem 0;
   border-radius: 0 var(--radius-sm) var(--radius-sm) 0; background: var(--surface-2); }
 .completeness.partial { border-color: var(--warn); background: var(--warn-bg); }
