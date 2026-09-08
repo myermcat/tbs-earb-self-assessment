@@ -407,8 +407,40 @@ async function startSignIn(providerId: Provider): Promise<void> {
   window.location.assign(authUri);
 }
 
-export function signInWithGoogle(): Promise<void> { return startSignIn('google.com'); }
-export function signInWithMicrosoft(): Promise<void> { return startSignIn('microsoft.com'); }
+/**
+ * Whether a sign-in can even be attempted from here.
+ *
+ * A page opened from a file has no address a provider can return to, so there is nothing to
+ * register and nothing to come back. The button used to be offered anyway, and pressing it
+ * threw into a promise nobody was reading, so it did nothing at all and said nothing at all.
+ * Asking first means the screen can explain rather than the button can fail.
+ */
+export function canSignIn(): boolean {
+  if (!CONFIG || typeof window === 'undefined') return false;
+  return /^https?:$/.test(window.location.protocol);
+}
+
+/**
+ * Start a sign-in, and never reject.
+ *
+ * Every caller was `void signInWithGoogle()`, so a refusal from the provider, a blocked
+ * request or a page opened from a file all produced silence. The answer is whether the
+ * browser is on its way somewhere; when it is false the reason is in lastSignInProblem() and
+ * the caller repaints to show it.
+ */
+async function attempt(providerId: Provider): Promise<boolean> {
+  signInProblem = '';
+  try {
+    await startSignIn(providerId);
+    return true;
+  } catch (err) {
+    signInProblem = (err as Error).message;
+    return false;
+  }
+}
+
+export function signInWithGoogle(): Promise<boolean> { return attempt('google.com'); }
+export function signInWithMicrosoft(): Promise<boolean> { return attempt('microsoft.com'); }
 
 /**
  * The last step of a redirect sign-in, which belongs in the boot sequence because the page
