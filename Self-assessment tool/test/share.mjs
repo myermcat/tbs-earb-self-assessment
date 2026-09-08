@@ -33,8 +33,11 @@ const said = () => (q('.share-dialog')?.textContent ?? '').replace(/\s+/g, ' ');
 
 console.log('\nSharing, as a mockup\n');
 
-ok('the questionnaire carries a way to share it', !!byText('.topbar-right button', 'Share'));
-byText('.topbar-right button', 'Share').click();
+// Sharing is reached through the File menu, where a document editor keeps it. The separate
+// button at the top right went: the header was carrying too much.
+ok('the File menu is in the header', !!byText('.file-menu summary', 'File'));
+ok('and it holds a way to share access', !!byText('.file-menu .menu-item', 'Share access'));
+byText('.file-menu .menu-item', 'Share access').click();
 await settle();
 
 ok('and it opens a list', !!q('dialog.share-dialog'));

@@ -41,7 +41,7 @@ export function blankAssessment(rubric: Rubric): Assessment {
  *   'idle'    nothing has been written yet this visit
  *   'saving'  a write is in flight
  *   'local'   held by this browser, and nothing has been submitted yet
- *   'online'  submitted, so later changes write through to TBS
+ *   'online'  saved online, so later changes are written there too
  *   'failed'  the last write did not land, and the reason
  *
  * It starts idle. Starting at 'local' meant a page with nothing on it announced "draft saved

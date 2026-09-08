@@ -27,19 +27,19 @@ export function saveBadge(openDetail: () => void): HTMLElement {
     idle: t('Nothing written yet', 'Rien n\u2019a encore été enregistré'),
     local: isHosted()
       ? t(
-          'Kept on this machine only. Sign in and your work is kept at TBS as you go. Click for the detail.',
-          'Conservé sur cet appareil seulement. Connectez-vous et votre travail sera conservé au SCT à mesure. Cliquez pour le détail.',
+          'Saved on this computer only. Sign in to save it online as well. Click for the detail.',
+          'Enregistré sur cet ordinateur seulement. Connectez-vous pour l\u2019enregistrer aussi en ligne. Cliquez pour le détail.',
         )
       : t(
-          'Kept in this browser only. This build has no store to send to. Click for the detail.',
-          'Conservé dans ce navigateur seulement. Cette version n\u2019a aucun dépôt où envoyer. Cliquez pour le détail.',
+          'Saved on this computer only. This copy of the tool has nowhere online to save to. Click for the detail.',
+          'Enregistré sur cet ordinateur seulement. Cette copie de l\u2019outil n\u2019a nulle part où enregistrer en ligne. Cliquez pour le détail.',
         ),
-    pending: t('Kept here, and on its way to TBS', 'Conservé ici, et en route vers le SCT'),
-    saving: t('Writing to the TBS store', 'Enregistrement dans le dépôt du SCT'),
-    online: t('Kept at TBS. Your assessor reads this copy.', 'Conservé au SCT. Votre évaluateur lit cette copie.'),
+    pending: t('Saved here, and on its way online', 'Enregistré ici, et en route vers en ligne'),
+    saving: t('Saving online', 'Enregistrement en ligne'),
+    online: t('Saved online. Your assessor reads this copy.', 'Enregistré en ligne. Votre évaluateur lit cette copie.'),
     offline: t(
-      'Kept on this machine. It goes to TBS when the connection is back.',
-      'Conservé sur cet appareil. L\u2019envoi au SCT se fera au retour de la connexion.',
+      'Saved on this computer. It goes online when the connection is back.',
+      'Enregistré sur cet ordinateur. L\u2019enregistrement en ligne se fera au retour de la connexion.',
     ),
     failed: t('The last write did not go through. Click for what to do.', 'Le dernier enregistrement n\u2019a pas abouti. Cliquez pour savoir quoi faire.'),
   };
@@ -56,15 +56,15 @@ export function saveBadge(openDetail: () => void): HTMLElement {
     if (state === 'saving' || state === 'pending') {
       if (state === 'saving') node.appendChild(el('span', { class: 'spin', 'aria-hidden': true }));
       else node.appendChild(el('span', { class: 'ss-dot', 'aria-hidden': true }));
-      node.appendChild(el('span', { class: 'ss-long' }, [t('Saving to TBS', 'Enregistrement au SCT')]));
+      node.appendChild(el('span', { class: 'ss-long' }, [t('Saving online', 'Enregistrement en ligne')]));
       node.appendChild(el('span', { class: 'ss-short' }, [t('Saving', 'En cours')]));
     } else if (state === 'local') {
       node.appendChild(el('span', { class: 'ss-dot', 'aria-hidden': true }));
-      node.appendChild(el('span', { class: 'ss-long' }, [t('Draft saved in browser', 'Brouillon enregistré dans le navigateur')]));
+      node.appendChild(el('span', { class: 'ss-long' }, [t('Saved on this computer', 'Enregistré sur cet ordinateur')]));
       node.appendChild(el('span', { class: 'ss-short' }, [t('Saved here', 'Enregistré ici')]));
     } else if (state === 'online') {
       node.appendChild(el('span', { class: 'ss-dot', 'aria-hidden': true }));
-      node.appendChild(el('span', { class: 'ss-long' }, [t('Saved to TBS', 'Enregistré au SCT')]));
+      node.appendChild(el('span', { class: 'ss-long' }, [t('Saved online', 'Enregistré en ligne')]));
       node.appendChild(el('span', { class: 'ss-short' }, [t('Saved', 'Enregistré')]));
     } else if (state === 'offline') {
       node.appendChild(el('span', { class: 'ss-dot', 'aria-hidden': true }));
