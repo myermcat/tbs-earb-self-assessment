@@ -191,6 +191,18 @@ function adoptSignedIn(): void {
   if (!me || assessorName.trim()) return;
   assessorName = me.email;
   setAuditor(me.email);
+  /**
+   * Put the owner on the record as soon as one is known.
+   *
+   * It used to arrive only on the first write to the store, so a file downloaded before that
+   * named nobody, and a file is the thing people email each other. An assessment that already
+   * names somebody else keeps them: opening their file works on their copy locally and never
+   * writes it into this account.
+   */
+  if (!assessment.ownerEmail) {
+    assessment.ownerEmail = me.email;
+    autosave(assessment);
+  }
   // The pool answers differently to somebody it knows, so whatever it said before is stale.
   forgetPool();
   // What this account is allowed to do decides which screens are offered. It is one request,
@@ -308,8 +320,8 @@ function offerOnlineSave(): void {
       ? t('Keep this at TBS?', 'Conserver ceci au SCT?')
       : t('Keep this at TBS before it is finished?', 'Conserver ceci au SCT avant que ce soit terminé?'),
     body: done
-      ? `All ${r.scoreable} questions are answered. Your work is written to ${endpointHost()} and kept current from here on, so it survives a closed tab or a lost laptop.`
-      : `${left} of ${r.scoreable} questions have no answer yet. Your assessor will see it and will be able to read it, and they cannot change anything in it until you say it is finished. They are told to look at it only when you say so. Your work is written to ${endpointHost()} and kept current from here on.`,
+      ? `All ${r.scoreable} questions are answered. This is the only time you press this. From now on your work is written to ${endpointHost()} a few seconds after you stop typing, on its own, so a closed tab or a lost laptop costs you nothing.`
+      : `${left} of ${r.scoreable} questions have no answer yet. Your assessor will be able to read it, they cannot change anything in it until you say it is finished, and they are told to look only when you say so. This is also the only time you press this: from now on your work is written to ${endpointHost()} a few seconds after you stop typing, on its own.`,
     stake: t('Everything in this tool is unclassified. By keeping it at TBS you are saying this is too.',
       'Tout dans cet outil est non classifié. En le conservant au SCT, vous affirmez que ceci l\u2019est aussi.'),
     alt: {
@@ -1606,22 +1618,12 @@ if (typeof window.addEventListener === 'function') {
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'hidden') void flushWrites();
   });
-  /**
-   * Closing the tab on work that has never been saved online.
-   *
-   * The browser owns this dialog and its words, and every browser deliberately refuses to let a
-   * page write them, because that is how "your computer is infected" pop-ups used to work. So
-   * this can only ask whether to stay, and the offer to save is on the screen behind it. It
-   * asks only of somebody who could have saved online and has not, and it stops asking once
-   * they have said the browser is enough.
+  /*
+   * There used to be a prompt here, asking whether to stay when work had never been saved
+   * online. It is gone, and the reasoning is hers: the browser is holding the assessment,
+   * nothing is lost by closing the tab, and somebody who has not saved online has not asked to.
+   * A dialog on the way out of a page that loses nothing teaches people to dismiss dialogs.
    */
-  window.addEventListener('beforeunload', (e) => {
-    if (!isHosted() || !currentUser()) return;
-    if (savedOnline(assessment) || assessment.meta.onlineDeclined) return;
-    if (!hasWork(assessment)) return;
-    e.preventDefault();
-    e.returnValue = '';
-  });
 }
 warnGoneFromStore();
 wireScrollLift();
