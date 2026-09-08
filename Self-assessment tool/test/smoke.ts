@@ -1,5 +1,5 @@
 /** Logic checks for the parts that decide anything: scoring, banding, flags, CSV, round-trip. */
-import { allQuestionScores, score, weakest, nextAnchor } from '../src/scoring';
+import { allQuestionScores, completion, score, weakest, nextAnchor } from '../src/scoring';
 import { flags } from '../src/flags';
 import { csvHeader, csvRow, toCsv } from '../src/csv';
 import { fromFields, fromValue, toFields, toValue } from '../src/firebase';
@@ -387,6 +387,66 @@ function stable(x: unknown): string {
   const res = validate(dup);
   ok('rejects duplicate question ids', res.ok === false && (res as { problems: string[] }).problems.some((p) => p.includes('Duplicate')));
 }
+
+/* -------------------------------------------------------------------------------------------
+   What complete means. There is no finishing line in the instrument, so this is the decision
+   made on 8 September, held here so it cannot drift into three different answers on three
+   different screens.
+   ------------------------------------------------------------------------------------------- */
+{
+  // The fixture arrives with its overview filled, so an empty overview is made here.
+  const bareOverview = (x: Assessment): Assessment => {
+    x.initiative.name = ''; x.initiative.department = '';
+    x.initiative.contact = ''; x.initiative.summary = '';
+    return x;
+  };
+
+  const empty = bareOverview(blank('beta'));
+  const c0 = completion(rubric, empty);
+  ok('an empty assessment is not complete', c0.complete === false);
+  ok('and every question is outstanding', c0.questionsLeft === c0.total && c0.total === allQ.length,
+     `${c0.questionsLeft} of ${c0.total}`);
+  ok('and the four typed overview fields are listed as outstanding', c0.overviewLeft.length === 4,
+     c0.overviewLeft.join(', '));
+
+  // Every question scored, and the overview still empty.
+  const scored = fill(bareOverview(blank('beta')), 6);
+  const c1 = completion(rubric, scored);
+  ok('every question answered is still not complete while the overview is short',
+     c1.complete === false && c1.questionsLeft === 0, JSON.stringify(c1.overviewLeft));
+
+  // The overview filled as well.
+  const done = fill(blank('beta'), 6);
+  const c2 = completion(rubric, done);
+  ok('with the overview filled it is complete', c2.complete === true, JSON.stringify(c2));
+
+  // Not applicable throughout is complete and unscored, deliberately: that is a thing an
+  // assessor should see and judge.
+  const na = blank('beta');
+  na.initiative.name = 'X'; na.initiative.department = 'Y';
+  na.initiative.contact = 'a@b.gc.ca'; na.initiative.summary = 'Z';
+  for (const q of allQ) na.answers[q.id] = { score: null, na: true };
+  const c3 = completion(rubric, na);
+  ok('not applicable throughout is complete', c3.complete === true);
+  ok('and it scores nothing', score(rubric, na).overall === null, String(score(rubric, na).overall));
+
+  // One question back to unanswered undoes it.
+  const nearly = fill(blank('beta'), 6);
+  nearly.initiative.name = 'X'; nearly.initiative.department = 'Y';
+  nearly.initiative.contact = 'a@b.gc.ca'; nearly.initiative.summary = 'Z';
+  delete nearly.answers[allQ[0].id];
+  const c4 = completion(rubric, nearly);
+  ok('one question missing is one question short', c4.complete === false && c4.questionsLeft === 1,
+     JSON.stringify(c4));
+
+  // The reasoning and the evidence are deliberately outside the definition.
+  const bare = fill(blank('beta'), 6);
+  bare.initiative.name = 'X'; bare.initiative.department = 'Y';
+  bare.initiative.contact = 'a@b.gc.ca'; bare.initiative.summary = 'Z';
+  for (const q of allQ) bare.answers[q.id] = { score: 6, evidence: [] };
+  ok('no reasoning and no evidence is still complete', completion(rubric, bare).complete === true);
+}
+
 
 console.log(fails === 0 ? '\nall checks passed' : `\n${fails} FAILED`);
 process.exit(fails === 0 ? 0 : 1);

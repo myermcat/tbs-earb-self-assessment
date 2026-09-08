@@ -116,12 +116,12 @@ background:var(--surface);border:1px solid var(--line);border-radius:10px;list-s
 .kpi a{color:inherit;text-decoration:none}
 </style>
 <div class="head"><div class="head-in"><h1>GC EA self-assessment: requirements specification</h1>
-<p class="sub">Living document, updated 2026-09-01. 98 requirements, baselined at each release. Following ISO/IEC/IEEE 29148:2018, tailored.</p></div></div>
+<p class="sub">Living document, updated 2026-09-01. 103 requirements, baselined at each release. Following ISO/IEC/IEEE 29148:2018, tailored.</p></div></div>
 <nav class="topnav"><div class="topnav-in">
-<span class="nav-kpi"><b>52</b><span>built</span></span>
-<span class="nav-kpi"><b>23</b><span>agreed, not built</span></span>
+<span class="nav-kpi"><b>53</b><span>built</span></span>
+<span class="nav-kpi"><b>26</b><span>agreed, not built</span></span>
 <span class="nav-kpi"><b>6</b><span>proposed</span></span>
-<span class="nav-kpi"><b>17</b><span>open</span></span>
+<span class="nav-kpi"><b>18</b><span>open</span></span>
 <span class="nav-sep"></span>
 <a class="nav-lay" href="#open">Open decisions</a>
 <a class="nav-lay" href="#purpose">Purpose and scope</a>
@@ -145,13 +145,14 @@ background:var(--surface);border:1px solid var(--line);border-radius:10px;list-s
 <span class="st st-done">Built</span> <span class="st st-next">Agreed</span> <span class="st st-wait">Proposed</span> <span class="st st-later">Open</span>
 <span class="muted">Built is in the tool today. Agreed is decided and not built. Proposed is our reading, waiting on somebody. Open is undecided.</span>
 </div>
-<h2 id="open">Open decisions <span class="muted small">17</span></h2>
+<h2 id="open">Open decisions <span class="muted small">18</span></h2>
 <p class="hint">Every requirement below that nobody has decided, in one place. Each is also in its own section.</p>
 <div class="tw"><table><thead><tr><th>Number</th><th>Decision</th><th>Who owes it</th><th>Section</th></tr></thead><tbody>
 <tr><td class="mono">P4</td><td>Which initiatives have to submit one.</td><td>Dan</td><td>Purpose and scope</td></tr>
 <tr><td class="mono">R7</td><td>What an assessor sees of the pool.</td><td>Dan or Chris</td><td>Roles and access</td></tr>
 <tr><td class="mono">R8</td><td>Whether admin is a role of its own or an assessor with more buttons.</td><td>Dan</td><td>Roles and access</td></tr>
 <tr><td class="mono">S8</td><td>The Firebase web key answers only from the addresses the tool is served from, and only for the three APIs it uses.</td><td>Mariia</td><td>Signing in</td></tr>
+<tr><td class="mono">S16</td><td>Whether saying an assessment is finished stops the submitter editing it.</td><td>Mariia</td><td>Signing in</td></tr>
 <tr><td class="mono">S13</td><td>Whether naming an assessor routes the record to that person.</td><td>Dan</td><td>Signing in</td></tr>
 <tr><td class="mono">Q9</td><td>Per-question criticality, separate from section weight.</td><td>Dan</td><td>The instrument</td></tr>
 <tr><td class="mono">Q10</td><td>The dropdown answers for each question.</td><td>Dan</td><td>The instrument</td></tr>
@@ -208,6 +209,13 @@ background:var(--surface);border:1px solid var(--line);border-radius:10px;list-s
 <span class="req-id mono">R1</span>
 <span class="req-t">Three roles: submitter, assessor, admin.</span>
 <span class="st st-next">Agreed</span>
+</div>
+<div class="req">
+<span class="req-id mono">R3</span>
+<span class="req-t">The submitter side and the assessor side are separate products that share a build. Neither screen may describe the other, and no state carries between them.</span>
+<span class="st st-next">Agreed</span>
+<span class="req-owner">Mariia owes this</span>
+<span class="req-note">They are on one page today for testing, and the crossover links exist for that reason alone. What the finished thing does: the role comes back from the store at sign-in, submitter by default and assessor where an admin has granted it, and a person only ever sees the one side. The sign-in screen now carries nothing from the submitter side, which is where this went wrong first.</span>
 </div>
 <div class="req">
 <span class="req-id mono">R2</span>
@@ -307,6 +315,31 @@ background:var(--surface);border:1px solid var(--line);border-radius:10px;list-s
 <span class="req-id mono">S4</span>
 <span class="req-t">Until sign-in exists, the assessor side opens on a screen shaped like a sign-in that says it is a mockup, and everything it produces is labelled unverified.</span>
 <span class="st st-done">Built</span>
+</div>
+<div class="req">
+<span class="req-id mono">S14</span>
+<span class="req-t">An assessment is complete when every question in its set carries a score or is marked not applicable, and the six overview fields are filled.</span>
+<span class="st st-next">Agreed</span>
+<span class="req-note">Decided on 8 September. The overview counts as things that have to be filled in, and not as questions: the count on screen stays 176. No floor on how much may be marked not applicable, because an assessment that is not applicable throughout is a thing an assessor should see and judge. The reasoning and the evidence are excluded: no question asks for either, and requiring them would buy typed filler, which the flags already catch from the other direction.</span>
+</div>
+<div class="req">
+<span class="req-id mono">S15</span>
+<span class="req-t">An assessor may read an unfinished submission and may do nothing else with it.</span>
+<span class="st st-next">Agreed</span>
+<span class="req-note">Decided on 8 September. No scoring, no verdict, no questions written against it until the submitter says it is finished.</span>
+</div>
+<div class="req">
+<span class="req-id mono">S16</span>
+<span class="req-t">Whether saying an assessment is finished stops the submitter editing it.</span>
+<span class="st st-later">Open</span>
+<span class="req-owner">Mariia owes this</span>
+<span class="req-note">Left open on 8 September, with a leaning towards yes: a locked assessment is how an assessor knows they are not scoring a moving target. What it costs is that a typo becomes a request to somebody else. The alternative, which is what happens today, is that the submitter keeps editing and the assessor screen marks the row as updated.</span>
+</div>
+<div class="req">
+<span class="req-id mono">S17</span>
+<span class="req-t">Only an admin grants a role. An assessor cannot make somebody else an assessor.</span>
+<span class="st st-done">Built</span>
+<span class="req-note">The published rules allow create and update on a role document to an admin alone, and no delete to anybody, so nobody can promote themselves or each other. Today that means every assessor account has to come from you.</span>
 </div>
 <div class="req">
 <span class="req-id mono">S9</span>
