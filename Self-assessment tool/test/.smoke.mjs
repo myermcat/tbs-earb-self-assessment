@@ -8,6 +8,35 @@ function sectionExpectation(s, stage) {
 function effectiveExpectation(q, s, stage) {
   return q.stageExpectation?.[stage] ?? s.stageExpectation?.[stage] ?? "expected";
 }
+var OVERVIEW_FIELDS = [
+  { key: "name", label: "the name of the initiative", of: (a) => a.initiative?.name ?? "" },
+  { key: "department", label: "the department", of: (a) => a.initiative?.department ?? "" },
+  { key: "contact", label: "who to contact", of: (a) => a.initiative?.contact ?? "" },
+  { key: "summary", label: "what it is, in two or three sentences", of: (a) => a.initiative?.summary ?? "" },
+  { key: "classification", label: "how the evidence is marked", of: (a) => a.initiative?.classification ?? "" },
+  { key: "lifecycleStage", label: "where it is in the lifecycle", of: (a) => a.initiative?.lifecycleStage ?? "" }
+];
+function completion(rubric2, a) {
+  let answered = 0;
+  let total = 0;
+  for (const domain of rubric2.domains) {
+    for (const section of domain.sections) {
+      for (const question of section.questions) {
+        total++;
+        const ans = a.answers[question.id];
+        if (ans?.na || typeof ans?.score === "number") answered++;
+      }
+    }
+  }
+  const overviewLeft = OVERVIEW_FIELDS.filter((f) => !f.of(a).trim()).map((f) => f.label);
+  return {
+    complete: answered === total && overviewLeft.length === 0,
+    answered,
+    total,
+    questionsLeft: total - answered,
+    overviewLeft
+  };
+}
 function score(rubric2, a) {
   const stage = a.initiative?.lifecycleStage ?? "";
   let answered = 0;
@@ -3139,6 +3168,66 @@ function stable(x) {
   dup.domains[0].sections[0].questions.push({ ...dup.domains[0].sections[0].questions[0] });
   const res = validate(dup);
   ok("rejects duplicate question ids", res.ok === false && res.problems.some((p) => p.includes("Duplicate")));
+}
+{
+  const bareOverview = (x) => {
+    x.initiative.name = "";
+    x.initiative.department = "";
+    x.initiative.contact = "";
+    x.initiative.summary = "";
+    return x;
+  };
+  const empty = bareOverview(blank("beta"));
+  const c0 = completion(rubric, empty);
+  ok("an empty assessment is not complete", c0.complete === false);
+  ok(
+    "and every question is outstanding",
+    c0.questionsLeft === c0.total && c0.total === allQ.length,
+    `${c0.questionsLeft} of ${c0.total}`
+  );
+  ok(
+    "and the four typed overview fields are listed as outstanding",
+    c0.overviewLeft.length === 4,
+    c0.overviewLeft.join(", ")
+  );
+  const scored = fill(bareOverview(blank("beta")), 6);
+  const c1 = completion(rubric, scored);
+  ok(
+    "every question answered is still not complete while the overview is short",
+    c1.complete === false && c1.questionsLeft === 0,
+    JSON.stringify(c1.overviewLeft)
+  );
+  const done = fill(blank("beta"), 6);
+  const c2 = completion(rubric, done);
+  ok("with the overview filled it is complete", c2.complete === true, JSON.stringify(c2));
+  const na = blank("beta");
+  na.initiative.name = "X";
+  na.initiative.department = "Y";
+  na.initiative.contact = "a@b.gc.ca";
+  na.initiative.summary = "Z";
+  for (const q of allQ) na.answers[q.id] = { score: null, na: true };
+  const c3 = completion(rubric, na);
+  ok("not applicable throughout is complete", c3.complete === true);
+  ok("and it scores nothing", score(rubric, na).overall === null, String(score(rubric, na).overall));
+  const nearly = fill(blank("beta"), 6);
+  nearly.initiative.name = "X";
+  nearly.initiative.department = "Y";
+  nearly.initiative.contact = "a@b.gc.ca";
+  nearly.initiative.summary = "Z";
+  delete nearly.answers[allQ[0].id];
+  const c4 = completion(rubric, nearly);
+  ok(
+    "one question missing is one question short",
+    c4.complete === false && c4.questionsLeft === 1,
+    JSON.stringify(c4)
+  );
+  const bare = fill(blank("beta"), 6);
+  bare.initiative.name = "X";
+  bare.initiative.department = "Y";
+  bare.initiative.contact = "a@b.gc.ca";
+  bare.initiative.summary = "Z";
+  for (const q of allQ) bare.answers[q.id] = { score: 6, evidence: [] };
+  ok("no reasoning and no evidence is still complete", completion(rubric, bare).complete === true);
 }
 console.log(fails === 0 ? "\nall checks passed" : `
 ${fails} FAILED`);

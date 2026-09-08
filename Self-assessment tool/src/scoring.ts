@@ -85,6 +85,64 @@ function effectiveExpectation(q: Question, s: Section, stage: string): Expectati
  * at every level, so a partly filled assessment still scores out of 10 rather than being
  * punished for the questions it has not reached. Weights that do not sum to 100 normalise.
  */
+/**
+ * Whether an assessment is finished, and what is missing when it is not.
+ *
+ * There is no finishing line in the instrument. All 176 of Dan's questions carry the same
+ * weight, not one is marked required, and no question asks for evidence, so the line is a
+ * decision. This is the decision, taken on 8 September:
+ *
+ *   complete = every question in the set carries a score or is marked not applicable,
+ *              and all six overview fields are filled.
+ *
+ * What is excluded and why. The reasoning and the evidence, because no question asks for
+ * either and requiring 176 more boxes buys typed filler; the flags already catch the other
+ * direction, a high score with nothing behind it. Answers to questions outside this set,
+ * because a submission is judged against the set it was answered against.
+ *
+ * The overview counts as things that have to be filled in and not as questions, so the count on
+ * screen stays 176. There is no floor on how much may be marked not applicable: an assessment
+ * that is not applicable throughout is a thing an assessor should see and judge.
+ */
+export interface Completion {
+  complete: boolean;
+  answered: number;
+  total: number;
+  questionsLeft: number;
+  overviewLeft: string[];
+}
+
+const OVERVIEW_FIELDS: { key: string; label: string; of: (a: Assessment) => string }[] = [
+  { key: 'name', label: 'the name of the initiative', of: (a) => a.initiative?.name ?? '' },
+  { key: 'department', label: 'the department', of: (a) => a.initiative?.department ?? '' },
+  { key: 'contact', label: 'who to contact', of: (a) => a.initiative?.contact ?? '' },
+  { key: 'summary', label: 'what it is, in two or three sentences', of: (a) => a.initiative?.summary ?? '' },
+  { key: 'classification', label: 'how the evidence is marked', of: (a) => a.initiative?.classification ?? '' },
+  { key: 'lifecycleStage', label: 'where it is in the lifecycle', of: (a) => a.initiative?.lifecycleStage ?? '' },
+];
+
+export function completion(rubric: Rubric, a: Assessment): Completion {
+  let answered = 0;
+  let total = 0;
+  for (const domain of rubric.domains) {
+    for (const section of domain.sections) {
+      for (const question of section.questions) {
+        total++;
+        const ans = a.answers[question.id];
+        if (ans?.na || typeof ans?.score === 'number') answered++;
+      }
+    }
+  }
+  const overviewLeft = OVERVIEW_FIELDS.filter((f) => !f.of(a).trim()).map((f) => f.label);
+  return {
+    complete: answered === total && overviewLeft.length === 0,
+    answered,
+    total,
+    questionsLeft: total - answered,
+    overviewLeft,
+  };
+}
+
 export function score(rubric: Rubric, a: Assessment): Result {
   const stage = (a.initiative?.lifecycleStage ?? '');
   let answered = 0;
