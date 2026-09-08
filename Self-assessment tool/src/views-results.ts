@@ -24,11 +24,18 @@ export function renderResults(root: HTMLElement, rubric: Rubric, a: Assessment, 
   const fs = flags(rubric, a, r);
   const highs = fs.filter((f) => f.severity === 'high').length;
 
-  root.appendChild(el('section', { class: 'card headline' }, [
-    el('div', { class: `bigscore ${tone(r.overall)}` }, [
-      el('span', { class: 'num' }, [r.overall === null ? '--' : r.overall.toFixed(1)]),
-      el('span', { class: 'outof' }, [t('out of 10', 'sur 10')]),
-    ]),
+  /**
+   * The verdict, and the only card on the page.
+   *
+   * The rule this page now holds to: a box means either "this is the number" or "this blocks
+   * you". Everything else is a heading on the page ground with a rule over it. Ten cards of
+   * one size, one fill and one width read as a striped background, which is what they were.
+   *
+   * The heading comes before the number in the DOM and after it on screen, so a screen reader
+   * hears what the number is about before it hears the number.
+   */
+  root.appendChild(el('section', { class: 'card headline verdict', 'data-part': 'Score' }, [
+    el('i', { class: 'verdict-edge', 'aria-hidden': true }),
     el('div', { class: 'headline-text' }, [
       el('h1', {}, [a.initiative.name || t('Untitled initiative', 'Initiative sans titre')]),
       el('p', { class: 'muted' }, [
@@ -86,10 +93,35 @@ export function renderResults(root: HTMLElement, rubric: Rubric, a: Assessment, 
         ]);
       })(),
     ]),
+    el('div', { class: `bigscore ${tone(r.overall)}` }, [
+      el('span', { class: 'num' }, [r.overall === null ? '--' : r.overall.toFixed(1)]),
+      el('span', { class: 'outof' }, [t('out of 10', 'sur 10')]),
+    ]),
   ]));
 
-  // Per-domain bars.
-  const bars = el('section', { class: 'card' }, [el('h2', {}, ['By architecture domain'])]);
+  /**
+   * Anything that blocks saving comes second, where it cannot be scrolled past. It used to be
+   * eight blocks down, under the folded table.
+   */
+  const problems = markingProblems(a);
+  if (problems.length) {
+    root.appendChild(el('section', { class: 'card warn alert', 'data-part': 'Fix first' }, [
+      el('strong', {}, [t('You cannot save this yet', 'Vous ne pouvez pas encore enregistrer')]),
+      el('ul', { class: 'small' }, problems.slice(0, 8).map((p) => el('li', {}, [p.message]))),
+      el('button', { class: 'ghost', onclick: onBack }, [t('Go back and fix it', 'Revenir et corriger')]),
+    ]));
+  }
+
+  /**
+   * Region 1. The same 176 answers at three grains, so they are one region and not three
+   * cards: the domain bars, the topic bars, and every row.
+   */
+  const r1 = el('section', { class: 'res-region', 'aria-labelledby': 'res-score', 'data-part': 'Breakdown' }, [
+    el('h2', { id: 'res-score' }, ['Where the score comes from']),
+  ]);
+  root.appendChild(r1);
+
+  const bars = el('div', { class: 'res-sub' }, [el('h3', {}, ['By architecture domain'])]);
   for (const d of r.domains) {
     bars.appendChild(el('div', { class: 'bar-row' }, [
       el('div', { class: 'bar-label' }, [d.domain.label, el('span', { class: 'muted small' }, [` ${d.weight}% of the total`])]),
@@ -99,7 +131,7 @@ export function renderResults(root: HTMLElement, rubric: Rubric, a: Assessment, 
       el('div', { class: `bar-num ${tone(d.score)}` }, [d.score === null ? '--' : d.score.toFixed(1)]),
     ]));
   }
-  root.appendChild(bars);
+  r1.appendChild(bars);
 
   // The same answers cut a second way. Security questions sit in all four domains, so a
   // department that is weak on security cannot see it in the domain bars: the weakness is
@@ -108,8 +140,8 @@ export function renderResults(root: HTMLElement, rubric: Rubric, a: Assessment, 
   // but can belong to several topics.
   const withTopics = r.topics.filter((t) => t.total > 0);
   if (withTopics.length) {
-    const tbox = el('section', { class: 'card' }, [
-      el('h2', {}, ['Across the domains']),
+    const tbox = el('div', { class: 'res-sub' }, [
+      el('h3', {}, ['Across the domains']),
       el('p', { class: 'muted small' }, [
         'The same questions, grouped by subject. A question can be about two things at once, ',
         'so these do not add up to the overall.',
@@ -134,15 +166,19 @@ export function renderResults(root: HTMLElement, rubric: Rubric, a: Assessment, 
     if (rubric.topicsNote) {
       tbox.appendChild(el('p', { class: 'tiny dim' }, [rubric.topicsNote]));
     }
-    root.appendChild(tbox);
+    r1.appendChild(tbox);
   }
 
-  // The backlog. This is the teach-me-to-fish half of the tool.
+  // The backlog. This is the teach-me-to-fish half of the tool, and it is one region with the
+  // strongest three, because both answer the question of what to do on Monday.
+  const r2 = el('section', { class: 'res-region', 'aria-labelledby': 'res-work', 'data-part': 'To do' }, [
+    el('h2', { id: 'res-work' }, ['What to do about it']),
+    el('p', { class: 'muted' }, ['Take these away as backlog items. Nobody else needs to see this part.']),
+  ]);
   const w = weakest(r, 5);
   if (w.length) {
-    const back = el('section', { class: 'card' }, [
-      el('h2', {}, ['Your weakest five, and what would move them']),
-      el('p', { class: 'muted' }, ['Take these away as backlog items. Nobody else needs to see this part.']),
+    const back = el('div', { class: 'res-sub' }, [
+      el('h3', {}, ['Your weakest five, and what would move them']),
     ]);
     for (const qs of w) {
       const next = nextAnchor(rubric, qs.question, qs.raw as number);
@@ -157,22 +193,23 @@ export function renderResults(root: HTMLElement, rubric: Rubric, a: Assessment, 
           : null,
       ]));
     }
-    root.appendChild(back);
+    r2.appendChild(back);
   }
 
   const s = strongest(r, 3);
   if (s.length) {
-    root.appendChild(el('section', { class: 'card' }, [
-      el('h2', {}, ['Your strongest three']),
+    r2.appendChild(el('div', { class: 'res-sub' }, [
+      el('h3', {}, ['Your strongest three']),
       el('ul', { class: 'steps' }, s.map((qs) =>
         el('li', {}, [el('b', {}, [`${qs.raw}/10 `]), qs.question.text]))),
     ]));
   }
+  if (r2.querySelector('.res-sub')) root.appendChild(r2);
 
   // What an assessor will ask. Showing this to the submitter is deliberate - it removes the ambush.
   if (fs.length) {
-    const box = el('section', { class: 'card' }, [
-      el('h2', {}, ['What an assessor will probably ask']),
+    const box = el('section', { class: 'res-region', 'aria-labelledby': 'res-ask', 'data-part': 'Assessor' }, [
+      el('h2', { id: 'res-ask' }, ['What an assessor will probably ask']),
       el('p', { class: 'muted' }, ['Better to see this now than in the room.']),
     ]);
     for (const f of fs.slice(0, 12)) {
@@ -180,6 +217,9 @@ export function renderResults(root: HTMLElement, rubric: Rubric, a: Assessment, 
         el('div', { class: 'flag-title' }, [
           el('span', { class: 'sev-dot' }),
           el('strong', {}, [f.title]),
+          // The severity in words as well as in colour, because colour on its own is not a
+          // signal for everybody reading this.
+          el('span', { class: 'badge tiny' }, [f.severity]),
           f.questionId ? el('span', { class: 'qid' }, [f.questionId]) : null,
         ]),
         el('div', { class: 'small' }, [f.detail]),
@@ -192,8 +232,9 @@ export function renderResults(root: HTMLElement, rubric: Rubric, a: Assessment, 
   // Full detail, folded.
   const table = el('table', { class: 'detail' }, [
     el('thead', {}, [el('tr', {}, [
-      el('th', {}, ['#']), el('th', {}, ['Question']), el('th', {}, ['Score']),
-      el('th', {}, ['Weight at your stage']), el('th', {}, ['Evidence']),
+      el('th', { scope: 'col' }, ['#']), el('th', { scope: 'col' }, ['Question']),
+      el('th', { scope: 'col' }, ['Score']),
+      el('th', { scope: 'col' }, ['Weight at your stage']), el('th', { scope: 'col' }, ['Evidence']),
     ])]),
   ]);
   const tb = el('tbody', {});
@@ -218,21 +259,13 @@ export function renderResults(root: HTMLElement, rubric: Rubric, a: Assessment, 
     }
   }
   table.appendChild(tb);
-  root.appendChild(el('section', { class: 'card' }, [
+  r1.appendChild(el('div', { class: 'res-sub' }, [
+    el('h3', {}, ['Every question and score']),
     el('details', {}, [
-      el('summary', {}, ['Every question and score']),
+      el('summary', {}, [`Show the table, ${r.scoreable} rows`]),
       el('div', { class: 'table-wrap' }, [table]),
     ]),
   ]));
-
-  const problems = markingProblems(a);
-  if (problems.length) {
-    root.appendChild(el('section', { class: 'card warn' }, [
-      el('strong', {}, [t('You cannot save this yet', 'Vous ne pouvez pas encore enregistrer')]),
-      el('ul', { class: 'small' }, problems.slice(0, 8).map((p) => el('li', {}, [p.message]))),
-      el('button', { class: 'ghost', onclick: onBack }, [t('Go back and fix it', 'Revenir et corriger')]),
-    ]));
-  }
 
   /**
    * Submitting, which is one deliberate act.
@@ -242,13 +275,20 @@ export function renderResults(root: HTMLElement, rubric: Rubric, a: Assessment, 
    * first submit, later edits write through on their own, which is why the button changes
    * rather than disappearing.
    */
-  // Who is on it comes before what happens to it, because the answer changes who should be
-  // reading the numbers above.
-  root.appendChild(sharedPanel(a, () => openShareDialog(a, currentUser()?.email ?? '', () => repaint())));
-  root.appendChild(submitBlock(rubric, a, r, problems.length > 0));
+  /**
+   * Region 4. Who is on it, then what happens to it, then the things you can do with it. Left
+   * as three loose peers this is where the wall used to rebuild itself, at the bottom of the
+   * page, which is where a reader gives up.
+   */
+  const r4 = el('section', { class: 'res-region', 'aria-labelledby': 'res-send', 'data-part': 'Send' }, [
+    el('h2', { id: 'res-send' }, ['Getting it to TBS']),
+  ]);
+  r4.appendChild(sharedPanel(a, () => openShareDialog(a, currentUser()?.email ?? '', () => repaint())));
+  r4.appendChild(submitBlock(rubric, a, r, problems.length > 0));
+  root.appendChild(r4);
 
   const attached = totalAttachedBytes(a.answers);
-  root.appendChild(el('section', { class: 'card actions' }, [
+  r4.appendChild(el('div', { class: 'actions' }, [
     el('button', {
       class: 'primary', disabled: problems.length > 0,
       onclick: () => sendPackage(rubric, a, { high: highs, total: fs.length }),
@@ -266,12 +306,12 @@ export function renderResults(root: HTMLElement, rubric: Rubric, a: Assessment, 
 }
 
 function submitBlock(rubric: Rubric, a: Assessment, r: Result, blocked: boolean): HTMLElement {
-  const box = el('section', { class: 'card submit-box' });
+  const box = el('div', { class: 'res-sub submit-box' });
   const submitted = !!a.meta.submittedAt;
 
   if (!isHosted()) {
     box.appendChild(el('div', { class: 'head-row' }, [
-      el('h2', {}, [t('Sending it to TBS', 'L\u2019envoi au SCT')]),
+      el('h3', {}, [t('Sending it to TBS', 'L\u2019envoi au SCT')]),
       el('span', { class: 'badge badge-warn' }, [t('Not hosted yet', 'Pas encore hébergé')]),
     ]));
     box.appendChild(el('p', { class: 'muted' }, [
@@ -368,11 +408,15 @@ function addSnapHint(root: HTMLElement): void {
     if (sections.length < 2) return;
 
     const hint = el('nav', { class: 'snap-hint', 'aria-label': 'Parts of your results' });
+    const named = (sec: Element, i: number) =>
+      sec.querySelector('h1, h2')?.textContent?.trim() || `Part ${i + 1} of ${sections.length}`;
     const dots = sections.map((sec, i) =>
       el('button', {
-        class: 'snap-dot', 'aria-label': `Part ${i + 1} of ${sections.length}`,
+        class: 'snap-dot', 'aria-label': named(sec, i), title: named(sec, i),
         onclick: () => (sec as HTMLElement).scrollIntoView({ block: 'start', behavior: 'smooth' }),
-      }),
+      }, [
+        el('span', { class: 'snap-name' }, [sec.getAttribute('data-part') || named(sec, i)]),
+      ]),
     );
     for (const d of dots) hint.appendChild(d);
     root.parentElement?.appendChild(hint);

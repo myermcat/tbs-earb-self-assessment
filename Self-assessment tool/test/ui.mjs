@@ -925,17 +925,88 @@ ok('a fully answered assessment gets a routing suggestion',
 ok('routing is stated as a suggestion', view().includes('does not decide it'));
 {
   // Four domains, then the same answers cut by subject. Both are bar rows, so scope the count.
-  const cards = qa('section.card');
-  const domainCard = cards.find((c) => c.querySelector('h2')?.textContent === 'By architecture domain');
-  const topicCard = cards.find((c) => c.querySelector('h2')?.textContent === 'Across the domains');
-  ok('four domain bars rendered', domainCard.querySelectorAll('.bar-row').length === 4,
-     String(domainCard.querySelectorAll('.bar-row').length));
+  // They are parts of one region now, because they are the same 176 answers at two grains.
+  const parts = qa('.res-sub');
+  const domainPart = parts.find((c) => c.querySelector('h3')?.textContent === 'By architecture domain');
+  const topicPart = parts.find((c) => c.querySelector('h3')?.textContent === 'Across the domains');
+  ok('the domain bars are a part of a region', !!domainPart);
+  ok('four domain bars rendered', domainPart?.querySelectorAll('.bar-row').length === 4,
+     String(domainPart?.querySelectorAll('.bar-row').length));
   ok('and the cross-cutting topics are shown separately, with a provisional label',
-     !!topicCard && topicCard.querySelectorAll('.bar-row').length > 0 &&
-     topicCard.textContent.includes('provisional'),
-     String(topicCard?.querySelectorAll('.bar-row').length));
+     !!topicPart && topicPart.querySelectorAll('.bar-row').length > 0 &&
+     topicPart.textContent.includes('provisional'),
+     String(topicPart?.querySelectorAll('.bar-row').length));
   ok('the topic block says the numbers do not add up to the overall',
-     topicCard.textContent.includes('do not add up to the overall'));
+     topicPart.textContent.includes('do not add up to the overall'));
+}
+
+/**
+ * One number, one box, four regions.
+ *
+ * The page used to be ten section.card siblings of one size, one fill, one border and one
+ * width, with the gap between them equal to the padding inside them. Proximity is the
+ * strongest grouping signal there is, and at those numbers it said nothing, so ten cards read
+ * as one striped surface. Reported as "there is just a bunch of cards and all of them merge".
+ *
+ * The rule the page now holds to: a box means either "this is the number" or "this blocks
+ * you". These are the assertions that stop it becoming eleven cards again.
+ */
+{
+  const tops = qa('.body-results > section');
+  const boxes = qa('.body-results > section.card');
+  const alert = q('.body-results > section.card.warn.alert');
+  ok('the page is four or five top-level sections', tops.length >= 4 && tops.length <= 5,
+     String(tops.length));
+  ok('and only the score is a card', boxes.length === (alert ? 2 : 1), String(boxes.length));
+  ok('every region names itself for a screen reader',
+     qa('.res-region').length >= 3 && qa('.res-region').every((sec) => {
+       const id = sec.getAttribute('aria-labelledby');
+       return !!id && document.getElementById(id) === sec.querySelector(':scope > h2');
+     }));
+  ok('there is one h1 on the page', qa('#app h1').length === 1, String(qa('#app h1').length));
+  ok('every h3 is inside a region', qa('.body-results h3').every((h) => !!h.closest('.res-region')));
+  ok('and no part carries an h2', !q('.res-sub h2'));
+  // Two parts keep their heading inside a head row, because that row also carries the mockup
+  // mark. Either shape is named; what matters is that no part is unlabelled.
+  ok('every part names itself',
+     qa('.res-sub').every((sec) => !!sec.querySelector(':scope > h3, :scope > .head-row > h3')));
+  // The number comes second in the DOM and first on screen, so a screen reader hears what the
+  // number is about before it hears the number.
+  ok('the verdict leads with the name of the initiative',
+     q('.card.verdict .headline-text')?.firstElementChild?.tagName === 'H1');
+  ok('the answers table is still a fold, because printing depends on it',
+     !!q('.res-sub details table.detail'));
+  ok('and it has a column header on every column',
+     qa('.res-sub table.detail thead th[scope=col]').length === 5,
+     String(qa('.res-sub table.detail thead th[scope=col]').length));
+  ok('a severity is stated in words as well as in colour',
+     qa('.flag').length > 0 && qa('.flag').every((f) =>
+       /^(high|medium|low|info)$/i.test(f.querySelector('.badge')?.textContent?.trim() ?? '')),
+     qa('.flag').map((f) => f.querySelector('.badge')?.textContent).join(','));
+}
+
+/**
+ * The ratio, as a number rather than as a declaration being present.
+ *
+ * The failure this replaces: a gate that greps a stylesheet for a rule it expects passes on a
+ * page where another rule cancels it. So this one reads both numbers and compares them.
+ */
+{
+  const between = /\.body-results > section \+ section \{[^}]*margin-top:\s*([\d.]+)rem/.exec(html);
+  const within = /\n\.card \{[^}]*padding:\s*([\d.]+)rem/.exec(html);
+  ok('the space between regions is read from the stylesheet', !!between && !!within,
+     `${between?.[1]} / ${within?.[1]}`);
+  ok('and it is at least 2.2 times the space inside a card',
+     Number(between[1]) >= 2.2 * Number(within[1]),
+     `${between[1]}rem between, ${within[1]}rem within`);
+  const h2 = /\.res-region > h2 \{[^}]*font-size:\s*([\d.]+)rem/.exec(html);
+  const h3 = /\.res-sub > h3 \{[^}]*font-size:\s*([\d.]+)rem/.exec(html);
+  ok('a region heading is at least a fifth larger than a part heading',
+     Number(h2[1]) >= 1.2 * Number(h3[1]), `${h2[1]} / ${h3[1]}`);
+  ok('a region is separated by the heavier hairline, which is the one that reads',
+     /\.res-region \{[^}]*border-top:[^;]*--line-2/.test(html));
+  ok('and print keeps a rule under the score, where card borders do not exist',
+     /@media print[\s\S]*\.card\.verdict \{[^}]*border-bottom/.test(html));
 }
 /**
  * The results page scrolls like a document.

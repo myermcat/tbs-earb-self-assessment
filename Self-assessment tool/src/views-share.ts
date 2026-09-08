@@ -135,9 +135,9 @@ export function sharedPanel(a: Assessment, open: () => void): HTMLElement {
   const mates = people.filter((p) => p.role === 'teammate').length;
   const assessors = people.filter((p) => p.role === 'assessor').length;
 
-  return el('section', { class: 'card' }, [
+  return el('div', { class: 'res-sub' }, [
     el('div', { class: 'head-row' }, [
-      el('h2', {}, [t('Who this is shared with', 'Avec qui cette évaluation est partagée')]),
+      el('h3', {}, [t('Who this is shared with', 'Avec qui cette évaluation est partagée')]),
       mockupTag(t('Mockup', 'Maquette')),
     ]),
     el('p', { class: 'muted' }, [

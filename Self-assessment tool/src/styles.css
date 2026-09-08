@@ -551,15 +551,91 @@ a.faint-link:hover { color: var(--accent); }
  * the right still take you to a part.
  */
 .body-results { padding-bottom: 3rem; }
-.body-results > section { scroll-margin-top: 5rem; margin: 0 0 1.15rem; }
-.body-results > section:last-child { margin-bottom: 0; }
+/**
+ * The ratio that does the work.
+ *
+ * The gap between blocks used to equal the padding inside them: cards pad 1.05rem and the
+ * stack gapped 1.15rem. So the distance from a heading to its own content matched the distance
+ * to the next topic's heading, and proximity, which is the strongest grouping signal there is,
+ * said nothing. Ten blocks with one fill, one border and one width then read as one striped
+ * surface. Inside a block is .5rem to .85rem, between two parts of a region 1.9rem, and
+ * between two regions 2.9rem and a rule.
+ */
+.body-results > section { scroll-margin-top: 5rem; margin: 0; }
+.body-results > section + section { margin-top: 2.9rem; }
 
-.snap-hint { position: fixed; right: 1rem; bottom: 1.2rem; z-index: 20;
-  display: flex; flex-direction: column; gap: .3rem; }
-.snap-dot { width: 8px; height: 8px; border-radius: 999px; background: var(--line-2);
-  border: 0; padding: 0; transition: background .15s, transform .15s; }
-.snap-dot:hover { background: var(--ink-3); }
-.snap-dot.on { background: var(--accent); transform: scale(1.4); }
+/* ---------- results: one verdict, four regions -------------------------------------------
+ * A region is not a card. It is a heading on the page ground with a rule over it. The rule
+ * uses --line-2 because the note at the top of this file measured --line at 1.41:1 against the
+ * page and found it too faint to read as a boundary. Parts inside a region keep --line, so the
+ * two weights read as region, then part.
+ *
+ * Only two things on this page get a box: the number, and anything that blocks you.
+ * ------------------------------------------------------------------------------------------ */
+.res-region { border-top: 1px solid var(--line-2); padding-top: .95rem; }
+.res-region > h2 { font-size: 1.28rem; letter-spacing: -.015em; }
+.res-region > h2 + p { margin-top: .35rem; color: var(--ink-2); max-width: 66ch; }
+.res-region > * + * { margin-top: .85rem; }
+.res-region > h2 + .res-sub, .res-region > p + .res-sub { margin-top: 1.15rem; }
+.res-region > .res-sub + .res-sub { margin-top: 1.9rem; }
+
+.res-sub > h3 { font-size: 1.02rem; font-weight: 650; margin: 0 0 .45rem; }
+.res-sub > h3 + p.muted { margin-top: -.15rem; max-width: 66ch; }
+.res-sub > * + * { margin-top: .5rem; }
+.res-sub > details > summary { cursor: pointer; font-weight: 550; color: var(--accent);
+  padding: .3rem 0; }
+
+/* Three fills stop reading the moment the card ground goes away, and all three still look
+   fine in dark mode, which is how this gets missed. */
+.res-region .flag { background: var(--surface); border: 1px solid var(--line);
+  border-left-width: 3px; }
+.res-region .bar-track { box-shadow: inset 0 0 0 1px var(--line-2); }
+.res-sub .table-wrap { background: var(--surface); border: 1px solid var(--line);
+  border-radius: var(--radius-sm); }
+
+/* The one elevated thing on the page. In light mode --surface against --bg is a small step,
+   too small to carry dominance alone, so the border goes up a weight, the shadow goes up a
+   step, and the score's own ramp colour draws the top edge. In dark the fill step is already
+   large and the edge only confirms it. */
+.card.verdict { position: relative; overflow: hidden; padding: 1.25rem 1.35rem;
+  border-color: var(--line-2); box-shadow: var(--shadow-lg); }
+.verdict-edge { position: absolute; inset: 0 0 auto 0; height: 3px; background: var(--accent); }
+.card.verdict h1 { font-size: 1.3rem; }
+.card.verdict .bigscore .num { font-size: 3.4rem; letter-spacing: -.03em; }
+
+/* The rail is an index, and every dot carries the name of the part it goes to. */
+.snap-hint { position: fixed; right: 1rem; top: 50%; transform: translateY(-50%); z-index: 20;
+  display: flex; flex-direction: column; gap: .45rem; align-items: flex-end; }
+.snap-dot { display: flex; align-items: center; gap: .5rem; width: auto; height: auto;
+  padding: .1rem 0; background: none; border: 0; color: var(--ink-3); cursor: pointer; }
+.snap-dot:hover { background: none; border: 0; }
+.snap-dot::after { content: ''; width: 8px; height: 8px; border-radius: 999px;
+  background: var(--line-2); transition: background .15s, transform .15s; }
+.snap-name { font-size: .72rem; white-space: nowrap; opacity: 0; transition: opacity .15s; }
+.snap-dot:hover .snap-name, .snap-dot:focus-visible .snap-name,
+.snap-dot.on .snap-name { opacity: 1; }
+.snap-dot:hover::after { background: var(--ink-3); }
+.snap-dot.on { color: var(--ink); }
+.snap-dot.on::after { background: var(--accent); transform: scale(1.4); }
+@media (prefers-reduced-motion: reduce) { .snap-dot, .snap-name { transition: none; } }
+
+/* On a phone the rail lies down into a strip, because the viewport is shorter than the space
+   between two regions and a reader never sees two of them at once. */
+@media (max-width: 700px) {
+  .snap-hint { position: fixed; inset: auto 0 0 0; top: auto; transform: none;
+    flex-direction: row; justify-content: flex-start; gap: .25rem; flex-wrap: nowrap;
+    overflow-x: auto; scrollbar-width: none; background: var(--chrome-bg);
+    border-top: 1px solid var(--chrome-line); padding: .35rem .5rem; }
+  .snap-hint::-webkit-scrollbar { display: none; }
+  .snap-dot { flex: 0 0 auto; flex-direction: row-reverse; gap: .3rem;
+    padding: .22rem .55rem; border-radius: 7px; }
+  .snap-name { opacity: 1; font-size: .7rem; }
+  .snap-dot.on { background: var(--accent-soft); }
+  .body-results { padding-bottom: 4.5rem; }
+  .body-results > section + section { margin-top: 2rem; }
+  .res-region > .res-sub + .res-sub { margin-top: 1.4rem; }
+}
+
 
 @media (max-height: 620px) {
   .app-signin { height: auto; overflow: visible; }
@@ -1255,6 +1331,18 @@ td.num { text-align: right; font-family: var(--mono); font-variant-numeric: tabu
   /* A section holding 14 questions can never honour break-inside: avoid, so the rule moves
      down onto the question, which is a size a page can actually keep together. */
   .card { border: 0; box-shadow: none; padding: 0 0 .7rem; margin: 0 0 .7rem; break-inside: auto; }
+  /* Card borders do not exist on paper, which is why the separation on screen is built out of
+     typography and rules: those survive here. */
+  .res-region { border-top: 1pt solid #000; padding-top: .3rem; margin-top: 1.4rem;
+    break-inside: auto; }
+  .res-region > h2, .res-sub > h3 { break-after: avoid; }
+  .res-sub { margin-top: .8rem; }
+  .card.verdict { border: 0; border-bottom: 1.5pt solid #000; box-shadow: none;
+    padding: 0 0 .5rem; margin: 0 0 .8rem; }
+  .verdict-edge, .completeness-bar { display: none; }
+  .card.warn.alert { border: 1pt solid #000; padding: .3rem .4rem; }
+  .res-sub .table-wrap { border: 0; }
+  .res-region .flag { border: 0; border-left: 2pt solid #000; background: none; }
   .question { break-inside: avoid; }
   .marking-banner { position: static; background: none !important; color: #000 !important;
     border-bottom: 2px solid #000; }
@@ -1267,6 +1355,10 @@ td.num { text-align: right; font-family: var(--mono); font-variant-numeric: tabu
 }
 
 @media (max-width: 620px) {
+  /* The score is the dominant element, and it stays dominant on a phone at a smaller size. */
+  .card.verdict .bigscore .num { font-size: 2.4rem; }
+  .card.verdict { padding: 1rem 1.05rem; }
+  .res-region > h2 { font-size: 1.16rem; }
   .ev-row { grid-template-columns: 1fr 1fr; }
   .bar-row { grid-template-columns: 1fr 3.2rem; }
   .bar-track { grid-column: 1 / -1; }
