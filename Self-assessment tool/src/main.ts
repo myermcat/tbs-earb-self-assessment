@@ -1,6 +1,7 @@
 import type { Assessment, Rubric } from './types';
 import { el, clear, mockupTag } from './dom';
 import { validate } from './rubric';
+import { score } from './scoring';
 import { goToFirstGap, overviewFieldProgress, renderSubmit, resetOverviewToFirstGap, setRepaint,
   setStopKey, showMarkingStep, takeSubmitTabs, currentStopKey } from './views-submit';
 import { renderResults } from './views-results';
@@ -12,7 +13,8 @@ import { closeMenusOnOutsideClick, closeOnOutsideClick, confirmStep, openDialog 
 import { saveBadge } from './save-badge';
 import { SAD_CAT } from './cat';
 import { bootLang, coverage, lang, type Lang, setLang } from './i18n';
-import { endpointHost, flushWrites, goneFromStore, isHosted, listRecords, putRecord } from './store';
+import { endpointHost, flushWrites, goneFromStore, isHosted, listRecords, putRecord, saveOnlineNow,
+  savedOnline } from './store';
 import { canSignIn, currentUser, forgetRole, isConfigured as firebaseConfigured, knownRole, lastSignInProblem,
   loadRole, resumeSignIn, signInWithGoogle, signOut } from './firebase';
 import { t } from './i18n';
@@ -282,6 +284,49 @@ function initialsOf(email: string): string {
   return letters.toUpperCase() || '??';
 }
 
+/**
+ * Offer to start keeping this at TBS.
+ *
+ * The window says what an assessor will and will not do with an unfinished assessment, because
+ * that is the question somebody actually has before they hand work over early. Nothing about
+ * this is reversible in the sense that matters: the copy goes, and only an admin can remove it.
+ */
+function offerOnlineSave(): void {
+  const r = score(rubric, assessment);
+  const left = r.scoreable - r.answered;
+  const done = left <= 0;
+  confirmStep({
+    tier: 'caution',
+    title: done
+      ? t('Keep this at TBS?', 'Conserver ceci au SCT?')
+      : t('Keep this at TBS before it is finished?', 'Conserver ceci au SCT avant que ce soit terminé?'),
+    body: done
+      ? `All ${r.scoreable} questions are answered. Your work is written to ${endpointHost()} and kept current from here on, so it survives a closed tab or a lost laptop.`
+      : `${left} of ${r.scoreable} questions have no answer yet. Your assessor will see it and will be able to read it, and they cannot change anything in it until you say it is finished. They are told to look at it only when you say so. Your work is written to ${endpointHost()} and kept current from here on.`,
+    stake: t('Everything in this tool is unclassified. By keeping it at TBS you are saying this is too.',
+      'Tout dans cet outil est non classifié. En le conservant au SCT, vous affirmez que ceci l\u2019est aussi.'),
+    alt: {
+      label: t('No, this browser is enough for now', 'Non, ce navigateur suffit pour l\u2019instant'),
+      run: () => {
+        assessment.meta.onlineDeclined = true;
+        autosave(assessment);
+        return t('Kept on this machine. The offer stays in the header.',
+          'Conservé sur cet appareil. L\u2019offre reste dans l\u2019en-tête.');
+      },
+    },
+    commitLabel: done
+      ? t('Yes, keep it at TBS', 'Oui, conserver au SCT')
+      : t('Yes, keep it at TBS now', 'Oui, conserver au SCT maintenant'),
+    cancelLabel: t('Not yet', 'Pas encore'),
+    onCommit: () => {
+      void saveOnlineNow(assessment).then((res) => {
+        if (!res.ok) alert(res.problem);
+        paint();
+      });
+    },
+  });
+}
+
 /** Sign out, from wherever it was asked for. Everything the account decided goes with it. */
 function leave(): void {
   signOut();
@@ -392,6 +437,11 @@ function header(bare = false): HTMLElement {
             class: 'linkish small',
             onclick: () => { void signInWithGoogle().then((went) => { if (!went) paint(); }); },
           }, [t('Sign in to save online', 'Se connecter pour enregistrer en ligne')])
+        : null,
+      !bare && isHosted() && currentUser() && !savedOnline(assessment) && hasWork(assessment)
+        ? el('button', { class: 'linkish small', onclick: () => offerOnlineSave() }, [
+            t('Save online', 'Enregistrer en ligne'),
+          ])
         : null,
       bare ? null : side === 'assess'
         ? el('nav', { class: 'path', 'aria-label': t('Where you are', 'Où vous êtes') }, [
@@ -1481,6 +1531,22 @@ if (typeof window.addEventListener === 'function') {
   window.addEventListener('pagehide', () => { void flushWrites(); });
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'hidden') void flushWrites();
+  });
+  /**
+   * Closing the tab on work that has never been saved online.
+   *
+   * The browser owns this dialog and its words, and every browser deliberately refuses to let a
+   * page write them, because that is how "your computer is infected" pop-ups used to work. So
+   * this can only ask whether to stay, and the offer to save is on the screen behind it. It
+   * asks only of somebody who could have saved online and has not, and it stops asking once
+   * they have said the browser is enough.
+   */
+  window.addEventListener('beforeunload', (e) => {
+    if (!isHosted() || !currentUser()) return;
+    if (savedOnline(assessment) || assessment.meta.onlineDeclined) return;
+    if (!hasWork(assessment)) return;
+    e.preventDefault();
+    e.returnValue = '';
   });
 }
 warnGoneFromStore();
