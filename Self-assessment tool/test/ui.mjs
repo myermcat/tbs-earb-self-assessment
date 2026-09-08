@@ -937,31 +937,39 @@ ok('routing is stated as a suggestion', view().includes('does not decide it'));
   ok('the topic block says the numbers do not add up to the overall',
      topicCard.textContent.includes('do not add up to the overall'));
 }
-// The results are read one screen at a time, so the scroll stops on each part.
-ok('the results page is its own scroll container',
-   document.getElementById('app').className.includes('app-results'));
-// Snapping suggests where a part begins and no longer insists on it. Mandatory snapping
-// dragged every short scroll back to the nearest section edge and made a section taller than
-// the window hard to read at all, and the stop rule forbade passing more than one part per
-// gesture. Reported as "the scroll barely works", which it was.
-ok('the scroll rests near each part without fighting the gesture',
-   /\.body-results\s*\{[^}]*scroll-snap-type:\s*y proximity/s.test(html) &&
-   !/scroll-snap-stop:\s*always/s.test(html));
+/**
+ * The results page scrolls like a document.
+ *
+ * It used to be its own scroll container, and three faults came out of that. The wheel did
+ * nothing over the side margins, which at 1440px was 500 pixels of the window. The keyboard
+ * could not scroll at all, because the container never took focus and the document behind it
+ * had nothing to scroll. And the header and the footer were subtracted from the reading area
+ * rather than scrolling away. Reported as "the scroll barely works".
+ *
+ * These assertions are written against the built stylesheet because jsdom does not lay the
+ * page out. The previous version of this gate grepped for a declaration that a surviving
+ * webkit rule was cancelling, so it passed on a page whose scrollbar was invisible in Chrome.
+ * A gate that cannot fail is a zero that means nothing ran.
+ */
+ok('the results page is not its own scroll container',
+   !/\.app-results\s*\{[^}]*overflow:\s*hidden/s.test(html) &&
+   !/\.body-results\s*\{[^}]*overflow-y:\s*auto/s.test(html));
+ok('so nothing hides its scrollbar',
+   !/\.body-results::-webkit-scrollbar\s*\{[^}]*display:\s*none/s.test(html) &&
+   !/\.body-results\s*\{[^}]*scrollbar-width:\s*none/s.test(html));
+ok('and the reading column is not a dead gutter',
+   !/\.body-results\s*\{[^}]*max-width/s.test(html));
+ok('the snap no longer fights the gesture', !/scroll-snap-type:\s*y (mandatory|proximity)/s.test(html));
+ok('and no part is forced to fill a screen, which is what made empty ones',
+   !/\.body-results\s*>\s*section\s*\{[^}]*min-height:\s*100%/s.test(html));
 // Every block on this page is a section.card, and a rule inside .body-results used to strip
 // the background, the border and the shadow off all of them, so ten cards read as one flat
 // surface. Reported as "very poor separation".
-ok('and the cards on it are still cards',
+ok('the cards on it are still cards',
    !/\.body-results\s*>\s*section\s*\{[^}]*background:\s*none/s.test(html) &&
    !/\.body-results\s*>\s*section\s*\{[^}]*box-shadow:\s*none/s.test(html));
-ok('but no part is forced to fill a screen, which is what made empty ones',
-   !/\.body-results\s*>\s*section\s*\{[^}]*min-height:\s*100%/s.test(html));
-// The dots on the right are a way to jump between parts. They were also the only sign the page
-// could be scrolled at all, which is a thing to notice rather than a thing to work out.
-ok('the scrollbar is visible, as well as the dots',
-   /\.body-results\s*\{[^}]*scrollbar-width:\s*thin/s.test(html));
-ok('with a fallback for short viewports and reduced motion',
-   /max-height:\s*620px[^{]*\{[\s\S]{0,400}scroll-snap-type:\s*none/.test(html) &&
-   /prefers-reduced-motion[^{]*\{[\s\S]{0,300}scroll-snap-type:\s*none/.test(html));
+ok('and the dots still watch against the window',
+   !/\{\s*root,\s*rootMargin/.test(html));
 // Submitting is one deliberate act, and with no store there is nothing to press. The block
 // says which of those two it is rather than showing a button that cannot work.
 ok('the results page has a submit block', !!q('.submit-box'));
