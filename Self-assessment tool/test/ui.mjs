@@ -497,7 +497,9 @@ ok('all four domain tabs read complete', qa('.stepper .step.complete:not(:first-
 // Three save states, never silent.
 // Where the work is kept, in the chrome, so it is on every screen rather than only the 21
 // questionnaire pages. It also has to be silent before anything has been written.
-ok('the app says where the work stands', view().includes('Draft saved in browser'));
+// "Draft saved in browser" and "Saved to TBS" were both invented vocabulary. The words are
+// hers: saved on this computer, saved online.
+ok('the app says where the work stands', view().includes('Saved on this computer'));
 ok('and the indicator is a live region', q('.save-state')?.getAttribute('role') === 'status');
 ok('it lives in the chrome, not in the questionnaire footer',
    !!q('.topbar .save-state') && !q('.sticky-footer .save-state'));
@@ -522,7 +524,7 @@ ok('and the page says which one it is in',
   q('.lang-link').click();
   ok('switching to French takes effect', document.documentElement.getAttribute('lang') === 'fr');
   ok('and a translated string is translated',
-     view().includes('Brouillon enregistré') || !!q('.save-state.hidden'),
+     view().includes('Enregistré sur cet ordinateur') || !!q('.save-state.hidden'),
      q('.save-state')?.textContent);
   ok('and the link now offers English back', /English/.test(q('.lang-link')?.textContent ?? ''));
   q('.lang-link').click();

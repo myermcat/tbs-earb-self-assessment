@@ -733,11 +733,20 @@ dialog.confirm::backdrop { background: rgba(10, 12, 16, .55); }
 .account-menu .set-menu-pop { right: 0; min-width: 15rem; }
 .menu-head { display: block; padding: .1rem .55rem; font-size: .72rem; color: var(--ink-3); }
 .menu-head.mono { color: var(--ink-2); padding-bottom: .35rem; }
+.menu-item { display: flex; align-items: center; gap: .55rem; }
+.menu-ico { display: inline-flex; flex: none; color: var(--ink-3); }
+.menu-item:hover .menu-ico { color: var(--accent); }
 
 /* File, beside the name of the tool, the way a document editor keeps it. */
-.file-menu { position: relative; margin-left: .35rem; }
-.file-btn { border: 0; background: none; color: var(--ink-2); font-size: .8rem;
-  padding: .2rem .45rem; border-radius: 7px; cursor: pointer; }
+/* The button was clipped: .brand crops what runs past it, and a menu on the end of the brand
+   row was the thing running past it. It gets its own place in the bar instead. */
+.file-menu { position: relative; flex: 0 0 auto; }
+/* .set-menu-btn is a 1.8rem square, built for a three-dot button. A word does not fit in it,
+   which is what the clipping was. */
+.file-btn { width: auto; height: auto; display: inline-flex; align-items: center;
+  border: 0; background: none; color: var(--ink-2); font-size: .8rem;
+  padding: .28rem .5rem; border-radius: 7px; cursor: pointer; white-space: nowrap;
+  list-style: none; }
 .file-btn:hover { background: var(--surface-2); color: var(--accent); }
 .file-menu .set-menu-pop { left: 0; right: auto; min-width: 15rem; }
 /* Share reads as a control over access, which is what the icon is for. */
@@ -757,6 +766,12 @@ dialog.confirm.tier-danger .danger-solid:hover, dialog.confirm.tier-danger .dang
 .cf-head { padding: 1rem 1.15rem .35rem; border-top: 3px solid var(--bad);
   border-radius: 14px 14px 0 0; }
 .tier-caution .cf-head { border-top-color: var(--warn); }
+/* Nothing is being taken away, so nothing here is red. */
+.tier-plain .cf-head { border-top-color: var(--accent); }
+.cf-note { display: block; margin: .7rem 0 0; padding: .1rem 0 .1rem .7rem;
+  border-left: 2px solid var(--line-2); color: var(--ink-3); font-size: .84rem; }
+.tier-plain .cf-stake { border-left-color: var(--line-2); background: var(--surface-2);
+  color: var(--ink-2); }
 .cf-title { font-size: 1.1rem; }
 .cf-body { padding: .35rem 1.15rem 0; font-size: .9rem; color: var(--ink-2); }
 .cf-stake { display: block; border-left: 3px solid var(--bad); background: var(--bad-bg);
@@ -1102,6 +1117,17 @@ button.is-mockup, a.is-mockup { opacity: .62; cursor: not-allowed; }
 .sitefoot .proto { color: var(--warn); font-weight: 600; }
 
 .ref-line { margin: .1rem 0 .6rem; color: var(--ink-2); }
+
+/* A note line. Neither a question nor an instruction: a fact somebody needs once, so it reads
+   as an aside and not as another paragraph of the form. */
+.note-line { display: flex; align-items: baseline; gap: .45rem; flex-wrap: wrap;
+  margin: .2rem 0 .9rem; padding: .4rem .6rem; border-left: 2px solid var(--line-2);
+  background: var(--surface-2); border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  font-size: .78rem; }
+.note-key { text-transform: uppercase; letter-spacing: .08em; font-size: .66rem;
+  font-weight: 700; color: var(--ink-3); }
+.note-line b.mono { letter-spacing: .08em; color: var(--ink); }
+.note-say { color: var(--ink-3); flex: 1 1 16rem; min-width: 0; }
 .ref-line b { letter-spacing: .08em; }
 .ref-chip { display: inline-block; border: 1px solid var(--line-2); border-radius: 5px;
   padding: 0 .25rem; letter-spacing: .06em; }

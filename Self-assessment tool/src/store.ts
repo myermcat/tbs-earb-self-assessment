@@ -324,7 +324,7 @@ function sendable(a: Assessment): boolean {
    * Building this without the gate made every keystroke of a signed-in person's work leave
    * their machine before they had asked for anything, which is the opposite of what the tool
    * had promised on every screen. One deliberate act turns it on. After that it stays on and
-   * the copy at TBS is kept current, because a person who has said yes once should not have to
+   * the copy online is kept current, because a person who has said yes once should not have to
    * keep saying it.
    */
   if (!a.meta?.savedOnlineAt) return false;
@@ -405,7 +405,7 @@ export async function saveOnlineNow(a: Assessment): Promise<{ ok: true } | { ok:
     lastWriteAt = Date.now();
   } else {
     // It did not go, so nothing has been turned on. Saying otherwise would leave the badge
-    // claiming a copy at TBS that does not exist.
+    // claiming a copy online that does not exist.
     delete a.meta.savedOnlineAt;
     keepDraft(a);
   }

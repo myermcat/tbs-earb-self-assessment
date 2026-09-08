@@ -1,7 +1,7 @@
 import type { Assessment, Rubric } from './types';
 import { el, clear } from './dom';
 import { validate } from './rubric';
-import { score } from './scoring';
+import { completion } from './scoring';
 import { goToFirstGap, overviewFieldProgress, renderSubmit, resetOverviewToFirstGap, setRepaint,
   setSaveOnline, setStopKey, showMarkingStep, takeSubmitTabs, currentStopKey } from './views-submit';
 import { handOff, renderResults } from './views-results';
@@ -12,10 +12,10 @@ import { addToLibrary, canRemove, currentId, currentRubric, libraryList, removeF
 import { closeMenusOnOutsideClick, closeOnOutsideClick, confirmStep, openDialog } from './confirm';
 import { saveBadge } from './save-badge';
 import { SAD_CAT } from './cat';
-import { openShareDialog, sharedCount } from './views-share';
+import { openShareDialog } from './views-share';
 import { bootLang, coverage, lang, type Lang, setLang } from './i18n';
-import { endpointHost, flushWrites, goneFromStore, isHosted, listRecords, putRecord, saveOnlineNow,
-  savedOnline } from './store';
+import { endpointHost, flushWrites, goneFromStore, isHosted, listRecords, putRecord,
+  saveOnlineNow } from './store';
 import { canSignIn, currentUser, forgetRole, pageAddress, isConfigured as firebaseConfigured, knownRole, lastSignInProblem,
   loadRole, resumeSignIn, signInWithGoogle, signOut } from './firebase';
 import { t } from './i18n';
@@ -115,6 +115,13 @@ function openSettings(pane: SettingsPane) {
   go('settings');
 }
 
+/**
+ * When this build was made. It is in the footer because a browser holds a copy of a page for
+ * longer than anybody expects, and telling a stale page apart from a bug is otherwise guesswork.
+ */
+declare const __EARB_BUILT__: string;
+const BUILT: string = typeof __EARB_BUILT__ === 'string' ? __EARB_BUILT__ : '';
+
 const app = document.getElementById('app')!;
 
 /** Small counts read better spelled out in body copy. */
@@ -165,11 +172,17 @@ function setSide(next: Side, move = true, target?: Mode) {
   else pushRoute();
 }
 
-const PERSON_PLUS =
-  '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" ' +
-  'stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
-  '<path d="M15 19v-1a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v1"/><circle cx="8.5" cy="7" r="4"/>' +
-  '<path d="M19 8v6M22 11h-6"/></svg>';
+/* Line icons for the File menu, at the weight of the gear beside them. */
+const ICO = 'viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" ' +
+  'stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"';
+const ICON_SHARE = `<svg ${ICO}><path d="M15 19v-1a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v1"/>` +
+  '<circle cx="8.5" cy="7" r="4"/><path d="M19 8v6M22 11h-6"/></svg>';
+const ICON_MAIL = `<svg ${ICO}><rect x="2" y="4" width="20" height="16" rx="2"/>` +
+  '<path d="m2 7 10 6 10-6"/></svg>';
+const ICON_DOWN = `<svg ${ICO}><path d="M12 3v12"/><path d="m7 12 5 5 5-5"/>` +
+  '<path d="M3 21h18"/></svg>';
+const ICON_PRINT = `<svg ${ICO}><path d="M6 9V3h12v6"/><rect x="3" y="9" width="18" height="8" rx="2"/>` +
+  '<path d="M6 17h12v4H6z"/></svg>';
 
 const GEAR =
   '<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" ' +
@@ -304,39 +317,39 @@ function initialsOf(email: string): string {
 }
 
 /**
- * Offer to start keeping this at TBS.
+ * Offer to save this online.
  *
- * The window says what an assessor will and will not do with an unfinished assessment, because
- * that is the question somebody actually has before they hand work over early. Nothing about
- * this is reversible in the sense that matters: the copy goes, and only an admin can remove it.
+ * The words are the whole job here, and the first version of this window got them wrong in
+ * four ways at once: it invented a phrase nobody had asked for, it put two unrelated thoughts
+ * in one paragraph, it ended on a sentence whose "this is too" pointed at nothing, and it wore
+ * the colours of a window that deletes something.
+ *
+ * So: one question in the title, the thing being decided in the body, the thing worth knowing
+ * once as a note under it, and no red anywhere, because saving your own work takes nothing away.
  */
 function offerOnlineSave(): void {
-  const r = score(rubric, assessment);
-  const left = r.scoreable - r.answered;
-  const done = left <= 0;
+  const c = completion(rubric, assessment);
   confirmStep({
-    tier: 'caution',
-    title: done
-      ? t('Keep this at TBS?', 'Conserver ceci au SCT?')
-      : t('Keep this at TBS before it is finished?', 'Conserver ceci au SCT avant que ce soit terminé?'),
-    body: done
-      ? `All ${r.scoreable} questions are answered. This is the only time you press this. From now on your work is written to ${endpointHost()} a few seconds after you stop typing, on its own, so a closed tab or a lost laptop costs you nothing.`
-      : `${left} of ${r.scoreable} questions have no answer yet. Your assessor will be able to read it, they cannot change anything in it until you say it is finished, and they are told to look only when you say so. This is also the only time you press this: from now on your work is written to ${endpointHost()} a few seconds after you stop typing, on its own.`,
-    stake: t('Everything in this tool is unclassified. By keeping it at TBS you are saying this is too.',
-      'Tout dans cet outil est non classifié. En le conservant au SCT, vous affirmez que ceci l\u2019est aussi.'),
+    tier: 'plain',
+    title: t('Save this online?', 'Enregistrer ceci en ligne?'),
+    body: c.complete
+      ? t('Your assessment is saved on this computer only. Saving it online puts a copy on the TBS server, so it survives a closed tab or a lost laptop, and your assessor can read it.',
+          'Votre évaluation est enregistrée sur cet ordinateur seulement. L\u2019enregistrement en ligne place une copie sur le serveur du SCT : elle survit à un onglet fermé ou à un ordinateur perdu, et votre évaluateur peut la lire.')
+      : t(`Your assessment is saved on this computer only. Saving it online puts a copy on the TBS server, so it survives a closed tab or a lost laptop, and your assessor can read it. ${c.questionsLeft} of ${c.total} questions have no answer yet, so they will see it unfinished. They cannot change anything in it, and nobody is asked to review it until you say it is finished.`,
+          `Votre évaluation est enregistrée sur cet ordinateur seulement. L\u2019enregistrement en ligne place une copie sur le serveur du SCT : elle survit à un onglet fermé ou à un ordinateur perdu, et votre évaluateur peut la lire. ${c.questionsLeft} des ${c.total} questions n\u2019ont pas encore de réponse, il la verra donc inachevée. Il ne peut rien y modifier, et personne n\u2019est invité à l\u2019évaluer avant que vous ne disiez que c\u2019est terminé.`),
+    note: t('You only press this once. After this, every change you make is saved online a few seconds after you stop typing.',
+      'Vous ne cliquez ici qu\u2019une seule fois. Ensuite, chaque modification est enregistrée en ligne quelques secondes après que vous arrêtez de taper.'),
+    stake: t('Nothing in this tool may be above Unclassified. Saving online says that this assessment, and everything it points at, is Unclassified.',
+      'Rien dans cet outil ne peut dépasser Non classifié. L\u2019enregistrement en ligne affirme que cette évaluation, et tout ce à quoi elle renvoie, est Non classifié.'),
     alt: {
-      label: t('No, this browser is enough for now', 'Non, ce navigateur suffit pour l\u2019instant'),
+      label: t('No, keep it on this computer only', 'Non, la garder sur cet ordinateur seulement'),
       run: () => {
         assessment.meta.onlineDeclined = true;
         autosave(assessment);
-        return t('Kept on this machine. The offer stays in the header.',
-          'Conservé sur cet appareil. L\u2019offre reste dans l\u2019en-tête.');
       },
     },
-    commitLabel: done
-      ? t('Yes, keep it at TBS', 'Oui, conserver au SCT')
-      : t('Yes, keep it at TBS now', 'Oui, conserver au SCT maintenant'),
-    cancelLabel: t('Not yet', 'Pas encore'),
+    commitLabel: t('Save online', 'Enregistrer en ligne'),
+    cancelLabel: t('Cancel', 'Annuler'),
     onCommit: () => {
       void saveOnlineNow(assessment).then((res) => {
         if (!res.ok) alert(res.problem);
@@ -457,41 +470,51 @@ function header(bare = false): HTMLElement {
             el('button', {
               class: 'menu-item',
               onclick: () => openShareDialog(assessment, currentUser()?.email ?? assessorName, () => paint()),
-            }, [t('Share access', 'Gérer l\u2019accès')]),
+            }, [
+              el('span', { class: 'menu-ico', html: ICON_SHARE, 'aria-hidden': true }),
+              t('Share access', 'Gérer l\u2019accès'),
+            ]),
             el('button', {
               class: 'menu-item',
               onclick: () => handOff(assessment),
-            }, [t('Email this assessment', 'Envoyer cette évaluation par courriel')]),
+            }, [
+              el('span', { class: 'menu-ico', html: ICON_MAIL, 'aria-hidden': true }),
+              t('Email this assessment', 'Envoyer cette évaluation par courriel'),
+            ]),
+            // "File" on its own said nothing: a PDF is a file too. The kind is the point.
             el('button', {
               class: 'menu-item',
               onclick: () => { saveAssessmentFile(assessment); paint(); },
-            }, [t('Download as a file', 'Télécharger comme fichier')]),
+            }, [
+              el('span', { class: 'menu-ico', html: ICON_DOWN, 'aria-hidden': true }),
+              t('Download as a JSON file', 'Télécharger en fichier JSON'),
+            ]),
             el('button', {
               class: 'menu-item',
               onclick: () => window.print(),
-            }, [t('Print or save as PDF', 'Imprimer ou enregistrer en PDF')]),
+            }, [
+              el('span', { class: 'menu-ico', html: ICON_PRINT, 'aria-hidden': true }),
+              t('Print or save as a PDF', 'Imprimer ou enregistrer en PDF'),
+            ]),
           ]),
         ])
       : null,
     el('div', { class: 'topbar-right' }, [
       // Where the work is kept, on every screen, and one click from the detail.
-      bare ? null : saveBadge(() => openSettings('answers')),
+      // The save state is the submitter's. An assessor has nothing of their own open here,
+      // so a badge saying a draft is kept in this browser is answering nobody's question.
+      bare || side === 'assess' ? null : saveBadge(() => openSettings('answers')),
       /**
        * Signing in is not a gate on this side. A submitter can answer all 176 questions with no
-       * account at all. What the account buys is that the work is kept at TBS as they go, so the
+       * account at all. What the account buys is that the work can be saved online, so the
        * offer is beside the save state, where somebody wondering where their work lives is
        * already looking.
        */
-      !bare && isHosted() && canSignIn() && !currentUser()
+      !bare && side === 'submit' && isHosted() && canSignIn() && !currentUser()
         ? el('button', {
             class: 'linkish small',
             onclick: () => { void signInWithGoogle().then((went) => { if (!went) paint(); }); },
           }, [t('Sign in to save online', 'Se connecter pour enregistrer en ligne')])
-        : null,
-      !bare && isHosted() && currentUser() && !savedOnline(assessment) && hasWork(assessment)
-        ? el('button', { class: 'linkish small', onclick: () => offerOnlineSave() }, [
-            t('Save online', 'Enregistrer en ligne'),
-          ])
         : null,
       bare ? null : side === 'assess'
         ? el('nav', { class: 'path', 'aria-label': t('Where you are', 'Où vous êtes') }, [
@@ -511,25 +534,6 @@ function header(bare = false): HTMLElement {
       side === 'assess'
         ? el('button', { class: 'linkish small', onclick: () => setSide('submit') }, [
             t('Leave assessor view', 'Quitter la vue de l\u2019évaluateur'),
-          ])
-        : null,
-      /**
-       * Share, where a document editor puts it.
-       *
-       * Filling in 176 questions is not a job for one person, and their assessor has to be able
-       * to read it before it is finished. It appears once there is a document to share, which
-       * is the questionnaire and the results, and it says on its face that it is a mockup.
-       */
-      !bare && side === 'submit' && (mode === 'submit' || mode === 'results')
-        ? el('button', {
-            class: 'ghost small share-btn',
-            title: t('Manage who can see and work on this assessment',
-              'Gérer qui peut voir cette évaluation et y travailler'),
-            onclick: () => openShareDialog(assessment, currentUser()?.email ?? assessorName, () => paint()),
-          }, [
-            el('span', { class: 'share-ico', html: PERSON_PLUS }),
-            t('Share', 'Partager'),
-            sharedCount(assessment) ? el('span', { class: 'ref-chip' }, [String(sharedCount(assessment))]) : null,
           ])
         : null,
       /**
@@ -592,13 +596,13 @@ function footer(): HTMLElement {
           `Prototype. Unclassified only, and not an official EARB decision. What you send is kept at ${endpointHost()}. `,
         ]),
       el('button', { class: 'linkish', onclick: () => openSettings('build') }, ['Where this goes']),
-      el('span', {}, [`  \u00b7  rubric ${rubric.version}  \u00b7  v${APP_VERSION}`]),
+      el('span', {}, [`  \u00b7  rubric ${rubric.version}  \u00b7  v${APP_VERSION}${BUILT ? `  \u00b7  built ${BUILT} UTC` : ''}`]),
     ]);
   }
   return el('footer', { class: 'sitefoot' }, [
     el('span', {}, ['Everything you enter stays on this machine. ']),
     el('button', { class: 'linkish', onclick: () => openSettings('answers') }, ['How that works']),
-    el('span', {}, [`  ·  rubric ${rubric.version}  ·  v${APP_VERSION}`]),
+    el('span', {}, [`  ·  rubric ${rubric.version}  ·  v${APP_VERSION}${BUILT ? `  ·  built ${BUILT} UTC` : ''}`]),
   ]);
 }
 
@@ -1250,13 +1254,13 @@ function paneAnswers(pane: HTMLElement) {
   if (isHosted()) {
     const me = currentUser();
     pane.appendChild(setRow(
-      me ? 'Signed in means saved at TBS' : 'Signing in keeps your work at TBS',
-      `Your work is written to ${endpointHost()} a few seconds after you stop typing, so a closed tab or a broken laptop costs you nothing. Up to twenty seconds of the newest work exists only in this browser, which is the gap between writes that keeps the shared store inside its daily allowance. Telling TBS it is ready to review is a separate act, at the bottom of My results, and it saves nothing new: it puts your assessment in front of an assessor.`,
+      me ? 'Signed in, so you can save online' : 'Signing in lets you save online',
+      `Press Save online once and, from then on, your work is written to ${endpointHost()} a few seconds after you stop typing. A closed tab or a broken laptop costs you nothing. Up to twenty seconds of the newest work is on this computer only, which is the gap between writes that keeps the server inside its daily allowance. Saying the assessment is finished is a separate act, at the bottom of My results, and it saves nothing new: it puts your assessment in front of an assessor.`,
       null,
     ));
     pane.appendChild(setRow(
       'Nothing goes until you have said how your evidence is marked',
-      'The questionnaire asks that before it will save a file, and the same answer gates what goes to TBS. Until it is answered, everything stays on this machine.',
+      'The questionnaire asks that before it will let you save at all, and the same answer decides what may go online. Until it is answered, everything stays on this computer.',
       null,
     ));
     pane.appendChild(setRow(

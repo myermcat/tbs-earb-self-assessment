@@ -72,6 +72,10 @@ async function once() {
     define: {
       __EARB_ENDPOINT__: JSON.stringify(ENDPOINT),
       __EARB_FIREBASE__: JSON.stringify(FIREBASE),
+      // When this file was made, so a page can say which build it is. Browsers hold a copy of a
+      // page far longer than anybody expects, and a whole afternoon has gone into arguing with
+      // behaviour that had already been changed in a build the reader did not have.
+      __EARB_BUILT__: JSON.stringify(new Date().toISOString().slice(0, 16).replace('T', ' ')),
     },
     logLevel: 'warning',
   });

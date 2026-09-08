@@ -9,11 +9,26 @@ import { t } from './i18n';
  * because some actions have nothing to hand back.
  */
 export interface ConfirmStep {
-  tier: 'caution' | 'danger';
+  /**
+   * How much is at stake, which decides the colour of everything.
+   *
+   * 'plain' is for a window that asks about something destroying nothing. It exists because the
+   * save-online window was borrowing 'caution', so a person choosing to save their own work was
+   * shown an amber bar, a red-bordered warning panel and a red confirm button. Red is a word,
+   * and using it on an action that takes nothing away spends it.
+   */
+  tier: 'plain' | 'caution' | 'danger';
   title: string;
   body: string;
   /** What is at stake, in one line. Rendered in the tone of the tier. */
   stake?: string;
+  /**
+   * A second thought, below the decision and quieter than it.
+   *
+   * The body is the thing being decided. A note is the thing worth knowing once, and putting
+   * the two in one paragraph is how a window ends up saying two unrelated things in one voice.
+   */
+  note?: string;
   /**
    * The keep-a-copy escape. Runs, then reports back so the wording can change.
    *
@@ -79,6 +94,7 @@ export function confirmStep(o: ConfirmStep): void {
 
   dlg.className = `confirm tier-${o.tier}`;
   const body = el('div', { class: 'cf-body' }, [el('p', {}, [o.body])]);
+  if (o.note) body.appendChild(el('p', { class: 'cf-note' }, [o.note]));
   let stakeEl = o.stake ? el('p', { class: 'cf-stake' }, [o.stake]) : null;
   if (stakeEl) body.appendChild(stakeEl);
 
@@ -98,13 +114,13 @@ export function confirmStep(o: ConfirmStep): void {
       } }, [o.offer.label]));
     }
     if (o.alt) {
-      actions.appendChild(el('button', { class: 'primary cf-wide', onclick: () => {
+      actions.appendChild(el('button', { class: `${o.tier === 'plain' ? 'ghost' : 'primary'} cf-wide`, onclick: () => {
         close();
         o.alt!.run();
       } }, [o.alt.label]));
     }
     actions.appendChild(el('button', {
-      class: `${o.tier === 'danger' ? 'danger-solid' : 'danger'} cf-wide`,
+      class: `${o.tier === 'danger' ? 'danger-solid' : o.tier === 'plain' ? 'primary' : 'danger'} cf-wide`,
       onclick: () => { close(); o.onCommit(); },
     }, [kept && o.offer
       ? t(`I have the copy. ${o.commitLabel.toLowerCase()}`, `J\u2019ai la copie. ${o.commitLabel.toLowerCase()}`)

@@ -803,12 +803,20 @@ function aboutSection(
           field(t('Department or agency', 'Ministère ou organisme'), text('department', t('Transport Canada, for example', 'Transports Canada, par exemple'))),
           field(t('Who to contact about this', 'Personne-ressource'), text('contact', t('Name or team inbox', 'Nom ou boîte d\u2019équipe'))),
         ]),
-        // The code an assessor matches an email to. It goes here because this is where the
-        // name is, and the name is the thing people assume identifies the assessment.
-        el('p', { class: 'ref-line tiny' }, [
-          'Reference ',
+        /**
+         * The code an assessor matches an email to. It goes here because this is where the name
+         * is, and the name is the thing people assume identifies the assessment.
+         *
+         * It reads as a note and not as body copy, because it is neither a question nor an
+         * instruction: it is a fact about this assessment that somebody needs once.
+         */
+        el('aside', { class: 'note-line' }, [
+          el('span', { class: 'note-key' }, [t('Reference', 'Référence')]),
           el('b', { class: 'mono' }, [a.ref ?? '----']),
-          el('span', { class: 'dim' }, ['. Quote this in any email about this assessment. It stays the same if you rename the initiative.']),
+          el('span', { class: 'note-say' }, [
+            t('This assessment\u2019s own code. Quote it in any email about this assessment. It stays the same if you rename the initiative.',
+              'Le code propre à cette évaluation. Citez-le dans tout courriel à son sujet. Il ne change pas si vous renommez l\u2019initiative.'),
+          ]),
         ]),
         field(t('In two or three sentences, what is it?', 'En deux ou trois phrases, de quoi s\u2019agit-il?'), el('textarea', {
           rows: 3, placeholder: 'What it does, and who it is for.',
