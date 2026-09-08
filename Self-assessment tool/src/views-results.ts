@@ -378,7 +378,9 @@ function addSnapHint(root: HTMLElement): void {
         const i = sections.indexOf(e.target);
         dots.forEach((d, j) => d.classList.toggle('on', j === i));
       }
-    }, { root, rootMargin: '-20% 0px -60% 0px', threshold: 0 });
+      // The window is the scroll container now, so the observer watches against it. Passing the
+      // old container here left the dots dead without saying anything.
+    }, { rootMargin: '-20% 0px -60% 0px', threshold: 0 });
     for (const sec of sections) io.observe(sec);
   });
 }

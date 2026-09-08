@@ -535,26 +535,24 @@ a.faint-link:hover { color: var(--accent); }
   margin: 0 auto; padding: 1rem 1.15rem; }
 .body-empty > .card { width: 100%; margin-bottom: 0; }
 
-.app-results { height: 100dvh; display: flex; flex-direction: column; overflow: hidden; }
-.body-results {
-  flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior-y: contain;
-  /* Proximity, because mandatory fought every gesture: a short scroll was dragged back to the
-     nearest section edge, and a section taller than the window could not be read at all. The
-     dots on the right still take you to a section; this only stops the page arguing on the way. */
-  scroll-snap-type: y proximity; scroll-behavior: smooth;
-  margin: 0 auto; padding: 1.15rem 1.15rem 3rem; max-width: 940px;
-  scrollbar-width: thin;                 /* an affordance, as well as the dots on the right */
-}
-.body-results::-webkit-scrollbar { display: none; }
-/* Every block on this page is a section.card. This used to strip the background, the border and
-   the shadow off all of them, so the whole results page read as one flat surface with no
-   separation anywhere. The snap target and the card are the same box here, and that is fine. */
-.body-results > section {
-  scroll-snap-align: start; scroll-margin-top: 1.15rem;
-  margin: 0 0 1.15rem;
-}
+/**
+ * The results read as a report, so the page scrolls like one.
+ *
+ * This used to be its own scroll container: #app was exactly the height of the window with
+ * overflow hidden, and the reading column inside it was capped at 940px and centred. Three
+ * faults came out of that, and together they are why the scroll barely worked. The wheel did
+ * nothing over the side margins, which at 1440px was 500 pixels of the window and at 1920px
+ * more than half of it. The keyboard could not scroll at all, because the container never took
+ * focus and the document behind it had nothing to scroll. And the header and the footer were
+ * subtracted from the reading area on every screen rather than scrolling away, which cost a
+ * third of a phone.
+ *
+ * So the document scrolls, the way every other screen in the tool already does. The dots on
+ * the right still take you to a part.
+ */
+.body-results { padding-bottom: 3rem; }
+.body-results > section { scroll-margin-top: 5rem; margin: 0 0 1.15rem; }
 .body-results > section:last-child { margin-bottom: 0; }
-
 
 .snap-hint { position: fixed; right: 1rem; bottom: 1.2rem; z-index: 20;
   display: flex; flex-direction: column; gap: .3rem; }
@@ -566,12 +564,7 @@ a.faint-link:hover { color: var(--accent); }
 @media (max-height: 620px) {
   .app-signin { height: auto; overflow: visible; }
   .app-signin .body { overflow: visible; justify-content: flex-start; }
-  .app-results { height: auto; overflow: visible; }
-  .body-results { overflow: visible; scroll-snap-type: none; }
   .snap-hint { display: none; }
-}
-@media (prefers-reduced-motion: reduce) {
-  .body-results { scroll-behavior: auto; scroll-snap-type: none; }
 }
 
 /* ---------- settings: a rail and one pane ------------------------------------------------
@@ -1225,8 +1218,6 @@ td.num { text-align: right; font-family: var(--mono); font-variant-numeric: tabu
   dialog { display: none !important; }
   .set-nav, .undo-bar { display: none !important; }
   .set-layout { display: block; }
-  .app-results { height: auto; overflow: visible; }
-  .body-results { overflow: visible; scroll-snap-type: none; }
   .body-results > section { min-height: auto; display: block; }
   input, select, textarea, .score-row, .chosen, .evidence .ev-item, .ev-head, .note-secure { display: none !important; }
   .print-only { display: block; }
