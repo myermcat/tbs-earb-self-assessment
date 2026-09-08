@@ -32,7 +32,9 @@ function submission(ref, name) {
     ref,
     id: `doc-${ref}`,
     rubric: { id: rubric.id, version: rubric.version },
-    initiative: { name, department: 'Fisheries and Oceans Canada', contact: 'someone@dfo-mpo.gc.ca' },
+    // Marked, because the export window has to name the marking and the sheet has no column
+    // for it, which is the one thing that window exists to say.
+    initiative: { name, department: 'Fisheries and Oceans Canada', contact: 'someone@dfo-mpo.gc.ca', classification: 'Protected B' },
     answers: {},
     meta: { submittedAt: '2026-09-01T10:00:00.000Z', updatedAt: '2026-09-01T10:00:00.000Z' },
   };
@@ -133,6 +135,62 @@ console.log('\nThe published build, signed in\n');
   ok('and lists what came back', body(doc).includes('Licensing Renewal'), body(doc).slice(0, 160));
   ok('both of them', body(doc).includes('Fleet Scheduling'));
   ok('and stops saying the pool is empty', !/Nothing assigned to you yet/.test(body(doc)));
+  dom.window.close();
+}
+
+/* --------------------------------------------------------------------------------------- */
+{
+  /**
+   * The assessor screen, on the same ratio as the submitter's results page.
+   *
+   * It was running at 0.81: a card margined .85rem below and padded 1.05rem inside, so two
+   * unrelated blocks were closer together than a heading was to its own content. Reported as
+   * "all the buttons in there are very close to the text", which is what that inversion looks
+   * like from the outside. These are computed lengths, so the gate cannot pass on a rule that
+   * another rule is cancelling: the first version of the fix reset all four margins on a
+   * selector that outranked the one setting the gap, and measured 0px.
+   */
+  const rows = [submission('AB12', 'Licensing Renewal'), submission('CD34', 'Fleet Scheduling')];
+  const { doc, dom } = await boot({
+    session: live, side: 'assess', role: 'assessor', listAnswer: { documents: rows.map(asDoc) },
+  });
+  const w = dom.window;
+  const px = (el, prop) => parseFloat(w.getComputedStyle(el)[prop]) || 0;
+  const kids = [...doc.querySelector('main').children];
+  ok('the assessor body is marked as one', doc.querySelector('main').className.includes('body-review'));
+  const between = kids.length > 1 ? px(kids[1], 'marginTop') : 0;
+  const within = px(kids[0], 'paddingTop');
+  ok('two blocks are further apart than a heading is from its own content',
+     between >= 2.2 * within, `${between}px between, ${within}px within`);
+  const h2 = doc.querySelector('main .card h2');
+  ok('and a heading has room under it',
+     px(h2.nextElementSibling, 'marginTop') > 0, String(px(h2?.nextElementSibling, 'marginTop')));
+
+  /**
+   * Nothing destroys an assessor's work from a toolbar.
+   *
+   * There used to be a Clear beside the export, the same size and the same colour, which
+   * emptied every submission and every score, verdict and reason typed against them. The audit
+   * lives in this browser and in a file somebody may not have saved, so it was the only copy.
+   * Nothing covered it, which is why it survived this long.
+   */
+  const labels = [...doc.querySelectorAll('button')].map((b) => b.textContent.trim());
+  ok('there is no Clear on the toolbar', !labels.includes('Clear'), labels.slice(0, 12).join(','));
+  ok('the export is on a toolbar above the table', !!doc.querySelector('.res-toolbar .btn-icon'));
+  ok('and it carries an icon', !!doc.querySelector('.res-toolbar .btn-icon svg'));
+  ok('closing one submission is a per-row action',
+     [...doc.querySelectorAll('.row-acts .row-menu .menu-item')].some((b) => /Close this one/.test(b.textContent)));
+  ok('and closing everything is the last item of a menu, in red',
+     [...doc.querySelectorAll('.res-toolbar .menu-item.menu-danger')].some((b) => /Close all/.test(b.textContent)));
+
+  // Exporting names what goes out, including the thing the sheet cannot carry.
+  doc.querySelector('.res-toolbar .btn-icon').click();
+  await new Promise((r) => setTimeout(r, 40));
+  const ask = doc.querySelector('dialog.confirm');
+  ok('exporting asks first', !!ask);
+  ok('on a window that is not dressed as a deletion', ask.className.includes('tier-plain'), ask.className);
+  ok('and says the sheet records no marking', /No column in the sheet records/.test(ask.textContent));
+  ok('and names the marking to treat the file as', /Protected B/.test(ask.textContent));
   dom.window.close();
 }
 

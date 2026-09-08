@@ -1,4 +1,4 @@
-import type { Assessment, AuditEntry, Rubric } from './types';
+import { classRank, type Assessment, type AuditEntry, type Rubric } from './types';
 import { el, clear, tone } from './dom';
 import { allQuestionScores, score, type QuestionScore, type Result } from './scoring';
 import { flags, type Flag } from './flags';
@@ -8,6 +8,7 @@ import { humanSize, openAttachment } from './attach';
 import { rubricFor } from './library';
 import { confirmStep } from './confirm';
 import { SAD_CAT } from './cat';
+import { ICON_DOWN } from './icons';
 import { isHosted, poolRecords, type PoolAnswer } from './store';
 import { repaint } from './views-submit';
 import BUILTIN from '../rubric/rubric.v1-dan.json';
@@ -382,7 +383,20 @@ function paintList(rubric: Rubric, root: HTMLElement) {
       el('td', { class: 'small' }, [`${Math.round(l.r.completeness * 100)}%`]),
       // The detail reads the set this submission was answered against, so the questions and
       // weights on screen are the ones the department actually answered.
-      el('td', {}, [el('button', { class: 'ghost small', onclick: () => openDetail(l.rubric, root, l) }, ['Open'])]),
+      el('td', {}, [
+        el('div', { class: 'row-acts' }, [
+          el('button', { class: 'ghost small', onclick: () => openDetail(l.rubric, root, l) }, ['Open']),
+          el('details', { class: 'set-menu row-menu' }, [
+            el('summary', { class: 'set-menu-btn', 'aria-label': 'More actions', title: 'More actions' }, ['\u22EF']),
+            el('div', { class: 'set-menu-pop' }, [
+              el('button', {
+                class: 'menu-item menu-danger',
+                onclick: () => closeOne(root, rubric, l),
+              }, ['Close this one']),
+            ]),
+          ]),
+        ]),
+      ]),
     ]));
   }
   table.appendChild(tb);
@@ -392,26 +406,60 @@ function paintList(rubric: Rubric, root: HTMLElement) {
     el('p', { class: 'muted small' }, [
       'Sorted so the ones that need you are at the top. The middle of the list is where you spend the least time.',
     ]),
-    el('div', { class: 'table-wrap' }, [table]),
-    el('div', { class: 'actions' }, [
-      el('button', { class: 'ghost', onclick: () => exportAllCsv(rubric) }, ['Export all as CSV']),
+    /**
+     * The toolbar. It goes above the table, where it reads as belonging to it.
+     *
+     * Two full-size buttons used to sit under the table: an export and a Clear that emptied
+     * every submission and every score, verdict and reason the assessor had typed. Nothing
+     * destroys work from a toolbar, at the same size and in the same colour as a benign control
+     * beside it, and closing one submission you are finished with is what an assessor actually
+     * wants. So closing is per row, and the one that closes everything is the last item in a
+     * menu, in red, under a separator.
+     */
+    el('div', { class: 'res-toolbar' }, [
       el('button', {
-        class: 'ghost danger-text',
-        onclick: () => confirmStep({
-          tier: 'danger',
-          title: `Clear ${loaded.length} submission${loaded.length === 1 ? '' : 's'} and the audit on them?`,
-          body: 'The files stay where they are on your machine. Every score, verdict and reason you have typed here goes.',
-          stake: 'Saving an audited file is the only way to keep any of it.',
-          commitLabel: 'Clear them',
-          cancelLabel: 'Keep them open',
-          onCommit: () => {
-            loaded = [];
-            keepSession();
-            renderReview(root, rubric);
-          },
-        }),
-      }, ['Clear']),
+        class: 'ghost small btn-icon',
+        html: `${ICON_DOWN}<span>Export as CSV</span>`,
+        onclick: () => askExportCsv(rubric),
+      }),
+      el('span', { class: 'spacer' }),
+      el('details', { class: 'set-menu row-menu' }, [
+        el('summary', { class: 'set-menu-btn', 'aria-label': 'More actions', title: 'More actions' }, ['\u22EF']),
+        el('div', { class: 'set-menu-pop' }, [
+          el('button', {
+            class: 'menu-item',
+            onclick: () => { forgetPool(); repaint(); },
+          }, ['Check the pool again']),
+          el('div', { class: 'menu-sep' }),
+          el('button', {
+            class: 'menu-item menu-danger',
+            onclick: () => confirmStep({
+              tier: 'danger',
+              title: `Close all ${loaded.length} submission${loaded.length === 1 ? '' : 's'} and erase the audit on them?`,
+              body: 'The files stay where they are on your machine. Every score, verdict and reason typed here goes, from this page and from this browser. The rows these put on the admin portfolio go with them.',
+              stake: 'An audited file is the only copy that survives this.',
+              offer: {
+                label: 'Save the audited files first',
+                run: () => {
+                  const n = saveAllAudited();
+                  return n
+                    ? `Saving ${n} file${n === 1 ? '' : 's'}. Check your downloads folder.`
+                    : 'Nothing has been audited yet, so there is nothing to save.';
+                },
+              },
+              commitLabel: 'Erase the audit',
+              cancelLabel: 'Keep them open',
+              onCommit: () => {
+                loaded = [];
+                keepSession();
+                renderReview(root, rubric);
+              },
+            }),
+          }, ['Close all and erase the audit']),
+        ]),
+      ]),
     ]),
+    el('div', { class: 'table-wrap' }, [table]),
   ]));
 }
 
@@ -826,6 +874,83 @@ export function unexplainedChanges(a: Assessment): string[] {
  * ids, so mixing them either drops answers or invents columns. Submissions answered against
  * different sets are different sheets, named by version.
  */
+/**
+ * Close one submission, and say what that costs when it costs something.
+ *
+ * An assessor finishing with a file wants it off the list. An assessor who has scored it wants
+ * to be asked, because the scores exist in this browser and in a file they may not have saved.
+ */
+function closeOne(root: HTMLElement, active: Rubric, l: Loaded): void {
+  const name = l.a.initiative?.name?.trim() || l.file;
+  const scored = Object.keys(l.a.audit?.perQuestion ?? {}).length;
+  const drop = () => {
+    loaded = loaded.filter((x) => x !== l);
+    keepSession();
+    renderReview(root, active);
+  };
+  if (!scored) { drop(); return; }
+  confirmStep({
+    tier: 'caution',
+    title: `Close ${name} and erase the audit on it?`,
+    body: `The file stays where it is on your machine. The ${scored} score${scored === 1 ? '' : 's'}, verdict${scored === 1 ? '' : 's'} and reason${scored === 1 ? '' : 's'} typed against it go, from this page and from this browser.`,
+    stake: 'An audited file is the only copy that survives this.',
+    offer: {
+      label: 'Save the audited file first',
+      run: () => { saveAudited(l); return `Saving the file for ${name}. Check your downloads folder.`; },
+    },
+    commitLabel: 'Erase this one',
+    cancelLabel: 'Keep it open',
+    onCommit: drop,
+  });
+}
+
+/** One audited submission, as a file. The only copy of an audit that survives the browser. */
+function saveAudited(l: Loaded): void {
+  const a = l.a;
+  const audit = (a.audit ??= { reviewer: '', reviewedAt: '', perQuestion: {}, overallNote: '' });
+  audit.reviewedAt = audit.reviewedAt || new Date().toISOString();
+  audit.reviewer = audit.reviewer || auditor;
+  const name = slug(a.initiative?.name || a.ref || 'submission');
+  download(`${name}-audited.json`, JSON.stringify(a, null, 2));
+}
+
+/** Every submission that has been scored, as files. Returns how many went. */
+function saveAllAudited(): number {
+  const scored = loaded.filter((l) => Object.keys(l.a.audit?.perQuestion ?? {}).length > 0);
+  for (const l of scored) saveAudited(l);
+  return scored.length;
+}
+
+/**
+ * Exporting the whole list, and the one thing the sheet cannot carry.
+ *
+ * No column in the CSV records how a submission is marked, so a set of rows that includes a
+ * Protected B submission produces a file with nothing on it saying so. The window says which
+ * marking to treat the file as, because that is the decision the person is about to make
+ * without knowing it.
+ */
+function askExportCsv(active: Rubric): void {
+  const sets = new Set(loaded.map((l) => `${l.rubric.id}@${l.rubric.version}`));
+  const marked = loaded.filter((l) => (l.a.initiative?.classification ?? '').trim());
+  const worst = marked
+    .map((l) => l.a.initiative.classification)
+    .sort((x, y) => classRank(y) - classRank(x))[0];
+  confirmStep({
+    tier: 'plain',
+    title: `Export ${loaded.length} submission${loaded.length === 1 ? '' : 's'} as CSV?`,
+    body: 'One row for each submission: the department, the contact, every question score, and the auditor name. It leaves out the reasoning people typed and the evidence links.',
+    stake: marked.length
+      ? `${marked.length} of these are marked ${worst}. No column in the sheet records that, so treat the file as ${worst} and keep it somewhere that marking is allowed.`
+      : 'No column in the sheet records how a submission is marked, so treat the file at the highest marking any of these carries.',
+    note: sets.size > 1
+      ? `One sheet cannot hold two question sets, because the columns are the question ids. This saves ${sets.size} files, one for each set.`
+      : undefined,
+    commitLabel: sets.size > 1 ? `Save ${sets.size} files` : 'Save the file',
+    cancelLabel: 'Cancel',
+    onCommit: () => exportAllCsv(active),
+  });
+}
+
 function exportAllCsv(_active: Rubric) {
   const sets = new Map<string, { rubric: Rubric; rows: Loaded[] }>();
   for (const l of loaded) {

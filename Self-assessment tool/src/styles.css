@@ -525,7 +525,7 @@ a.faint-link:hover { color: var(--accent); }
 .no-access h1 { margin: 0 0 .4rem; font-size: 1.35rem; }
 .no-access .addr { display: inline-block; margin: 0 0 .8rem; padding: .18rem .45rem;
   background: var(--surface-2); border: 1px solid var(--line); border-radius: .35rem; }
-.no-access .actions { margin-top: .2rem; }
+.card.no-access > .actions { margin-top: .2rem; }
 .app-signin .sitefoot { padding: .5rem 1rem 1rem; }
 
 /* One card on an otherwise empty screen centres, instead of hanging off the top edge with the
@@ -1051,6 +1051,49 @@ code.mark-subject { display: block; margin: .25rem 0; }
    touched, which is the same crowding the empty state had between its badge and its button. */
 .pool-in { display: flex; align-items: center; gap: .55rem; flex-wrap: wrap;
   margin-bottom: .7rem; }
+
+/* ---------- the assessor and admin screens, on the results page's ratio ------------------
+ * The three tiers the note above arrived at: .5rem to .85rem inside a block, 1.9rem between
+ * two parts, 2.9rem and a rule between regions. Against 1.05rem of card padding that is 2.76.
+ * These two screens were running at 0.81: a card margined .85rem below and padded 1.05rem
+ * inside, so two unrelated blocks were 3.2px CLOSER together than a heading was to its own
+ * content. Every complaint about buttons crowding the text follows from that one inversion.
+ * --------------------------------------------------------------------------------------- */
+.body-review, .body-admin { padding-bottom: 3rem; }
+/* Only the bottom margin is reset. `> section` outranks `> * + *`, so resetting all four
+   sides here silently cancelled the gap below, which is how the first version of this measured
+   0px between two cards. */
+.body-review > section, .body-admin > section { margin-bottom: 0; }
+.body-review > * + *, .body-admin > * + * { margin-top: 2.9rem; }
+.body-review > .card.warn + * { margin-top: 1.9rem; }
+
+/**
+ * A control group carries its own distance from what is above it.
+ *
+ * .actions had no top margin at all, so its gap was whatever the element above happened to
+ * leave: zero after a table, zero after every heading, 8px after one paragraph, 12px after a
+ * field. On both list screens the export button's own border was touching the table's closing
+ * rule at 0px while being 8px from the button beside it, which puts a control closer to
+ * content it has nothing to do with than to its own group.
+ */
+.body-review .card > .actions, .body-admin .card > .actions,
+.body-review .card > .field + .actions, .body-admin .card > .field + .actions,
+.res-region > .actions, .res-sub > .actions { margin-top: 1.15rem; }
+
+/* A heading with zero space under it is a heading that has joined its own content. */
+.body-review h2 + *, .body-admin h2 + *,
+.body-review h1 + *, .body-admin h1 + * { margin-top: .5rem; }
+.body-review .card > h2, .body-admin .card > h2 { margin-bottom: 0; }
+
+/* The controls that belong to a table go above it, where they read as its toolbar. */
+.res-toolbar { display: flex; align-items: center; gap: .5rem; flex-wrap: wrap;
+  margin: .85rem 0 .7rem; }
+.res-toolbar .spacer { flex: 1 1 auto; }
+.btn-icon { display: inline-flex; align-items: center; gap: .4rem; }
+.btn-icon svg { flex: none; }
+.menu-sep { height: 1px; background: var(--line); margin: .3rem 0; }
+/* Open, and a menu beside it. The menu is where anything that removes a row goes. */
+.row-acts { display: flex; align-items: center; gap: .35rem; justify-content: flex-end; }
 .pool-art { flex: none; width: 148px; color: var(--accent); }
 .sad-cat { display: block; width: 100%; height: auto; }
 .pool-out h2 { margin: 0 0 .3rem; }
@@ -1302,6 +1345,8 @@ td.num { text-align: right; font-family: var(--mono); font-variant-numeric: tabu
 .dropzone.over { border-color: var(--accent); background: var(--accent-soft); }
 .two-col { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.15rem; }
 .audit-row { border-top: 1px solid var(--line); padding: .6rem 0; }
+.audit-row + .audit-row { margin-top: .85rem; }
+.audit-row.flagged, .audit-row.changed { border-top: 0; }
 .audit-row.flagged { background: var(--warn-bg); border-radius: var(--radius-sm);
   padding: .6rem .6rem; box-shadow: inset 3px 0 0 var(--warn); }
 .audit-row.changed { box-shadow: inset 3px 0 0 var(--accent); background: var(--accent-soft);
@@ -1320,8 +1365,11 @@ td.num { text-align: right; font-family: var(--mono); font-variant-numeric: tabu
 
 .delta { font-family: var(--mono); font-size: .8rem; font-weight: 700; }
 .delta.up { color: var(--good); } .delta.down { color: var(--bad); }
-.section-head { display: flex; align-items: center; gap: .5rem; margin: 1rem 0 .3rem;
-  padding-bottom: .25rem; border-bottom: 1px solid var(--line); }
+/* A section heading needs room above it and under it, or it reads as part of the row it
+   follows. This one had .3rem below, less than the space inside the rows beneath it. */
+.section-head { display: flex; align-items: center; gap: .5rem; margin: 1.9rem 0 .75rem;
+  padding-bottom: .45rem; border-bottom: 1px solid var(--line); }
+.section-head button { margin-left: auto; }
 
 .kpi-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: .5rem;
   margin-bottom: .2rem; }
