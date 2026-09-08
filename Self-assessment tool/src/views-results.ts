@@ -399,7 +399,7 @@ function sendPackage(rubric: Rubric, a: Assessment, counts: { high: number; tota
  * person's own mail client with the message written for them; they attach the saved file
  * themselves, through the channel their department already trusts.
  */
-function handOff(a: Assessment, overall: number | null, band: string) {
+export function handOff(a: Assessment, overall: number | null = null, band = '') {
   const subject = `GC EA self-assessment - ${a.initiative.name || 'untitled initiative'}`;
   const body = [
     `Initiative: ${a.initiative.name}`,

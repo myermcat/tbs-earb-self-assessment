@@ -295,5 +295,20 @@ mem.set('gc-arch-assessment:firebase-session', JSON.stringify({
 }
 await wait(0);
 
+// A session that has run out and cannot be refreshed is nobody. This used to answer with
+// whatever was in storage, so a page believed somebody was signed in while every request they
+// made came back refused.
+{
+  mem.set('gc-arch-assessment:firebase-session', JSON.stringify({
+    email: 'gone@example.gc.ca', idToken: 'STALE', refreshToken: '', expiresAt: Date.now() - 1000,
+  }));
+  ok('an expired session with no way back is nobody', currentUser() === null,
+     JSON.stringify(currentUser()));
+  mem.set('gc-arch-assessment:firebase-session', JSON.stringify({
+    email: 'ok@example.gc.ca', idToken: 'STALE', refreshToken: 'R', expiresAt: Date.now() - 1000,
+  }));
+  ok('and an expired one that can be refreshed is still somebody', currentUser()?.email === 'ok@example.gc.ca');
+}
+
 console.log(fails === 0 ? '\nall wiring checks passed' : `\n${fails} FAILED`);
 process.exit(fails === 0 ? 0 : 1);

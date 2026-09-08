@@ -8,7 +8,6 @@ import { demandPledge } from './pledge';
 import { confirmStep } from './confirm';
 import { t } from './i18n';
 import { isHosted } from './store';
-import { canSignIn, currentUser, signInWithGoogle } from './firebase';
 import { canSave, markingProblems } from './marking';
 
 const KINDS: EvidenceRef['kind'][] = ['document', 'diagram', 'dashboard', 'system', 'report', 'other'];
@@ -108,6 +107,12 @@ export function goToFirstGap(rubric: Rubric, a: Assessment): boolean {
  */
 let repaintApp: () => void = () => {};
 export function setRepaint(fn: () => void): void { repaintApp = fn; }
+/**
+ * The shell owns the offer to save online, because it owns the window that explains what
+ * saving an unfinished assessment means. This is the seam the footer's one button pulls.
+ */
+let saveOnline: () => void = () => {};
+export function setSaveOnline(fn: () => void): void { saveOnline = fn; }
 /** Redraw the whole shell. Anything that changes what a screen should show can call it. */
 export function repaint(): void { repaintApp(); }
 
@@ -548,7 +553,24 @@ function footerBar(
   const gate = el('div', {});
   const pill = el('span', { class: 'pill', 'aria-hidden': true });
   const readout = el('span', { class: 'muted small' });
-  const save = el('button', { class: 'ghost', onclick: () => saveFile(a) }, [t('Save to a file', 'Enregistrer dans un fichier')]);
+/**
+ * The one control on this bar.
+ *
+ * It used to be "Save to a file", which is the wrong offer in the wrong place: a file is a
+ * thing you do at the end, and the question somebody has while answering is where their work
+ * is going. So this is Save online, and saving to a file moved into the File menu with the
+ * other things you do to a finished assessment.
+ *
+ * The marking gate hangs off this button, which is what makes the classification question get
+ * answered at all, so the gate moves with it.
+ */
+  const save = el('button', {
+    class: 'ghost',
+    onclick: () => {
+      if (isHosted()) { saveOnline(); return; }
+      saveFile(a);
+    },
+  }, [isHosted() ? t('Save online', 'Enregistrer en ligne') : t('Save to a file', 'Enregistrer dans un fichier')]);
 
   /**
    * Two bars. One answer in 176 moves the whole-assessment bar by half a percent, which is
@@ -648,11 +670,6 @@ function footerBar(
          * somebody looks at when they wonder where their work is going. Signed in there is
          * nothing to press: the save badge in the chrome already says where the work stands.
          */
-        isHosted() && canSignIn() && !currentUser()
-          ? el('button', { class: 'linkish', onclick: () => { void signInWithGoogle().then((went) => { if (!went) repaintApp(); }); } }, [
-              t('Sign in to save online', 'Se connecter pour enregistrer en ligne'),
-            ])
-          : null,
         save,
         el('button', { class: 'primary', onclick: onDone }, [t('See my results', 'Voir mes résultats')]),
       ]),

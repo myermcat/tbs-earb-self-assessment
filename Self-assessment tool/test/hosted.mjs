@@ -208,7 +208,11 @@ console.log('\nThe published build, signed in\n');
   // Storage is unavailable on this origin, so the address is what puts us on the assessor side.
   const { doc, dom } = await boot({ url: 'file:///Users/someone/dist/index.html#assessor' });
   const t = body(doc);
-  ok('opened from a file, the screen says why sign-in cannot work', /opened from a file/i.test(t), t.slice(0, 200));
+  // The first wording said "This copy was opened from a file", which reads as a claim about the
+  // assessment and names nothing, so there was nothing to act on. It states what it observed.
+  ok('the screen says sign-in needs a web address', /needs a web address/i.test(t), t.slice(0, 220));
+  ok('and names the address it was loaded from', /file:\/\/\//.test(t));
+  ok('and points at the published one', /myermcat\.github\.io/.test(t));
   const google = [...doc.querySelectorAll('.signin-providers button')]
     .find((b) => /Continue with Google/.test(b.textContent));
   ok('and the Google button is dead rather than silent', google?.disabled === true);
@@ -222,8 +226,13 @@ console.log('\nThe published build, signed in\n');
   const ms = [...doc.querySelectorAll('.signin-providers button')]
     .find((b) => /Microsoft/.test(b.textContent));
   ok('the Microsoft button is disabled', ms?.disabled === true);
-  ok('and carries a mockup mark', !!doc.querySelector('.signin-providers .badge-mockup'));
-  ok('and the copy says who has to register it', /Azure rights/.test(body(doc)));
+  // A badge beside it was noise. Unclickable, and the whole story on hover.
+  ok('and says on hover that it is a mockup', /Mockup/.test(ms?.getAttribute('title') ?? ''),
+     ms?.getAttribute('title') ?? '');
+  ok('and what it would take to build', /Azure rights/.test(ms?.getAttribute('title') ?? ''));
+  ok('and carries no badge beside it', !doc.querySelector('.signin-providers .badge-mockup'));
+  ok('and the sign-in card no longer calls itself a prototype',
+     !/Prototype/.test(doc.querySelector('.signin')?.textContent ?? ''));
   dom.window.close();
 }
 

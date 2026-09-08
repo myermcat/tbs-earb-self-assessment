@@ -657,6 +657,16 @@ dialog.confirm::backdrop { background: rgba(10, 12, 16, .55); }
 .account-menu .set-menu-pop { right: 0; min-width: 15rem; }
 .menu-head { display: block; padding: .1rem .55rem; font-size: .72rem; color: var(--ink-3); }
 .menu-head.mono { color: var(--ink-2); padding-bottom: .35rem; }
+
+/* File, beside the name of the tool, the way a document editor keeps it. */
+.file-menu { position: relative; margin-left: .35rem; }
+.file-btn { border: 0; background: none; color: var(--ink-2); font-size: .8rem;
+  padding: .2rem .45rem; border-radius: 7px; cursor: pointer; }
+.file-btn:hover { background: var(--surface-2); color: var(--accent); }
+.file-menu .set-menu-pop { left: 0; right: auto; min-width: 15rem; }
+/* Share reads as a control over access, which is what the icon is for. */
+.share-btn { display: inline-flex; align-items: center; gap: .35rem; }
+.share-ico { display: inline-flex; }
 dialog.confirm .danger-solid[disabled] { opacity: .45; cursor: not-allowed; }
 dialog.confirm .danger-solid.armed { box-shadow: 0 0 0 2px color-mix(in srgb, var(--bad) 35%, transparent); }
 
