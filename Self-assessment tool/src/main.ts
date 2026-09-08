@@ -12,6 +12,7 @@ import { addToLibrary, canRemove, currentId, currentRubric, libraryList, removeF
 import { closeMenusOnOutsideClick, closeOnOutsideClick, confirmStep, openDialog } from './confirm';
 import { saveBadge } from './save-badge';
 import { SAD_CAT } from './cat';
+import { openShareDialog, sharedCount } from './views-share';
 import { bootLang, coverage, lang, type Lang, setLang } from './i18n';
 import { endpointHost, flushWrites, goneFromStore, isHosted, listRecords, putRecord, saveOnlineNow,
   savedOnline } from './store';
@@ -461,6 +462,23 @@ function header(bare = false): HTMLElement {
       side === 'assess'
         ? el('button', { class: 'linkish small', onclick: () => setSide('submit') }, [
             t('Leave assessor view', 'Quitter la vue de l\u2019évaluateur'),
+          ])
+        : null,
+      /**
+       * Share, where a document editor puts it.
+       *
+       * Filling in 176 questions is not a job for one person, and their assessor has to be able
+       * to read it before it is finished. It appears once there is a document to share, which
+       * is the questionnaire and the results, and it says on its face that it is a mockup.
+       */
+      !bare && side === 'submit' && (mode === 'submit' || mode === 'results')
+        ? el('button', {
+            class: 'ghost small',
+            title: t('See who this is shared with', 'Voir avec qui cette évaluation est partagée'),
+            onclick: () => openShareDialog(assessment, currentUser()?.email ?? assessorName, () => paint()),
+          }, [
+            t('Share', 'Partager'),
+            sharedCount(assessment) ? el('span', { class: 'ref-chip' }, [String(sharedCount(assessment))]) : null,
           ])
         : null,
       /**
@@ -1196,6 +1214,12 @@ function paneAnswers(pane: HTMLElement) {
       null,
     ));
   }
+  pane.appendChild(setRow(
+    'Sharing records addresses and does nothing else',
+    'Adding a teammate or an assessor writes their address into your assessment and shows it on the sharing list. No email is sent and no access is granted. Both need a change to the store\u2019s rules at TBS, published by whoever owns the project.',
+    null,
+    { tier: 'caution', badge: 'Mockup' },
+  ));
   pane.appendChild(setRow(
     'Nothing will be recalled once submitted',
     'Planned, not built. A submitted assessment will not be deleted. It will be withdrawn and left out of the statistics, which is a different thing: a copy may already exist in a backup or in somebody else\'s download, so nothing here will claim to erase it.',

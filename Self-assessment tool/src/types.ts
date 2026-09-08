@@ -199,6 +199,44 @@ export interface Audit {
   overallNote?: string;
 }
 
+/** What somebody was added as. A teammate fills the assessment in; an assessor reads and scores it. */
+export type ShareRole = 'teammate' | 'assessor';
+
+/**
+ * How far a share has actually got.
+ *
+ * The mockup only ever writes 'recorded', which is the machine-readable form of the sentence on
+ * screen: the address is in the file, no message went, and nobody was granted anything. A real
+ * version adds 'invited' when the mail goes and 'accepted' when they first sign in.
+ */
+export type ShareState = 'recorded' | 'invited' | 'accepted';
+
+export interface SharedWith {
+  email: string;
+  role: ShareRole;
+  /** The address that added them, so a list of five people is still attributable. */
+  addedBy: string;
+  addedAt: string;
+  state: ShareState;
+}
+
+/**
+ * Who else is on an assessment.
+ *
+ * One list with a role on each entry, so there is one way to add, one way to remove and one
+ * validator, and somebody whose part changes keeps the date they were added. The screen groups
+ * them.
+ *
+ * The two flat lists are for the store's rules, which cannot read a field out of an object
+ * inside an array. Writing them now means the day the real sharing goes live, no record already
+ * in the store needs migrating.
+ */
+export interface Sharing {
+  people: SharedWith[];
+  teammateEmails: string[];
+  assessorEmails: string[];
+}
+
 export interface Assessment {
   fileType: 'gc-arch-assessment';
   formatVersion: number;
@@ -255,5 +293,7 @@ export interface Assessment {
    * enforceable without a program of ours in the middle.
    */
   ownerEmail?: string;
+  /** Who else is on this assessment. A mockup: the addresses are recorded and nothing is sent. */
+  sharing?: Sharing;
   audit?: Audit;
 }

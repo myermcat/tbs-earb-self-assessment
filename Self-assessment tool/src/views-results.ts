@@ -9,6 +9,8 @@ import { markingProblems } from './marking';
 import { t } from './i18n';
 import { isHosted, putRecord } from './store';
 import { currentUser } from './firebase';
+import { openShareDialog, sharedPanel } from './views-share';
+import { repaint } from './views-submit';
 import { confirmStep } from './confirm';
 
 /**
@@ -240,6 +242,9 @@ export function renderResults(root: HTMLElement, rubric: Rubric, a: Assessment, 
    * first submit, later edits write through on their own, which is why the button changes
    * rather than disappearing.
    */
+  // Who is on it comes before what happens to it, because the answer changes who should be
+  // reading the numbers above.
+  root.appendChild(sharedPanel(a, () => openShareDialog(a, currentUser()?.email ?? '', () => repaint())));
   root.appendChild(submitBlock(rubric, a, r, problems.length > 0));
 
   const attached = totalAttachedBytes(a.answers);

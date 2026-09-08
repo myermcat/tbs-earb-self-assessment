@@ -193,6 +193,8 @@ export function answeredCount(a: Assessment): number {
  * marking.ts has always counted for the same question.
  */
 export function hasWork(a: Assessment): boolean {
+  // Somebody named on it is work: a list of five people is a thing to lose.
+  if ((a.sharing?.people ?? []).length > 0) return true;
   if (answeredCount(a) > 0) return true;
   if (Object.values(a.initiative).some((v) => typeof v === 'string' && v.trim() !== '')) return true;
   return Object.values(a.answers).some(
