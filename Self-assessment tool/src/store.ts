@@ -318,6 +318,16 @@ let latest: Assessment | null = null;
  */
 function sendable(a: Assessment): boolean {
   if (!isHosted()) return false;
+  /**
+   * The first save online is a decision, and it belongs to the person doing the assessment.
+   *
+   * Building this without the gate made every keystroke of a signed-in person's work leave
+   * their machine before they had asked for anything, which is the opposite of what the tool
+   * had promised on every screen. One deliberate act turns it on. After that it stays on and
+   * the copy at TBS is kept current, because a person who has said yes once should not have to
+   * keep saying it.
+   */
+  if (!a.meta?.savedOnlineAt) return false;
   // A Firestore build needs somebody signed in. A build pointed at a plain endpoint has no
   // sign-in to do, and asking it for one turns the whole feature off.
   if (isConfigured() ? !currentUser() : !ENDPOINT) return false;
@@ -371,6 +381,39 @@ async function run(force = false): Promise<void> {
     if (inFlight === work) inFlight = null;
   }
 }
+
+/**
+ * Turn online saving on for this record, and send it.
+ *
+ * The one act that moves a record from this-browser-only to kept-at-TBS. Everything after it
+ * happens on its own.
+ */
+export async function saveOnlineNow(a: Assessment): Promise<{ ok: true } | { ok: false; problem: string }> {
+  if (!isHosted()) return { ok: false, problem: 'This build has no store to write to.' };
+  if (isConfigured() && !currentUser()) {
+    return { ok: false, problem: 'Sign in before saving to the shared store.' };
+  }
+  const gate = markingProblems(a);
+  if (gate.length) return { ok: false, problem: gate[0].message };
+  a.meta.savedOnlineAt = a.meta.savedOnlineAt ?? new Date().toISOString();
+  delete a.meta.onlineDeclined;
+  latest = a;
+  keepDraft(a);
+  const res = await putRecord(a);
+  if (res.ok) {
+    lastSent = fingerprint(a);
+    lastWriteAt = Date.now();
+  } else {
+    // It did not go, so nothing has been turned on. Saying otherwise would leave the badge
+    // claiming a copy at TBS that does not exist.
+    delete a.meta.savedOnlineAt;
+    keepDraft(a);
+  }
+  return res;
+}
+
+/** Whether this record is being kept at TBS, which is one deliberate act away from false. */
+export function savedOnline(a: Assessment): boolean { return !!a.meta?.savedOnlineAt; }
 
 /**
  * Send whatever is queued, now.

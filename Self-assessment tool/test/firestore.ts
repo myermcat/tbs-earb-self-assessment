@@ -10,7 +10,8 @@
  * leaving the bearer token off. It also holds the two rights the rules give: an assessor lists
  * the collection, and a submitter whose list is refused reads the one record they own.
  */
-import { listRecords, putRecord, deleteRecord, endpointHost, flushWrites, isHosted } from '../src/store';
+import { listRecords, putRecord, deleteRecord, endpointHost, flushWrites, isHosted,
+  saveOnlineNow } from '../src/store';
 import { currentUser, roleOf } from '../src/firebase';
 import { autosave, saveStatus } from '../src/storage';
 import type { Assessment } from '../src/types';
@@ -217,36 +218,53 @@ mem.set('gc-arch-assessment:firebase-session', JSON.stringify({
   ok('and the badge says the work is here only', saveStatus().state === 'local', saveStatus().state);
 }
 
-// The same record, once it carries a marking.
+// A marked assessment still goes nowhere until somebody says so. That is the point of it.
 {
   quiet();
   const marked: Assessment = JSON.parse(JSON.stringify(a));
   delete marked.id;
   delete marked.ownerEmail;
+  delete marked.meta.savedOnlineAt;
   autosave(marked);
   await flushWrites();
-  ok('a marked assessment goes without anybody pressing anything', writes().length === 1,
-     String(writes().length));
+  ok('a marked assessment still waits to be asked', writes().length === 0, String(writes().length));
+
+  // The one deliberate act.
+  quiet();
+  const first = await saveOnlineNow(marked);
+  ok('saving online sends it', first.ok === true && writes().length === 1, JSON.stringify(first));
+  ok('and records when it was turned on', typeof marked.meta.savedOnlineAt === 'string');
   ok('and the record is owned by whoever is signed in', marked.ownerEmail === 'someone@example.gc.ca',
      String(marked.ownerEmail));
-  const first = String(marked.id ?? '');
-  ok('and it carries the id it was written under', first.length > 0, first);
+  const id = String(marked.id ?? '');
+  ok('and it carries the id it was written under', id.length > 0, id);
 
-  // Two saves close together are one record, not two documents.
+  // After that it keeps itself current, with no button.
   quiet();
   marked.initiative.summary = 'changed';
   autosave(marked);
   marked.initiative.summary = 'changed again';
   autosave(marked);
   await flushWrites();
-  ok('two changes in a moment make one write', writes().length === 1, String(writes().length));
-  ok('to the document that already exists', writes()[0]?.url.includes(first), writes()[0]?.url);
+  ok('after that, a change goes on its own', writes().length === 1, String(writes().length));
+  ok('to the document that already exists', writes()[0]?.url.includes(id), writes()[0]?.url);
 
   // Nothing changed means nothing to send.
   quiet();
   autosave(marked);
   await flushWrites();
   ok('a save that changes nothing writes nothing', writes().length === 0, String(writes().length));
+
+  // Turning it on is refused while the marking question is unanswered.
+  quiet();
+  const unmarked2: Assessment = JSON.parse(JSON.stringify(a));
+  unmarked2.initiative.classification = '';
+  delete unmarked2.id;
+  delete unmarked2.meta.savedOnlineAt;
+  const refused = await saveOnlineNow(unmarked2);
+  ok('saving online is refused until the marking is answered', refused.ok === false, JSON.stringify(refused));
+  ok('and nothing went', writes().length === 0, String(writes().length));
+  ok('and it was not recorded as turned on', unmarked2.meta.savedOnlineAt === undefined);
 }
 
 // Somebody else's file stays theirs.
@@ -255,6 +273,7 @@ mem.set('gc-arch-assessment:firebase-session', JSON.stringify({
   const theirs: Assessment = JSON.parse(JSON.stringify(a));
   theirs.ownerEmail = 'someone.else@example.gc.ca';
   theirs.id = 'THEIRS';
+  theirs.meta.savedOnlineAt = '2026-09-01T00:00:00.000Z';
   autosave(theirs);
   await flushWrites();
   ok('a file owned by somebody else is never written to your account', writes().length === 0,
@@ -268,6 +287,7 @@ mem.set('gc-arch-assessment:firebase-session', JSON.stringify({
   const mine: Assessment = JSON.parse(JSON.stringify(a));
   delete mine.id;
   delete mine.ownerEmail;
+  mine.meta.savedOnlineAt = '2026-09-01T00:00:00.000Z';
   autosave(mine);
   await flushWrites();
   ok('signed out, nothing reaches the store', writes().length === 0, String(writes().length));
