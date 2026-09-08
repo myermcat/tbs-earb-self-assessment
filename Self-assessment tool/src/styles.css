@@ -503,9 +503,12 @@ a.faint-link:hover { color: var(--accent); }
 /* ---------- results, one screen at a time ------------------------------------------------ */
 
 /**
- * The results read as a report, so they are paged like one: the scroll stops on each part
- * instead of running past it. scroll-snap-stop: always is what makes it stop rather than
- * merely prefer to.
+ * The results read as a report, and the scroll rests near the start of each part.
+ *
+ * It used to insist. Mandatory snapping with a stop on every section dragged each short scroll
+ * back to the nearest edge, made a part taller than the window hard to read, and forbade
+ * passing more than one part per gesture. Proximity suggests where a part begins and leaves the
+ * gesture alone, and the dots on the right are still the way to jump between them.
  *
  * The body becomes its own scroll container, so the header stays put without being sticky.
  */
