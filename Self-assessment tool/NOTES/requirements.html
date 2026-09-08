@@ -116,12 +116,12 @@ background:var(--surface);border:1px solid var(--line);border-radius:10px;list-s
 .kpi a{color:inherit;text-decoration:none}
 </style>
 <div class="head"><div class="head-in"><h1>GC EA self-assessment: requirements specification</h1>
-<p class="sub">Living document, updated 2026-09-01. 94 requirements, baselined at each release. Following ISO/IEC/IEEE 29148:2018, tailored.</p></div></div>
+<p class="sub">Living document, updated 2026-09-01. 98 requirements, baselined at each release. Following ISO/IEC/IEEE 29148:2018, tailored.</p></div></div>
 <nav class="topnav"><div class="topnav-in">
-<span class="nav-kpi"><b>51</b><span>built</span></span>
+<span class="nav-kpi"><b>52</b><span>built</span></span>
 <span class="nav-kpi"><b>23</b><span>agreed, not built</span></span>
-<span class="nav-kpi"><b>4</b><span>proposed</span></span>
-<span class="nav-kpi"><b>16</b><span>open</span></span>
+<span class="nav-kpi"><b>6</b><span>proposed</span></span>
+<span class="nav-kpi"><b>17</b><span>open</span></span>
 <span class="nav-sep"></span>
 <a class="nav-lay" href="#open">Open decisions</a>
 <a class="nav-lay" href="#purpose">Purpose and scope</a>
@@ -145,13 +145,14 @@ background:var(--surface);border:1px solid var(--line);border-radius:10px;list-s
 <span class="st st-done">Built</span> <span class="st st-next">Agreed</span> <span class="st st-wait">Proposed</span> <span class="st st-later">Open</span>
 <span class="muted">Built is in the tool today. Agreed is decided and not built. Proposed is our reading, waiting on somebody. Open is undecided.</span>
 </div>
-<h2 id="open">Open decisions <span class="muted small">16</span></h2>
+<h2 id="open">Open decisions <span class="muted small">17</span></h2>
 <p class="hint">Every requirement below that nobody has decided, in one place. Each is also in its own section.</p>
 <div class="tw"><table><thead><tr><th>Number</th><th>Decision</th><th>Who owes it</th><th>Section</th></tr></thead><tbody>
 <tr><td class="mono">P4</td><td>Which initiatives have to submit one.</td><td>Dan</td><td>Purpose and scope</td></tr>
 <tr><td class="mono">R7</td><td>What an assessor sees of the pool.</td><td>Dan or Chris</td><td>Roles and access</td></tr>
 <tr><td class="mono">R8</td><td>Whether admin is a role of its own or an assessor with more buttons.</td><td>Dan</td><td>Roles and access</td></tr>
 <tr><td class="mono">S8</td><td>The Firebase web key answers only from the addresses the tool is served from, and only for the three APIs it uses.</td><td>Mariia</td><td>Signing in</td></tr>
+<tr><td class="mono">S13</td><td>Whether naming an assessor routes the record to that person.</td><td>Dan</td><td>Signing in</td></tr>
 <tr><td class="mono">Q9</td><td>Per-question criticality, separate from section weight.</td><td>Dan</td><td>The instrument</td></tr>
 <tr><td class="mono">Q10</td><td>The dropdown answers for each question.</td><td>Dan</td><td>The instrument</td></tr>
 <tr><td class="mono">Q11</td><td>The Business Architecture section weights add up to 80.</td><td>Dan</td><td>The instrument</td></tr>
@@ -312,6 +313,33 @@ background:var(--surface);border:1px solid var(--line);border-radius:10px;list-s
 <span class="req-t">An account that signs in without an assessor role is told so, by name, with a way onward.</span>
 <span class="st st-done">Built</span>
 <span class="req-note">Signing in and being allowed in are two different things. An address nobody has added used to reach the assessor screen and be told the pool was empty, which reads as a lost submission. It now gets one screen: what happened, the address to send to an admin, a way back to the home page, and a way to sign in as somebody else. An assessor who asks for the admin view is turned back the same way.</span>
+</div>
+<div class="req">
+<span class="req-id mono">S10</span>
+<span class="req-t">A submitter can name the people working on the assessment with them, and their own assessors. As a mockup: the addresses are recorded and nothing is sent.</span>
+<span class="st st-done">Built</span>
+<span class="req-note">One list with a part on each entry, so there is one way to add and one way to remove. Beside it, two flat lists of addresses, derived on every write, because the store’s rule language cannot read a field out of an object inside an array and every record already in the store would otherwise need migrating on the day the real sharing goes live. It says on every screen it touches that no email is sent and no access is granted, the sentence is above the field where it will be read, and nothing on it can open a mail client.</span>
+</div>
+<div class="req">
+<span class="req-id mono">S11</span>
+<span class="req-t">A teammate may read and change an assessment they were added to, and nothing else about it.</span>
+<span class="st st-wait">Proposed</span>
+<span class="req-owner">TBS owes this</span>
+<span class="req-note">Needs a rules change, published by whoever owns the project: a teammate predicate reading the flat address list, get and update on the assessment, and the sharing field itself pinned so a teammate cannot add strangers.</span>
+</div>
+<div class="req">
+<span class="req-id mono">S12</span>
+<span class="req-t">A named assessor may read an assessment before it is finished, and may not score it until the role is granted.</span>
+<span class="st st-wait">Proposed</span>
+<span class="req-owner">TBS owes this</span>
+<span class="req-note">Naming somebody as your assessor must never grant scoring. The audit is gated on a role document that only an admin writes, and if a named address widened that, anybody could appoint their own assessor.</span>
+</div>
+<div class="req">
+<span class="req-id mono">S13</span>
+<span class="req-t">Whether naming an assessor routes the record to that person.</span>
+<span class="st st-later">Open</span>
+<span class="req-owner">Dan owes this</span>
+<span class="req-note">Every assessor can already list every submitted assessment, so naming one may be a routing hint and not a permission at all. Which of the two it is changes what the assessor screen should show.</span>
 </div>
 <div class="req">
 <span class="req-id mono">S5</span>
