@@ -717,11 +717,26 @@ var rubric_v1_dan_default = {
     {
       id: "privacy",
       label: "Privacy",
-      note: "Personal information specifically, not data in general."
+      note: "Personal information specifically, and not data in general."
+    },
+    {
+      id: "financial",
+      label: "Financial",
+      note: "Cost, funding and value for money. Dan asked for this one by name."
+    },
+    {
+      id: "accessibility",
+      label: "Accessibility",
+      note: "Dan asked for this one by name. No question in the instrument asks about it yet, so it is empty until he tags the rows."
+    },
+    {
+      id: "official-languages",
+      label: "Official Languages",
+      note: "Dan asked for this one by name. No question in the instrument asks about it yet, so it is empty until he tags the rows."
     }
   ],
   answerTypesNote: "PROVISIONAL. Dan named this defect: several questions are yes or no wearing a 0 to 10 scale. The ones marked yesno here are the ones whose wording is unambiguously binary. He owns the real list. A no on a yes/no question raises a red flag: it colours the section and the person carries on. Nothing in this tool stops an assessment.",
-  topicsNote: "A second axis, not a second scoring spine. The four domains still produce the overall score, and a question counts once there. A question also counts at full weight inside every topic it carries, which is where the weights genuinely differ. Domain topics are mechanical. Security and privacy were derived from the question wording and are PROVISIONAL: Dan owns the real assignments.",
+  topicsNote: "A second axis. The four domains still produce the overall score and a question counts once there. A question also counts at full weight inside every topic it carries, which is where the weights genuinely differ. Dan named nine on 8 September: Business, Data, Application, Technology, Security, Privacy, Accessibility, Official Languages and Financial. The four domain topics are mechanical. Security, privacy and financial were derived from the question wording and are PROVISIONAL: Dan owns the real assignments. Accessibility and Official Languages are declared and empty, because no question in the instrument asks about either: a sweep of all 176 found official languages in two and accessibility in three, always in another sense. They stay on the list so the gap is visible. What fills them is one Topics column in each domain sheet, comma separated, filled only on the rows that need more than their own domain.",
   lifecycleStages: [
     {
       id: "discovery",
@@ -879,7 +894,8 @@ var rubric_v1_dan_default = {
               weight: 1,
               answerType: "scale",
               topics: [
-                "business"
+                "business",
+                "financial"
               ]
             },
             {
@@ -889,7 +905,8 @@ var rubric_v1_dan_default = {
               weight: 1,
               answerType: "scale",
               topics: [
-                "business"
+                "business",
+                "financial"
               ]
             },
             {
@@ -972,7 +989,8 @@ var rubric_v1_dan_default = {
               weight: 1,
               answerType: "scale",
               topics: [
-                "business"
+                "business",
+                "financial"
               ]
             },
             {
@@ -1032,7 +1050,8 @@ var rubric_v1_dan_default = {
               weight: 1,
               answerType: "scale",
               topics: [
-                "business"
+                "business",
+                "financial"
               ]
             },
             {
@@ -1218,7 +1237,8 @@ var rubric_v1_dan_default = {
               weight: 1,
               answerType: "scale",
               topics: [
-                "business"
+                "business",
+                "financial"
               ]
             },
             {
@@ -1268,7 +1288,8 @@ var rubric_v1_dan_default = {
               weight: 1,
               answerType: "scale",
               topics: [
-                "business"
+                "business",
+                "financial"
               ]
             }
           ],
@@ -1306,7 +1327,8 @@ var rubric_v1_dan_default = {
               weight: 1,
               answerType: "scale",
               topics: [
-                "business"
+                "business",
+                "financial"
               ]
             },
             {
@@ -2273,7 +2295,8 @@ var rubric_v1_dan_default = {
               weight: 1,
               answerType: "scale",
               topics: [
-                "application"
+                "application",
+                "financial"
               ]
             },
             {
@@ -2304,7 +2327,8 @@ var rubric_v1_dan_default = {
               weight: 1,
               answerType: "scale",
               topics: [
-                "application"
+                "application",
+                "financial"
               ]
             },
             {
@@ -2453,7 +2477,8 @@ var rubric_v1_dan_default = {
               weight: 1,
               answerType: "scale",
               topics: [
-                "technology"
+                "technology",
+                "financial"
               ]
             },
             {
@@ -2744,7 +2769,8 @@ var rubric_v1_dan_default = {
               weight: 1,
               answerType: "scale",
               topics: [
-                "technology"
+                "technology",
+                "financial"
               ]
             },
             {
@@ -2764,7 +2790,8 @@ var rubric_v1_dan_default = {
               weight: 1,
               answerType: "scale",
               topics: [
-                "technology"
+                "technology",
+                "financial"
               ]
             },
             {
@@ -2774,7 +2801,8 @@ var rubric_v1_dan_default = {
               weight: 1,
               answerType: "yesno",
               topics: [
-                "technology"
+                "technology",
+                "financial"
               ]
             },
             {
@@ -3228,6 +3256,49 @@ function stable(x) {
   bare.initiative.summary = "Z";
   for (const q of allQ) bare.answers[q.id] = { score: 6, evidence: [] };
   ok("no reasoning and no evidence is still complete", completion(rubric, bare).complete === true);
+}
+{
+  const ids = (rubric.topics ?? []).map((t) => t.id);
+  ok("all nine categories Dan named are declared", ids.length === 9, ids.join(","));
+  for (const want of [
+    "business",
+    "data",
+    "application",
+    "technology",
+    "security",
+    "privacy",
+    "financial",
+    "accessibility",
+    "official-languages"
+  ]) {
+    ok(`  ${want} is one of them`, ids.includes(want));
+  }
+  const all = rubric.domains.flatMap((d) => d.sections.flatMap((s2) => s2.questions));
+  const carrying = (id) => all.filter((q) => (q.topics ?? []).includes(id)).length;
+  ok(
+    "a question can carry more than one category",
+    all.filter((q) => (q.topics ?? []).length > 1).length > 30,
+    String(all.filter((q) => (q.topics ?? []).length > 1).length)
+  );
+  ok(
+    "every question carries its own domain as a category",
+    rubric.domains.every((d) => d.sections.every((s2) => s2.questions.every((q) => (q.topics ?? []).includes(d.id))))
+  );
+  ok("financial is derived and not empty", carrying("financial") > 5, String(carrying("financial")));
+  ok("accessibility is declared and empty", carrying("accessibility") === 0, String(carrying("accessibility")));
+  ok(
+    "official languages is declared and empty",
+    carrying("official-languages") === 0,
+    String(carrying("official-languages"))
+  );
+  ok(
+    "and the note says who owns the real assignments",
+    /Dan owns the real assignments/.test(rubric.topicsNote ?? "")
+  );
+  ok(
+    "and names what would fill the empty two",
+    /Topics column/.test(rubric.topicsNote ?? "")
+  );
 }
 console.log(fails === 0 ? "\nall checks passed" : `
 ${fails} FAILED`);

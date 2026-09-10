@@ -448,5 +448,43 @@ function stable(x: unknown): string {
 }
 
 
+/* -------------------------------------------------------------------------------------------
+   Dan's nine categories, and the two that are empty on purpose.
+   ------------------------------------------------------------------------------------------- */
+{
+  const ids = (rubric.topics ?? []).map((t) => t.id);
+  ok('all nine categories Dan named are declared', ids.length === 9, ids.join(','));
+  for (const want of ['business', 'data', 'application', 'technology', 'security', 'privacy',
+    'financial', 'accessibility', 'official-languages']) {
+    ok(`  ${want} is one of them`, ids.includes(want));
+  }
+
+  const all = rubric.domains.flatMap((d) => d.sections.flatMap((s2) => s2.questions));
+  const carrying = (id: string) => all.filter((q) => (q.topics ?? []).includes(id)).length;
+  ok('a question can carry more than one category',
+     all.filter((q) => (q.topics ?? []).length > 1).length > 30,
+     String(all.filter((q) => (q.topics ?? []).length > 1).length));
+  ok('every question carries its own domain as a category',
+     rubric.domains.every((d) => d.sections.every((s2) => s2.questions.every((q) => (q.topics ?? []).includes(d.id)))));
+  ok('financial is derived and not empty', carrying('financial') > 5, String(carrying('financial')));
+
+  /**
+   * These two are declared and empty, and that is the finding.
+   *
+   * A sweep of all 176 questions found official languages in two and accessibility in three,
+   * always in another sense: the FAIR principles' "Accessible", and programming languages.
+   * Three hits is a gap in the instrument. Deriving a category from keywords that loose would
+   * hide the gap behind a number, so they stay empty until Dan tags the rows.
+   */
+  ok('accessibility is declared and empty', carrying('accessibility') === 0, String(carrying('accessibility')));
+  ok('official languages is declared and empty', carrying('official-languages') === 0,
+     String(carrying('official-languages')));
+  ok('and the note says who owns the real assignments',
+     /Dan owns the real assignments/.test(rubric.topicsNote ?? ''));
+  ok('and names what would fill the empty two',
+     /Topics column/.test(rubric.topicsNote ?? ''));
+}
+
+
 console.log(fails === 0 ? '\nall checks passed' : `\n${fails} FAILED`);
 process.exit(fails === 0 ? 0 : 1);

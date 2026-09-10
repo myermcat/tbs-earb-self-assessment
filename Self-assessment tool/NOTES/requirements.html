@@ -116,12 +116,12 @@ background:var(--surface);border:1px solid var(--line);border-radius:10px;list-s
 .kpi a{color:inherit;text-decoration:none}
 </style>
 <div class="head"><div class="head-in"><h1>GC EA self-assessment: requirements specification</h1>
-<p class="sub">Living document, updated 2026-09-01. 104 requirements, baselined at each release. Following ISO/IEC/IEEE 29148:2018, tailored.</p></div></div>
+<p class="sub">Living document, updated 2026-09-01. 108 requirements, baselined at each release. Following ISO/IEC/IEEE 29148:2018, tailored.</p></div></div>
 <nav class="topnav"><div class="topnav-in">
-<span class="nav-kpi"><b>54</b><span>built</span></span>
-<span class="nav-kpi"><b>26</b><span>agreed, not built</span></span>
+<span class="nav-kpi"><b>56</b><span>built</span></span>
+<span class="nav-kpi"><b>27</b><span>agreed, not built</span></span>
 <span class="nav-kpi"><b>6</b><span>proposed</span></span>
-<span class="nav-kpi"><b>18</b><span>open</span></span>
+<span class="nav-kpi"><b>19</b><span>open</span></span>
 <span class="nav-sep"></span>
 <a class="nav-lay" href="#open">Open decisions</a>
 <a class="nav-lay" href="#purpose">Purpose and scope</a>
@@ -145,13 +145,14 @@ background:var(--surface);border:1px solid var(--line);border-radius:10px;list-s
 <span class="st st-done">Built</span> <span class="st st-next">Agreed</span> <span class="st st-wait">Proposed</span> <span class="st st-later">Open</span>
 <span class="muted">Built is in the tool today. Agreed is decided and not built. Proposed is our reading, waiting on somebody. Open is undecided.</span>
 </div>
-<h2 id="open">Open decisions <span class="muted small">18</span></h2>
+<h2 id="open">Open decisions <span class="muted small">19</span></h2>
 <p class="hint">Every requirement below that nobody has decided, in one place. Each is also in its own section.</p>
 <div class="tw"><table><thead><tr><th>Number</th><th>Decision</th><th>Who owes it</th><th>Section</th></tr></thead><tbody>
 <tr><td class="mono">P4</td><td>Which initiatives have to submit one.</td><td>Dan</td><td>Purpose and scope</td></tr>
 <tr><td class="mono">R7</td><td>What an assessor sees of the pool.</td><td>Dan or Chris</td><td>Roles and access</td></tr>
 <tr><td class="mono">R8</td><td>Whether admin is a role of its own or an assessor with more buttons.</td><td>Dan</td><td>Roles and access</td></tr>
 <tr><td class="mono">S8</td><td>The Firebase web key answers only from the addresses the tool is served from, and only for the three APIs it uses.</td><td>Mariia</td><td>Signing in</td></tr>
+<tr><td class="mono">S20</td><td>What a share code must do before it may grant a write.</td><td>Mariia</td><td>Signing in</td></tr>
 <tr><td class="mono">S16</td><td>Whether saying an assessment is finished stops the submitter editing it.</td><td>Mariia</td><td>Signing in</td></tr>
 <tr><td class="mono">S13</td><td>Whether naming an assessor routes the record to that person.</td><td>Dan</td><td>Signing in</td></tr>
 <tr><td class="mono">Q9</td><td>Per-question criticality, separate from section weight.</td><td>Dan</td><td>The instrument</td></tr>
@@ -317,6 +318,26 @@ background:var(--surface);border:1px solid var(--line);border-radius:10px;list-s
 <span class="st st-done">Built</span>
 </div>
 <div class="req">
+<span class="req-id mono">S18</span>
+<span class="req-t">A submitter reaches an assessment with a share code and no account. An assessor and an admin need an account.</span>
+<span class="st st-next">Agreed</span>
+<span class="req-owner">Mariia, then Dan owes this</span>
+<span class="req-note">Decided on 10 September, after Dan asked whether the tool needs accounts at all. The answer is split, and the reason is mechanical. Firestore rules can read a query’s limit, its offset and its ordering, and nothing about a filter, so no rule can permit "list the assessments matching the code I typed". The only list rules available are an identity test or one that permits everybody, and permitting everybody publishes every department’s draft to anybody who reads the page source. Delete is worse: it is the one destroying right in the tool, so a self-declared admin empties the store. Everything else an account was doing for a submitter, a code does as well or better, and it fixes one thing accounts made worse: today a submitter reaches their own record only through an id in one browser, so clearing a browser loses a submission to its own author.</span>
+</div>
+<div class="req">
+<span class="req-id mono">S19</span>
+<span class="req-t">Both routes stay in the build, and one input picks which one answers.</span>
+<span class="st st-done">Built</span>
+<span class="req-note">EARB_ACCESS takes accounts or code, defaults to accounts, and refuses anything else in one sentence. src/who.ts is the single interface every screen asks: who this is, whether the name has been checked, and whether this person may list the pool. Both paths stay compiled, typechecked and covered, because commented-out code is none of those and code that is not typechecked has been abandoned and not kept.</span>
+</div>
+<div class="req">
+<span class="req-id mono">S20</span>
+<span class="req-t">What a share code must do before it may grant a write.</span>
+<span class="st st-later">Open</span>
+<span class="req-owner">Mariia owes this</span>
+<span class="req-note">Three things stand in front of it, all found on 10 September. A code that grants update is a blanking key: a rule permitting whoever holds it cannot tell a legitimate save from somebody clearing 176 answers, and putAssessment writes the whole document with no field mask, so two code-holders typing at once is last-write-wins over an entire assessment. A8 was a nicety and becomes a precondition. An open read rule also lets an unauthenticated loop spend the whole daily allowance and take the tool offline. And A5, that an assessor cannot change the evidence, survives only if the audit moves to its own document beside the assessment, which the published rules already describe and nothing has ever written to.</span>
+</div>
+<div class="req">
 <span class="req-id mono">S14</span>
 <span class="req-t">An assessment is complete when every question in its set carries a score or is marked not applicable, and the six overview fields are filled.</span>
 <span class="st st-next">Agreed</span>
@@ -384,6 +405,12 @@ background:var(--surface);border:1px solid var(--line);border-radius:10px;list-s
 <h2 id="instrument">4. The instrument</h2>
 <p class="hint">The questions, the weights and the scale. Dan owns the content; the tool renders whatever it is handed.</p>
 <div class="card reqs">
+<div class="req">
+<span class="req-id mono">Q6</span>
+<span class="req-t">A question belongs to its own domain and to any number of named categories. All nine categories TBS named are declared.</span>
+<span class="st st-done">Built</span>
+<span class="req-note">Business, Data, Application, Technology, Security, Privacy, Financial, Accessibility and Official Languages, asked for by Dan on 8 September. The shape was already there: a topics array on each question, and 44 of 176 now carry more than one. The four domain categories are mechanical, and security, privacy and financial are derived from the question wording and marked provisional. Accessibility and Official Languages are declared and carry nothing: a sweep of all 176 questions found official languages in two and accessibility in three, always in another sense, so they stay empty and the results page names the gap. What fills them is one Topics column in each domain sheet, comma separated, filled only on the rows that need more than their own domain.</span>
+</div>
 <div class="req">
 <span class="req-id mono">Q1</span>
 <span class="req-t">The question set is a data file. A new version is a new file, and every assessment records the version it was answered against.</span>
