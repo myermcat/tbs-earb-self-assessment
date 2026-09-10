@@ -107,11 +107,22 @@ const answerTypeFor = (text) => (YESNO_PATTERNS.some((re) => re.test(text)) ? 'y
 
 const SECURITY_WORDS = /\b(security|secure|threat|vulnerabilit|encrypt|zero-trust|zero trust|cryptograph|penetration|guardrail|authenticat|authoriz|access control|breach|sovereignty|supply chain)/i;
 const PRIVACY_WORDS = /\b(privacy|personal information|PIA|Privacy Impact|consent|collection limitation|retention and disposition|ATIP)/i;
+/**
+ * Financial, derived the same provisional way as security and privacy.
+ *
+ * "invest" on its own catches "investigate", so the pattern asks for the noun or the gerund.
+ * Accessibility and official languages get no pattern at all: a dry run over all 176 questions
+ * found official languages in two and accessibility in three, and every loose pattern caught the
+ * wrong sense, the FAIR principles' "Accessible" and programming languages. Three hits is not a
+ * category, it is a gap in the instrument, and inventing one from keywords would hide that.
+ */
+const FINANCIAL_WORDS = /\b(cost|costing|budget|funding|funded|financial|expenditure|licen[cs]ing fee|total cost of ownership|TCO|invest(ment|ing)|value for money|business case)/i;
 
 function topicsFor(domainId, text) {
   const out = [domainId];
   if (SECURITY_WORDS.test(text)) out.push('security');
   if (PRIVACY_WORDS.test(text)) out.push('privacy');
+  if (FINANCIAL_WORDS.test(text)) out.push('financial');
   return out;
 }
 const slug = (s) => clean(s).toLowerCase().replace(/&/g, 'and').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
@@ -264,7 +275,12 @@ const rubric = {
     { id: 'application', label: 'Application', note: 'What the software does and depends on.' },
     { id: 'technology',  label: 'Technology',  note: 'Where it runs, and whether it stays up.' },
     { id: 'security',    label: 'Security',    note: 'Cuts across all four. Dan asked for this one by name.' },
-    { id: 'privacy',     label: 'Privacy',     note: 'Personal information specifically, not data in general.' },
+    { id: 'privacy',     label: 'Privacy',     note: 'Personal information specifically, and not data in general.' },
+    { id: 'financial',   label: 'Financial',   note: 'Cost, funding and value for money. Dan asked for this one by name.' },
+    { id: 'accessibility', label: 'Accessibility',
+      note: 'Dan asked for this one by name. No question in the instrument asks about it yet, so it is empty until he tags the rows.' },
+    { id: 'official-languages', label: 'Official Languages',
+      note: 'Dan asked for this one by name. No question in the instrument asks about it yet, so it is empty until he tags the rows.' },
   ],
   answerTypesNote:
     'PROVISIONAL. Dan named this defect: several questions are yes or no wearing a 0 to 10 scale. ' +
@@ -272,10 +288,16 @@ const rubric = {
     'list. A no on a yes/no question raises a red flag: it colours the section and the person carries ' +
     'on. Nothing in this tool stops an assessment.',
   topicsNote:
-    'A second axis, not a second scoring spine. The four domains still produce the overall score, ' +
-    'and a question counts once there. A question also counts at full weight inside every topic it ' +
-    'carries, which is where the weights genuinely differ. Domain topics are mechanical. Security and ' +
-    'privacy were derived from the question wording and are PROVISIONAL: Dan owns the real assignments.',
+    'A second axis. The four domains still produce the overall score and a question counts once ' +
+    'there. A question also counts at full weight inside every topic it carries, which is where the ' +
+    'weights genuinely differ. Dan named nine on 8 September: Business, Data, Application, ' +
+    'Technology, Security, Privacy, Accessibility, Official Languages and Financial. The four domain ' +
+    'topics are mechanical. Security, privacy and financial were derived from the question wording ' +
+    'and are PROVISIONAL: Dan owns the real assignments. Accessibility and Official Languages are ' +
+    'declared and empty, because no question in the instrument asks about either: a sweep of all 176 ' +
+    'found official languages in two and accessibility in three, always in another sense. They stay ' +
+    'on the list so the gap is visible. What fills them is one Topics column in each domain sheet, ' +
+    'comma separated, filled only on the rows that need more than their own domain.',
 
   lifecycleStages,
   phases,

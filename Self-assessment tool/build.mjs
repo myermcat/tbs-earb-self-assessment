@@ -46,6 +46,27 @@ if (FIREBASE) {
 }
 
 /**
+ * How a person gets at an assessment: with an account, or with a code.
+ *
+ * Dan asked on 8 September whether the tool needs accounts at all. The answer turned out to be
+ * split, so this is a switch and not a deletion. `accounts` is what exists: Google sign-in, and
+ * roles an admin grants. `code` is the lighter route: an assessment carries a share code, and
+ * whoever holds the code may open it.
+ *
+ * It is a build input for the same reason the store address is. The rules on Google's side are
+ * one global thing, so a per-browser setting could not match them, and a setting inside a
+ * question set would let a JSON file somebody loads decide who may read what.
+ *
+ * Both paths stay compiled, typechecked and tested. Commented-out code stops being either, and
+ * code that is not typechecked is abandoned and not kept.
+ */
+const ACCESS = (process.env.EARB_ACCESS ?? 'accounts').trim() || 'accounts';
+if (ACCESS !== 'accounts' && ACCESS !== 'code') {
+  console.error(`Build refused: EARB_ACCESS is "${ACCESS}". It takes accounts or code.`);
+  process.exit(1);
+}
+
+/**
  * The three hosts a Firestore build talks to. Identity Toolkit signs a person in, Firestore
  * holds the documents, and the token host is the only place a refresh token can be exchanged,
  * so an hour into an assessment nobody is thrown out mid-answer.
@@ -76,6 +97,7 @@ async function once() {
       // page far longer than anybody expects, and a whole afternoon has gone into arguing with
       // behaviour that had already been changed in a build the reader did not have.
       __EARB_BUILT__: JSON.stringify(new Date().toISOString().slice(0, 16).replace('T', ' ')),
+      __EARB_ACCESS__: JSON.stringify(ACCESS),
     },
     logLevel: 'warning',
   });
@@ -97,7 +119,7 @@ async function once() {
   // The store is named on the line every build prints, because the way this goes wrong is a
   // build that was meant to have one and does not.
   const store = FIREBASE ? 'Firestore' : ORIGIN ? new URL(ORIGIN).host : 'none';
-  console.log(`${OUT_FILE}  ${kb} KB  (rubric ${rubric.version}, ${rubric.status}, store ${store})`);
+  console.log(`${OUT_FILE}  ${kb} KB  (rubric ${rubric.version}, ${rubric.status}, store ${store}, access ${ACCESS})`);
 }
 
 await once();

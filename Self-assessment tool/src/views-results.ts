@@ -163,6 +163,21 @@ export function renderResults(root: HTMLElement, rubric: Rubric, a: Assessment, 
         el('div', { class: `bar-num ${tone(t.score)}` }, [t.score === null ? '--' : t.score.toFixed(1)]),
       ]));
     }
+    /**
+     * A category with no questions in it is the most useful thing on this block.
+     *
+     * Dan named nine categories on 8 September. Two of them, Accessibility and Official
+     * Languages, match no question in the instrument: a sweep of all 176 found official
+     * languages in two and accessibility in three, always in another sense. Hiding an empty
+     * category makes the instrument look complete. Naming it is what gets it filled.
+     */
+    const empty = r.topics.filter((x) => x.total === 0);
+    if (empty.length) {
+      tbox.appendChild(el('p', { class: 'muted small' }, [
+        el('b', {}, [`Nothing in this question set asks about ${empty.map((x) => x.topic.label).join(' or ')}. `]),
+        'The category is here because TBS named it. It scores nothing until a question is tagged with it.',
+      ]));
+    }
     if (rubric.topicsNote) {
       tbox.appendChild(el('p', { class: 'tiny dim' }, [rubric.topicsNote]));
     }
