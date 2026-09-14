@@ -131,9 +131,9 @@ background:var(--surface);border:1px solid var(--line);border-radius:10px;list-s
 .kpi a{color:inherit;text-decoration:none}
 </style>
 <div class="head"><div class="head-in"><h1>GC EA self-assessment: requirements specification</h1>
-<p class="sub">Living document, updated 2026-09-01. 110 requirements, baselined at each release. Following ISO/IEC/IEEE 29148:2018, tailored.</p></div></div>
+<p class="sub">Living document, updated 2026-09-01. 112 requirements, baselined at each release. Following ISO/IEC/IEEE 29148:2018, tailored.</p></div></div>
 <nav class="topnav"><div class="topnav-in">
-<span class="nav-kpi"><b>58</b><span>built</span></span>
+<span class="nav-kpi"><b>60</b><span>built</span></span>
 <span class="nav-kpi"><b>27</b><span>agreed, not built</span></span>
 <span class="nav-kpi"><b>6</b><span>proposed</span></span>
 <span class="nav-kpi"><b>19</b><span>open</span></span>
@@ -225,6 +225,12 @@ background:var(--surface);border:1px solid var(--line);border-radius:10px;list-s
 <span class="req-id mono">R1</span>
 <span class="req-t">Three roles: submitter, assessor, admin.</span>
 <span class="st st-next">Agreed</span>
+</div>
+<div class="req">
+<span class="req-id mono">R4</span>
+<span class="req-t">Neither side offers a way into the other.</span>
+<span class="st st-done">Built</span>
+<span class="req-note">The submitter home page carried two links across, to the assessor view and to the admin view. They existed to make testing easy before either side worked, and they offered a person who is not an assessor a sign-in they cannot pass. The addresses still reach both, which is how the tests get there. Admin stops being a destination of its own: assessor and admin are one place with tabs inside it.</span>
 </div>
 <div class="req">
 <span class="req-id mono">R3</span>
@@ -331,6 +337,12 @@ background:var(--surface);border:1px solid var(--line);border-radius:10px;list-s
 <span class="req-id mono">S4</span>
 <span class="req-t">Until sign-in exists, the assessor side opens on a screen shaped like a sign-in that says it is a mockup, and everything it produces is labelled unverified.</span>
 <span class="st st-done">Built</span>
+</div>
+<div class="req">
+<span class="req-id mono">S23</span>
+<span class="req-t">Anything that replaces the assessment this browser holds asks first, offers to save it online, and says what would otherwise be lost.</span>
+<span class="st st-done">Built</span>
+<span class="req-note">One guard, src/guard.ts, used by all five paths that replace the draft: opening a file, opening by access code, switching question set, discarding, and undoing a discard. It was five windows saying five different things. Three asked and offered a file, one asked and offered nothing, and opening by access code asked nothing at all. Three states: work never saved online has everything to lose, work saved online and edited since has the edits to lose, and an empty form asks nothing, because a window in front of nothing is how people learn to dismiss windows.</span>
 </div>
 <div class="req">
 <span class="req-id mono">S21</span>

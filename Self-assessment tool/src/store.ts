@@ -416,6 +416,22 @@ export async function saveOnlineNow(a: Assessment): Promise<{ ok: true } | { ok:
 export function savedOnline(a: Assessment): boolean { return !!a.meta?.savedOnlineAt; }
 
 /**
+ * Whether the copy online is the copy in front of you.
+ *
+ * The answer matters at exactly one moment: something is about to replace what this browser
+ * holds, and the person deserves to know whether anything would be lost by that.
+ *
+ * lastSent is module state, so a reload empties it while the record online is still current.
+ * Without the idle case every guard after a reload would offer to save something already
+ * saved, which teaches people to dismiss the guard.
+ */
+export function onlineIsCurrent(a: Assessment): boolean {
+  if (!savedOnline(a)) return false;
+  if (!lastSent) return true;
+  return fingerprint(a) === lastSent;
+}
+
+/**
  * Send whatever is queued, now.
  *
  * The floor means the last edits of a session can be twenty seconds from the store, so the page
