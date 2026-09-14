@@ -2,6 +2,7 @@ import type { Assessment, Rubric } from './types';
 import { el, clear } from './dom';
 import { ICON_DOWN, ICON_MAIL, ICON_PRINT, ICON_SHARE } from './icons';
 import { codeField } from './code-field';
+import { guardDraft } from './guard';
 import { validate } from './rubric';
 import { completion } from './scoring';
 import { goToFirstGap, overviewFieldProgress, renderSubmit, resetOverviewToFirstGap, setRepaint,
@@ -336,13 +337,31 @@ function openWithCode(): void {
           'Aucune évaluation ne porte ce code. Vérifiez-le par rapport au message que vous avez reçu.');
         return;
       }
-      assessment = ensureRef(found);
-      autosave(assessment);
       close();
-      go('submit');
+      guardDraft({
+        current: assessment,
+        act: 'code',
+        onCommit: () => {
+          assessment = ensureRef(found);
+          autosave(assessment);
+          go('submit');
+        },
+        after: () => paint(),
+      });
     } catch (err) {
-      said.textContent = t(`The store would not open it: ${(err as Error).message}`,
-        `Le dépôt n\u2019a pas voulu l\u2019ouvrir : ${(err as Error).message}`);
+      /**
+       * The refusal that is ours and not theirs.
+       *
+       * The store still asks for an account before it will read anything, because the rule that
+       * would let a code stand on its own has not been published. Reporting Google's words here
+       * reads as a fault in the code somebody was sent, on a screen that has just told them a
+       * code is enough. So this one case says whose problem it is.
+       */
+      const why = (err as Error).message;
+      said.textContent = /sign in/i.test(why)
+        ? t('Access codes are built here and the store does not accept them yet: it still asks for an account before it will read anything. That is a change to the store\u2019s rules, and it has not been made.',
+            'Les codes d\u2019accès sont construits ici, mais le dépôt ne les accepte pas encore : il exige toujours un compte avant toute lecture. C\u2019est une modification des règles du dépôt, et elle n\u2019a pas été faite.')
+        : t(`The store would not open it: ${why}`, `Le dépôt n\u2019a pas voulu l\u2019ouvrir : ${why}`);
     }
   };
 
@@ -818,24 +837,9 @@ function renderHome(root: HTMLElement) {
           return el('span', { class: 'openfile' }, [
             el('button', {
               class: 'linkish',
-              onclick: () => {
-                if (!hasWork(assessment)) { open(); return; }
-                const n = answeredCount(assessment);
-                confirmStep({
-                  tier: 'danger',
-                  title: 'Open a different assessment?',
-                  body: `This browser is holding one with ${n} answer${n === 1 ? '' : 's'} in it. Opening another replaces it, and only one can be here at a time.`,
-                  stake: 'Whatever is here and not already in a file of its own is gone.',
-                  offer: {
-                    label: 'Save this one as a file, then choose the other',
-                    commits: true,
-                    run: () => `Saving as ${saveAssessmentFile(assessment)}.`,
-                  },
-                  commitLabel: 'Choose the other one without saving this',
-                  cancelLabel: 'Keep this one',
-                  onCommit: open,
-                });
-              },
+              onclick: () => guardDraft({
+                current: assessment, act: 'open', onCommit: open, after: () => paint(),
+              }),
             }, [t('open a saved assessment', 'ouvrir une évaluation enregistrée')]),
             picker,
           ]);
@@ -858,16 +862,15 @@ function renderHome(root: HTMLElement) {
     ]),
   ]));
 
-  root.appendChild(el('p', { class: 'crossover tiny dim' }, [
-    t('Reviewing submissions for TBS? ', 'Vous examinez des soumissions pour le SCT? '),
-    el('button', { class: 'linkish', onclick: () => setSide('assess') }, [t('Open the assessor view', 'Ouvrir la vue de l\u2019évaluateur')]),
-  ]));
-  // The portfolio view has no other way in from here, and somebody who runs the programme
-  // should not have to find it through the assessor side.
-  root.appendChild(el('p', { class: 'crossover tiny dim' }, [
-    t('Running the programme? ', 'Vous dirigez le programme? '),
-    el('button', { class: 'linkish', onclick: () => setSide('assess', true, 'admin') }, [t('Open the admin view', 'Ouvrir la vue de l\u2019administrateur')]),
-  ]));
+  /**
+   * The way across used to be here, and it has gone.
+   *
+   * The two sides are separate products that share a build, so a submitter's home page has no
+   * business offering the assessor view: a person who is not an assessor gets a sign-in they
+   * cannot pass, and a person who is has their own address. It was here to make testing easy
+   * before either side worked. The address still reaches it, so testing is unaffected.
+   */
+
 
   root.appendChild(el('section', { class: 'note' }, [
     el('h2', {}, [t('What to expect', 'À quoi s\u2019attendre')]),
@@ -1189,16 +1192,7 @@ function paneQuestions(pane: HTMLElement) {
         resetOverviewToFirstGap(rubric, assessment);
         go('settings');
       };
-      if (!hasWork(assessment)) { swap(); return; }
-      confirmDestructive({
-        tier: 'caution',
-        title: `Switch to this set and clear ${answeredCount(assessment)} answers?`,
-        body: 'Answers belong to the set they were given against, so they cannot be carried across. Assessments already submitted keep the set they were answered against and are not touched.',
-        saveLabel: 'Save a file, then switch',
-        commitLabel: 'Switch anyway',
-        cancelLabel: 'Keep my answers',
-        onCommit: swap,
-      });
+      guardDraft({ current: assessment, act: 'switch', onCommit: swap, after: () => paint() });
     };
 
     const remove = () => confirmStep({
@@ -1444,16 +1438,7 @@ function paneDanger(pane: HTMLElement) {
           resetOverviewToFirstGap(rubric, assessment);
           go('settings');
         };
-        if (!hasWork(assessment)) { restore(); return; }
-        confirmStep({
-          tier: 'danger',
-          title: `Put the discarded copy back over ${answeredCount(assessment)} answers?`,
-          body: 'You have answered questions since that discard. Restoring the old copy replaces them, and they are not held anywhere else.',
-          stake: 'The newer answers cannot be recovered afterwards.',
-          commitLabel: 'Restore the old copy',
-          cancelLabel: 'Keep what I have now',
-          onCommit: restore,
-        });
+        guardDraft({ current: assessment, act: 'undo', onCommit: restore, after: () => paint() });
       } }, ['Undo']),
       el('button', {
         class: 'primary small',

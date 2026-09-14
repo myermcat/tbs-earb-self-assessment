@@ -1131,13 +1131,19 @@ ok('csv carries a column per section', head.includes('section_data_data-architec
 // Crossing to the assessor side. The two audiences do not share a path, and the crossover is
 // offered once, on the page a submitter arrives at.
 byText('.tab', 'Start').click();
-ok('the crossover is on the start page', !!q('.crossover button'));
-// Both assessor-side views are reachable from the home page, and both ask who you are.
-ok('the home page offers the admin view too', !!byText('.crossover button', 'Open the admin view'));
-byText('.crossover button', 'Open the admin view').click();
-ok('the admin view asks who you are first', view().includes('Sign in'));
-byText('button', 'Leave assessor view').click();
-byText('.crossover button', 'Open the assessor view').click();
+/**
+ * The two sides are separate products that share a build, so neither offers the other.
+ *
+ * The home page used to carry two links across, which existed to make testing easy before
+ * either side worked. A person who is not an assessor got a sign-in they could not pass, and a
+ * person who is has their own address. The address still reaches it, which is how this suite
+ * gets there.
+ */
+ok('the home page offers no way into the assessor side', !q('.crossover button'));
+ok('and none into the admin view', !byText('button', 'Open the admin view'));
+window.location.hash = '#assessor';
+window.dispatchEvent(new window.PopStateEvent('popstate', { state: null }));
+await new Promise((r) => setTimeout(r, 30));
 // The sign-in screen carries the name of the tool, the language and the way out, and nothing
 // else. A save badge, an offer to sign in and a breadcrumb to submissions are all answers to
 // questions this person has not been allowed to ask yet.

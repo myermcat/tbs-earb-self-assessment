@@ -98,5 +98,95 @@ console.log('\nThe access code\n');
      /not a complete code/i.test(q('.cf-note')?.textContent ?? ''), q('.cf-note')?.textContent);
 }
 
+/* --------------------------------------------------------------------------------------- */
+/**
+ * The guard in front of anything that replaces what this browser holds.
+ *
+ * Asked for twice, in capitals the second time: any time the tool is about to replace the local
+ * copy it asks first, offers to save online, and says plainly what is otherwise lost. Opening by
+ * access code was the path that asked nothing at all.
+ *
+ * A second page, because the guard's answer depends on what the draft holds, and this one is
+ * booted with a draft that has work in it.
+ */
+{
+  const withWork = {
+    fileType: 'gc-arch-assessment', formatVersion: 1, ref: 'ZZ99',
+    rubric: { id: 'gc-ea-selfassess', version: '1.0-dan', title: 'x' },
+    initiative: {
+      name: 'Licensing Renewal', department: 'DFO', contact: 'a@b.gc.ca',
+      lifecycleStage: 'beta', summary: 'A thing.', classification: 'Unclassified',
+    },
+    answers: { 'B-Q1': { score: 7, evidence: [] } },
+    meta: { createdAt: 'x', updatedAt: 'x', appVersion: 'test' },
+  };
+  const two = new JSDOM(html, {
+    runScripts: 'dangerously',
+    url: 'https://example.gc.ca/tool/',
+    pretendToBeVisual: true,
+    beforeParse(w) {
+      w.localStorage.setItem('gc-arch-assessment:draft', JSON.stringify(withWork));
+      // A session, because the store still asks for an account before it reads anything. The
+      // rule that lets a code stand on its own has not been published, so without this the path
+      // stops at the refusal and never reaches the guard.
+      w.localStorage.setItem('gc-arch-assessment:firebase-session', JSON.stringify({
+        email: 'someone@dfo-mpo.gc.ca', idToken: 't', refreshToken: 'r', expiresAt: Date.now() + 36e5,
+      }));
+      w.scrollTo = () => {};
+      w.alert = () => {};
+      // The store answers with a real record for the code, so the path reaches the guard. A
+      // stub that answers with nothing stops at "no assessment has that code", which is a
+      // different screen and would have made this pass by never getting there.
+      w.fetch = async (url) => {
+        const doc = String(url).includes('/assessments/')
+          ? {
+              name: 'projects/p/databases/(default)/documents/assessments/KFRM92TXBQ7H',
+              fields: {
+                fileType: { stringValue: 'gc-arch-assessment' },
+                ref: { stringValue: 'AB12' },
+                rubric: { mapValue: { fields: {
+                  id: { stringValue: 'gc-ea-selfassess' }, version: { stringValue: '1.0-dan' },
+                } } },
+                initiative: { mapValue: { fields: {
+                  name: { stringValue: 'Fleet Scheduling' }, department: { stringValue: 'DFO' },
+                } } },
+                answers: { mapValue: {} },
+                meta: { mapValue: { fields: { updatedAt: { stringValue: '2026-09-01T00:00:00Z' } } } },
+              },
+            }
+          : {};
+        return { ok: true, status: 200, json: async () => doc, text: async () => JSON.stringify(doc) };
+      };
+    },
+  });
+  await settle();
+  const d2 = two.window.document;
+  const all = (sel) => [...d2.querySelectorAll(sel)];
+  const find = (sel, txt) => all(sel).find((n) => n.textContent.toLowerCase().includes(txt.toLowerCase()));
+
+  find('.hero-actions button', 'access code').click();
+  await settle();
+  const boxes = all('.code-field .code-box');
+  boxes[0].value = 'KFRM-92TX-BQ7H';
+  boxes[0].dispatchEvent(new two.window.Event('input', { bubbles: true }));
+  await settle();
+  find('.cf-actions button', 'Open it').click();
+  await settle();
+  await new Promise((r) => setTimeout(r, 60));
+
+  const guard = all('dialog.confirm').find((x) => /Replace what this browser/.test(x.textContent));
+  ok('opening by code asks before replacing work', !!guard,
+     all('dialog.confirm').map((x) => x.querySelector('.cf-title')?.textContent).join(' | '));
+  ok('and says what this act does', /access code opens the assessment/i.test(guard?.textContent ?? ''));
+  ok('and says what would be lost', /never been saved online/i.test(guard?.textContent ?? ''),
+     guard?.textContent?.slice(0, 200));
+  ok('and offers to save online first',
+     !!find('.cf-actions button', 'Save this online first'),
+     all('.cf-actions button').map((b) => b.textContent).join(' | '));
+  ok('and the way out keeps what you have',
+     !!find('.cf-actions button', 'Keep what I have'));
+  two.window.close();
+}
+
 console.log(fails ? `\n${fails} access code check(s) failed\n` : '\nall access code checks passed\n');
 process.exit(fails ? 1 : 0);

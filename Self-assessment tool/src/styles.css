@@ -743,11 +743,11 @@ dialog.confirm::backdrop { background: rgba(10, 12, 16, .55); }
 .file-menu { position: relative; flex: 0 0 auto; }
 /* .set-menu-btn is a 1.8rem square, built for a three-dot button. A word does not fit in it,
    which is what the clipping was. */
-.file-btn { width: auto; height: auto; display: inline-flex; align-items: center;
+.file-menu > .file-btn { width: auto; height: auto; display: inline-flex; align-items: center;
   border: 0; background: none; color: var(--ink-2); font-size: .8rem;
   padding: .28rem .5rem; border-radius: 7px; cursor: pointer; white-space: nowrap;
   list-style: none; }
-.file-btn:hover { background: var(--surface-2); color: var(--accent); }
+.file-menu > .file-btn:hover { background: var(--surface-2); color: var(--accent); }
 .file-menu .set-menu-pop { left: 0; right: auto; min-width: 15rem; }
 /* Share reads as a control over access, which is what the icon is for. */
 .share-btn { display: inline-flex; align-items: center; gap: .35rem; }
@@ -1099,15 +1099,20 @@ code.mark-subject { display: block; margin: .25rem 0; }
  * One box per character, three groups of four, the way a verification code is typed. The
  * dashes are drawn and never typed.
  * ------------------------------------------------------------------------------------------ */
-.code-field { display: flex; align-items: center; gap: .3rem; flex-wrap: wrap; margin: .5rem 0; }
+/* One line, at every width. The boxes share whatever room there is and stop growing at a
+   comfortable size, so twelve of them never wrap and the three groups stay a shape somebody
+   can match against the message they were sent. */
+.code-field { display: flex; align-items: center; gap: .3rem; flex-wrap: nowrap;
+  margin: .5rem 0; width: 100%; }
 /* input[type=text] sets width: 100% and outranks a bare class, which is why these spanned the
    whole window. The selector has to carry the element too. */
-input.code-box { width: 2.1rem; height: 2.6rem; padding: 0; text-align: center;
+input.code-box { flex: 1 1 0; min-width: 0; max-width: 2.4rem; width: auto;
+  height: 2.6rem; padding: 0; text-align: center;
   font-family: var(--mono); font-size: 1.05rem; font-weight: 650; text-transform: uppercase;
   border: 1px solid var(--line-2); border-radius: var(--radius-sm);
   background: var(--surface); color: var(--ink); }
 input.code-box:focus { outline: 2px solid var(--accent); outline-offset: 1px; border-color: var(--accent); }
-.code-dash { color: var(--ink-3); padding: 0 .15rem; user-select: none; }
+.code-dash { flex: 0 0 auto; color: var(--ink-3); padding: 0 .1rem; user-select: none; }
 /* The code as somebody reads it back, beside a way to take a copy of it. */
 .code-shown { display: inline-flex; align-items: center; gap: .55rem; flex-wrap: wrap;
   padding: .45rem .7rem; border: 1px solid var(--line-2); border-radius: var(--radius-sm);
@@ -1116,7 +1121,8 @@ input.code-box:focus { outline: 2px solid var(--accent); outline-offset: 1px; bo
 .share-code-row { display: flex; align-items: center; gap: .55rem; flex-wrap: wrap;
   margin: .4rem 0 .9rem; }
 @media (max-width: 480px) {
-  input.code-box { width: 1.75rem; height: 2.3rem; font-size: .95rem; }
+  input.code-box { height: 2.3rem; font-size: .9rem; }
+  .code-field { gap: .2rem; }
 }
 .pool-art { flex: none; width: 148px; color: var(--accent); }
 .sad-cat { display: block; width: 100%; height: auto; }

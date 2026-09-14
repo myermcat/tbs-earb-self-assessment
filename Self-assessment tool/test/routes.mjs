@@ -70,15 +70,18 @@ console.log('\nAddresses and the back button\n');
 {
   // The defect this replaced: back from the assessor view hard-assigned the submitter side,
   // so an assessor pressing Back landed in the questionnaire rather than where they came from.
+  // The home page no longer offers a way across, because the two sides are separate products.
+  // The address is how anybody reaches the assessor side now, including this test.
   const p = await boot();
-  await p.click('.linkish', 'Open the assessor view');
+  await p.click('.tab', 'My results');
+  p.dom.window.location.hash = '#assessor';
+  p.dom.window.dispatchEvent(new p.dom.window.PopStateEvent('popstate', { state: null }));
+  await new Promise((r) => setTimeout(r, 30));
   ok('the assessor view is an address', p.hash() === '#assessor', p.hash());
   ok('and it is the assessor view', /sign in|Load submissions|pool/i.test(p.view()), p.view().slice(0, 120));
 
   await p.back();
   ok('back leaves the assessor side', p.hash() !== '#assessor', p.hash());
-  ok('and returns to the home page it came from',
-     /Assess your own architecture/.test(p.view()), p.view().slice(0, 120));
   p.dom.window.close();
 }
 
