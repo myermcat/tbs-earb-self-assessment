@@ -1127,6 +1127,18 @@ input.code-box:focus { outline: 2px solid var(--accent); outline-offset: 1px; bo
   letter-spacing: .06em; }
 .share-code-row { display: flex; align-items: center; gap: .55rem; flex-wrap: wrap;
   margin: .4rem 0 .9rem; }
+
+/* A code is never plain text: it is the only way back to an assessment, so it is always a
+   thing you can take a copy of. */
+.code-chip { display: inline-flex; align-items: center; gap: .5rem; }
+.code-chip-btn { display: inline-flex; align-items: center; gap: .5rem;
+  padding: .35rem .6rem; border: 1px solid var(--line-2); border-radius: var(--radius-sm);
+  background: var(--surface-2); color: var(--ink); cursor: pointer; }
+.code-chip-btn:hover { border-color: var(--accent-line); color: var(--accent); }
+.code-chip-value { font-family: var(--mono); font-size: .95rem; letter-spacing: .06em; }
+.code-chip-ico { display: inline-flex; color: var(--ink-3); }
+.code-chip-btn:hover .code-chip-ico { color: var(--accent); }
+.code-chip-said { font-size: .76rem; color: var(--good); }
 @media (max-width: 480px) {
   input.code-box { height: 2.3rem; font-size: .9rem; }
   .code-field { gap: .2rem; }

@@ -23,6 +23,13 @@ export interface ConfirmStep {
   /** What is at stake, in one line. Rendered in the tone of the tier. */
   stake?: string;
   /**
+   * Something the window has to show rather than say: an access code to copy, usually.
+   *
+   * A string cannot be clicked, and a code somebody is about to lose is exactly the thing they
+   * need to take with them, so a window that mentions one has to hand it over.
+   */
+  extra?: HTMLElement;
+  /**
    * A second thought, below the decision and quieter than it.
    *
    * The body is the thing being decided. A note is the thing worth knowing once, and putting
@@ -94,6 +101,7 @@ export function confirmStep(o: ConfirmStep): void {
 
   dlg.className = `confirm tier-${o.tier}`;
   const body = el('div', { class: 'cf-body' }, [el('p', {}, [o.body])]);
+  if (o.extra) body.appendChild(el('div', { class: 'cf-extra' }, [o.extra]));
   if (o.note) body.appendChild(el('p', { class: 'cf-note' }, [o.note]));
   let stakeEl = o.stake ? el('p', { class: 'cf-stake' }, [o.stake]) : null;
   if (stakeEl) body.appendChild(stakeEl);
@@ -126,10 +134,19 @@ export function confirmStep(o: ConfirmStep): void {
       ? t(`I have the copy. ${o.commitLabel.toLowerCase()}`, `J\u2019ai la copie. ${o.commitLabel.toLowerCase()}`)
       : o.commitLabel]));
 
-    // The safe control takes focus, so Enter and Escape both mean cancel.
-    const cancel = el('button', { class: 'cf-wide', onclick: close }, [o.cancelLabel]);
-    actions.appendChild(cancel);
-    setTimeout(() => cancel.focus?.(), 0);
+    /**
+     * The safe control takes focus, so Enter and Escape both mean cancel.
+     *
+     * An empty label means there is nothing to decide: the window is telling you something and
+     * the only sensible answer is that you have read it. Drawing a nameless second button there
+     * asks a question the window did not pose.
+     */
+    const cancel = o.cancelLabel
+      ? el('button', { class: 'cf-wide', onclick: close }, [o.cancelLabel])
+      : null;
+    if (cancel) actions.appendChild(cancel);
+    const rest = cancel ?? (actions.lastElementChild as HTMLElement | null);
+    setTimeout(() => rest?.focus?.(), 0);
   };
   paint(false);
 

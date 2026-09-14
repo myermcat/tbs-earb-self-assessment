@@ -16,9 +16,11 @@ import { closeMenusOnOutsideClick, closeOnOutsideClick, confirmStep, openDialog 
 import { saveBadge } from './save-badge';
 import { SAD_CAT } from './cat';
 import { openShareDialog } from './views-share';
+import { hasAccounts } from './who';
+import { codeChip } from './code-chip';
 import { bootLang, coverage, lang, type Lang, setLang } from './i18n';
 import { endpointHost, flushWrites, goneFromStore, isHosted, listRecords, putRecord,
-  saveOnlineNow } from './store';
+  saveOnlineNow, savedOnline } from './store';
 import { canSignIn, currentUser, forgetRole, getAssessment, looksLikeCode, pageAddress, tidyCode, isConfigured as firebaseConfigured, knownRole, lastSignInProblem,
   loadRole, resumeSignIn, signInWithGoogle, signOut } from './firebase';
 import { t } from './i18n';
@@ -406,8 +408,8 @@ function offerOnlineSave(): void {
           'Votre évaluation est enregistrée sur cet ordinateur seulement. L\u2019enregistrement en ligne place une copie sur le serveur du SCT : elle survit à un onglet fermé ou à un ordinateur perdu, et votre évaluateur peut la lire.')
       : t(`Your assessment is saved on this computer only. Saving it online puts a copy on the TBS server, so it survives a closed tab or a lost laptop, and your assessor can read it. ${c.questionsLeft} of ${c.total} questions have no answer yet, so they will see it unfinished. They cannot change anything in it, and nobody is asked to review it until you say it is finished.`,
           `Votre évaluation est enregistrée sur cet ordinateur seulement. L\u2019enregistrement en ligne place une copie sur le serveur du SCT : elle survit à un onglet fermé ou à un ordinateur perdu, et votre évaluateur peut la lire. ${c.questionsLeft} des ${c.total} questions n\u2019ont pas encore de réponse, il la verra donc inachevée. Il ne peut rien y modifier, et personne n\u2019est invité à l\u2019évaluer avant que vous ne disiez que c\u2019est terminé.`),
-    note: t('You only press this once. After this, every change you make is saved online a few seconds after you stop typing.',
-      'Vous ne cliquez ici qu\u2019une seule fois. Ensuite, chaque modification est enregistrée en ligne quelques secondes après que vous arrêtez de taper.'),
+    note: t('The first save gives this assessment an access code, which is how anybody else opens it, including you from another computer. It saves the version you have now: change something afterwards and it stays on this computer until you save online again.',
+      'Le premier enregistrement attribue un code d\u2019accès à cette évaluation; c\u2019est ainsi que quiconque d\u2019autre l\u2019ouvre, y compris vous depuis un autre ordinateur. Il enregistre la version actuelle : si vous modifiez quelque chose ensuite, cela reste sur cet ordinateur jusqu\u2019au prochain enregistrement en ligne.'),
     stake: t('Nothing in this tool may be above Unclassified. Saving online says that this assessment, and everything it points at, is Unclassified.',
       'Rien dans cet outil ne peut dépasser Non classifié. L\u2019enregistrement en ligne affirme que cette évaluation, et tout ce à quoi elle renvoie, est Non classifié.'),
     alt: {
@@ -420,9 +422,32 @@ function offerOnlineSave(): void {
     commitLabel: t('Save online', 'Enregistrer en ligne'),
     cancelLabel: t('Cancel', 'Annuler'),
     onCommit: () => {
+      const first = !savedOnline(assessment);
       void saveOnlineNow(assessment).then((res) => {
-        if (!res.ok) alert(res.problem);
+        if (!res.ok) { alert(res.problem); paint(); return; }
         paint();
+        /**
+         * The one moment the code is worth interrupting for.
+         *
+         * It exists from this second onwards and it is the only way back to this assessment
+         * from any other computer. Showing it once, where it can be copied, is cheaper than
+         * the conversation that follows somebody clearing their browser. Only on the first
+         * save: every save after this would be noise.
+         */
+        if (first && assessment.id) {
+          confirmStep({
+            tier: 'plain',
+            title: t('Saved online. This is its access code', 'Enregistr\u00e9e en ligne. Voici son code d\u2019acc\u00e8s'),
+            body: t('Anybody holding this code can open this assessment and change it, and nobody without it can. It is also how you open it yourself from another computer, so keep it somewhere you will find it.',
+              'Toute personne ayant ce code peut ouvrir cette \u00e9valuation et la modifier, et personne ne le peut sans lui. C\u2019est aussi ainsi que vous l\u2019ouvrez depuis un autre ordinateur, alors gardez-le quelque part o\u00f9 vous le retrouverez.'),
+            extra: codeChip(assessment.id),
+            note: t('It is on the results page and in the File menu as well, so you are not the only copy of it.',
+              'Il se trouve aussi sur la page des r\u00e9sultats et dans le menu Fichier; vous n\u2019en \u00eates donc pas la seule copie.'),
+            commitLabel: t('I have it', 'Je l\u2019ai'),
+            cancelLabel: '',
+            onCommit: () => {},
+          });
+        }
       });
     },
   });
@@ -550,7 +575,7 @@ function header(bare = false): HTMLElement {
               onclick: () => handOff(assessment),
             }, [
               el('span', { class: 'menu-ico', html: ICON_MAIL, 'aria-hidden': true }),
-              t('Email this assessment', 'Envoyer cette évaluation par courriel'),
+              t('Write an email about it', 'R\u00e9diger un courriel \u00e0 son sujet'),
             ]),
             // "File" on its own said nothing: a PDF is a file too. The kind is the point.
             el('button', {
@@ -632,7 +657,13 @@ function header(bare = false): HTMLElement {
        * and somebody looking for it looks there first. Settings holds the same control, which
        * is a second home rather than the only one.
        */
-      firebaseConfigured() && currentUser()
+      /**
+       * On a build that runs on codes there is no account to show, so this is gated on the
+       * switch rather than on the store being configured. A submitter asking "do I have an
+       * account here?" is the question this answers: today, on the accounts build, yes, and
+       * that is why the badge is there.
+       */
+      hasAccounts() && currentUser()
         ? el('details', { class: 'set-menu account-menu' }, [
             el('summary', {
               class: 'set-menu-btn account-btn',
@@ -804,12 +835,9 @@ function renderHome(root: HTMLElement) {
           started ? t('Continue', 'Continuer') : t('Fill it in', 'Remplir le questionnaire'),
           el('span', { class: 'arrow', 'aria-hidden': true }, ['\u2192']),
         ]),
-        el('span', { class: 'or' }, [t('or', 'ou')]),
         /**
-         * Opening a file replaces whatever this browser is holding, so the question comes
-         * before the file picker rather than after it: being asked once a file is chosen
-         * reads as the tool changing its mind. Both assessments belong to the same person,
-         * so the wording is about which one, never about whose.
+         * The second way in. It was two, and the file one has gone, which left the word "or"
+         * behind twice over.
          */
         isHosted()
           ? el('span', { class: 'or' }, [t('or', 'ou')])
@@ -1313,10 +1341,15 @@ function paneAnswers(pane: HTMLElement) {
     ));
   }
   pane.appendChild(setRow(
-    'Sharing records addresses and does nothing else',
-    'Adding a teammate or an assessor writes their address into your assessment and shows it on the sharing list. No email is sent and no access is granted. Both need a change to the store\u2019s rules at TBS, published by whoever owns the project.',
+    'Sharing is the access code, and nothing is sent',
+    'Whoever holds an assessment\u2019s access code can open it and change it, and nobody without it can. Sending the code is something you do yourself, in Teams or in your own mail client. The tool has no way to put a message in front of anybody, so it never claims to.',
     null,
-    { tier: 'caution', badge: 'Mockup' },
+  ));
+  pane.appendChild(setRow(
+    'A code cannot be taken back',
+    'There is no list of who has one and no way to withdraw it. Somebody given the code keeps the ability to open the assessment and change it, and forwarding it passes the same ability on. Send it the way you would send the assessment itself.',
+    null,
+    { tier: 'caution', badge: 'Known limit' },
   ));
   pane.appendChild(setRow(
     'Nothing will be recalled once submitted',

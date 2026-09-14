@@ -1,298 +1,95 @@
 /**
- * Who else is on this assessment.
+ * Who else can open this assessment.
  *
- * Filling in 176 questions is not a job for one person, and the tool had no way to say so. A
- * department puts two or three people on it, and their assessor has to be able to read it
- * before it is finished. Both of those are shares, and both work the way sharing a document
- * works: you type an address and the person appears on a list.
+ * Filling in 176 questions is not a job for one person, and their assessor has to be able to
+ * read it before it is finished. Both of those are the same act, and the access code is how it
+ * is done: whoever holds the code opens the assessment and changes it, and nobody else can.
  *
- * This is a mockup, and it says so on every screen it touches. It writes the addresses into the
- * assessment and does nothing else: no message is sent, and nobody is granted anything. The
- * shape is the point. Getting it agreed before the store's rules are written is cheaper than
- * discovering afterwards that the rules cannot express it.
+ * This file used to be a mockup of a different idea, where you typed people's addresses onto a
+ * list and nothing happened. The code replaced it. What is left here is the two places the code
+ * is explained and handed over: a panel on the results page, and the window behind File.
  *
- * Two things it must never do, both of which would make it look like it worked:
- *
- *   - open a mail client. The results page has a control that does (handOff), and nothing here
- *     may borrow it, because a message that leaves is a promise the rest of this cannot keep.
- *   - imply that naming an assessor lets them score. Scoring is gated on a role that only an
- *     admin writes, and it stays that way. Otherwise anybody appoints their friend.
+ * The rule the mockup carried still holds, and is the reason this sends nothing. The tool has no
+ * way to put a message in front of somebody, so it must never look as though it has. You copy
+ * the code and send it yourself, in whatever you already use.
  */
-import type { Assessment, SharedWith, ShareRole, Sharing } from './types';
-import { el, clear, mockupTag } from './dom';
-import { openDialog, closeOnOutsideClick, confirmStep } from './confirm';
-import { autosave } from './storage';
+import type { Assessment } from './types';
+import { el } from './dom';
+import { openDialog, closeOnOutsideClick } from './confirm';
 import { t } from './i18n';
-import { formatCode } from './firebase';
-
-/** Deliberately loose. This is a list somebody reads, and a strict pattern refuses real addresses. */
-const LOOKS_LIKE_EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-function blank(): Sharing {
-  return { people: [], teammateEmails: [], assessorEmails: [] };
-}
-
-export function sharedPeople(a: Assessment): SharedWith[] {
-  return a.sharing?.people ?? [];
-}
-
-export function sharedCount(a: Assessment): number {
-  return sharedPeople(a).length;
-}
+import { codeChip } from './code-chip';
 
 /**
- * Keep the two flat lists in step with the one real list.
+ * Who can open this, on the results page.
  *
- * They exist for a rule language that cannot look inside an object inside an array. Deriving
- * them on every write means they can never disagree with the list they come from.
+ * It used to list addresses somebody had typed, which granted nothing. The access code is the
+ * sharing mechanism now, so this says the one true thing: whoever has the code can open and
+ * change this assessment, and you decide who has it.
  */
-function restate(a: Assessment): void {
-  const people = a.sharing?.people ?? [];
-  a.sharing = {
-    people,
-    teammateEmails: people.filter((p) => p.role === 'teammate').map((p) => p.email),
-    assessorEmails: people.filter((p) => p.role === 'assessor').map((p) => p.email),
-  };
-}
-
-function add(a: Assessment, email: string, role: ShareRole, by: string): 'added' | 'already' {
-  const clean = email.trim().toLowerCase();
-  const sharing = a.sharing ?? blank();
-  a.sharing = sharing;
-  if (sharing.people.some((p) => p.email === clean)) return 'already';
-  sharing.people.push({
-    email: clean,
-    role,
-    addedBy: by,
-    addedAt: new Date().toISOString(),
-    state: 'recorded',
-  });
-  restate(a);
-  autosave(a);
-  return 'added';
-}
-
-function drop(a: Assessment, email: string): void {
-  if (!a.sharing) return;
-  a.sharing.people = a.sharing.people.filter((p) => p.email !== email);
-  restate(a);
-  autosave(a);
-}
-
-const ROLE_ONE: Record<ShareRole, string> = {
-  teammate: 'teammate',
-  assessor: 'assessor',
-};
-
-/** The list, grouped, with a way to take somebody off it. */
-function peopleList(a: Assessment, owner: string, after: () => void, readOnly = false): HTMLElement {
-  const box = el('div', { class: 'share-list' });
-
-  for (const role of ['teammate', 'assessor'] as ShareRole[]) {
-    const rows = sharedPeople(a).filter((p) => p.role === role);
-    box.appendChild(el('h3', { class: 'share-group' }, [
-      role === 'teammate'
-        ? t('Working on it with you', 'Travaillent dessus avec vous')
-        : t('Reading and scoring it', 'La lisent et la notent'),
-      el('span', { class: 'dim' }, [` (${rows.length})`]),
-    ]));
-
-    if (!rows.length) {
-      box.appendChild(el('p', { class: 'muted small' }, [
-        role === 'teammate'
-          ? t('Nobody yet. You are the only person on this assessment.', 'Personne pour l’instant. Vous êtes la seule personne sur cette évaluation.')
-          : t('Nobody yet. Naming your assessor is how they know to look.', 'Personne pour l’instant. Nommer votre évaluateur est la façon dont il sait qu’il doit regarder.'),
-      ]));
-      continue;
-    }
-
-    for (const p of rows) {
-      box.appendChild(el('div', { class: 'share-row' }, [
-        el('span', { class: 'mono small' }, [p.email]),
-        el('span', { class: 'badge badge-mockup tiny' }, [t('No email sent', 'Aucun courriel envoyé')]),
-        readOnly
-          ? null
-          : el('button', {
-              class: 'linkish small',
-              onclick: () => confirmStep({
-                tier: 'danger',
-                title: t(`Take ${p.email} off this assessment?`, `Retirer ${p.email} de cette évaluation?`),
-                body: t(`They are recorded as ${ROLE_ONE[p.role]} on this assessment. Taking them off removes the address from the list and from the file. Nothing else happens, because nothing was granted in the first place.`,
-                  `Cette personne est inscrite comme ${p.role === 'teammate' ? 'membre de l’équipe' : 'évaluateur'} sur cette évaluation. Le retrait supprime l’adresse de la liste et du fichier. Rien d’autre ne se produit, car rien n’avait été accordé.`),
-                commitLabel: t('Take them off', 'Les retirer'),
-                cancelLabel: t('Keep them on', 'Les garder'),
-                onCommit: () => { drop(a, p.email); after(); },
-              }),
-            }, [t('Remove', 'Retirer')]),
-      ]));
-    }
-  }
-  return box;
-}
-
-/** The read-only card on the results page, so the list is visible without opening anything. */
 export function sharedPanel(a: Assessment, open: () => void): HTMLElement {
-  const people = sharedPeople(a);
-  const mates = people.filter((p) => p.role === 'teammate').length;
-  const assessors = people.filter((p) => p.role === 'assessor').length;
-
+  const saved = !!a.id;
   return el('div', { class: 'res-sub' }, [
-    el('div', { class: 'head-row' }, [
-      el('h3', {}, [t('Who this is shared with', 'Avec qui cette évaluation est partagée')]),
-      mockupTag(t('Mockup', 'Maquette')),
-    ]),
+    el('h3', {}, [t('Who can open this', 'Qui peut l\u2019ouvrir')]),
     el('p', { class: 'muted' }, [
-      people.length
-        ? t(`${mates} working on it with you, ${assessors} reading it. No email has been sent and no access has been granted.`,
-            `${mates} travaillent dessus avec vous, ${assessors} la lisent. Aucun courriel n’a été envoyé et aucun accès n’a été accordé.`)
-        : t('Nobody yet. You can name the people working on it with you, and your assessor.',
-            'Personne pour l’instant. Vous pouvez nommer les personnes qui travaillent dessus avec vous, et votre évaluateur.'),
+      saved
+        ? t('Anybody holding the access code can open this assessment and change it. You decide who has it, by sending it to them.',
+            'Toute personne ayant le code d\u2019accès peut ouvrir cette évaluation et la modifier. C\u2019est vous qui décidez qui l\u2019a, en le lui envoyant.')
+        : t('Nobody but you. This assessment is on this computer only, and it gets an access code the first time it is saved online.',
+            'Personne d\u2019autre que vous. Cette évaluation est sur cet ordinateur seulement, et elle reçoit un code d\u2019accès lors du premier enregistrement en ligne.'),
     ]),
-    people.length ? peopleList(a, '', () => {}, true) : null,
-    el('div', { class: 'actions' }, [
-      el('button', { class: 'ghost', onclick: open }, [
-        t('Open the sharing list', 'Ouvrir la liste de partage'),
-      ]),
-    ]),
+    saved ? codeChip(a.id!) : null,
+    saved
+      ? el('div', { class: 'actions' }, [
+          el('button', { class: 'ghost', onclick: open }, [
+            t('About the access code', 'À propos du code d\u2019accès'),
+          ]),
+        ])
+      : null,
   ]);
 }
 
 /**
- * The dialog.
+ * What the access code is, and what holding it means.
  *
- * The sentence saying nothing is sent goes above the field, not below it. The classified pledge
- * taught that lesson: a panel under the fold is scrolled past, and the one thing somebody has to
- * know here is that typing an address into this box does not tell anybody anything.
+ * This window used to be where you typed addresses, back when there was no sharing mechanism
+ * at all: you added somebody, nothing happened, and the screen said so four times over. The
+ * code is the mechanism now, so the window explains it and hands it over.
  */
-export function openShareDialog(a: Assessment, owner: string, after: () => void): void {
+export function openShareDialog(a: Assessment, _owner: string, after: () => void): void {
   const dlg = document.createElement('dialog');
-  dlg.className = 'confirm share-dialog';
-
+  dlg.className = 'confirm tier-plain share-dialog';
   const close = () => { try { dlg.close(); } catch { /* already closed */ } dlg.remove(); after(); };
 
-  const said = el('p', { class: 'cf-stake' });
-  const list = el('div', {});
-  const field = el('input', {
-    type: 'email', autocomplete: 'off', spellcheck: false,
-    placeholder: t('name@department.gc.ca', 'nom@ministere.gc.ca'),
-  }) as HTMLInputElement;
-
-  let role: ShareRole = 'teammate';
-  const roleBtn = (r: ShareRole, label: string) => el('button', {
-    class: `chip ${role === r ? 'on' : ''}`,
-    onclick: () => { role = r; repaint(); field.focus(); },
-  }, [label]);
-
-  const roles = el('div', { class: 'share-roles' });
-
-  /** One address, or a pasted list of them. Whatever is refused is named. */
-  const take = () => {
-    const parts = field.value.split(/[,;\s]+/).map((x) => x.trim()).filter(Boolean);
-    if (!parts.length) return;
-    const good: string[] = [];
-    const bad: string[] = [];
-    const dupes: string[] = [];
-    for (const one of parts) {
-      if (!LOOKS_LIKE_EMAIL.test(one)) { bad.push(one); continue; }
-      if (add(a, one, role, owner) === 'already') dupes.push(one);
-      else good.push(one);
-    }
-    field.value = '';
-    const parts2: string[] = [];
-    if (good.length) {
-      parts2.push(t(`${good.length} added to the list. No email was sent.`,
-        `${good.length} ajoutée(s) à la liste. Aucun courriel n’a été envoyé.`));
-    }
-    if (dupes.length) parts2.push(t(`Already on the list: ${dupes.join(', ')}.`, `Déjà sur la liste : ${dupes.join(', ')}.`));
-    if (bad.length) parts2.push(t(`Not an address, so left out: ${bad.join(', ')}.`, `Pas une adresse, donc omise : ${bad.join(', ')}.`));
-    said.textContent = parts2.join(' ');
-    repaint();
-    field.focus();
-  };
-
-  field.addEventListener('keydown', (e) => {
-    if ((e as KeyboardEvent).key === 'Enter') { e.preventDefault(); take(); }
-  });
-
-  function repaint(): void {
-    clear(roles);
-    roles.appendChild(roleBtn('teammate', t('As a teammate', 'Comme membre de l’équipe')));
-    roles.appendChild(roleBtn('assessor', t('As an assessor', 'Comme évaluateur')));
-    clear(list);
-    list.appendChild(peopleList(a, owner, () => repaint()));
-  }
-  repaint();
-
   dlg.appendChild(el('div', { class: 'cf-head' }, [
-    el('h2', {}, [t('Share this assessment', 'Partager cette évaluation')]),
-    mockupTag(t('Mockup', 'Maquette')),
+    el('h2', { class: 'cf-title' }, [t('The access code', 'Le code d\u2019accès')]),
   ]));
-  dlg.appendChild(el('div', { class: 'cf-body' }, [
-    /**
-     * The access code, first, because it is the only thing on this screen that works.
-     *
-     * It is the record's own name in the store, so anybody holding it can open this assessment
-     * and nothing else. There is no way to send it from here: a page that opened a mail client
-     * would be promising delivery it cannot see, so the code goes on the clipboard and the
-     * person sends it themselves.
-     */
-    a.id
-      ? el('div', {}, [
-          el('h3', { class: 'share-group' }, [t('The access code', 'Le code d\u2019accès')]),
-          el('p', { class: 'muted small' }, [
-            t('Anybody with this code can open this assessment. Send it to them yourself, in Teams or by email.',
-              'Toute personne ayant ce code peut ouvrir cette évaluation. Envoyez-le-lui vous-même, dans Teams ou par courriel.'),
-          ]),
-          (() => {
-            const shown = el('span', { class: 'code-shown' }, [formatCode(a.id ?? '')]);
-            const note = el('span', { class: 'tiny dim' });
-            const copy = el('button', {
-              class: 'ghost small',
-              onclick: () => {
-                const text = formatCode(a.id ?? '');
-                const done = () => {
-                  note.textContent = t('Copied. Paste it into a message and send it.',
-                    'Copié. Collez-le dans un message et envoyez-le.');
-                };
-                try {
-                  void navigator.clipboard?.writeText(text).then(done, () => {
-                    note.textContent = t('This browser would not let the page copy it. Select it and copy by hand.',
-                      'Ce navigateur n\u2019a pas permis la copie. Sélectionnez le code et copiez-le à la main.');
-                  });
-                } catch {
-                  note.textContent = t('This browser would not let the page copy it. Select it and copy by hand.',
-                    'Ce navigateur n\u2019a pas permis la copie. Sélectionnez le code et copiez-le à la main.');
-                }
-              },
-            }, [t('Copy the code', 'Copier le code')]);
-            return el('div', { class: 'share-code-row' }, [shown, copy, note]);
-          })(),
-        ])
-      : el('div', { class: 'card warn tight' }, [
-          el('p', { class: 'small' }, [
-            t('This assessment has no access code yet. It gets one the first time it is saved online.',
-              'Cette évaluation n\u2019a pas encore de code d\u2019accès. Elle en reçoit un lors du premier enregistrement en ligne.'),
-          ]),
-        ]),
-    /**
-     * The list of people, which records who was given the code.
-     *
-     * It used to be the sharing mechanism, back when there was none: you typed an address and
-     * nothing happened, and the screen said so four times over. The code is the mechanism now,
-     * so this is a note to yourself about who has it. Nothing here grants anything, and nothing
-     * here sends anything, which is the same as before and now for a different reason.
-     */
-    el('p', { class: 'tiny dim' }, [
-      t('Naming an assessor does not let them score. Scoring is granted by an admin, so nobody can appoint their own assessor.',
-        'Nommer un évaluateur ne lui permet pas de noter. La notation est accordée par un administrateur, personne ne peut donc nommer son propre évaluateur.'),
+
+  dlg.appendChild(el('div', { class: 'cf-body' }, a.id ? [
+    el('p', {}, [
+      t('This is the whole of sharing. Anybody holding this code can open this assessment and change it, and nobody without it can. Send it to the people working on it with you, and to your assessor.',
+        'C\u2019est tout le partage. Toute personne ayant ce code peut ouvrir cette évaluation et la modifier, et personne ne le peut sans lui. Envoyez-le aux personnes qui travaillent dessus avec vous, et à votre évaluateur.'),
+    ]),
+    el('div', { class: 'cf-extra' }, [codeChip(a.id)]),
+    el('p', { class: 'cf-note' }, [
+      t('The tool sends nothing. Put the code in a message yourself, in Teams or by email.',
+        'L\u2019outil n\u2019envoie rien. Placez vous-même le code dans un message, dans Teams ou par courriel.'),
+    ]),
+    el('p', { class: 'cf-stake' }, [
+      t('A code cannot be taken back. Somebody who has it keeps it, and forwarding it passes the same access on, so send it the way you would send the assessment itself.',
+        'Un code ne peut pas être repris. La personne qui l\u2019a le garde, et le transférer transmet le même accès, alors envoyez-le comme vous enverriez l\u2019évaluation elle-même.'),
+    ]),
+  ] : [
+    el('p', {}, [
+      t('This assessment has no access code yet. It gets one the first time it is saved online, and from then on that code is how anybody else opens it.',
+        'Cette évaluation n\u2019a pas encore de code d\u2019accès. Elle en reçoit un lors du premier enregistrement en ligne, et dès lors ce code est la façon dont quiconque d\u2019autre l\u2019ouvre.'),
     ]),
   ]));
+
   dlg.appendChild(el('div', { class: 'cf-actions' }, [
-    el('button', { class: 'ghost', onclick: close }, [t('Done', 'Terminé')]),
+    el('button', { class: 'cf-wide', onclick: close }, [t('Done', 'Terminé')]),
   ]));
 
   document.body.appendChild(dlg);
   closeOnOutsideClick(dlg, close);
   openDialog(dlg);
-  field.focus();
 }
