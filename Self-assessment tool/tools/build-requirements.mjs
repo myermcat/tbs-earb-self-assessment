@@ -85,6 +85,21 @@ text-transform:uppercase;color:var(--warn)}
 padding:.5rem .7rem;background:var(--surface);border:1px solid var(--line);border-radius:10px}
 .legend .muted{font-size:.8rem}
 .nav-kpi b{margin-right:.15rem}
+/* The risk register. Amber and not red: these are risks somebody has looked at and decided to
+   carry, and red is the colour of something nobody has dealt with. */
+.risks{padding:0}
+.risk{padding:.9rem 1.1rem;border-top:1px solid var(--line)}
+.risk:first-child{border-top:0}
+.risk-head{display:flex;align-items:baseline;gap:.5rem;flex-wrap:wrap;margin-bottom:.5rem}
+.risk-id{font-family:var(--mono);font-size:.78rem;color:var(--ink-3)}
+.risk-odds{margin-left:auto;font-size:.72rem;font-weight:700;letter-spacing:.04em;
+  text-transform:uppercase;padding:.1rem .45rem;border-radius:999px;
+  background:var(--warn-bg);color:var(--warn);border:1px solid var(--warn)}
+.odds-low{background:var(--surface-2);color:var(--ink-3);border-color:var(--line-2)}
+.odds-certain{background:var(--bad-bg);color:var(--bad);border-color:var(--bad)}
+.risk-line{margin:.2rem 0;font-size:.86rem;color:var(--ink-2)}
+.risk-key{display:inline-block;min-width:7.5rem;font-size:.72rem;text-transform:uppercase;
+  letter-spacing:.06em;color:var(--ink-3);font-weight:700}
 footer a{color:var(--accent)}
 /* The pinned bar is the navigation. The counts are links, the layers are links, and it stays
    put so no section has to be hunted for. */
@@ -126,7 +141,7 @@ background:var(--surface);border:1px solid var(--line);border-radius:10px;list-s
 import { writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
-import { intro, sections, standard, updated, verification } from '../NOTES/requirements.data.mjs';
+import { intro, risks, sections, standard, updated, verification } from '../NOTES/requirements.data.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const out = join(here, '..', 'NOTES', 'requirements.html');
@@ -213,6 +228,22 @@ const html = [
     s.reqs.map(req).join('\n'),
     '</div>',
   ].join('\n')),
+
+  `<h2 id="risks">${esc(risks.title)}</h2>`,
+  `<p class="hint">${esc(risks.lead)}</p>`,
+  '<div class="card risks">',
+  risks.rows.map((r) => [
+    '<div class="risk">',
+    `<div class="risk-head"><span class="risk-id">${esc(r.id)}</span>`,
+    `<b>${esc(r.what)}</b>`,
+    `<span class="risk-odds odds-${r.likelihood.toLowerCase().split(' ')[0]}">${esc(r.likelihood)}</span></div>`,
+    `<p class="risk-line"><span class="risk-key">Because</span>${esc(r.because)}</p>`,
+    `<p class="risk-line"><span class="risk-key">If it happens</span>${esc(r.cost)}</p>`,
+    `<p class="risk-line"><span class="risk-key">What we do</span>${esc(r.doing)}</p>`,
+    `<p class="risk-line"><span class="risk-key">Accepted by</span>${esc(r.accepted)}</p>`,
+    '</div>',
+  ].join('\n')).join('\n'),
+  '</div>',
 
   `<h2 id="verify">${esc(verification.title)}</h2>`,
   `<p class="hint">${esc(verification.lead)}</p>`,

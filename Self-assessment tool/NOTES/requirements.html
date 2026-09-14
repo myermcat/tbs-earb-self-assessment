@@ -87,6 +87,21 @@ text-transform:uppercase;color:var(--warn)}
 padding:.5rem .7rem;background:var(--surface);border:1px solid var(--line);border-radius:10px}
 .legend .muted{font-size:.8rem}
 .nav-kpi b{margin-right:.15rem}
+/* The risk register. Amber and not red: these are risks somebody has looked at and decided to
+   carry, and red is the colour of something nobody has dealt with. */
+.risks{padding:0}
+.risk{padding:.9rem 1.1rem;border-top:1px solid var(--line)}
+.risk:first-child{border-top:0}
+.risk-head{display:flex;align-items:baseline;gap:.5rem;flex-wrap:wrap;margin-bottom:.5rem}
+.risk-id{font-family:var(--mono);font-size:.78rem;color:var(--ink-3)}
+.risk-odds{margin-left:auto;font-size:.72rem;font-weight:700;letter-spacing:.04em;
+  text-transform:uppercase;padding:.1rem .45rem;border-radius:999px;
+  background:var(--warn-bg);color:var(--warn);border:1px solid var(--warn)}
+.odds-low{background:var(--surface-2);color:var(--ink-3);border-color:var(--line-2)}
+.odds-certain{background:var(--bad-bg);color:var(--bad);border-color:var(--bad)}
+.risk-line{margin:.2rem 0;font-size:.86rem;color:var(--ink-2)}
+.risk-key{display:inline-block;min-width:7.5rem;font-size:.72rem;text-transform:uppercase;
+  letter-spacing:.06em;color:var(--ink-3);font-weight:700}
 footer a{color:var(--accent)}
 /* The pinned bar is the navigation. The counts are links, the layers are links, and it stays
    put so no section has to be hunted for. */
@@ -858,6 +873,46 @@ background:var(--surface);border:1px solid var(--line);border-radius:10px;list-s
 <span class="st st-later">Open</span>
 <span class="req-owner">Dan owes this</span>
 <span class="req-note">His text, so his translation. It belongs in the rubric file beside the English, which the tool already reads as data.</span>
+</div>
+</div>
+<h2 id="risks">Risks we have accepted</h2>
+<p class="hint">What could go wrong that we are choosing to carry, why it is bearable at this stage, and who said so. A risk leaves this list when it is mitigated or when it stops being possible.</p>
+<div class="card risks">
+<div class="risk">
+<div class="risk-head"><span class="risk-id">RK1</span>
+<b>Somebody spends the store’s daily read allowance and takes the tool offline for a day.</b>
+<span class="risk-odds odds-low">Low</span></div>
+<p class="risk-line"><span class="risk-key">Because</span>A submitter opens an assessment with a code and no account, so reads have to be permitted without one. Every read counts against 50,000 a day on the free plan, and a script can spend them in minutes.</p>
+<p class="risk-line"><span class="risk-key">If it happens</span>The tool stops answering for everybody until midnight UTC. Nothing is lost and nothing is exposed.</p>
+<p class="risk-line"><span class="risk-key">What we do</span>Undecided, and the conventional answer has a price. Firebase App Check refuses a request that cannot prove it came from our own page, before a read is billed, and it is what Google provides for exactly this. It works by loading reCAPTCHA from Google, which means external script on a page whose policy is default-src none with everything inlined, and that policy is the whole security story the tool tells a reviewer. So App Check costs the one-file property and needs three more hosts in the policy. Meanwhile: a budget alert makes it visible, and guessing codes is not a way in at 2^60, so this is vandalism and not a route to anybody’s data.</p>
+<p class="risk-line"><span class="risk-key">Accepted by</span>Mariia, 14 September 2026</p>
+</div>
+<div class="risk">
+<div class="risk-head"><span class="risk-id">RK2</span>
+<b>An access code reaches somebody it was never meant to reach, and cannot be taken back.</b>
+<span class="risk-odds odds-medium">Medium</span></div>
+<p class="risk-line"><span class="risk-key">Because</span>A code is a bearer token: whoever holds it can open that assessment. Forwarded once, it is permanent, and there is no list of who holds it.</p>
+<p class="risk-line"><span class="risk-key">If it happens</span>One assessment is readable by one more person than intended. Everything in the tool is Unclassified, so this is embarrassment and not disclosure.</p>
+<p class="risk-line"><span class="risk-key">What we do</span>Nothing yet. Rotating a code means minting a new id, copying the record and deleting the old one, which also breaks every message already sent quoting the old code. Worth building when somebody asks for it.</p>
+<p class="risk-line"><span class="risk-key">Accepted by</span>Mariia, 14 September 2026</p>
+</div>
+<div class="risk">
+<div class="risk-head"><span class="risk-id">RK3</span>
+<b>A name on an audit entry is not the person who wrote it.</b>
+<span class="risk-odds odds-low">Low</span></div>
+<p class="risk-line"><span class="risk-key">Because</span>On the code route a name is typed and checked by nobody.</p>
+<p class="risk-line"><span class="risk-key">If it happens</span>The record says who scored a question and cannot prove it.</p>
+<p class="risk-line"><span class="risk-key">What we do</span>Every name the tool has not checked is stamped unverified, in the file and on screen, so nothing can later be mistaken for a checked one. Nothing in this process depends on the name being true.</p>
+<p class="risk-line"><span class="risk-key">Accepted by</span>Dan and Mariia, 8 September 2026</p>
+</div>
+<div class="risk">
+<div class="risk-head"><span class="risk-id">RK4</span>
+<b>The prototype store has no owner of record inside TBS.</b>
+<span class="risk-odds odds-certain,">Certain, until somebody takes it</span></div>
+<p class="risk-line"><span class="risk-key">Because</span>It is a personal Firebase project on a free plan, made so the tool could be tried at all.</p>
+<p class="risk-line"><span class="risk-key">If it happens</span>A reviewer asks who owns the data and there is no departmental answer.</p>
+<p class="risk-line"><span class="risk-key">What we do</span>Owner of record written down, a deletion date at the end of the work term, and the whole store exports from the portfolio view in an afternoon. H5 carries the text.</p>
+<p class="risk-line"><span class="risk-key">Accepted by</span>Mariia, 3 September 2026</p>
 </div>
 </div>
 <h2 id="verify">How each requirement gets checked</h2>
