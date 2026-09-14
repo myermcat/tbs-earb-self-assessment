@@ -369,6 +369,93 @@ console.log('\nThe published build, signed in\n');
   ok('and the page says holding it is enough to change the assessment',
      /open this assessment and change it/i.test(said));
   dom.window.close();
+
+  /**
+   * A mark with no way off it is a trap. Somebody presses it, finds a mistake, and the
+   * assessor's list still says this is finished work.
+   */
+  const marked = { ...mine, meta: { ...mine.meta, submittedAt: '2026-09-10T12:00:00.000Z' } };
+  const two = await boot({ session: live, side: 'submit', hash: '#results', draft: marked });
+  const after = [...two.doc.querySelectorAll('.submit-box button')].map((b) => b.textContent.trim());
+  ok('a marked assessment offers to take the mark back off',
+     after.some((l) => /Take the ready mark off/i.test(l)), after.join(' | '));
+  ok('and says when it was marked', /Marked ready on/i.test(body(two.doc)));
+  ok('and no longer offers to mark it', !after.some((l) => /^Mark it ready to review$/i.test(l)),
+     after.join(' | '));
+  two.dom.window.close();
+}
+
+/* --------------------------------------------------------------------------------------- */
+{
+  /**
+   * The mark, in the only place it was ever supposed to mean anything.
+   *
+   * The submitter's results page says in both languages that marking an assessment ready puts
+   * "Ready to review" beside it in the assessor's list. It did not: the list never read
+   * meta.submittedAt, so a finished assessment and an untouched draft were identical, and the
+   * promise on the other screen was false.
+   */
+  const ready = submission('AB12', 'Licensing Renewal');
+  const draft = submission('CD34', 'Fleet Scheduling');
+  delete draft.meta.submittedAt;
+  const { doc, dom } = await boot({
+    session: live, side: 'assess', role: 'assessor',
+    listAnswer: { documents: [draft, ready].map(asDoc) },
+  });
+  const heads = [...doc.querySelectorAll('.triage thead th')].map((h) => h.textContent.trim());
+  ok('the pool has a column for whether it is finished', heads.includes('State'), heads.join(' | '));
+
+  const rows = [...doc.querySelectorAll('.triage tbody tr')];
+  const cell = (tr) => tr.children[1]?.textContent?.trim();
+  ok('a marked assessment says it is ready', rows.some((tr) => /Ready to review/.test(cell(tr))),
+     rows.map(cell).join(' | '));
+  ok('and one nobody has marked says it is a draft', rows.some((tr) => /^Draft$/.test(cell(tr))),
+     rows.map(cell).join(' | '));
+  ok('and the ready one is listed first, because that is the work',
+     /Ready to review/.test(cell(rows[0])), cell(rows[0]));
+  dom.window.close();
+}
+
+/* --------------------------------------------------------------------------------------- */
+{
+  /**
+   * Saving online is one deliberate act, every time.
+   *
+   * It was built as a switch: the first press turned on a write-through that sent every later
+   * keystroke. The user pressed save, typed one character, and watched the badge say "Saving
+   * online" by itself, which is not what she had asked for. These cases hold the button to
+   * being the only writer, and hold the badge to saying when the store is behind.
+   */
+  const mine = {
+    fileType: 'gc-arch-assessment', formatVersion: 1, ref: 'ZZ99', id: 'KFRM92TXBQ7H',
+    rubric: { id: rubric.id, version: rubric.version, title: 'x' },
+    initiative: {
+      name: 'Licensing Renewal', department: 'DFO', contact: ME,
+      lifecycleStage: 'beta', summary: 'A thing.', classification: 'Unclassified',
+    },
+    answers: { 'B-Q1': { score: 7, evidence: [] } },
+    meta: { createdAt: 'x', updatedAt: 'x', appVersion: 'test', savedOnlineAt: 'x' },
+    ownerEmail: ME,
+  };
+  const { doc, dom, seen } = await boot({ session: live, side: 'submit', draft: mine });
+  const badge = doc.querySelector('.save-state');
+
+  /**
+   * The reload case, reported on its own: the badge vanished entirely until something was
+   * typed. Where the work stood lived in module state, and a fresh tab has none of that.
+   */
+  ok('a reloaded page says where the work stands', !!badge && !badge.classList.contains('hidden'),
+     badge?.className);
+  ok('and this record was saved online in an earlier session, and edited since, so it says so',
+     badge?.className.includes('st-behind'), `${badge?.className} :: ${badge?.textContent}`);
+  ok('in words, not in a colour alone', /out of date/i.test(badge?.textContent ?? ''), badge?.textContent);
+
+  const wrote = () => seen.filter((r) => r.method === 'PATCH' || r.method === 'POST');
+  const before = wrote().length;
+  await new Promise((r) => setTimeout(r, 250));
+  ok('and nothing is sent while nobody presses anything', wrote().length === before,
+     wrote().map((w) => `${w.method} ${w.href}`).join(' | '));
+  dom.window.close();
 }
 
 console.log(fails ? `\n${fails} hosted check(s) failed\n` : '\nall hosted checks passed\n');

@@ -19,8 +19,8 @@ import { openShareDialog } from './views-share';
 import { hasAccounts } from './who';
 import { codeChip } from './code-chip';
 import { bootLang, coverage, lang, type Lang, setLang } from './i18n';
-import { endpointHost, flushWrites, goneFromStore, isHosted, listRecords, putRecord,
-  saveOnlineNow, savedOnline } from './store';
+import { endpointHost, goneFromStore, isHosted, listRecords, putRecord,
+  saveOnlineNow, savedOnline, showWhereItStands } from './store';
 import { canSignIn, currentUser, forgetRole, getAssessment, looksLikeCode, pageAddress, tidyCode, isConfigured as firebaseConfigured, knownRole, lastSignInProblem,
   loadRole, resumeSignIn, signInWithGoogle, signOut } from './firebase';
 import { t } from './i18n';
@@ -1314,8 +1314,8 @@ function paneAnswers(pane: HTMLElement) {
   if (isHosted()) {
     const me = currentUser();
     pane.appendChild(setRow(
-      me ? 'Signed in, so you can save online' : 'Signing in lets you save online',
-      `Press Save online once and, from then on, your work is written to ${endpointHost()} a few seconds after you stop typing. A closed tab or a broken laptop costs you nothing. Up to twenty seconds of the newest work is on this computer only, which is the gap between writes that keeps the server inside its daily allowance. Saying the assessment is finished is a separate act, at the bottom of My results, and it saves nothing new: it puts your assessment in front of an assessor.`,
+      me ? 'Saving online is a button, every time' : 'Signing in lets you save online',
+      `Press Save online and the assessment as it stands is copied to ${endpointHost()}. Nothing else goes: edit a question afterwards and that edit is on this computer until you press it again, and the badge in the header says the copy online is out of date while that is true. It was built the other way first, sending every change a few seconds after you stopped typing, and that was wrong for a copy somebody else reads. Marking the assessment ready for an assessor is a separate act at the bottom of My results, and it saves online as part of doing it.`,
       null,
     ));
     pane.appendChild(setRow(
@@ -1667,24 +1667,18 @@ function wireScrollLift(): void {
 }
 
 setLang(bootLang());
+// The badge showed nothing at all on a reloaded page, because where the work stood lived only
+// in module state and a fresh tab has none. The draft itself knows, so ask it.
+showWhereItStands(assessment);
 openEverythingForPrint();
 wireHistory();
-/**
- * The floor between writes means the newest twenty seconds of work can exist only in this
- * browser. A tab closing is the one moment that matters, so it pushes rather than waits.
+/*
+ * There used to be two listeners here pushing queued writes out as the tab closed, and before
+ * them a prompt asking whether to stay. Both are gone, and for the same reason: nothing is
+ * queued any more. Saving online is a button, so a closing tab has nothing in flight to rescue,
+ * and the browser keeps the draft. What the tab close can lose is the difference between this
+ * copy and the copy in the store, and the badge says that in words on every screen.
  */
-if (typeof window.addEventListener === 'function') {
-  window.addEventListener('pagehide', () => { void flushWrites(); });
-  document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'hidden') void flushWrites();
-  });
-  /*
-   * There used to be a prompt here, asking whether to stay when work had never been saved
-   * online. It is gone, and the reasoning is hers: the browser is holding the assessment,
-   * nothing is lost by closing the tab, and somebody who has not saved online has not asked to.
-   * A dialog on the way out of a page that loses nothing teaches people to dismiss dialogs.
-   */
-}
 warnGoneFromStore();
 wireScrollLift();
 closeMenusOnOutsideClick(document);

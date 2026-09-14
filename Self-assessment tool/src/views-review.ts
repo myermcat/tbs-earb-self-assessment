@@ -345,11 +345,20 @@ async function ingest(rubric: Rubric, files: FileList, root: HTMLElement) {
 }
 
 function paintList(rubric: Rubric, root: HTMLElement) {
-  const rows = [...loaded].sort((x, y) => (x.r.overall ?? 99) - (y.r.overall ?? 99));
+  /**
+   * Ready first, then weakest first.
+   *
+   * The submitter's results page says, in both languages, that marking an assessment ready
+   * puts "Ready to review" beside it in this list. It did not: the list never read the mark,
+   * so a finished assessment and an untouched draft looked the same, and the promise on the
+   * other screen was false. Reading it here is what makes the mark mean something.
+   */
+  const ready = (l: Loaded) => (l.a.meta?.submittedAt ? 0 : 1);
+  const rows = [...loaded].sort((x, y) => ready(x) - ready(y) || (x.r.overall ?? 99) - (y.r.overall ?? 99));
 
   const table = el('table', { class: 'triage' }, [
     el('thead', {}, [el('tr', {}, [
-      el('th', {}, ['Initiative']), el('th', {}, ['Department']), el('th', {}, ['Marking']),
+      el('th', {}, ['Initiative']), el('th', {}, ['State']), el('th', {}, ['Department']), el('th', {}, ['Marking']),
       el('th', {}, ['Question set']),
       el('th', {}, ['Stage']), el('th', {}, ['Score']), el('th', {}, ['Suggested routing']),
       el('th', {}, ['Must ask']), el('th', {}, ['Evidence']), el('th', {}, ['Complete']), el('th', {}, ['']),
@@ -367,6 +376,13 @@ function paintList(rubric: Rubric, root: HTMLElement) {
         l.changed
           ? el('span', { class: 'badge badge-warn tiny', title: 'The store had a newer version than the one you opened' }, ['updated'])
           : null,
+      ]),
+      // Whether the department says this is finished. A draft in this list is somebody's work
+      // in progress, and scoring one is the mistake this column exists to prevent.
+      el('td', { class: 'small' }, [
+        l.a.meta?.submittedAt
+          ? el('span', { class: 'badge', title: `Marked ready on ${l.a.meta.submittedAt}` }, ['Ready to review'])
+          : el('span', { class: 'muted', title: 'Nobody has said this one is finished' }, ['Draft']),
       ]),
       el('td', {}, [l.a.initiative?.department ?? '--']),
       el('td', { class: 'small' }, [l.a.initiative?.classification || 'unmarked']),
