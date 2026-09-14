@@ -44,6 +44,14 @@ export interface ConfirmStep {
    * without closing and losing what was typed.
    */
   gate?: () => string | null;
+  /**
+   * A thing to tick before the window will commit.
+   *
+   * There is exactly one use and it is the reason it exists: an act that replaces the only copy
+   * of an assessment cannot proceed on somebody having read a sentence about the code. Ticking
+   * is deliberate in a way that reading is not, and the code is right there to copy.
+   */
+  mustAgree?: string;
   /** Focused when the window opens, if the window has something to type in. */
   focusFirst?: () => void;
   /**
@@ -112,6 +120,11 @@ export function confirmStep(o: ConfirmStep): void {
   dlg.className = `confirm tier-${o.tier}`;
   const body = el('div', { class: 'cf-body' }, [el('p', {}, [o.body])]);
   if (o.extra) body.appendChild(el('div', { class: 'cf-extra' }, [o.extra]));
+  let agreed: HTMLInputElement | null = null;
+  if (o.mustAgree) {
+    agreed = el('input', { type: 'checkbox', class: 'cf-agree-box' }) as HTMLInputElement;
+    body.appendChild(el('label', { class: 'cf-agree' }, [agreed, el('span', {}, [o.mustAgree])]));
+  }
   if (o.note) body.appendChild(el('p', { class: 'cf-note' }, [o.note]));
   let stakeEl = o.stake ? el('p', { class: 'cf-stake' }, [o.stake]) : null;
   if (stakeEl) body.appendChild(stakeEl);
@@ -140,12 +153,22 @@ export function confirmStep(o: ConfirmStep): void {
     const commit = el('button', {
       class: `${o.tier === 'danger' ? 'danger-solid' : o.tier === 'plain' ? 'primary' : 'danger'} cf-wide`,
       onclick: () => {
-        const problem = o.gate?.();
+        const problem = agreed && !agreed.checked
+          ? t('Tick the box first.', 'Cochez d\u2019abord la case.')
+          : o.gate?.();
         if (problem) {
           const said = el('p', { class: 'cf-stake' }, [problem]);
           if (stakeEl) stakeEl.replaceWith(said); else body.appendChild(said);
           stakeEl = said;
-          o.focusFirst?.();
+          /**
+           * The window shakes, because a refusal that only adds a line of text is a refusal
+           * somebody misses: they pressed a button, nothing visibly happened, and they press it
+           * again harder. Honoured only when the person has not asked for less motion.
+           */
+          dlg.classList.remove('shake');
+          void dlg.offsetWidth;
+          dlg.classList.add('shake');
+          if (agreed && !agreed.checked) agreed.focus(); else o.focusFirst?.();
           return;
         }
         close();

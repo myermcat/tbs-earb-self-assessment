@@ -57,25 +57,44 @@ export function rememberSigner(who: Signer): void {
 }
 
 /**
- * Deliberately loose, and the looseness is the decision.
+ * The local part, which nothing here narrows.
  *
- * There is no single Government of Canada email domain. The published Email Management
- * Services Configuration Requirements give every public servant TWO addresses, one at their
- * department's own domain and one at canada.ca, and the departmental half differs for every
- * department: hc-sc.gc.ca, ssc-spc.gc.ca, dfo-mpo.gc.ca, tbs-sct.gc.ca. The Senate uses
- * sen.parl.gc.ca, two levels below gc.ca. Canada Post is not on gc.ca at all. Duplicate names
- * get a digit, middle initials add a third dot-separated segment, and generic mailboxes look
- * nothing like a person.
- *
- * So the blocking check asks only that it be an address at all. Anything stricter turns away a
- * real public servant on a Friday afternoon, and a form that refuses a real person is a worse
- * failure here than one that accepts a typo, because nobody verifies this name anyway.
+ * A negated class rather than an allow-list, because every real shape has to pass: dots for
+ * firstname.lastname, a second dot for a middle initial, hyphens and underscores in generic
+ * mailboxes, a digit from the rule that gives duplicate names a number, and accented characters
+ * for a name that has them. The domain is where the check actually lives, below.
  */
 const LOOKS_LIKE_EMAIL = /^[^@\s]+@[^@\s.]+(?:\.[^@\s.]+)+$/;
 
-/** Whether this is the kind of address the tool expects. Advice, never a refusal. */
+/**
+ * Whether this is a Government of Canada work address, which is now a refusal and not advice.
+ *
+ * Every federal department sits under gc.ca: tbs-sct.gc.ca, dfo-mpo.gc.ca, hc-sc.gc.ca,
+ * ssc-spc.gc.ca, forces.gc.ca, and the Senate at sen.parl.gc.ca, which is two levels down and
+ * is why this matches a suffix rather than a list of departments. canada.ca is the second
+ * address the published email standard gives every public servant on the same mailbox; most
+ * people never use theirs, which is why it is accepted and not required.
+ *
+ * A list of every department would have to be maintained by somebody and would turn away a
+ * real person the week a department is renamed. The suffix cannot go stale.
+ */
 export function looksGovernment(email: string): boolean {
   return /\.(gc|canada)\.ca$/i.test(email.trim());
+}
+
+/**
+ * Whether this address is a different person from the one this browser last saved as.
+ *
+ * The case it exists for: somebody accepts the remembered address, deletes half of it by
+ * accident, and presses Enter. The result still passes every check and is a different mailbox,
+ * so that version is attributed to somebody who cannot be found and the trail no longer joins
+ * up. Nothing can detect a typo, but a change can be noticed, and noticing is enough: the tool
+ * asks once, and somebody who meant it says yes.
+ */
+export function signerChanged(who: Signer): boolean {
+  const was = rememberedSigner();
+  if (!was.email) return false;
+  return was.email.trim().toLowerCase() !== who.email.trim().toLowerCase();
 }
 
 export function signerProblem(who: Signer): string | null {
@@ -88,6 +107,15 @@ export function signerProblem(who: Signer): string | null {
   if (!LOOKS_LIKE_EMAIL.test(email)) {
     return t('That does not look like an email address. It is how somebody reaches you about this assessment.',
       'Cela ne ressemble pas à une adresse courriel. C’est ainsi qu’on vous joindra au sujet de cette évaluation.');
+  }
+  /**
+   * Refused, not warned about. Warning was the first version and it was wrong: somebody who has
+   * not read the grey line presses save and the address goes in as typed, and a half-typed
+   * address is a version attributed to nobody who can be found.
+   */
+  if (!looksGovernment(email)) {
+    return t('Use your government address, ending in gc.ca or canada.ca. This is how an assessor reaches you about this assessment.',
+      'Utilisez votre adresse du gouvernement, se terminant par gc.ca ou canada.ca. C’est ainsi qu’un évaluateur vous joindra au sujet de cette évaluation.');
   }
   return null;
 }
@@ -126,10 +154,25 @@ export function signerFields(): SignerFields {
   const advice = el('p', { class: 'signer-advice' });
   const sayAdvice = () => {
     const v = email.value.trim();
-    advice.textContent = !v || looksGovernment(v)
-      ? ''
-      : t('That is not a gc.ca or canada.ca address. It will be saved as you typed it.',
-          'Ce n’est pas une adresse gc.ca ou canada.ca. Elle sera enregistrée telle quelle.');
+    if (v && !looksGovernment(v)) {
+      advice.className = 'signer-advice';
+      advice.textContent = t('This has to end in gc.ca or canada.ca.',
+        'Elle doit se terminer par gc.ca ou canada.ca.');
+      return;
+    }
+    /**
+     * A changed address, noticed out loud. Somebody accepts the remembered one, deletes half of
+     * it by accident and presses Enter: it still passes every check and it is a different
+     * mailbox, so that version is attributed to somebody who cannot be found.
+     */
+    if (v && was.email && v.toLowerCase() !== was.email.toLowerCase()) {
+      advice.className = 'signer-advice signer-changed';
+      advice.textContent = t(`Last time you saved as ${was.email}. Check this is right.`,
+        `La dernière fois, vous avez enregistré comme ${was.email}. Vérifiez que c’est exact.`);
+      return;
+    }
+    advice.className = 'signer-advice';
+    advice.textContent = '';
   };
   email.addEventListener('input', sayAdvice);
   email.addEventListener('blur', sayAdvice);

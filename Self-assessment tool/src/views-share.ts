@@ -70,6 +70,7 @@ export function showNewCode(a: Assessment, after: () => void = () => {}): void {
     body: t('This code is the only way back to this assessment. Put it somewhere you keep things: a note to yourself, the initiative\u2019s folder, an email to your team. Anybody holding it can open this assessment and change it, and nobody without it can, including you.',
       'Ce code est le seul moyen de revenir à cette évaluation. Placez-le quelque part où vous conservez vos choses : une note, le dossier de l\u2019initiative, un courriel à votre équipe. Toute personne qui le détient peut ouvrir cette évaluation et la modifier, et personne ne le peut sans lui, vous compris.'),
     extra: codeChip(a.id),
+    mustAgree: t('I have saved this code somewhere', 'J\u2019ai conservé ce code quelque part'),
     note: t('This browser is holding the assessment as well, so you will not need the code today. You will need it the day you open somebody else\u2019s assessment, or work from another computer.',
       'Ce navigateur conserve aussi l\u2019évaluation, vous n\u2019aurez donc pas besoin du code aujourd\u2019hui. Vous en aurez besoin le jour où vous ouvrirez l\u2019évaluation de quelqu\u2019un d\u2019autre, ou travaillerez depuis un autre ordinateur.'),
     commitLabel: t('I have saved the code', 'J\u2019ai conservé le code'),

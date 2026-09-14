@@ -6,9 +6,45 @@ import type { Signer } from './signer';
  * history the tool has, and it rides inside the document, which has a size.
  */
 const SAVES_KEPT = 20;
+
+/**
+ * Which saves survive when the trail is full.
+ *
+ * A save replaces the document, so this trail is the only history the tool has, and it rides
+ * inside the document, which has a size. When it overflows, the ordinary saves in the middle
+ * go first and the named moments stay: the save where the assessment first existed at TBS, and
+ * every time it was handed to an assessor or taken back. Those are the ones somebody asks about
+ * afterwards. Dropping them to keep twenty of somebody's Tuesday afternoon would be the wrong
+ * twenty.
+ */
+/** What the assessment scored when it went, so a trail reads as a trend and not as a list. */
+function snapshot(a: Assessment): { score: number | null; answered: number } {
+  try {
+    const v = validate(BUILTIN);
+    if (!v.ok) return { score: null, answered: 0 };
+    const r = score(v.rubric, a);
+    return { score: r.overall, answered: r.answered };
+  } catch {
+    // A record answered against a question set this build does not hold. The trail is still
+    // worth keeping without a number on it.
+    return { score: null, answered: 0 };
+  }
+}
+
+function keepTrail(all: SavedBy[]): SavedBy[] {
+  if (all.length <= SAVES_KEPT) return all;
+  const named = all.filter((x) => x.moment && x.moment !== 'save');
+  const plain = all.filter((x) => !x.moment || x.moment === 'save');
+  const room = Math.max(0, SAVES_KEPT - named.length);
+  const kept = new Set([...named, ...plain.slice(-room)]);
+  return all.filter((x) => kept.has(x));
+}
 import { beginWrite, keepDraft, hasWork, loadDraft, localOnly, registerAfterSave, writeFailed, writeLanded, writeBehind,
   writeOffline, } from './storage';
 import { markingProblems } from './marking';
+import { score } from './scoring';
+import { validate } from './rubric';
+import BUILTIN from '../rubric/rubric.v1-dan.json';
 import { currentUser, deleteAssessment, getAssessment, isConfigured, listAssessments,
   putAssessment, storeHost } from './firebase';
 
@@ -357,14 +393,17 @@ export function showWhereItStands(a: Assessment): void {
 export async function saveOnlineNow(
   a: Assessment,
   who?: Signer,
+  moment: SavedBy['moment'] = 'save',
 ): Promise<{ ok: true } | { ok: false; problem: string }> {
   if (!isHosted()) return { ok: false, problem: 'This build has no store to write to.' };
-  // A new assessment needs an account, because creating one is an account's act in the store's
-  // rules. An assessment that already has an id has an access code, and the code is what grants
-  // the write.
-  if (isConfigured() && !currentUser() && !a.id) {
-    return { ok: false, problem: 'Sign in before putting a new assessment in the store.' };
-  }
+  /**
+   * Nothing here asks for an account any more.
+   *
+   * The store's rules grant the write on the code, which is the document's name, and the page
+   * refusing what the store would allow is what made the code mean nothing for anybody without
+   * an account. An account still buys more than a code does, and the request carries the token
+   * when there is one.
+   */
   const gate = markingProblems(a);
   if (gate.length) return { ok: false, problem: gate[0].message };
   /**
@@ -375,9 +414,11 @@ export async function saveOnlineNow(
   if (who) {
     const stamp: SavedBy = {
       name: who.name, email: who.email, at: new Date().toISOString(), unverified: true,
+      moment: savedOnline(a) ? moment : 'first',
+      ...snapshot(a),
     };
     a.meta.savedBy = stamp;
-    a.meta.saves = [...(a.meta.saves ?? []), stamp].slice(-SAVES_KEPT);
+    a.meta.saves = keepTrail([...(a.meta.saves ?? []), stamp]);
   }
   const res = await putRecord(a);
   if (res.ok) {

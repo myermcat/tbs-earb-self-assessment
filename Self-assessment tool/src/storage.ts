@@ -1,4 +1,5 @@
 import type { Assessment, Rubric } from './types';
+import { newDocId } from './firebase';
 
 /**
  * There is no server. Persistence is two things:
@@ -15,11 +16,33 @@ export const APP_VERSION = '0.1.0';
  *
  * No I, O, 0 or 1, because this gets typed into an email subject and read back off a screen.
  */
-function newRef(): string {
-  const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-  let out = '';
-  for (let i = 0; i < 4; i++) out += alphabet[Math.floor(Math.random() * alphabet.length)];
-  return out;
+/**
+ * One code, minted the moment an assessment exists.
+ *
+ * There used to be two, and the user was right that two is one too many. A four-character
+ * reference was minted at creation for email subject lines, and a twelve-character access code
+ * was minted at the first online save. "Give me the code" then had two answers, and the short
+ * one looked exactly like the long one because they came from the same alphabet.
+ *
+ * So there is one, and it is minted here, at creation, which is what the four-character one
+ * always did. It is the assessment's name in the store when it gets there, and it is the thing
+ * a person keeps. What follows from minting it early is a good property: an assessment has a
+ * code before it has ever been online, so "here is my code" works before the save as well as
+ * after, and somebody who types a code for an assessment that was never saved is told that in
+ * those words.
+ *
+ * WHAT DOES NOT GO IN AN EMAIL SUBJECT
+ *
+ * The whole code. A subject line is logged, forwarded, quoted in replies and answerable to
+ * access-to-information, and this code opens the assessment. So the subject carries the first
+ * four characters, which is what a subject line was ever for: enough to find the thread in
+ * Outlook, and 32^8 short of opening anything.
+ */
+export function refOf(a: Assessment): string {
+  // A file saved before the merge has its own four-character reference. It keeps it, because
+  // it is already in subject lines somebody has in their inbox.
+  if (a.ref) return a.ref;
+  return (a.id ?? '').slice(0, 4) || '----';
 }
 
 export function blankAssessment(rubric: Rubric): Assessment {
@@ -27,7 +50,9 @@ export function blankAssessment(rubric: Rubric): Assessment {
   return {
     fileType: 'gc-arch-assessment',
     formatVersion: 1,
-    ref: newRef(),
+    // The code exists from the first second, so there is never a moment when an assessment
+    // cannot be named.
+    id: newDocId(),
     rubric: { id: rubric.id, version: rubric.version, title: rubric.title },
     initiative: { name: '', department: '', contact: '', lifecycleStage: '', summary: '', classification: '' },
     answers: {},
@@ -139,7 +164,9 @@ export function autosave(a: Assessment): void {
  * writes from here on can be matched back to it.
  */
 export function ensureRef(a: Assessment): Assessment {
-  if (!a.ref) a.ref = newRef();
+  // An assessment saved before the merge has a four-character reference and no code. It gets a
+  // code and keeps its reference, because that reference is in subject lines already sent.
+  if (!a.id) a.id = newDocId();
   return a;
 }
 

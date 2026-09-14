@@ -424,8 +424,13 @@ function offerOnlineSave(): void {
           'Il enregistre la version actuelle. Si vous modifiez quelque chose ensuite, cela reste sur cet ordinateur jusqu\u2019au prochain enregistrement en ligne.')
       : t('The first save gives this assessment an access code, which is the only way anybody opens it afterwards, including you from another computer.',
           'Le premier enregistrement attribue à cette évaluation un code d\u2019accès, seul moyen de l\u2019ouvrir par la suite, y compris pour vous depuis un autre ordinateur.'),
-    stake: t('Nothing in this tool may be above Unclassified. Saving online says that this assessment, and everything it points at, is Unclassified.',
-      'Rien dans cet outil ne peut dépasser Non classifié. L\u2019enregistrement en ligne affirme que cette évaluation, et tout ce à quoi elle renvoie, est Non classifié.'),
+    /**
+     * The assessment is Unclassified. What it points at may not be, and saying otherwise was
+     * wrong: the whole reason evidence is a title and a location rather than an attachment is
+     * so that a Protected artefact can be named here and kept where it belongs.
+     */
+    stake: t('This assessment is an Unclassified document. It may name and link to evidence that is marked higher, and it must never hold that evidence itself: no file above Unclassified may be attached here.',
+      'Cette évaluation est un document non classifié. Elle peut nommer des preuves portant une cote plus élevée et y renvoyer, mais ne doit jamais contenir ces preuves : aucun fichier au-dessus de Non classifié ne peut y être joint.'),
     alt: savedOnline(assessment) ? undefined : {
       label: t('No, keep it on this computer only', 'Non, la garder sur cet ordinateur seulement'),
       run: () => {

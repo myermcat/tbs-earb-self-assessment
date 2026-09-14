@@ -211,8 +211,19 @@ console.log('\nThe published build, signed in\n');
   ok('and it carries an icon', !!doc.querySelector('.res-toolbar .btn-icon svg'));
   ok('closing one submission is a per-row action',
      [...doc.querySelectorAll('.row-acts .row-menu .menu-item')].some((b) => /Close this one/.test(b.textContent)));
-  ok('and closing everything is the last item of a menu, in red',
-     [...doc.querySelectorAll('.res-toolbar .menu-item.menu-danger')].some((b) => /Close all/.test(b.textContent)));
+  /**
+   * And nothing on this toolbar closes everything at once.
+   *
+   * There was a "Close all and erase the audit" here. It touched nobody's assessment, and it
+   * read as though it deleted every submission in the pool; what it actually erased was the
+   * assessor's own scores, verdicts and reasons, which live in this browser and nowhere else.
+   * Reported in those words: a very dangerous button for a thing nobody wants to do.
+   */
+  ok('and nothing here closes every submission at once',
+     ![...doc.querySelectorAll('.res-toolbar button')].some((b) => /close all/i.test(b.textContent)),
+     [...doc.querySelectorAll('.res-toolbar button')].map((b) => b.textContent.trim()).join(' | '));
+  ok('and nothing on this toolbar is a destroying control at all',
+     !doc.querySelector('.res-toolbar .menu-danger, .res-toolbar .danger'));
 
   // Exporting names what goes out, including the thing the sheet cannot carry.
   doc.querySelector('.res-toolbar .btn-icon').click();
@@ -436,12 +447,15 @@ console.log('\nThe published build, signed in\n');
 
   const rows = [...doc.querySelectorAll('.triage tbody tr')];
   const cell = (tr) => tr.children[1]?.textContent?.trim();
-  ok('a marked assessment says it is ready', rows.some((tr) => /Ready to review/.test(cell(tr))),
+  ok('a marked assessment says it is ready', rows.some((tr) => /^Ready$/.test(cell(tr))),
      rows.map(cell).join(' | '));
+  ok('and the date is on the hover, where a date belongs',
+     /Marked ready to review on/.test(
+       rows.map((tr) => tr.children[1]?.querySelector('.badge')?.getAttribute('title') ?? '').join(' ')));
   ok('and one nobody has marked says it is a draft', rows.some((tr) => /^Draft$/.test(cell(tr))),
      rows.map(cell).join(' | '));
   ok('and the ready one is listed first, because that is the work',
-     /Ready to review/.test(cell(rows[0])), cell(rows[0]));
+     /^Ready$/.test(cell(rows[0])), cell(rows[0]));
   dom.window.close();
 }
 

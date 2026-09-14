@@ -1,5 +1,6 @@
 import type { Assessment, Rubric } from './types';
 import { el, clear, tone, bar } from './dom';
+import { codeChip } from './code-chip';
 import { nextAnchor, score, strongest, weakest, type Result } from './scoring';
 import { flags } from './flags';
 import { autosave } from './storage';
@@ -48,13 +49,12 @@ export function renderResults(root: HTMLElement, rubric: Rubric, a: Assessment, 
          * from the same alphabet and were sitting a few centimetres apart with nothing saying
          * which was which, which is a question somebody would have got wrong exactly once.
          */
-        a.ref
-          ? el('span', {
-              class: 'ref-chip',
-              title: t('The reference in this assessment\u2019s email subject lines. Not the access code.',
-                'La référence dans les objets de courriel de cette évaluation. Ce n\u2019est pas le code d\u2019accès.'),
-            }, [t(`Reference ${a.ref}`, `Référence ${a.ref}`)])
-          : null,
+        /**
+         * The code itself, as a control you can copy from. There used to be a second, shorter
+         * code beside it, from the same alphabet, with nothing on screen saying which was
+         * which. There is one now.
+         */
+        a.id ? codeChip(a.id) : null,
       ]),
       r.maturity
         ? el('div', { class: 'maturity' }, [
@@ -458,9 +458,9 @@ function submitBlock(rubric: Rubric, a: Assessment, r: Result, blocked: boolean)
           ? t('Send your assessor this code. It is the only way they can open it.',
               'Envoyez ce code \u00e0 votre \u00e9valuateur. C\u2019est le seul moyen pour lui de l\u2019ouvrir.')
           : undefined,
-        stake: t('Everything in this tool is unclassified. Marking it ready says this assessment is too.',
-          'Tout dans cet outil est non classifi\u00e9. Le marquer comme pr\u00eat affirme que cette \u00e9valuation l\u2019est aussi.'),
-        commitLabel: t('It is unclassified. Mark it ready', 'C\u2019est non classifi\u00e9. Marquer comme pr\u00eat'),
+        stake: t('This assessment is an Unclassified document. It may name evidence marked higher and link to where that evidence is kept, and it must never hold that evidence itself.',
+          'Cette évaluation est un document non classifié. Elle peut nommer des preuves portant une cote plus élevée et indiquer où elles sont conservées, mais ne doit jamais contenir ces preuves.'),
+        commitLabel: t('Mark it ready', 'Marquer comme pr\u00eate'),
         cancelLabel: t('Not yet', 'Pas encore'),
         onCommit: () => {
           a.meta.submittedAt = new Date().toISOString();

@@ -1,8 +1,9 @@
 import { CLASSIFICATIONS, classRank, type Assessment, type EvidenceRef, type Question,
   type Rubric } from './types';
 import { el, clear, tone } from './dom';
+import { codeChip } from './code-chip';
 import { domainRedFlags, score, sectionRedFlags, type Result, type SectionScore } from './scoring';
-import { autosave, clearSaveWatchers, saveAssessmentFile } from './storage';
+import { autosave, clearSaveWatchers, saveAssessmentFile , refOf } from './storage';
 import { humanSize, openAttachment, totalAttachedBytes, TOTAL_WARN } from './attach';
 import { demandPledge } from './pledge';
 import { confirmStep } from './confirm';
@@ -449,7 +450,15 @@ function stepper(
  * rename costs nothing and nothing has to be locked.
  */
 export function evidenceSubject(a: Assessment, questionId: string): string {
-  return `EARB evidence ${a.ref ?? '----'}, question ${questionId}`;
+  /**
+   * The first four characters of the code, never the whole of it.
+   *
+   * A subject line is logged, forwarded, quoted back in every reply and answerable to
+   * access-to-information, and the code opens the assessment. Four characters is what a subject
+   * line was ever for: enough to find the thread in Outlook, and eight characters short of
+   * opening anything.
+   */
+  return `EARB evidence ${refOf(a)}, question ${questionId}`;
 }
 
 /**
@@ -813,11 +822,11 @@ function aboutSection(
          * instruction: it is a fact about this assessment that somebody needs once.
          */
         el('aside', { class: 'note-line' }, [
-          el('span', { class: 'note-key' }, [t('Reference', 'Référence')]),
-          el('b', { class: 'mono' }, [a.ref ?? '----']),
+          el('span', { class: 'note-key' }, [t('Reference code', 'Code de référence')]),
+          a.id ? codeChip(a.id) : el('b', { class: 'mono' }, ['----']),
           el('span', { class: 'note-say' }, [
-            t('This assessment\u2019s own code. Quote it in any email about this assessment. It stays the same if you rename the initiative.',
-              'Le code propre à cette évaluation. Citez-le dans tout courriel à son sujet. Il ne change pas si vous renommez l\u2019initiative.'),
+            t(`This assessment\u2019s own code, and the only way back to it once it is saved online. It stays the same if you rename the initiative. Emails about this assessment quote its first four characters, ${refOf(a)}, so you can find the thread; the whole code is what opens the assessment, so keep it somewhere and send it only to people who should be able to change this.`,
+              `Le code propre à cette évaluation, et le seul moyen d\u2019y revenir une fois enregistrée en ligne. Il ne change pas si vous renommez l\u2019initiative. Les courriels à son sujet citent ses quatre premiers caractères, ${refOf(a)}, pour retrouver le fil; le code entier ouvre l\u2019évaluation, alors conservez-le et ne l\u2019envoyez qu\u2019aux personnes qui doivent pouvoir la modifier.`),
           ]),
         ]),
         field(t('In two or three sentences, what is it?', 'En deux ou trois phrases, de quoi s\u2019agit-il?'), el('textarea', {
