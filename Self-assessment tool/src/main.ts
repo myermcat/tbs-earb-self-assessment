@@ -315,6 +315,12 @@ function initialsOf(email: string): string {
  * side see the request, and a refusal is reported in their words.
  */
 function openWithCode(): void {
+  // Ask before the typing, and not after it. Twelve characters is work, and finding out
+  // afterwards that it replaces yours is the wrong order to learn it in.
+  guardDraft({ current: assessment, act: 'code', onCommit: () => askForCode(), after: () => paint() });
+}
+
+function askForCode(): void {
   const field = codeField(() => { /* the button is the way in, so nothing happens on the last box */ });
   const said = el('p', { class: 'cf-note' }, [
     t('Twelve characters, in three groups. Paste the whole thing into any box.',
@@ -338,16 +344,9 @@ function openWithCode(): void {
         return;
       }
       close();
-      guardDraft({
-        current: assessment,
-        act: 'code',
-        onCommit: () => {
-          assessment = ensureRef(found);
-          autosave(assessment);
-          go('submit');
-        },
-        after: () => paint(),
-      });
+      assessment = ensureRef(found);
+      autosave(assessment);
+      go('submit');
     } catch (err) {
       /**
        * The refusal that is ours and not theirs.
@@ -812,44 +811,12 @@ function renderHome(root: HTMLElement) {
          * reads as the tool changing its mind. Both assessments belong to the same person,
          * so the wording is about which one, never about whose.
          */
-        (() => {
-          const picker = el('input', {
-            type: 'file', accept: '.json', hidden: true,
-            onchange: async (e: Event) => {
-              const input = e.target as HTMLInputElement;
-              const f = input.files;
-              if (!f?.length) return;
-              const [item] = await readJsonFiles(f);
-              input.value = '';
-              const a = item.data as Assessment;
-              if (a?.fileType !== 'gc-arch-assessment') {
-                alert(t(`${item.file} is not a self-assessment file.`, `${item.file} n\u2019est pas un fichier d\u2019auto-évaluation.`));
-                return;
-              }
-              assessment = ensureRef(a);
-              autosave(assessment);
-              go('submit');
-            },
-          }) as HTMLInputElement;
-
-          const open = () => picker.click();
-
-          return el('span', { class: 'openfile' }, [
-            el('button', {
-              class: 'linkish',
-              onclick: () => guardDraft({
-                current: assessment, act: 'open', onCommit: open, after: () => paint(),
-              }),
-            }, [t('open a saved assessment', 'ouvrir une évaluation enregistrée')]),
-            picker,
-          ]);
-        })(),
         isHosted()
           ? el('span', { class: 'or' }, [t('or', 'ou')])
           : null,
         isHosted()
           ? el('button', { class: 'linkish', onclick: () => openWithCode() }, [
-              t('open with an access code', 'ouvrir avec un code d\u2019accès'),
+              t('open one with an access code', 'en ouvrir une avec un code d\u2019accès'),
             ])
           : null,
       ]),
@@ -863,13 +830,23 @@ function renderHome(root: HTMLElement) {
   ]));
 
   /**
-   * The way across used to be here, and it has gone.
+   * The way across, which is here for testing and for nothing else.
    *
-   * The two sides are separate products that share a build, so a submitter's home page has no
-   * business offering the assessor view: a person who is not an assessor gets a sign-in they
-   * cannot pass, and a person who is has their own address. It was here to make testing easy
-   * before either side worked. The address still reaches it, so testing is unaffected.
+   * The two sides are separate products that share a build, and the finished thing routes a
+   * person to one of them at sign-in. Until the two builds are split, this is how the assessor
+   * side gets opened without typing an address, and it says on its face that it is temporary.
    */
+  root.appendChild(el('p', { class: 'crossover tiny dim' }, [
+    el('span', { class: 'badge badge-mockup tiny' }, [t('For testing', 'Pour les tests')]),
+    ' ',
+    el('button', { class: 'linkish', onclick: () => setSide('assess') }, [
+      t('Open the assessor view', 'Ouvrir la vue de l\u2019évaluateur'),
+    ]),
+    el('span', { class: 'dim' }, [
+      t(' The finished tool sends an assessor to their own address.',
+        ' L\u2019outil fini envoie l\u2019évaluateur à sa propre adresse.'),
+    ]),
+  ]));
 
 
   root.appendChild(el('section', { class: 'note' }, [

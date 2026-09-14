@@ -1066,8 +1066,13 @@ ok('the copy does not appeal to an unnamed "us"',
   ok('detail table has a row per question, section and domain', rows === expected, `${rows} vs ${expected}`);
 }
 
-// ---- save, and inspect what came out ---------------------------------------------------
-byText('button', 'Save the file to send to TBS').click();
+// ---- take the file out, and inspect what came out ---------------------------------------
+//
+// Saving a file to send to TBS has gone: an assessment is reached by its access code now, and a
+// second way in that produces a different copy of the same work is how two versions start
+// diverging. Downloading one is still in the File menu, which is where everything you do to a
+// whole assessment lives, and it is what this suite uses to look inside a saved assessment.
+byText('.file-menu .menu-item', 'Download as a JSON file').click();
 ok('a file was produced', saved.length === 1, String(saved.length));
 const savedJson = JSON.parse(await text(saved[0]));
 ok('saved file is a self-assessment', savedJson.fileType === 'gc-arch-assessment');
@@ -1085,12 +1090,9 @@ ok('and stays small enough for a store to hold it',
 ok('saved file records its marking', savedJson.initiative.classification === 'Protected B');
 ok('the favicon is inline, so the built file needs no second request', html.includes('rel="icon" href="data:image/svg+xml'));
 
-byText('button', 'Save a CSV row').click();
-const csv = await text(saved[1]);
-const [head, row] = csv.split('\r\n');
-ok('csv header and row have the same width', head.split(',').length === row.split(',').length,
-   `${head.split(',').length} vs ${row.split(',').length}`);
-ok('csv carries a column per section', head.includes('section_data_data-architecture-and-standards'));
+// The submitter's one-row CSV has gone with the rest of the file controls. The assessor still
+// exports, and the shape of a CSV row is held by test/smoke.ts, which checks the header and the
+// row against each other directly.
 
 // ---- discarding cannot lose work by accident --------------------------------------------
 //
@@ -1139,8 +1141,14 @@ byText('.tab', 'Start').click();
  * person who is has their own address. The address still reaches it, which is how this suite
  * gets there.
  */
-ok('the home page offers no way into the assessor side', !q('.crossover button'));
-ok('and none into the admin view', !byText('button', 'Open the admin view'));
+// The way across is back, for testing, and it says so on its face. The finished tool routes a
+// person to one side at sign-in and the two builds are split; until then this is how the
+// assessor side gets opened without typing an address.
+ok('the way across is marked as temporary', !!q('.crossover .badge-mockup'),
+   q('.crossover')?.textContent);
+ok('and says what the finished tool does instead',
+   /own address/.test(q('.crossover')?.textContent ?? ''));
+ok('the admin view is not a destination of its own', !byText('button', 'Open the admin view'));
 window.location.hash = '#assessor';
 window.dispatchEvent(new window.PopStateEvent('popstate', { state: null }));
 await new Promise((r) => setTimeout(r, 30));

@@ -22,7 +22,23 @@ const dom = new JSDOM(html, {
   runScripts: 'dangerously',
   url: 'http://localhost/tool/#about',
   pretendToBeVisual: true,
-  beforeParse(w) { w.scrollTo = () => {}; w.alert = () => {}; w.print = () => {}; },
+  beforeParse(w) {
+    // A draft that has been saved online, because the access code only exists once it has. An
+    // assessment with no code shows the other half of this window, which says it has none yet.
+    w.localStorage.setItem('gc-arch-assessment:draft', JSON.stringify({
+      fileType: 'gc-arch-assessment', formatVersion: 1, ref: 'ZZ99', id: 'KFRM92TXBQ7H',
+      rubric: { id: 'gc-ea-selfassess', version: '1.0-dan', title: 'x' },
+      initiative: {
+        name: 'Licensing Renewal', department: 'DFO', contact: 'a@b.gc.ca',
+        lifecycleStage: 'beta', summary: 'A thing.', classification: 'Unclassified',
+      },
+      answers: {},
+      meta: { createdAt: 'x', updatedAt: 'x', appVersion: 'test', savedOnlineAt: 'x' },
+    }));
+    w.scrollTo = () => {};
+    w.alert = () => {};
+    w.print = () => {};
+  },
 });
 await settle();
 const { document } = dom.window;
@@ -41,86 +57,24 @@ byText('.file-menu .menu-item', 'Share access').click();
 await settle();
 
 ok('and it opens a list', !!q('dialog.share-dialog'));
-ok('marked as a mockup', !!q('.share-dialog .badge-mockup'));
-// Above the field, because the classified pledge taught that a panel under the fold is
-// scrolled past, and this is the one sentence somebody has to read before they type.
-ok('saying no email is sent', /No email is sent/.test(said()));
-ok('and saying it above the field',
-   !!(q('.share-dialog .card.warn').compareDocumentPosition(q('.share-dialog .share-add')) & 4));
-ok('and saying that naming an assessor does not let them score',
+/**
+ * The code is the sharing mechanism now, so it comes first and the email box has gone.
+ *
+ * The box was the mechanism back when there was none: you typed an address, nothing happened,
+ * and the screen said so four times over. Two mechanisms on one window, one of them pretend,
+ * is what the user was reading when she asked why it still wanted an email.
+ */
+ok('the access code leads the window', !!q('.share-dialog .code-shown'));
+ok('shown in groups of four, the way it is read', /KFRM-92TX-BQ7H/.test(said()), said().slice(0, 120));
+ok('with a way to take a copy of it', !!byText('.share-dialog button', 'Copy the code'));
+ok('and the sentence that you send it yourself', /Send it to them yourself/.test(said()));
+ok('there is no box asking for an email', !q('.share-dialog input[type=email]'));
+ok('and it still says that naming an assessor does not let them score',
    /does not let them score/.test(said()));
 
-// One address or a pasted list, and whatever is refused is named.
-{
-  const field = q('.share-dialog input[type=email]');
-  field.value = 'anna@dfo-mpo.gc.ca, nope, bruno@dfo-mpo.gc.ca';
-  byText('.share-dialog button', 'Add to the list').click();
-  await settle();
-  ok('a pasted list adds every address in it', /2 added to the list/.test(said()), said().slice(0, 200));
-  ok('and names what it left out', /left out: nope/.test(said()));
-  ok('the people are on the list', qa('.share-dialog .share-row').length === 2,
-     String(qa('.share-dialog .share-row').length));
-  ok('each row says no email went', qa('.share-dialog .share-row .badge-mockup').length === 2);
-}
-
-// The same address twice is one person.
-{
-  const field = q('.share-dialog input[type=email]');
-  field.value = 'ANNA@dfo-mpo.gc.ca';
-  byText('.share-dialog button', 'Add to the list').click();
-  await settle();
-  ok('the same address again is not a second person', qa('.share-dialog .share-row').length === 2,
-     String(qa('.share-dialog .share-row').length));
-  ok('and it says so', /Already on the list/.test(said()));
-}
-
-// An assessor is a different part, on the same list.
-{
-  const roleBtn = byText('.share-roles button', 'As an assessor');
-  ok('somebody can be added as an assessor', !!roleBtn);
-  roleBtn.click();
-  const field = q('.share-dialog input[type=email]');
-  field.value = 'nick@tbs-sct.gc.ca';
-  byText('.share-dialog button', 'Add to the list').click();
-  await settle();
-  ok('and lands in their own group', qa('.share-dialog .share-row').length === 3,
-     String(qa('.share-dialog .share-row').length));
-  ok('the groups are named for what they do',
-     /Working on it with you/.test(said()) && /Reading and scoring it/.test(said()));
-}
-
-// Nothing is removed in one step. That is the house rule.
-{
-  const remove = byText('.share-dialog .share-row button', 'Remove');
-  remove.click();
-  await settle();
-  ok('taking somebody off asks first', qa('dialog.confirm').length > 1);
-  const ask = qa('dialog.confirm').at(-1);
-  ok('and says nothing else happens, because nothing was granted',
-     /nothing was granted/.test(ask.textContent));
-  byText('.cf-actions button', 'Keep them on')?.click();
-  await settle();
-  ok('saying keep them changes nothing', qa('.share-dialog .share-row').length === 3,
-     String(qa('.share-dialog .share-row').length));
-}
-
-// The promise this must never make.
+// The list of people that used to be the mechanism is now a note about who was given the code.
+// What it must never do has not changed, and is the only thing left worth asserting about it.
 ok('nothing on the sharing list opens a mail client', !/mailto:/.test(q('.share-dialog').innerHTML));
-
-// It survives being saved and reopened, and the flat lists the store's rules will need are
-// derived rather than typed, so they cannot disagree with the list they come from.
-{
-  const raw = dom.window.localStorage.getItem('gc-arch-assessment:draft');
-  const draft = JSON.parse(raw);
-  ok('the people are written into the assessment', (draft.sharing?.people ?? []).length === 3,
-     String((draft.sharing?.people ?? []).length));
-  ok('with two teammates in the flat list', (draft.sharing?.teammateEmails ?? []).length === 2);
-  ok('and one assessor', (draft.sharing?.assessorEmails ?? []).length === 1);
-  ok('every one recorded and nothing more',
-     (draft.sharing?.people ?? []).every((p) => p.state === 'recorded'));
-  ok('and each carries who added them and when',
-     (draft.sharing?.people ?? []).every((p) => typeof p.addedAt === 'string' && 'addedBy' in p));
-}
 
 console.log(fails ? `\n${fails} sharing check(s) failed\n` : '\nall sharing checks passed\n');
 process.exit(fails ? 1 : 0);

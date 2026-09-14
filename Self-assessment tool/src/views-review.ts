@@ -9,6 +9,7 @@ import { rubricFor } from './library';
 import { confirmStep } from './confirm';
 import { SAD_CAT } from './cat';
 import { ICON_DOWN } from './icons';
+import { formatCode } from './firebase';
 import { isHosted, poolRecords, type PoolAnswer } from './store';
 import { repaint } from './views-submit';
 import BUILTIN from '../rubric/rubric.v1-dan.json';
@@ -389,6 +390,16 @@ function paintList(rubric: Rubric, root: HTMLElement) {
           el('details', { class: 'set-menu row-menu' }, [
             el('summary', { class: 'set-menu-btn', 'aria-label': 'More actions', title: 'More actions' }, ['\u22EF']),
             el('div', { class: 'set-menu-pop' }, [
+              l.a.id
+                ? el('button', {
+                    class: 'menu-item',
+                    onclick: () => {
+                      const code = formatCode(l.a.id ?? '');
+                      try { void navigator.clipboard?.writeText(code); } catch { /* no clipboard here */ }
+                    },
+                  }, [`Copy the access code (${formatCode(l.a.id ?? '')})`])
+                : null,
+              el('div', { class: 'menu-sep' }),
               el('button', {
                 class: 'menu-item menu-danger',
                 onclick: () => closeOne(root, rubric, l),

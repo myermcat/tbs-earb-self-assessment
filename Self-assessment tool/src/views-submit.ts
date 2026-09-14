@@ -111,8 +111,10 @@ export function setRepaint(fn: () => void): void { repaintApp = fn; }
  * The shell owns the offer to save online, because it owns the window that explains what
  * saving an unfinished assessment means. This is the seam the footer's one button pulls.
  */
-let saveOnline: () => void = () => {};
-export function setSaveOnline(fn: () => void): void { saveOnline = fn; }
+let saveOnlineFn: () => void = () => {};
+export function setSaveOnline(fn: () => void): void { saveOnlineFn = fn; }
+/** The same offer, for any screen that wants to put it in front of somebody. */
+export function saveOnline(): void { saveOnlineFn(); }
 /** Redraw the whole shell. Anything that changes what a screen should show can call it. */
 export function repaint(): void { repaintApp(); }
 
@@ -567,7 +569,7 @@ function footerBar(
   const save = el('button', {
     class: 'ghost',
     onclick: () => {
-      if (isHosted()) { saveOnline(); return; }
+      if (isHosted()) { saveOnlineFn(); return; }
       saveFile(a);
     },
   }, [isHosted() ? t('Save online', 'Enregistrer en ligne') : t('Save to a file', 'Enregistrer dans un fichier')]);
