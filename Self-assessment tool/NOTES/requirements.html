@@ -53,6 +53,7 @@ text-transform:uppercase;border:1px solid;border-radius:999px;padding:.08rem .45
 .st-next{color:var(--accent);border-color:var(--accent-line);background:var(--accent-soft)}
 .st-wait{color:var(--warn);border-color:var(--warn);background:var(--warn-bg)}
 .st-later{color:var(--ink-3);border-color:var(--line-2);background:var(--surface-2)}
+.st-stuck{color:var(--bad);border-color:var(--bad);background:var(--bad-bg)}
 .callout{background:var(--good-bg);border-left:3px solid var(--good);border-radius:0 8px 8px 0;padding:.55rem .8rem;margin:.45rem 0 0}
 .callout .q{font-weight:650;font-size:.92rem;margin-bottom:.1rem}
 .callout .a{font-size:.85rem;color:var(--ink-2)}
@@ -131,11 +132,11 @@ background:var(--surface);border:1px solid var(--line);border-radius:10px;list-s
 .kpi a{color:inherit;text-decoration:none}
 </style>
 <div class="head"><div class="head-in"><h1>GC EA self-assessment: requirements specification</h1>
-<p class="sub">Living document, updated 2026-09-01. 112 requirements, baselined at each release. Following ISO/IEC/IEEE 29148:2018, tailored.</p></div></div>
+<p class="sub">Living document, updated 2026-09-01. 115 requirements, baselined at each release. Following ISO/IEC/IEEE 29148:2018, tailored.</p></div></div>
 <nav class="topnav"><div class="topnav-in">
-<span class="nav-kpi"><b>60</b><span>built</span></span>
-<span class="nav-kpi"><b>27</b><span>agreed, not built</span></span>
-<span class="nav-kpi"><b>6</b><span>proposed</span></span>
+<span class="nav-kpi"><b>61</b><span>built</span></span>
+<span class="nav-kpi"><b>30</b><span>agreed, not built</span></span>
+<span class="nav-kpi"><b>4</b><span>proposed</span></span>
 <span class="nav-kpi"><b>19</b><span>open</span></span>
 <span class="nav-sep"></span>
 <a class="nav-lay" href="#open">Open decisions</a>
@@ -157,8 +158,8 @@ background:var(--surface);border:1px solid var(--line);border-radius:10px;list-s
 <p class="lead">Each requirement carries a number so it can be quoted, a state, and an owner where somebody owes an answer. Numbers are never reused and never renumbered. Nothing is deleted when a requirement changes: the state changes and the reason goes in the note.</p>
 <p class="lead">Owners are named people. Build team means Mariia Yermolenko, who is building this on a co-op term at the Treasury Board Secretariat. TBS means whoever holds the decision inside the department, which is Dan Cooper unless the entry says otherwise.</p>
 <div class="legend small">
-<span class="st st-done">Built</span> <span class="st st-next">Agreed</span> <span class="st st-wait">Proposed</span> <span class="st st-later">Open</span>
-<span class="muted">Built is in the tool today. Agreed is decided and not built. Proposed is our reading, waiting on somebody. Open is undecided.</span>
+<span class="st st-done">Built</span> <span class="st st-next">Agreed</span> <span class="st st-wait">Proposed</span> <span class="st st-stuck">Blocked</span> <span class="st st-later">Open</span>
+<span class="muted">Built is in the tool today. Agreed is decided and not built. Blocked is written and unable to work until somebody publishes something. Proposed is our reading, waiting on somebody. Open is undecided.</span>
 </div>
 <h2 id="open">Open decisions <span class="muted small">19</span></h2>
 <p class="hint">Every requirement below that nobody has decided, in one place. Each is also in its own section.</p>
@@ -169,7 +170,7 @@ background:var(--surface);border:1px solid var(--line);border-radius:10px;list-s
 <tr><td class="mono">S8</td><td>The Firebase web key answers only from the addresses the tool is served from, and only for the three APIs it uses.</td><td>Mariia</td><td>Signing in</td></tr>
 <tr><td class="mono">S20</td><td>What a share code must do before it may grant a write.</td><td>Mariia</td><td>Signing in</td></tr>
 <tr><td class="mono">S16</td><td>Whether saying an assessment is finished stops the submitter editing it.</td><td>Mariia</td><td>Signing in</td></tr>
-<tr><td class="mono">S13</td><td>Whether naming an assessor routes the record to that person.</td><td>Dan</td><td>Signing in</td></tr>
+<tr><td class="mono">S13</td><td>Whether an assessment is routed to one named assessor.</td><td>Dan</td><td>Signing in</td></tr>
 <tr><td class="mono">Q9</td><td>Per-question criticality, separate from section weight.</td><td>Dan</td><td>The instrument</td></tr>
 <tr><td class="mono">Q10</td><td>The dropdown answers for each question.</td><td>Dan</td><td>The instrument</td></tr>
 <tr><td class="mono">Q11</td><td>The Business Architecture section weights add up to 80.</td><td>Dan</td><td>The instrument</td></tr>
@@ -409,30 +410,42 @@ background:var(--surface);border:1px solid var(--line);border-radius:10px;list-s
 </div>
 <div class="req">
 <span class="req-id mono">S10</span>
-<span class="req-t">A submitter can name the people working on the assessment with them, and their own assessors. As a mockup: the addresses are recorded and nothing is sent.</span>
+<span class="req-t">Sharing an assessment is handing somebody its access code. Whoever holds the code can open it and change it, and nobody without it can.</span>
 <span class="st st-done">Built</span>
-<span class="req-note">One list with a part on each entry, so there is one way to add and one way to remove. Beside it, two flat lists of addresses, derived on every write, because the store’s rule language cannot read a field out of an object inside an array and every record already in the store would otherwise need migrating on the day the real sharing goes live. It says on every screen it touches that no email is sent and no access is granted, the sentence is above the field where it will be read, and nothing on it can open a mail client.</span>
+<span class="req-note">This replaced a mockup that asked for email addresses, recorded them and granted nothing, which the user found beside the real mechanism and asked which of the two was working. The code is the record’s own name in the store, so there is one thing to share and one thing to hold. It appears as a control you can copy from everywhere it is shown: the results page, the window behind File, the first online save, and every window that might replace the assessment in this browser. The tool sends nothing, and says so wherever the code appears.</span>
+</div>
+<div class="req">
+<span class="req-id mono">S21</span>
+<span class="req-t">Telling somebody about an assessment happens outside the tool.</span>
+<span class="st st-next">Agreed</span>
+<span class="req-owner">Mariia owes this</span>
+<span class="req-note">Decided 14 September. The tool cannot put a message in front of anybody and must never look as though it has. It can open the person’s own mail client with the message and the code already written, which is their client sending, not the tool. The only control that touches an assessor is a mark on the record.</span>
+</div>
+<div class="req">
+<span class="req-id mono">S22</span>
+<span class="req-t">A code cannot be taken back.</span>
+<span class="st st-next">Agreed</span>
+<span class="req-note">There is no list of who holds one and no way to withdraw it. Somebody given the code keeps the ability to open and change the assessment, and forwarding it passes the same ability on. Said on the sharing window and in settings, in those words. Withdrawing access would mean a new code and a new record, which is a decision nobody has needed yet.</span>
 </div>
 <div class="req">
 <span class="req-id mono">S11</span>
-<span class="req-t">A teammate may read and change an assessment they were added to, and nothing else about it.</span>
-<span class="st st-wait">Proposed</span>
-<span class="req-owner">TBS owes this</span>
-<span class="req-note">Needs a rules change, published by whoever owns the project: a teammate predicate reading the flat address list, get and update on the assessment, and the sharing field itself pinned so a teammate cannot add strangers.</span>
+<span class="req-t">Somebody holding an access code may read and change that one assessment, with no account.</span>
+<span class="st st-stuck">Blocked</span>
+<span class="req-owner">Mariia, then TBS owes this</span>
+<span class="req-note">The code is minted, shown, typed and sent to the store, and the store refuses it. The published rule allows get to the owner or an assessor, so today the code only works for somebody who already had access, which makes holding one mean nothing. It needs one rules change, published by whoever owns the project: get and update on an assessment granted on the document id alone. The arithmetic behind it is 12 characters from a 32-symbol alphabet, which is 2^60 and not guessable. What it costs is an open read on a record whose name somebody has, and an unauthenticated script spending the daily read allowance is the risk that goes with it.</span>
 </div>
 <div class="req">
 <span class="req-id mono">S12</span>
-<span class="req-t">A named assessor may read an assessment before it is finished, and may not score it until the role is granted.</span>
-<span class="st st-wait">Proposed</span>
-<span class="req-owner">TBS owes this</span>
-<span class="req-note">Naming somebody as your assessor must never grant scoring. The audit is gated on a role document that only an admin writes, and if a named address widened that, anybody could appoint their own assessor.</span>
+<span class="req-t">Holding a code never grants scoring.</span>
+<span class="st st-next">Agreed</span>
+<span class="req-note">The audit is gated on a role document that only an admin writes. If the code widened that, anybody could appoint their own assessor by sending them a code.</span>
 </div>
 <div class="req">
 <span class="req-id mono">S13</span>
-<span class="req-t">Whether naming an assessor routes the record to that person.</span>
+<span class="req-t">Whether an assessment is routed to one named assessor.</span>
 <span class="st st-later">Open</span>
 <span class="req-owner">Dan owes this</span>
-<span class="req-note">Every assessor can already list every submitted assessment, so naming one may be a routing hint and not a permission at all. Which of the two it is changes what the assessor screen should show.</span>
+<span class="req-note">Every assessor can already list every submitted assessment, so naming one would be a routing hint and not a permission. Which of the two it is changes what the assessor screen should show. With no naming, the submitter sends their assessor the code and the routing is the message.</span>
 </div>
 <div class="req">
 <span class="req-id mono">S5</span>
@@ -767,18 +780,25 @@ background:var(--surface);border:1px solid var(--line);border-radius:10px;list-s
 </div>
 </div>
 <h2 id="notify">10. Notifications</h2>
-<p class="hint">Nothing here is built.</p>
+<p class="hint">Nothing here is built, and one control used to look as though it was.</p>
 <div class="card reqs">
 <div class="req">
 <span class="req-id mono">N1</span>
-<span class="req-t">The tool can open the person mail client with a message already written.</span>
+<span class="req-t">The tool can open the person’s own mail client with a message already written, carrying the access code.</span>
 <span class="st st-done">Built</span>
+<span class="req-note">Their client sends it, not the tool. It used to tell the reader to attach a file the sender had just saved, from when a file was the only way to move an assessment.</span>
 </div>
 <div class="req">
 <span class="req-id mono">N2</span>
 <span class="req-t">Notifications go through GC Notify.</span>
 <span class="st st-next">Agreed</span>
 <span class="req-note">Already in Dan own question set, at application question 33.</span>
+</div>
+<div class="req">
+<span class="req-id mono">N4</span>
+<span class="req-t">Saying an assessment is finished writes a mark on the record and notifies nobody.</span>
+<span class="st st-done">Built</span>
+<span class="req-note">It was called "Ask an assessor to review it", over a paragraph saying it put the assessment in front of one. It puts nothing in front of anybody: an assessor reading the pool sees "Ready to review" beside the row. It is called "Mark it ready to review" now, it says what the mark does, and it says that telling the assessor is the submitter’s to do and the code is how they get in.</span>
 </div>
 <div class="req">
 <span class="req-id mono">N3</span>
