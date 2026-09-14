@@ -37,6 +37,10 @@ export function saveBadge(openDetail: () => void): HTMLElement {
     pending: t('Saved here, and on its way online', 'Enregistré ici, et en route vers en ligne'),
     saving: t('Saving online', 'Enregistrement en ligne'),
     online: t('Saved online. Your assessor reads this copy.', 'Enregistré en ligne. Votre évaluateur lit cette copie.'),
+    behind: t(
+      'Saved online, and you have changed it since. The copy your assessor reads is the older one until you save online again. Click for the detail.',
+      'Enregistré en ligne, et modifié depuis. La copie que lit votre évaluateur est l\u2019ancienne tant que vous n\u2019enregistrez pas de nouveau en ligne. Cliquez pour le détail.',
+    ),
     offline: t(
       'Saved on this computer. It goes online when the connection is back.',
       'Enregistré sur cet ordinateur. L\u2019enregistrement en ligne se fera au retour de la connexion.',
@@ -66,6 +70,15 @@ export function saveBadge(openDetail: () => void): HTMLElement {
       node.appendChild(el('span', { class: 'ss-dot', 'aria-hidden': true }));
       node.appendChild(el('span', { class: 'ss-long' }, [t('Saved online', 'Enregistré en ligne')]));
       node.appendChild(el('span', { class: 'ss-short' }, [t('Saved', 'Enregistré')]));
+    } else if (state === 'behind') {
+      /**
+       * The state the reversal to deliberate saving created, and the reason the badge exists
+       * at all now. Saved once, edited since: the store holds an older assessment than the one
+       * on screen, and nothing will catch it up without somebody pressing the button.
+       */
+      node.appendChild(el('span', { class: 'ss-dot', 'aria-hidden': true }));
+      node.appendChild(el('span', { class: 'ss-long' }, [t('Saved online is out of date', 'La copie en ligne n\u2019est plus à jour')]));
+      node.appendChild(el('span', { class: 'ss-short' }, [t('Out of date', 'Plus à jour')]));
     } else if (state === 'offline') {
       node.appendChild(el('span', { class: 'ss-dot', 'aria-hidden': true }));
       node.appendChild(el('span', { class: 'ss-long' }, [t('Saved here, waiting for a connection', 'Enregistré ici, en attente d\u2019une connexion')]));

@@ -260,4 +260,4 @@ const html = [
 ].join('\n');
 
 writeFileSync(out, html + '\n');
-console.log(`requirements.html  ${total} requirements: ${count('built')} built, ${count('agreed')} agreed, ${count('blocked')} blocked, ${count('proposed')} proposed, ${count('open')} open`);
+console.log(`requirements.html  ${total} requirements: ${count('built')} built, ${count('agreed')} agreed, ${count('blocked') ? `${count('blocked')} blocked, ` : ''}${count('proposed')} proposed, ${count('open')} open`);

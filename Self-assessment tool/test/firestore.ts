@@ -10,7 +10,7 @@
  * leaving the bearer token off. It also holds the two rights the rules give: an assessor lists
  * the collection, and a submitter whose list is refused reads the one record they own.
  */
-import { listRecords, putRecord, deleteRecord, endpointHost, flushWrites, isHosted,
+import { listRecords, putRecord, deleteRecord, endpointHost, isHosted, onlineIsCurrent,
   saveOnlineNow } from '../src/store';
 import { currentUser, roleOf } from '../src/firebase';
 import { autosave, saveStatus } from '../src/storage';
@@ -214,13 +214,22 @@ mem.set('gc-arch-assessment:firebase-session', JSON.stringify({
   delete unmarked.id;
   delete unmarked.ownerEmail;
   autosave(unmarked);
-  await flushWrites();
+  await wait(0);
   ok('an unmarked assessment is never written to the store', writes().length === 0,
      JSON.stringify(writes().map((w) => w.url)));
   ok('and the badge says the work is here only', saveStatus().state === 'local', saveStatus().state);
 }
 
-// A marked assessment still goes nowhere until somebody says so. That is the point of it.
+/**
+ * A marked assessment goes nowhere until somebody says so, and it goes nowhere afterwards
+ * either.
+ *
+ * This is the shape of the whole feature and it has been both ways. The first version sent
+ * every keystroke once the button had been pressed, which is what a document editor does. It
+ * is wrong here: the copy in the store is what an assessor reads, so it is a thing somebody
+ * publishes, and consent given once for a whole afternoon is not consent anybody remembers
+ * giving. These cases hold the button to being the only writer.
+ */
 {
   quiet();
   const marked: Assessment = JSON.parse(JSON.stringify(a));
@@ -228,34 +237,48 @@ mem.set('gc-arch-assessment:firebase-session', JSON.stringify({
   delete marked.ownerEmail;
   delete marked.meta.savedOnlineAt;
   autosave(marked);
-  await flushWrites();
-  ok('a marked assessment still waits to be asked', writes().length === 0, String(writes().length));
+  await wait(0);
+  ok('a marked assessment waits to be asked', writes().length === 0, String(writes().length));
 
   // The one deliberate act.
   quiet();
   const first = await saveOnlineNow(marked);
   ok('saving online sends it', first.ok === true && writes().length === 1, JSON.stringify(first));
-  ok('and records when it was turned on', typeof marked.meta.savedOnlineAt === 'string');
+  ok('and records when it went', typeof marked.meta.savedOnlineAt === 'string');
   ok('and the record is owned by whoever is signed in', marked.ownerEmail === 'someone@example.gc.ca',
      String(marked.ownerEmail));
   const id = String(marked.id ?? '');
   ok('and it carries the id it was written under', id.length > 0, id);
+  ok('and the store now holds what is on screen', onlineIsCurrent(marked));
+  ok('which the badge says', saveStatus().state === 'online', saveStatus().state);
 
-  // After that it keeps itself current, with no button.
+  // The reversal. An edit after the save stays here, and says so.
   quiet();
   marked.initiative.summary = 'changed';
   autosave(marked);
   marked.initiative.summary = 'changed again';
   autosave(marked);
-  await flushWrites();
-  ok('after that, a change goes on its own', writes().length === 1, String(writes().length));
-  ok('to the document that already exists', writes()[0]?.url.includes(id), writes()[0]?.url);
+  await wait(0);
+  ok('an edit after the save sends nothing', writes().length === 0, String(writes().length));
+  ok('and the store is now behind this copy', !onlineIsCurrent(marked));
+  ok('and the badge says that in one word', saveStatus().state === 'behind', saveStatus().state);
 
-  // Nothing changed means nothing to send.
+  // Pressing it again is what catches the store up.
   quiet();
+  const second = await saveOnlineNow(marked);
+  ok('pressing it again sends the new version', second.ok === true && writes().length === 1,
+     JSON.stringify(second));
+  ok('to the document that already exists', writes()[0]?.url.includes(id), writes()[0]?.url);
+  ok('and the store is current again', onlineIsCurrent(marked));
+
+  /**
+   * Undoing an edit back to what was sent leaves nothing to send. The fingerprint ignores the
+   * clock, so a repaint that restamps updatedAt cannot make a record look changed.
+   */
+  quiet();
+  marked.initiative.summary = 'changed again';
   autosave(marked);
-  await flushWrites();
-  ok('a save that changes nothing writes nothing', writes().length === 0, String(writes().length));
+  ok('a record edited back to what the store holds is current again', onlineIsCurrent(marked));
 
   // Turning it on is refused while the marking question is unanswered.
   quiet();
@@ -266,7 +289,27 @@ mem.set('gc-arch-assessment:firebase-session', JSON.stringify({
   const refused = await saveOnlineNow(unmarked2);
   ok('saving online is refused until the marking is answered', refused.ok === false, JSON.stringify(refused));
   ok('and nothing went', writes().length === 0, String(writes().length));
-  ok('and it was not recorded as turned on', unmarked2.meta.savedOnlineAt === undefined);
+  ok('and it was not recorded as saved', unmarked2.meta.savedOnlineAt === undefined);
+}
+
+/**
+ * A reloaded page knows where it stands.
+ *
+ * What the store holds is written into the record, so it survives the tab. It used to live in
+ * module state, so a fresh tab reported every record as current whether it was or not, and the
+ * badge showed nothing at all until somebody typed.
+ */
+{
+  quiet();
+  const saved: Assessment = JSON.parse(JSON.stringify(a));
+  delete saved.id;
+  delete saved.ownerEmail;
+  delete saved.meta.savedOnlineAt;
+  await saveOnlineNow(saved);
+  const reloaded: Assessment = JSON.parse(JSON.stringify(saved));
+  ok('a record read back from storage knows the store holds it', onlineIsCurrent(reloaded));
+  reloaded.initiative.summary = 'edited in another tab';
+  ok('and knows when the store is behind it', !onlineIsCurrent(reloaded));
 }
 
 // Somebody else's file stays theirs.
@@ -277,7 +320,7 @@ mem.set('gc-arch-assessment:firebase-session', JSON.stringify({
   theirs.id = 'THEIRS';
   theirs.meta.savedOnlineAt = '2026-09-01T00:00:00.000Z';
   autosave(theirs);
-  await flushWrites();
+  await wait(0);
   ok('a file owned by somebody else is never written to your account', writes().length === 0,
      JSON.stringify(writes().map((w) => w.url)));
 }
@@ -291,9 +334,12 @@ mem.set('gc-arch-assessment:firebase-session', JSON.stringify({
   delete mine.ownerEmail;
   mine.meta.savedOnlineAt = '2026-09-01T00:00:00.000Z';
   autosave(mine);
-  await flushWrites();
+  await wait(0);
   ok('signed out, nothing reaches the store', writes().length === 0, String(writes().length));
-  ok('and the badge says so', saveStatus().state === 'local', saveStatus().state);
+  // The record says it was saved online in some earlier session and this copy has moved on
+  // since, which is true whether or not anybody is signed in now. Signing in is what the
+  // badge's tooltip is for; the badge itself reports where the work is.
+  ok('and the badge says the store is behind this copy', saveStatus().state === 'behind', saveStatus().state);
 }
 await wait(0);
 

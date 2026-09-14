@@ -135,7 +135,7 @@ background:var(--surface);border:1px solid var(--line);border-radius:10px;list-s
 <p class="sub">Living document, updated 2026-09-01. 115 requirements, baselined at each release. Following ISO/IEC/IEEE 29148:2018, tailored.</p></div></div>
 <nav class="topnav"><div class="topnav-in">
 <span class="nav-kpi"><b>61</b><span>built</span></span>
-<span class="nav-kpi"><b>30</b><span>agreed, not built</span></span>
+<span class="nav-kpi"><b>31</b><span>agreed, not built</span></span>
 <span class="nav-kpi"><b>4</b><span>proposed</span></span>
 <span class="nav-kpi"><b>19</b><span>open</span></span>
 <span class="nav-sep"></span>
@@ -429,10 +429,10 @@ background:var(--surface);border:1px solid var(--line);border-radius:10px;list-s
 </div>
 <div class="req">
 <span class="req-id mono">S11</span>
-<span class="req-t">Somebody holding an access code may read and change that one assessment, with no account.</span>
-<span class="st st-stuck">Blocked</span>
+<span class="req-t">Somebody holding an access code may open that one assessment and change it, with no account.</span>
+<span class="st st-next">Agreed</span>
 <span class="req-owner">Mariia, then TBS owes this</span>
-<span class="req-note">The code is minted, shown, typed and sent to the store, and the store refuses it. The published rule allows get to the owner or an assessor, so today the code only works for somebody who already had access, which makes holding one mean nothing. It needs one rules change, published by whoever owns the project: get and update on an assessment granted on the document id alone. The arithmetic behind it is 12 characters from a 32-symbol alphabet, which is 2^60 and not guessable. What it costs is an open read on a record whose name somebody has, and an unauthenticated script spending the daily read allowance is the risk that goes with it.</span>
+<span class="req-note">Written on 14 September in deploy/firestore.rules and not yet published: get on an assessment is granted to anybody who can name the document, because the name is the code, and update is granted on the same basis with the owner’s address, the document kind, the assessor’s verdict and the withdrawal frozen. Listing still needs an account, which is the property that matters: a stranger may open the one assessment whose twelve characters they were sent and may never ask what else is there. The arithmetic is 2^60. Publishing is one paste into the Firebase console by whoever owns the project, and deploy/check-rules.sh checks the result from outside, including that listing is still refused.</span>
 </div>
 <div class="req">
 <span class="req-id mono">S12</span>
@@ -717,10 +717,10 @@ background:var(--surface);border:1px solid var(--line);border-radius:10px;list-s
 <span class="req-note">Live on 1 September in project tbs-earb-self-assessment, region northamerica-northeast1. The rules from deploy/firestore.rules are published, Google sign-in is on, myermcat.github.io is an authorised domain, and roles/yermolenko.maria@gmail.com carries role admin. Free plan.</span>
 </div>
 <div class="req">
-<span class="req-id mono">H11</span>
-<span class="req-t">Nothing goes to the store until the person says so once. After that the copy there is kept current on its own.</span>
+<span class="req-id mono">D6</span>
+<span class="req-t">Saving online is one deliberate act, every time.</span>
 <span class="st st-done">Built</span>
-<span class="req-note">The first version made every keystroke of a signed-in person’s work leave their machine before they had asked for anything, which is the opposite of what the tool promised on every screen. One deliberate act turns it on, recorded as meta.savedOnlineAt. After that the write goes three seconds after somebody stops typing, with twenty seconds between writes, which holds one person to 180 an hour against a shared allowance of 20,000 a day. Five guards stand on that write: the deliberate act, a build with a store it can reach, somebody signed in, a marking chosen, and the record owned by the person signed in. Closing the tab on work that has never been saved online asks whether to stay.</span>
+<span class="req-note">Reversed on 14 September, and the reversal is the requirement. The first version sent every keystroke three seconds after typing stopped, once a first button press had turned it on. That is what a document editor does and it is wrong here for three reasons: the copy in the store is what an assessor reads, so it is published and not backed up; a 41 KB document leaving on every pause spends a free-tier allowance that is metered monthly and does not reset overnight; and consent given once for a whole afternoon is not consent anybody remembers giving. The button is the only writer. What the store holds is fingerprinted into the record itself, so a reloaded tab still knows whether the copy online is behind, which module state could not answer. The badge says "Saved online is out of date" in words for as long as it is true, the results page offers Save online again, and marking an assessment ready saves it as part of doing so.</span>
 </div>
 <div class="req">
 <span class="req-id mono">H12</span>
@@ -912,20 +912,38 @@ background:var(--surface);border:1px solid var(--line);border-radius:10px;list-s
 <div class="card risks">
 <div class="risk">
 <div class="risk-head"><span class="risk-id">RK1</span>
-<b>Somebody spends the store’s daily read allowance and takes the tool offline for a day.</b>
+<b>Somebody scripts requests against the store and takes the tool offline.</b>
 <span class="risk-odds odds-low">Low</span></div>
-<p class="risk-line"><span class="risk-key">Because</span>A submitter opens an assessment with a code and no account, so reads have to be permitted without one. Every read counts against 50,000 a day on the free plan, and a script can spend them in minutes.</p>
-<p class="risk-line"><span class="risk-key">If it happens</span>The tool stops answering for everybody until midnight UTC. Nothing is lost and nothing is exposed.</p>
-<p class="risk-line"><span class="risk-key">What we do</span>Undecided, and the conventional answer has a price. Firebase App Check refuses a request that cannot prove it came from our own page, before a read is billed, and it is what Google provides for exactly this. It works by loading reCAPTCHA from Google, which means external script on a page whose policy is default-src none with everything inlined, and that policy is the whole security story the tool tells a reviewer. So App Check costs the one-file property and needs three more hosts in the policy. Meanwhile: a budget alert makes it visible, and guessing codes is not a way in at 2^60, so this is vandalism and not a route to anybody’s data.</p>
+<p class="risk-line"><span class="risk-key">Because</span>The rule that makes an access code work grants a read on the document’s name, so an unauthenticated request reaches the store. Nothing in Firestore rate-limits by address, security rules cannot count, and the free plan has no spend cap and no alert unless the project is upgraded to pay-as-you-go, which is a decision for TBS and not for us.</p>
+<p class="risk-line"><span class="risk-key">If it happens</span>Two different failures. The daily read allowance is 50,000 and resets overnight, so the tool stops answering until midnight Pacific. The monthly one is 10 GiB of outbound traffic, which at 41 KB an assessment is about 256,000 reads, and exceeding it turns Firestore off for the rest of the calendar month with no remedy but upgrading mid-incident. Nothing is lost and nothing is exposed either way.</p>
+<p class="risk-line"><span class="risk-key">What we do</span>Accepting it, and the reasoning changed on 14 September when the numbers were checked. Listing is what makes this cheap for an attacker, and listing still needs an account: without it a script has to name a document, which is twelve characters from a 32-symbol alphabet, and 2^60 guesses is not a route to anything. App Check was the conventional answer and was examined and rejected: it cannot be expressed in a security rule, it needs a third-party script from Google on a page whose whole policy is default-src none, it draws a badge that lands in the accessibility audit of a Government of Canada service, its free tier is 10,000 assessments a month for the whole organisation and it spends them on a refresh timer rather than per visit, and Google documents the header it rides on only for backends you own and never for the Firestore REST API, so there is no published evidence it would apply to this page at all. Anonymous sign-in was examined and rejected too: it costs an attacker one extra request and adds a second endpoint that can be flooded, whose only kill switch is the feature itself.</p>
 <p class="risk-line"><span class="risk-key">Accepted by</span>Mariia, 14 September 2026</p>
 </div>
 <div class="risk">
 <div class="risk-head"><span class="risk-id">RK2</span>
 <b>An access code reaches somebody it was never meant to reach, and cannot be taken back.</b>
 <span class="risk-odds odds-medium">Medium</span></div>
-<p class="risk-line"><span class="risk-key">Because</span>A code is a bearer token: whoever holds it can open that assessment. Forwarded once, it is permanent, and there is no list of who holds it.</p>
-<p class="risk-line"><span class="risk-key">If it happens</span>One assessment is readable by one more person than intended. Everything in the tool is Unclassified, so this is embarrassment and not disclosure.</p>
-<p class="risk-line"><span class="risk-key">What we do</span>Nothing yet. Rotating a code means minting a new id, copying the record and deleting the old one, which also breaks every message already sent quoting the old code. Worth building when somebody asks for it.</p>
+<p class="risk-line"><span class="risk-key">Because</span>A code is a bearer token: whoever holds it opens that assessment and can change it. Forwarded once it is permanent, there is no list of who holds it, and there is no way to mint a new one for the same record.</p>
+<p class="risk-line"><span class="risk-key">If it happens</span>One assessment is readable and writable by one more person than intended. The assessment itself is Unclassified, and what it holds is typed reasoning and the titles and locations of evidence, which can name artefacts marked above Unclassified even though no such artefact is kept in the tool. Treat a leaked code as a disclosure of the assessment.</p>
+<p class="risk-line"><span class="risk-key">What we do</span>Saying so plainly, in those words, on the sharing window and in settings, so nobody learns it from an incident. A revocation switch was designed and rejected on 14 September: the page sends the whole document on every save, so any save from a copy that predates the switch would have deleted it and turned the code back on with nothing on screen saying so. A control that reports success without firing is worse than none. The real answer is code rotation, which means a new document and a new code, and it is the next thing to build here.</p>
+<p class="risk-line"><span class="risk-key">Accepted by</span>Mariia, 14 September 2026</p>
+</div>
+<div class="risk">
+<div class="risk-head"><span class="risk-id">RK5</span>
+<b>Somebody holding a code changes an assessment in a way its owner never sees.</b>
+<span class="risk-odds odds-low">Low</span></div>
+<p class="risk-line"><span class="risk-key">Because</span>The code grants a write, which is what sharing means here, and the tool cannot tell a co-author from a stranger who was forwarded the message.</p>
+<p class="risk-line"><span class="risk-key">If it happens</span>An answer, a justification or a piece of evidence is different from what the owner left, with nothing on screen saying who changed it.</p>
+<p class="risk-line"><span class="risk-key">What we do</span>Four fields are frozen against anybody who is not the owner, and Google enforces it rather than the page hoping: the owner’s address, so a record cannot change hands; what kind of document it is, so it cannot be hidden from the assessor’s list; the assessor’s verdict; and the withdrawal. The five structural parts of the document must all be present, so a one-field write cannot reduce it to a stub. What is deliberately not frozen is the ready mark, because a co-author holding the code is somebody working on the assessment. There is no per-field history, and adding one is the version-history work that is already on the list.</p>
+<p class="risk-line"><span class="risk-key">Accepted by</span>Mariia, 14 September 2026</p>
+</div>
+<div class="risk">
+<div class="risk-head"><span class="risk-id">RK6</span>
+<b>The assessment in the store is older than the one on the submitter’s screen when an assessor reads it.</b>
+<span class="risk-odds odds-certain">Certain</span></div>
+<p class="risk-line"><span class="risk-key">Because</span>Saving online is one deliberate act each time, on purpose. Anything typed after the last save is on one computer until somebody presses the button again.</p>
+<p class="risk-line"><span class="risk-key">If it happens</span>An assessor scores a version that has moved on, or a laptop failure loses the work since the last save.</p>
+<p class="risk-line"><span class="risk-key">What we do</span>The badge in the header says the copy online is out of date, in words, on every screen, for as long as it is true. The results page offers Save online again whenever the store is behind. Marking an assessment ready saves it as part of doing so, so the version an assessor is told to read is the version they get. The assessor’s own list already flags a row whose stored version is newer than the one they opened.</p>
 <p class="risk-line"><span class="risk-key">Accepted by</span>Mariia, 14 September 2026</p>
 </div>
 <div class="risk">

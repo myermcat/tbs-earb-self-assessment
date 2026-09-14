@@ -41,13 +41,14 @@ export function blankAssessment(rubric: Rubric): Assessment {
  *   'idle'    nothing has been written yet this visit
  *   'saving'  a write is in flight
  *   'local'   held by this browser, and nothing has been submitted yet
- *   'online'  saved online, so later changes are written there too
+ *   'online'  the copy in the store is this one
+ *   'behind'  saved online once, and edited since, so the store holds an older version
  *   'failed'  the last write did not land, and the reason
  *
  * It starts idle. Starting at 'local' meant a page with nothing on it announced "draft saved
  * in browser" before anything had been saved, which is a claim ahead of the fact.
  */
-export type SaveState = 'idle' | 'local' | 'pending' | 'saving' | 'online' | 'offline' | 'failed';
+export type SaveState = 'idle' | 'local' | 'pending' | 'saving' | 'online' | 'behind' | 'offline' | 'failed';
 let saveState: SaveState = 'idle';
 let saveDetail = '';
 const saveWatchers = new Set<() => void>();
@@ -75,6 +76,8 @@ export function writePending(): void { setSaveState('pending'); }
 export function localOnly(): void { setSaveState('local'); }
 export function beginWrite(): void { setSaveState('saving'); }
 export function writeLanded(): void { setSaveState('online'); }
+/** Edited since the last online save. The store holds something older than what is on screen. */
+export function writeBehind(): void { setSaveState('behind'); }
 export function writeOffline(): void { setSaveState('offline'); }
 export function writeFailed(reason: string): void { setSaveState('failed', reason); }
 export function saveStatus(): { state: SaveState; detail: string } {
@@ -193,8 +196,6 @@ export function answeredCount(a: Assessment): number {
  * marking.ts has always counted for the same question.
  */
 export function hasWork(a: Assessment): boolean {
-  // Somebody named on it is work: a list of five people is a thing to lose.
-  if ((a.sharing?.people ?? []).length > 0) return true;
   if (answeredCount(a) > 0) return true;
   if (Object.values(a.initiative).some((v) => typeof v === 'string' && v.trim() !== '')) return true;
   return Object.values(a.answers).some(

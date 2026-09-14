@@ -10,8 +10,9 @@
 //   A Canadian region can be chosen. Create the database in northamerica-northeast1, which is
 //   Montreal. Cloudflare cannot offer that.
 //
-//   Nothing is publicly readable. With sign-in, a rule can name the person; without it, the
-//   only rule available is "anybody may read", which would publish every draft.
+//   Nothing can be listed without an account. That is the property that matters: an assessment
+//   is reachable only by naming it, and its name is a twelve-character code somebody was sent.
+//   See the comment on `allow get` for what that grants and what it costs.
 //
 //   Roles live in the database, so an admin grants them and the rules enforce them.
 //
@@ -38,6 +39,9 @@
 // THE RULES BELOW, IN WORDS
 //
 //   A signed-in person may create an assessment and read and change their own.
+//   Anybody holding an assessment's access code may open that one assessment and change it.
+//   They may not list anything, create anything, delete anything, read the assessor's audit
+//   subcollection, move the record to another account, or touch the audit or the withdrawal.
 //   An assessor may read every submitted assessment and write the audit on it, and may never
 //   touch anybody's answers or evidence.
 //   An admin may do what an assessor may, plus grant roles, plus delete a record.
@@ -63,26 +67,101 @@ service cloud.firestore {
     }
 
     match /assessments/{id} {
+      // Creating is an account's act, and this line does not change. An access code is the
+      // right to open ONE assessment that already exists. It is never the right to make new
+      // ones: somebody who could both choose a document id and create it could fill the
+      // collection at will, and that is the only abuse here that costs storage rather than one
+      // recoverable day of reads.
       allow create: if signedIn() && request.resource.data.ownerEmail == email();
 
-      // The submitter reads and changes their own. An assessor or an admin reads any.
-      allow get: if isOwner() || isAssessor();
+      /**
+       * Naming the document IS holding the access code.
+       *
+       * The id is the code: twelve characters from a 32-symbol alphabet with I, O, 0 and 1
+       * taken out, so 2^60. A request that names one has been sent it or has guessed one in a
+       * billion billion. Nothing can be listed without an account, so naming is the only way
+       * in, and that is what makes an unguessable name worth anything.
+       *
+       * This is the line that makes the whole of sharing work. Before it, a person holding a
+       * code was refused, so the code meant nothing and every screen that offered it was
+       * describing a mechanism the store did not have.
+       *
+       * WHAT IT COSTS, PLAINLY
+       *
+       * An assessment is readable by anybody who obtains its code, and a code cannot be taken
+       * back. Codes will be forwarded, pasted into tickets and left in chat logs. What is
+       * exposed is the typed reasoning and the titles and locations of evidence, which may name
+       * artefacts marked above Unclassified even though no such artefact is held here. Treat a
+       * leaked code as a disclosure of the assessment.
+       *
+       * WHAT IT DOES NOT COST
+       *
+       * Not enumeration: `list` below still needs an account, and no rule can be written that
+       * permits a query filtered on a code, because rules can read a query's limit, its offset
+       * and its ordering and nothing about a filter.
+       *
+       * Not a lookup fee: `if true` reads no document to decide, so the common path costs the
+       * one read it was always going to cost.
+       */
+      allow get: if true;
+
+      // Unchanged, and the load-bearing line in this file. An assessor keeps an account,
+      // because handing one person the whole pool is the one job no code can do.
       allow list: if isAssessor();
 
-      // The submitter may change their own answers. An assessor may not: the audit is a
-      // separate document, so an assessor writing a score can never overwrite an answer.
-      allow update: if isOwner() && request.resource.data.ownerEmail == resource.data.ownerEmail;
+      /**
+       * The owner changes their own record. Whoever holds the code may change it too, because
+       * that is what sharing an assessment means here: two people filling in 176 questions
+       * together, and the tool cannot tell a co-author from the owner, so it does not pretend
+       * to.
+       *
+       * Four things are frozen against a code holder, each of them an act that would be
+       * invisible to the owner:
+       *
+       *   ownerEmail   moving the record into somebody else's account
+       *   fileType     changing what it is, which hides it from the assessor's list
+       *   audit        forging or erasing an assessor's verdict, which is a field of this
+       *                document and not of the subcollection below
+       *   withdrawnAt  pulling a record out of the statistics
+       *
+       * And the five structural keys must all be present, because the page sends the whole
+       * document with no updateMask, so a short body would otherwise replace the rest of it
+       * with nothing.
+       *
+       * meta.submittedAt is deliberately NOT frozen. A co-author holding the code is somebody
+       * working on the assessment, and saying it is finished is part of that work.
+       */
+      allow update: if (isOwner() && request.resource.data.ownerEmail == resource.data.ownerEmail)
+                    || codeWriteIsClean();
 
-      // Admin only, and the tool makes them type the initiative name first.
+      // Admin only, and the tool makes them type the initiative name first. Somebody holding a
+      // code can damage an assessment and can never remove it.
       allow delete: if isAdmin();
 
-      // The audit trail, one document per assessment. Append-only from the outside: an
-      // assessor may add to it and may not shorten it.
+      // The audit trail as a subcollection. Nothing in src/ writes here yet; the audit the tool
+      // actually keeps is a field of the assessment, frozen against a code holder above. This
+      // stays closed until there is something in it.
       match /audit/{entry} {
         allow get, list: if isOwner() || isAssessor();
         allow create, update: if isAssessor();
         allow delete: if isAdmin();
       }
+    }
+
+    /**
+     * What somebody holding only an access code may not change.
+     *
+     * Read what this is and what it is not. It is not an access control: the access control is
+     * the document id, and anybody who has it has passed already. This is damage limitation,
+     * and its whole job is to keep a code holder out of the fields that would let them tell a
+     * lie the owner could not see.
+     */
+    function codeWriteIsClean() {
+      return request.resource.data.get('ownerEmail', '') == resource.data.get('ownerEmail', '')
+        && request.resource.data.get('fileType', '') == resource.data.get('fileType', '')
+        && request.resource.data.get('audit', {}) == resource.data.get('audit', {})
+        && request.resource.data.get('withdrawnAt', '') == resource.data.get('withdrawnAt', '')
+        && request.resource.data.keys().hasAll(['fileType', 'rubric', 'initiative', 'answers', 'meta']);
     }
 
     function signedIn() {

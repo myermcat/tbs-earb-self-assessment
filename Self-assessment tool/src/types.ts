@@ -273,16 +273,24 @@ export interface Assessment {
     updatedAt: string;
     appVersion: string;
     /**
-     * When the person first chose to keep this at TBS.
+     * When this assessment was last put in the store, by somebody pressing the button.
      *
-     * Nothing leaves the machine before this is set, which is the whole point of it. After it
-     * is set the copy at TBS is kept current on its own, the way a document editor does it. So
-     * one deliberate act turns saving on, and the act is the thing that carries consent.
+     * Nothing leaves the machine unless somebody asks for it, and this is the record that
+     * somebody did. It was once a switch: press it and everything after went by itself. That
+     * is not what was wanted, and it is not what this is.
      */
     savedOnlineAt?: string;
+    /**
+     * What the copy in the store contains, so the tool can say whether it is behind this one.
+     *
+     * The fingerprint of the assessment as it went, kept in the assessment itself and so
+     * surviving a reload. Module state cannot answer this question: a reloaded tab has no
+     * memory of the last write, and the badge went blank until somebody typed.
+     */
+    onlineVersion?: string;
     /** Set when the person has been offered online saving and said the browser is enough. */
     onlineDeclined?: boolean;
-    /** When the person said it was finished and an assessor was told to read it. */
+    /** When the submitter marked it ready for an assessor to read. Nothing is sent. */
     submittedAt?: string;
   };
   /** Set when a record is pulled back out of the statistics. */

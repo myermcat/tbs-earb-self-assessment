@@ -6,7 +6,7 @@ import { autosave } from './storage';
 import { markingProblems } from './marking';
 import { codeChip } from './code-chip';
 import { t } from './i18n';
-import { isHosted, putRecord, savedOnline } from './store';
+import { isHosted, onlineIsCurrent, saveOnlineNow, savedOnline } from './store';
 import { currentUser, formatCode, pageAddress } from './firebase';
 import { openShareDialog, sharedPanel } from './views-share';
 import { repaint, saveOnline } from './views-submit';
@@ -304,11 +304,19 @@ export function renderResults(root: HTMLElement, rubric: Rubric, a: Assessment, 
   r4.appendChild(el('div', { class: 'actions' }, [
     // Saving online is the act on this page, so it is the strong control here as well as in
     // the questionnaire footer. Everything a file used to do is in the File menu.
-    isHosted() && !savedOnline(a)
+    /**
+     * Offered whenever the store does not hold what is on screen, which after the reversal to
+     * deliberate saving is most of the time. It used to appear only before the first save, so
+     * somebody who saved on Monday and edited on Tuesday had no way to send Tuesday's work
+     * from the page that shows it.
+     */
+    isHosted() && !onlineIsCurrent(a)
       ? el('button', {
           class: 'primary', disabled: problems.length > 0,
           onclick: () => saveOnline(),
-        }, [t('Save online', 'Enregistrer en ligne')])
+        }, [savedOnline(a)
+          ? t('Save online again', 'Enregistrer de nouveau en ligne')
+          : t('Save online', 'Enregistrer en ligne')])
       : null,
     el('button', { class: 'ghost', onclick: () => window.print() }, [
       t('Print or save as a PDF', 'Imprimer ou enregistrer en PDF'),
@@ -350,6 +358,44 @@ function submitBlock(rubric: Rubric, a: Assessment, r: Result, blocked: boolean)
         : t(`Marked ready on ${when.toLocaleString()}. `, `Marqu\u00e9e pr\u00eate le ${when.toLocaleString()}. `),
       t('You can keep working. An assessor reads the version you last saved online, so save again after you change anything.',
         'Vous pouvez continuer \u00e0 travailler. Un \u00e9valuateur lit la version que vous avez enregistr\u00e9e en ligne en dernier; enregistrez de nouveau apr\u00e8s toute modification.'),
+    ]));
+    /**
+     * Taking the mark back off.
+     *
+     * A mark with no way off it is a trap: somebody presses it, finds a mistake, and the
+     * assessor's list still says this is finished work. It is the same act in reverse and it
+     * is written the same way, including putting the mark back if the store refuses the write.
+     */
+    box.appendChild(el('div', { class: 'actions' }, [
+      el('button', {
+        class: 'ghost',
+        onclick: () => confirmStep({
+          tier: 'plain',
+          title: t('Take the ready mark off?', 'Retirer la marque de disponibilit\u00e9?'),
+          body: t('This assessment goes back to being a draft in the assessor\u2019s list, and you can mark it ready again whenever you want. Nothing else changes, and nobody is told either way.',
+            'Cette \u00e9valuation redevient une \u00e9bauche dans la liste de l\u2019\u00e9valuateur, et vous pourrez la marquer pr\u00eate de nouveau quand vous le voudrez. Rien d\u2019autre ne change, et personne n\u2019est averti dans un sens ou dans l\u2019autre.'),
+          note: t('If an assessor has already read it, taking the mark off does not unread it.',
+            'Si un \u00e9valuateur l\u2019a d\u00e9j\u00e0 lue, retirer la marque n\u2019y change rien.'),
+          commitLabel: t('Take it off', 'La retirer'),
+          cancelLabel: t('Leave it marked', 'La laisser marqu\u00e9e'),
+          onCommit: () => {
+            const was = a.meta.submittedAt;
+            delete a.meta.submittedAt;
+            autosave(a);
+            void saveOnlineNow(a).then((res) => {
+              if (!res.ok) { a.meta.submittedAt = was; autosave(a); }
+              const fresh = submitBlock(rubric, a, r, blocked);
+              if (!res.ok) {
+                fresh.appendChild(el('p', { class: 'card warn tight small' }, [
+                  el('strong', {}, [t('The mark is still on. ', 'La marque est toujours l\u00e0. ')]),
+                  res.problem,
+                ]));
+              }
+              box.replaceWith(fresh);
+            });
+          },
+        }),
+      }, [t('Take the ready mark off', 'Retirer la marque')]),
     ]));
     return box;
   }
@@ -394,7 +440,7 @@ function submitBlock(rubric: Rubric, a: Assessment, r: Result, blocked: boolean)
         onCommit: () => {
           a.meta.submittedAt = new Date().toISOString();
           autosave(a);
-          void putRecord(a).then((res) => {
+          void saveOnlineNow(a).then((res) => {
             if (!res.ok) {
               // The mark comes back off, because it never reached the store, and an assessor
               // would never have seen it.

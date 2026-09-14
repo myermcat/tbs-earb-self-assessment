@@ -572,6 +572,25 @@ async function authorized(url: string, init: RequestInit = {}): Promise<Reply> {
 }
 
 /**
+ * The same request, with the token only if there is one.
+ *
+ * Two paths in this file are granted by the rules on the document's name rather than on who is
+ * asking: reading an assessment somebody sent you the code for, and saving one back. Demanding
+ * a session before the request goes is the client refusing what the store would allow, and it
+ * is what made an access code mean nothing for anybody without an account.
+ *
+ * The token still goes when there is one, because an owner or an assessor is granted more by
+ * the rules than a code holder is, and the same request should get them everything they have.
+ */
+async function withCodeOrAccount(url: string, init: RequestInit = {}): Promise<Reply> {
+  const token = await freshToken();
+  const headers: Record<string, string> = { accept: 'application/json' };
+  if (token) headers.authorization = `Bearer ${token}`;
+  if (init.body !== undefined) headers['content-type'] = 'application/json';
+  return call(url, { ...init, headers });
+}
+
+/**
  * The alphabet an access code is drawn from.
  *
  * Thirty-two characters with I, O, 0 and 1 removed, so nothing in a code can be misread on a
@@ -678,7 +697,9 @@ export async function listAssessments(): Promise<Assessment[]> {
 
 /** One record by its id. Null means there is no such document, which an admin delete produces. */
 export async function getAssessment(id: string): Promise<Assessment | null> {
-  const reply = await authorized(`${docsRoot()}/assessments/${encodeURIComponent(id)}`);
+  // The code is the name of the document, and the rules grant a get on the name alone. So this
+  // request carries a token when there is one and goes without when there is not.
+  const reply = await withCodeOrAccount(`${docsRoot()}/assessments/${encodeURIComponent(id)}`);
   if (reply.status === 404) return null;
   if (reply.status !== 200) throw new Error(problemFrom(reply));
   return assessmentFrom(reply.body);
@@ -691,33 +712,46 @@ export async function getAssessment(id: string): Promise<Assessment | null> {
  * means here: a justification somebody deleted has to go from the record as well, and a mask
  * would leave the old one behind.
  *
- * `ownerEmail` is set from the signed-in address because the rules compare the two on create
- * and refuse a change to it on update. Checking it here as well is so the message names the
- * person the record belongs to, which a 403 from Google does not.
+ * WHO MAY DO THIS, which is two different people now.
+ *
+ * An account creating its own assessment. The rules compare `ownerEmail` against the signed-in
+ * address on create, so it is set from the session, and the same comparison here is only so
+ * that a refusal names the person rather than arriving as a bare 403.
+ *
+ * Somebody holding the access code, with no account at all. The code is the document's name,
+ * and the rules grant an update on the name as long as the write leaves `ownerEmail` alone.
+ * So a co-author's write keeps the owner it found and this function never invents one. That is
+ * what makes the sentence the tool prints on four screens true: whoever holds the code can
+ * open this assessment and change it.
+ *
+ * A record with no id has never been in the store, so there is nothing to hold a code for and
+ * it takes the create path, which needs an account.
  */
 export async function putAssessment(a: Assessment): Promise<string> {
   const me = currentUser();
-  if (!me) throw new Error('Sign in before saving to the shared store.');
-  const owner = a.ownerEmail ?? me.email;
-  if (owner !== me.email) {
+  const making = !a.id;
+  if (making && !me) throw new Error('Sign in before putting a new assessment in the store.');
+  if (making && me) a.ownerEmail = a.ownerEmail ?? me.email;
+  const owner = a.ownerEmail ?? me?.email ?? '';
+  if (making && me && owner !== me.email) {
     throw new Error(`This assessment belongs to ${owner}, and you are signed in as ${me.email}.`);
   }
 
   /**
-   * The id and the owner are written onto the record before the request goes, rather than after
-   * it comes back. Two writes started close together would otherwise each mint an id and the
-   * one record would become two documents; and the guard that stops somebody else's file being
-   * written into your account has nothing to read until the owner is on the local copy.
+   * The id is written onto the record before the request goes, rather than after it comes
+   * back. Two writes started close together would otherwise each mint an id and the one record
+   * would become two documents.
    */
   a.id = a.id ?? newDocId();
-  a.ownerEmail = owner;
+  a.ownerEmail = owner || undefined;
   const id = a.id;
-  const body: Record<string, unknown> = { ...a, ownerEmail: owner };
+  const body: Record<string, unknown> = { ...a };
+  if (owner) body.ownerEmail = owner; else delete body.ownerEmail;
   // The id is the document's path. Keeping a second copy of it in the fields gives two answers
   // to one question the first time a record is copied.
   delete body.id;
 
-  const reply = await authorized(`${docsRoot()}/assessments/${encodeURIComponent(id)}`, {
+  const reply = await withCodeOrAccount(`${docsRoot()}/assessments/${encodeURIComponent(id)}`, {
     method: 'PATCH',
     body: JSON.stringify({ fields: toFields(body) }),
   });

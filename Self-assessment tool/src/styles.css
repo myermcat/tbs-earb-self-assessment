@@ -1249,6 +1249,10 @@ button.is-mockup, a.is-mockup { opacity: .62; cursor: not-allowed; }
 .save-state .ss-dot { width: 7px; height: 7px; border-radius: 999px; background: var(--ink-3); }
 .save-state.st-online { color: var(--good); border-color: color-mix(in srgb, var(--good) 40%, var(--line)); }
 .save-state.st-online .ss-dot { background: var(--good); }
+/* Saved once and edited since. Amber, because nothing is lost and something is owed: the copy
+   an assessor reads is older than the one on screen until the button is pressed again. */
+.save-state.st-behind { color: var(--warn); border-color: color-mix(in srgb, var(--warn) 45%, var(--line)); }
+.save-state.st-behind .ss-dot { background: var(--warn); }
 .save-state.st-failed { color: var(--bad); font-weight: 600;
   border-color: var(--bad); background: var(--bad-bg); }
 .save-state .ss-short { display: none; }
