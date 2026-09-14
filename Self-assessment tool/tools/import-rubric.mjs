@@ -75,6 +75,7 @@ async function sheet(name) {
 }
 
 const clean = (s) => (s ?? '').replace(/\s+/g, ' ').trim();
+const slug = (s) => clean(s).toLowerCase().replace(/&/g, 'and').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 
 /**
  * Dan wants security and privacy visible without inventing a fifth domain, so a question can
@@ -118,6 +119,53 @@ const PRIVACY_WORDS = /\b(privacy|personal information|PIA|Privacy Impact|consen
  */
 const FINANCIAL_WORDS = /\b(cost|costing|budget|funding|funded|financial|expenditure|licen[cs]ing fee|total cost of ownership|TCO|invest(ment|ing)|value for money|business case)/i;
 
+/**
+ * The nine topics Dan named on 8 September, as ids. Declared here as well as in the rubric it
+ * writes, because a Topics column has to be checked against something while it is being read
+ * and failing at import is the whole point: a topic nobody declared scores nothing, silently,
+ * on every screen.
+ */
+const TOPIC_IDS = new Set([
+  'business', 'data', 'application', 'technology',
+  'security', 'privacy', 'financial', 'accessibility', 'official-languages',
+]);
+
+/**
+ * Where a Topics column is, if Dan has added one.
+ *
+ * Found by its header rather than by position, so it can go anywhere in the sheet and the
+ * import does not break the day somebody inserts a column before it. The header row is the one
+ * carrying "Assessment Question", which is also how the rest of this file recognises the sheet.
+ */
+function topicColumnIn(rows) {
+  for (const r of rows.slice(0, 6)) {
+    const at = r.findIndex((c) => /assessment question/i.test(clean(c)));
+    if (at < 0) continue;
+    const topics = r.findIndex((c) => /^topics?$/i.test(clean(c)));
+    return topics < 0 ? -1 : topics;
+  }
+  return -1;
+}
+
+/**
+ * Read one cell of a Topics column: "security, privacy" or "Security; Privacy" or blank.
+ *
+ * Anything it does not recognise is returned as a problem rather than dropped, because a
+ * mistyped topic is invisible afterwards: the question simply counts towards nothing and every
+ * screen looks right.
+ */
+function topicsFromCell(cell, qid, bad) {
+  const out = [];
+  for (const piece of clean(cell).split(/[,;]/)) {
+    const name = clean(piece);
+    if (!name) continue;
+    const id = slug(name);
+    if (TOPIC_IDS.has(id)) out.push(id);
+    else bad.push(`${qid}: "${name}" is not one of the nine topics.`);
+  }
+  return out;
+}
+
 function topicsFor(domainId, text) {
   const out = [domainId];
   if (SECURITY_WORDS.test(text)) out.push('security');
@@ -125,7 +173,6 @@ function topicsFor(domainId, text) {
   if (FINANCIAL_WORDS.test(text)) out.push('financial');
   return out;
 }
-const slug = (s) => clean(s).toLowerCase().replace(/&/g, 'and').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 
 // ---- the 0-10 ladder -------------------------------------------------------------------
 const scaleRows = await sheet('Assessment Scale');
@@ -140,6 +187,10 @@ if (anchors.length !== 11) throw new Error(`Expected 11 scale rows, got ${anchor
 // ---- the four domain sheets ------------------------------------------------------------
 const warnings = [];
 const domains = [];
+/** Which sheets carried a Topics column, so the note on screen can say whose assignments these are. */
+const fromColumn = new Set();
+/** Topic names in a sheet that are not one of the nine. These stop the import. */
+const badTopics = [];
 
 for (const d of DOMAINS) {
   const rows = await sheet(d.sheet);
@@ -148,6 +199,10 @@ for (const d of DOMAINS) {
 
   const sections = [];
   let current = null;
+  // Dan's own assignments, if he has put a Topics column in this sheet. Without one the
+  // keyword pass below is what fills them, and the rubric says so on every screen.
+  const topicAt = topicColumnIn(rows);
+  if (topicAt >= 0) fromColumn.add(d.id);
 
   for (const r of rows.slice(2)) {
     const first = clean(r[0]);
@@ -168,13 +223,24 @@ for (const d of DOMAINS) {
     }
 
     if (/^Q\d+$/.test(qNum) && qText && current) {
+      const qid = `${d.id.slice(0, 1).toUpperCase()}-${qNum}`;
+      /**
+       * A question's own domain is always one of its topics and is never typed by anybody: it
+       * is where the question lives. What a Topics column adds is the second, third and fourth,
+       * and a cell left blank means "this one is only about its own domain", which is the
+       * common case and should cost nobody any typing.
+       */
+      const named = topicAt >= 0 ? topicsFromCell(r[topicAt], qid, badTopics) : [];
+      const topics = topicAt >= 0
+        ? [...new Set([d.id, ...named])]
+        : topicsFor(d.id, qText);
       current.questions.push({
-        id: `${d.id.slice(0, 1).toUpperCase()}-${qNum}`,
+        id: qid,
         sheetRef: qNum,
         text: qText,
         weight: 1,
         answerType: answerTypeFor(qText),
-        topics: topicsFor(d.id, qText),
+        topics,
       });
     }
   }
@@ -331,6 +397,47 @@ if (previous) {
   }
   const added = Object.keys(current).filter((id) => !(id in previous));
   if (added.length) console.log(`  ${added.length} new question id(s): ${added.slice(0, 6).join(', ')}${added.length > 6 ? '...' : ''}`);
+}
+
+/**
+ * A mistyped topic stops the import rather than warning about it.
+ *
+ * Everything else here is a warning, because everything else is visible: a missing weight or a
+ * changed question shows up on a screen. A topic nobody declared is the exception. The question
+ * simply counts towards nothing, every page renders correctly, and the category Dan asked for
+ * is quietly short. There is no way to notice that later, so it is caught here.
+ */
+if (badTopics.length) {
+  console.error(`\nRefusing to write ${OUT}. ${badTopics.length} topic name(s) are not recognised:\n`);
+  for (const b of badTopics) console.error(`  - ${b}`);
+  console.error(`\nThe nine are: ${[...TOPIC_IDS].join(', ')}.`);
+  console.error('Fix the Topics column in the workbook, or add the topic to TOPIC_IDS here and to the');
+  console.error('topics list below it if TBS has genuinely named a tenth.');
+  process.exit(1);
+}
+
+/**
+ * What the note under the topic bars says, which depends on where the assignments came from.
+ *
+ * Until Dan puts a Topics column in the workbook these are a keyword pass over the question
+ * wording, and every screen that shows them says so and wears a "provisional grouping" badge.
+ * The badge is gone the moment all four sheets carry the column, because the numbers are then
+ * his and not ours.
+ */
+const allFromColumn = fromColumn.size === DOMAINS.length;
+rubric.topicsNote = allFromColumn
+  ? 'A second axis. The four domains still produce the overall score and a question counts once '
+    + 'there. A question also counts at full weight inside every topic it carries, which is where '
+    + 'the weights genuinely differ. The nine topics are Business, Data, Application, Technology, '
+    + 'Security, Privacy, Accessibility, Official Languages and Financial. Every assignment beyond '
+    + 'a question\u2019s own domain comes from the Topics column in Dan\u2019s workbook.'
+  : rubric.topicsNote;
+if (!allFromColumn && fromColumn.size) {
+  warnings.push(
+    `A Topics column was found in ${fromColumn.size} of ${DOMAINS.length} domain sheets `
+    + `(${[...fromColumn].join(', ')}). The sheets without one fall back to the keyword pass, so the `
+    + 'grouping is half his and half ours and the tool still calls it provisional.',
+  );
 }
 
 rubric.importWarnings = warnings;

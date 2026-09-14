@@ -483,6 +483,48 @@ function stable(x: unknown): string {
      /Dan owns the real assignments/.test(rubric.topicsNote ?? ''));
   ok('and names what would fill the empty two',
      /Topics column/.test(rubric.topicsNote ?? ''));
+
+  /**
+   * A topic nobody declared is the one error in a question set that cannot be seen afterwards.
+   *
+   * The question counts towards nothing, every page renders correctly, and a category TBS asked
+   * for is quietly short by one. "secuirty" on one row out of 176 is not a number anybody can
+   * check by looking, so the file is refused when it loads.
+   */
+  const bent = JSON.parse(JSON.stringify(rubric)) as Rubric;
+  bent.domains[0].sections[0].questions[0].topics = ['business', 'secuirty'];
+  const verdict = validate(bent);
+  ok('a question set carrying a topic it never declared is refused', verdict.ok === false);
+  ok('and the refusal names the question and the topic',
+     !verdict.ok && verdict.problems.some((x) => /secuirty/.test(x) && /B-Q/.test(x)),
+     verdict.ok ? '' : verdict.problems.join(' | '));
+
+  /**
+   * The score is the whole point of the second axis, so it is asserted rather than assumed: a
+   * question counts ONCE in the overall through its domain, and at FULL weight inside every
+   * topic it carries. Those two facts are what let security weigh differently from business
+   * without inflating the total.
+   */
+  const one = rubric.domains[0].sections[0].questions[0];
+  const filled = blank('beta');
+  filled.answers[one.id] = { score: 10, evidence: [] };
+  const r = score(rubric, filled);
+  const inTopics = r.topics.filter((t) => (one.topics ?? []).includes(t.topic.id));
+  ok('one answer scores inside every topic that question carries',
+     inTopics.length === (one.topics ?? []).length && inTopics.every((t) => t.score === 10),
+     inTopics.map((t) => `${t.topic.id}=${t.score}`).join(' '));
+  /**
+   * And the arithmetic that makes it a second cut rather than a second spine: every question
+   * sits in exactly one domain, and the topics between them hold more memberships than there
+   * are questions. That difference is the 44 questions carrying more than one.
+   */
+  const whole = score(rubric, fill(blank('beta'), 7));
+  const inDomains = whole.domains.reduce((n, d) => n + d.total, 0);
+  const inTopicsTotal = whole.topics.reduce((n, t) => n + t.total, 0);
+  ok('every question counts once across the domains', inDomains === allQ.length,
+     `${inDomains} of ${allQ.length}`);
+  ok('and more than once across the topics, which is why they do not add up to the overall',
+     inTopicsTotal > inDomains, `${inTopicsTotal} topic memberships for ${inDomains} questions`);
 }
 
 

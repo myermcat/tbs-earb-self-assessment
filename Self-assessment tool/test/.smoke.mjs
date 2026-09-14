@@ -516,6 +516,7 @@ function validate(x) {
   if (!r.scale?.anchors?.length) problems.push("Needs a scale with anchors.");
   if (!Array.isArray(r.bands) || !r.bands.length) problems.push("Needs at least one band.");
   if (!Array.isArray(r.lifecycleStages) || !r.lifecycleStages.length) problems.push("Needs lifecycle stages.");
+  const topicIds = new Set((r.topics ?? []).map((t) => t.id));
   const ids = /* @__PURE__ */ new Set();
   for (const d of r.domains ?? []) {
     if (typeof d.weight !== "number") problems.push(`Domain ${d.id}: weight must be a number.`);
@@ -529,6 +530,11 @@ function validate(x) {
         ids.add(q.id);
         if (typeof q.weight !== "number") problems.push(`Question ${q.id}: weight must be a number.`);
         if (!q.text) problems.push(`Question ${q.id}: no text.`);
+        for (const topic of q.topics ?? []) {
+          if (!topicIds.has(topic)) {
+            problems.push(`Question ${q.id}: topic "${topic}" is not one this question set declares.`);
+          }
+        }
       }
     }
   }
@@ -3298,6 +3304,38 @@ function stable(x) {
   ok(
     "and names what would fill the empty two",
     /Topics column/.test(rubric.topicsNote ?? "")
+  );
+  const bent = JSON.parse(JSON.stringify(rubric));
+  bent.domains[0].sections[0].questions[0].topics = ["business", "secuirty"];
+  const verdict = validate(bent);
+  ok("a question set carrying a topic it never declared is refused", verdict.ok === false);
+  ok(
+    "and the refusal names the question and the topic",
+    !verdict.ok && verdict.problems.some((x) => /secuirty/.test(x) && /B-Q/.test(x)),
+    verdict.ok ? "" : verdict.problems.join(" | ")
+  );
+  const one = rubric.domains[0].sections[0].questions[0];
+  const filled = blank("beta");
+  filled.answers[one.id] = { score: 10, evidence: [] };
+  const r = score(rubric, filled);
+  const inTopics = r.topics.filter((t) => (one.topics ?? []).includes(t.topic.id));
+  ok(
+    "one answer scores inside every topic that question carries",
+    inTopics.length === (one.topics ?? []).length && inTopics.every((t) => t.score === 10),
+    inTopics.map((t) => `${t.topic.id}=${t.score}`).join(" ")
+  );
+  const whole = score(rubric, fill(blank("beta"), 7));
+  const inDomains = whole.domains.reduce((n, d) => n + d.total, 0);
+  const inTopicsTotal = whole.topics.reduce((n, t) => n + t.total, 0);
+  ok(
+    "every question counts once across the domains",
+    inDomains === allQ.length,
+    `${inDomains} of ${allQ.length}`
+  );
+  ok(
+    "and more than once across the topics, which is why they do not add up to the overall",
+    inTopicsTotal > inDomains,
+    `${inTopicsTotal} topic memberships for ${inDomains} questions`
   );
 }
 console.log(fails === 0 ? "\nall checks passed" : `
