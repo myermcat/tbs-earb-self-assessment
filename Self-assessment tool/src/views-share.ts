@@ -23,6 +23,7 @@ import { el, clear, mockupTag } from './dom';
 import { openDialog, closeOnOutsideClick, confirmStep } from './confirm';
 import { autosave } from './storage';
 import { t } from './i18n';
+import { formatCode } from './firebase';
 
 /** Deliberately loose. This is a list somebody reads, and a strict pattern refuses real addresses. */
 const LOOKS_LIKE_EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -227,6 +228,52 @@ export function openShareDialog(a: Assessment, owner: string, after: () => void)
     mockupTag(t('Mockup', 'Maquette')),
   ]));
   dlg.appendChild(el('div', { class: 'cf-body' }, [
+    /**
+     * The access code, first, because it is the only thing on this screen that works.
+     *
+     * It is the record's own name in the store, so anybody holding it can open this assessment
+     * and nothing else. There is no way to send it from here: a page that opened a mail client
+     * would be promising delivery it cannot see, so the code goes on the clipboard and the
+     * person sends it themselves.
+     */
+    a.id
+      ? el('div', {}, [
+          el('h3', { class: 'share-group' }, [t('The access code', 'Le code d\u2019accès')]),
+          el('p', { class: 'muted small' }, [
+            t('Anybody with this code can open this assessment. Send it to them yourself, in Teams or by email.',
+              'Toute personne ayant ce code peut ouvrir cette évaluation. Envoyez-le-lui vous-même, dans Teams ou par courriel.'),
+          ]),
+          (() => {
+            const shown = el('span', { class: 'code-shown' }, [formatCode(a.id ?? '')]);
+            const note = el('span', { class: 'tiny dim' });
+            const copy = el('button', {
+              class: 'ghost small',
+              onclick: () => {
+                const text = formatCode(a.id ?? '');
+                const done = () => {
+                  note.textContent = t('Copied. Paste it into a message and send it.',
+                    'Copié. Collez-le dans un message et envoyez-le.');
+                };
+                try {
+                  void navigator.clipboard?.writeText(text).then(done, () => {
+                    note.textContent = t('This browser would not let the page copy it. Select it and copy by hand.',
+                      'Ce navigateur n\u2019a pas permis la copie. Sélectionnez le code et copiez-le à la main.');
+                  });
+                } catch {
+                  note.textContent = t('This browser would not let the page copy it. Select it and copy by hand.',
+                    'Ce navigateur n\u2019a pas permis la copie. Sélectionnez le code et copiez-le à la main.');
+                }
+              },
+            }, [t('Copy the code', 'Copier le code')]);
+            return el('div', { class: 'share-code-row' }, [shown, copy, note]);
+          })(),
+        ])
+      : el('div', { class: 'card warn tight' }, [
+          el('p', { class: 'small' }, [
+            t('This assessment has no access code yet. It gets one the first time it is saved online.',
+              'Cette évaluation n\u2019a pas encore de code d\u2019accès. Elle en reçoit un lors du premier enregistrement en ligne.'),
+          ]),
+        ]),
     el('div', { class: 'card warn tight' }, [
       el('p', { class: 'small' }, [
         t('Addresses you add are written into your assessment and shown here. No email is sent, and nobody gains access to anything. This is the shape of sharing, agreed before it is built.',
