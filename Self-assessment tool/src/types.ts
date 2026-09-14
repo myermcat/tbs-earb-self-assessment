@@ -24,6 +24,16 @@ export interface SavedBy {
   at: string;
   /** Always true. There is no authentication behind a submitter's name in this tool. */
   unverified: true;
+  /**
+   * Which save this was. The two named ones are the versions somebody asks about later: the
+   * one where the assessment first existed at TBS, and the one where it was handed to an
+   * assessor. Ordinary saves in between are 'save' and are the first to be dropped.
+   */
+  moment?: 'first' | 'ready' | 'unready' | 'save';
+  /** What it scored out of ten when it went, so a trail reads as a trend and not as a list. */
+  score?: number | null;
+  /** How many of the scoreable questions were answered then. */
+  answered?: number;
 }
 
 export interface Topic {

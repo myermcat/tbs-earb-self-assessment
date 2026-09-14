@@ -39,7 +39,8 @@
 // THE RULES BELOW, IN WORDS
 //
 //   A signed-in person may create an assessment and read and change their own.
-//   Anybody holding an assessment's access code may open that one assessment and change it.
+//   Anybody holding an assessment's code may create it, open it, and change it. The code is the
+//   document's name, so holding it and being able to name the document are the same fact.
 //   They may not list anything, create anything, delete anything, read the assessor's audit
 //   subcollection, move the record to another account, or touch the audit or the withdrawal.
 //   An assessor may read every submitted assessment and write the audit on it, and may never
@@ -67,12 +68,24 @@ service cloud.firestore {
     }
 
     match /assessments/{id} {
-      // Creating is an account's act, and this line does not change. An access code is the
-      // right to open ONE assessment that already exists. It is never the right to make new
-      // ones: somebody who could both choose a document id and create it could fill the
-      // collection at will, and that is the only abuse here that costs storage rather than one
-      // recoverable day of reads.
-      allow create: if signedIn() && request.resource.data.ownerEmail == email();
+      /**
+       * Creating, by an account or by whoever minted the code.
+       *
+       * An assessment now has its code from the moment it is created in the browser, before it
+       * has ever been online, which is what makes the code the one thing a person keeps. So the
+       * first save is a create by somebody who may have no account at all, and requiring one
+       * here would put the account back on the submitter that this whole design removes.
+       *
+       * What is asked instead: the name has to be a code this tool would mint, and the body has
+       * to be an assessment. Neither is a security control and neither pretends to be. They stop
+       * this collection being used as free storage for something else, which is the only abuse
+       * here that costs storage rather than one recoverable day of reads.
+       *
+       * A signed-in person still writes their address on it, and that is what later pins the
+       * record to them: ownerEmail cannot be changed afterwards by anybody.
+       */
+      allow create: if (signedIn() && request.resource.data.ownerEmail == email())
+                    || (isCodeShaped(id) && looksLikeAnAssessment());
 
       /**
        * Naming the document IS holding the access code.
@@ -146,6 +159,17 @@ service cloud.firestore {
         allow create, update: if isAssessor();
         allow delete: if isAdmin();
       }
+    }
+
+    /** The shape of a code this tool mints: twelve characters, I O 0 and 1 left out. */
+    function isCodeShaped(id) {
+      return id.matches('^[A-HJ-NP-Z2-9]{12}$');
+    }
+
+    /** The five parts every assessment carries. Not a security control: a shape check. */
+    function looksLikeAnAssessment() {
+      return request.resource.data.get('fileType', '') == 'gc-arch-assessment'
+        && request.resource.data.keys().hasAll(['fileType', 'rubric', 'initiative', 'answers', 'meta']);
     }
 
     /**

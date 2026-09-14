@@ -22,6 +22,79 @@ npm run check      # typecheck only
 `dist/index.html` is the whole product. Open it directly, email it, put it on a share,
 or serve it from GitHub Pages. It behaves identically in all four cases.
 
+## Who can open an assessment, and how
+
+**There are no accounts for the people filling this in.** Dan asked for that on 8 September,
+and this is how it works.
+
+Every assessment gets a **reference code** the moment it is created: twelve characters from a
+32-letter alphabet with I, O, 0 and 1 left out, so it can be read down a phone.
+
+    KFRM-92TX-BQ7H
+
+That code is the assessment's name in the store. The rule is one sentence: **if you can name
+an assessment, you can open it and change it.** So whoever holds the code is in, with no
+account, no sign-in and nothing to set up, and sharing an assessment means sending somebody
+the code.
+
+What nobody can do without an account is ask **what assessments exist**. There is no listing,
+no directory and no browsing. That is the property the whole design rests on, and it is not a
+choice: a Firestore rule can read a query's limit, its offset and its ordering, and nothing
+about a filter, so "list the ones matching the code I typed" is not a rule anybody can write.
+Listing is granted to a person or to nobody, and it is granted to assessors, who therefore
+keep accounts.
+
+**How safe.** A stranger cannot find an assessment: they would have to guess twelve characters
+out of a billion billion. Somebody holding a code cannot delete anything, list anything, take
+ownership, or touch an assessor's verdict, and Google enforces that rather than this page
+hoping. Every save online asks for a name and a work email, kept with that version, so an
+assessor reading a version can see whose it is.
+
+**What it costs, and it is written down as a risk.** A code is a key whose lock cannot be
+changed. Forward it to the wrong person and they have it permanently. Say it out loud when you
+send one.
+
+**Emails quote the first four characters only.** A subject line is logged, forwarded, quoted
+back in replies and answerable to access-to-information, and the whole code opens the
+assessment. Four characters is enough to find the thread in Outlook and eight characters short
+of opening anything.
+
+## Domains and topics, which are two different things
+
+A **domain** is one of the four parts of the GC EA framework: Business, Data, Application,
+Technology. Every question lives in exactly one. They carry 25% each and they produce the
+overall score. That is the spine, and it has to stay a clean split or the arithmetic stops
+meaning anything.
+
+A **topic** is a subject label, and a question can carry as many as apply. There are nine, named
+by Dan on 8 September: the four domain names, plus Security, Privacy, Financial, Accessibility
+and Official Languages.
+
+Both exist because "how are we doing on security?" cannot be answered from the four domains.
+Security questions are scattered across all four, so a department that is weak on security sees
+four numbers that each look fine.
+
+**The arithmetic.** A question counts **once** in the overall score, through its domain. It
+counts at **full weight** inside **every** topic it carries. The two do not reconcile and the
+results page says so. Today: 176 questions, 222 topic memberships; 132 carry only their own
+domain, 42 carry two, 2 carry three.
+
+**How Dan fills them in.** His workbook has one tab per domain. A question stays on its one
+tab, and a `Topics` column on that row lists the subjects **beyond** its own domain:
+
+| Tab | Q# | Assessment Question | Topics |
+|---|---|---|---|
+| Data & Info | Q27 | Are data retention and disposition policies enforced... | `Security, Privacy` |
+| Data & Info | Q28 | Are data quality rules defined and measured... | |
+
+The column is found by its header, so it can sit anywhere in the sheet. Comma or semicolon
+separated, case and spacing ignored. A blank cell is the normal case. **A question is never
+duplicated into a second tab** — that would count it twice in the overall score and move the
+department's number for no reason but how we filed it. A name that is not one of the nine
+refuses the whole import and says which question and which name.
+
+    node tools/import-rubric.mjs
+
 ## Everything in it is unclassified
 
 Dan settled this on 2026-09-01: nothing classified goes into the tool at all. That one rule

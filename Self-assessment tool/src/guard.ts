@@ -115,6 +115,15 @@ export function guardDraft(o: GuardOptions): void {
     // The code itself, to take with them. Mentioning one and leaving it as text is how
     // somebody closes this window and cannot find their way back.
     extra: code ? codeChip(code) : undefined,
+    /**
+     * Ticked, not read. This window is the last moment somebody has the code in front of them
+     * before the only copy of it leaves this browser, and a sentence about that is something
+     * people scroll past. Ticking is deliberate in a way reading is not.
+     */
+    mustAgree: code
+      ? t('I have saved this code somewhere. Without it there is no way back to this assessment.',
+          'J\u2019ai conservé ce code quelque part. Sans lui, il n\u2019y a aucun moyen de revenir à cette évaluation.')
+      : undefined,
     stake,
     /**
      * Saving first, and then showing the code, and only then replacing anything.

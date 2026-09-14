@@ -257,11 +257,20 @@ ok('the save indicator is silent until something is written',
      footBar().querySelector('.progress-shell i').style.width);
 }
 
-// The code is on step one, beside the name, because the name is what people assume identifies
-// an assessment. Email subjects use the code, so a rename costs nothing.
-ok('the assessment has a reference that survives a rename',
-   /Reference\s*[A-Z2-9]{4}/.test(view().replace(/\s+/g, ' ')), view().slice(0, 60));
+/**
+ * One code, on step one, beside the name, because the name is what people assume identifies an
+ * assessment and it is the thing they change.
+ *
+ * There used to be two codes: a four-character reference minted here, and a twelve-character
+ * access code minted at the first online save. Same alphabet, different lengths, both called a
+ * code, sitting centimetres apart. "Give me the code" had two answers.
+ */
+ok('the assessment has a code from the moment it exists',
+   /[A-Z2-9]{4}-[A-Z2-9]{4}-[A-Z2-9]{4}/.test(view().replace(/\s+/g, ' ')), view().slice(0, 120));
+ok('shown as something you can copy, not as text', !!q('.ov-block .code-chip button'));
 ok('and says renaming does not change it', view().includes('if you rename the initiative'));
+ok('and says what the four characters in an email subject are for',
+   view().includes('first four characters'), view().slice(0, 200));
 
 // Step one: the four plain facts.
 {

@@ -1,4 +1,5 @@
 import { classRank, type Assessment, type AuditEntry, type Rubric } from './types';
+import { refOf } from './storage';
 import { el, clear, tone } from './dom';
 import { allQuestionScores, score, type QuestionScore, type Result } from './scoring';
 import { flags, type Flag } from './flags';
@@ -356,11 +357,22 @@ function paintList(rubric: Rubric, root: HTMLElement) {
   const ready = (l: Loaded) => (l.a.meta?.submittedAt ? 0 : 1);
   const rows = [...loaded].sort((x, y) => ready(x) - ready(y) || (x.r.overall ?? 99) - (y.r.overall ?? 99));
 
+  /**
+   * Twelve columns, given widths instead of left to fight each other.
+   *
+   * Without these the browser shares the width out by content, and the things that lose are the
+   * ones with the shortest content: the actions column shrank until "Open" broke across two
+   * lines, while "Must ask" held a column wide enough for its heading to hold a single digit.
+   * Reported in exactly those terms. A heading is allowed to wrap; a button is not.
+   */
+  const widths = ['auto', '5.2rem', '9rem', '5.4rem', '7.2rem', '6rem', '3.6rem', '7rem',
+    '3.4rem', '4.2rem', '4.4rem', '6.6rem'];
   const table = el('table', { class: 'triage' }, [
+    el('colgroup', {}, widths.map((w) => el('col', { style: `width:${w}` }))),
     el('thead', {}, [el('tr', {}, [
       el('th', {}, ['Initiative']), el('th', {}, ['State']), el('th', {}, ['Department']), el('th', {}, ['Marking']),
-      el('th', {}, ['Question set']),
-      el('th', {}, ['Stage']), el('th', {}, ['Score']), el('th', {}, ['Suggested routing']),
+      el('th', {}, ['Code and set']),
+      el('th', {}, ['Stage']), el('th', {}, ['Score']), el('th', {}, ['Routing']),
       el('th', {}, ['Must ask']), el('th', {}, ['Evidence']), el('th', {}, ['Complete']), el('th', {}, ['']),
     ])]),
   ]);
@@ -374,24 +386,29 @@ function paintList(rubric: Rubric, root: HTMLElement) {
         // copy this assessor last read. Saying so is what stops an audit being written against
         // a version nobody is looking at any more.
         l.changed
-          ? el('span', { class: 'badge badge-warn tiny', title: 'The store had a newer version than the one you opened' }, ['updated'])
+          ? el('span', { class: 'badge badge-warn tiny tag', title: 'The store had a newer version than the one you opened' }, ['updated'])
           : null,
       ]),
       // Whether the department says this is finished. A draft in this list is somebody's work
       // in progress, and scoring one is the mistake this column exists to prevent.
       el('td', { class: 'small' }, [
+        // One word, because a three-word badge in a narrow column wraps into a shape that
+        // reads as broken. The date is on the hover, where a date belongs.
         l.a.meta?.submittedAt
-          ? el('span', { class: 'badge', title: `Marked ready on ${l.a.meta.submittedAt}` }, ['Ready to review'])
+          ? el('span', {
+              class: 'badge tag',
+              title: `Marked ready to review on ${new Date(l.a.meta.submittedAt).toLocaleString()}`,
+            }, ['Ready'])
           : el('span', { class: 'muted', title: 'Nobody has said this one is finished' }, ['Draft']),
       ]),
       el('td', {}, [l.a.initiative?.department ?? '--']),
       el('td', { class: 'small' }, [l.a.initiative?.classification || 'unmarked']),
       el('td', { class: 'small mono' }, [
-        l.a.ref
+        l.a.id
           ? el('span', {
-              class: 'ref-chip',
-              title: 'The reference in this submission\u2019s email subject lines. Not the access code, which is in the row menu.',
-            }, [`Ref ${l.a.ref}`])
+              class: 'ref-chip mono',
+              title: `The first four characters of this assessment's code, which is what its email subjects quote. The whole code is in the row menu.`,
+            }, [refOf(l.a)])
           : null,
         ' ',
         l.a.rubric.version,
@@ -455,41 +472,21 @@ function paintList(rubric: Rubric, root: HTMLElement) {
         onclick: () => askExportCsv(rubric),
       }),
       el('span', { class: 'spacer' }),
-      el('details', { class: 'set-menu row-menu' }, [
-        el('summary', { class: 'set-menu-btn', 'aria-label': 'More actions', title: 'More actions' }, ['\u22EF']),
-        el('div', { class: 'set-menu-pop' }, [
-          el('button', {
-            class: 'menu-item',
-            onclick: () => { forgetPool(); repaint(); },
-          }, ['Check the pool again']),
-          el('div', { class: 'menu-sep' }),
-          el('button', {
-            class: 'menu-item menu-danger',
-            onclick: () => confirmStep({
-              tier: 'danger',
-              title: `Close all ${loaded.length} submission${loaded.length === 1 ? '' : 's'} and erase the audit on them?`,
-              body: 'The files stay where they are on your machine. Every score, verdict and reason typed here goes, from this page and from this browser. The rows these put on the admin portfolio go with them.',
-              stake: 'An audited file is the only copy that survives this.',
-              offer: {
-                label: 'Save the audited files first',
-                run: () => {
-                  const n = saveAllAudited();
-                  return n
-                    ? `Saving ${n} file${n === 1 ? '' : 's'}. Check your downloads folder.`
-                    : 'Nothing has been audited yet, so there is nothing to save.';
-                },
-              },
-              commitLabel: 'Erase the audit',
-              cancelLabel: 'Keep them open',
-              onCommit: () => {
-                loaded = [];
-                keepSession();
-                renderReview(root, rubric);
-              },
-            }),
-          }, ['Close all and erase the audit']),
-        ]),
-      ]),
+      /**
+       * Checking the pool again, and nothing else.
+       *
+       * There was a "Close all and erase the audit" here. It did not touch anybody's
+       * assessment, but it read as though it did, and what it actually erased was the
+       * assessor's own scores, verdicts and reasons, which live in this browser and nowhere
+       * else. A control that reads as deleting other people's work and in fact deletes your own
+       * is wrong twice over. Closing is per row, where an assessor closes the one they have
+       * finished with. Deleting a record from the store is an admin's act, in Settings, one
+       * assessment at a time, and it asks for the code.
+       */
+      el('button', {
+        class: 'ghost small',
+        onclick: () => { forgetPool(); repaint(); },
+      }, ['Check the pool again']),
     ]),
     el('div', { class: 'table-wrap' }, [table]),
   ]));
@@ -527,6 +524,77 @@ function openDetail(rubric: Rubric, root: HTMLElement, l: Loaded) {
     el('button', { class: 'ghost', onclick: () => renderReview(root, rubric) }, ['Back to the list']),
     el('span', { class: 'muted small' }, [l.file]),
   ]));
+
+  /**
+   * Whose version this is, and the ones before it.
+   *
+   * On the full view and not on the list, because it is the question an assessor asks once they
+   * have decided to read something, not while they are scanning. The name is typed by whoever
+   * pressed save and checked by nobody, which is said here every time it is shown: the same
+   * rule the assessor's own name has always lived under.
+   *
+   * A save replaces the document, so this trail is not a history of the answers. It is a
+   * history of who put a version there, when, and what it scored at the time, which is enough
+   * to see that a number moved and to go and ask the person who moved it.
+   */
+  {
+    const by = a.meta?.savedBy;
+    const trail = [...(a.meta?.saves ?? [])].reverse();
+    const MOMENT: Record<string, string> = {
+      first: 'first saved online',
+      ready: 'marked ready to review',
+      unready: 'ready mark taken off',
+      save: 'saved',
+    };
+    const box = el('section', { class: 'card' }, [
+      el('h2', {}, ['Who saved this']),
+      by
+        ? el('p', {}, [
+            el('b', {}, [by.name]), ' ', el('span', { class: 'mono small' }, [by.email]),
+            el('span', { class: 'badge badge-warn tiny tag' }, ['unverified']),
+            el('div', { class: 'muted small' }, [
+              `${new Date(by.at).toLocaleString()}. Typed by whoever pressed save, and checked by nobody. `,
+              'It tells you who to ask.',
+            ]),
+          ])
+        : el('p', { class: 'muted' }, [
+            'Nobody. This version was saved before the tool asked who was saving, or it came from a file.',
+          ]),
+    ]);
+    if (trail.length > 1) {
+      const list = el('details', { class: 'trail' }, [
+        el('summary', {}, [`Earlier saves (${trail.length - 1})`]),
+      ]);
+      const table = el('table', { class: 'trail-table' }, [
+        el('thead', {}, [el('tr', {}, [
+          el('th', {}, ['When']), el('th', {}, ['Who']), el('th', {}, ['What']),
+          el('th', {}, ['Score']), el('th', {}, ['Answered']),
+        ])]),
+      ]);
+      const tbody = el('tbody', {});
+      for (const x of trail) {
+        tbody.appendChild(el('tr', {}, [
+          el('td', { class: 'small' }, [new Date(x.at).toLocaleString()]),
+          el('td', { class: 'small' }, [x.name, el('div', { class: 'mono dim tiny' }, [x.email])]),
+          // The two named moments survive when the trail fills up, because they are the ones
+          // somebody asks about afterwards.
+          el('td', { class: 'small' }, [
+            x.moment && x.moment !== 'save'
+              ? el('span', { class: 'badge tag' }, [MOMENT[x.moment] ?? x.moment])
+              : MOMENT.save,
+          ]),
+          el('td', { class: `num ${tone(x.score ?? null)}` }, [
+            typeof x.score === 'number' ? x.score.toFixed(1) : '--',
+          ]),
+          el('td', { class: 'num' }, [typeof x.answered === 'number' ? String(x.answered) : '--']),
+        ]));
+      }
+      table.appendChild(tbody);
+      list.appendChild(el('div', { class: 'table-wrap' }, [table]));
+      box.appendChild(list);
+    }
+    root.appendChild(box);
+  }
 
   root.appendChild(el('section', { class: 'card headline' }, [
     el('div', { class: `bigscore ${tone(r.overall)}` }, [
@@ -946,12 +1014,6 @@ function saveAudited(l: Loaded): void {
   download(`${name}-audited.json`, JSON.stringify(a, null, 2));
 }
 
-/** Every submission that has been scored, as files. Returns how many went. */
-function saveAllAudited(): number {
-  const scored = loaded.filter((l) => Object.keys(l.a.audit?.perQuestion ?? {}).length > 0);
-  for (const l of scored) saveAudited(l);
-  return scored.length;
-}
 
 /**
  * Exporting the whole list, and the one thing the sheet cannot carry.

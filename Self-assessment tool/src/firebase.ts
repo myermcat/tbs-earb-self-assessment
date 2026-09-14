@@ -729,8 +729,9 @@ export async function getAssessment(id: string): Promise<Assessment | null> {
  */
 export async function putAssessment(a: Assessment): Promise<string> {
   const me = currentUser();
-  const making = !a.id;
-  if (making && !me) throw new Error('Sign in before putting a new assessment in the store.');
+  // Every assessment has a code from the moment it is created, so the id no longer says whether
+  // this is the first time it has been in the store. What says so is whether it has ever been.
+  const making = !a.meta?.savedOnlineAt;
   if (making && me) a.ownerEmail = a.ownerEmail ?? me.email;
   const owner = a.ownerEmail ?? me?.email ?? '';
   if (making && me && owner !== me.email) {

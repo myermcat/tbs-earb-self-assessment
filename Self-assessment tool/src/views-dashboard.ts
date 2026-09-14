@@ -1,4 +1,5 @@
 import type { Assessment, Rubric } from './types';
+import { formatCode } from './firebase';
 import { el, clear, tone, bar } from './dom';
 import { score, isRedFlag, allQuestionScores, type Result } from './scoring';
 import { csvHeader, csvRow, toCsv } from './csv';
@@ -170,16 +171,27 @@ function paint(
           el('div', { class: 'set-menu-pop' }, [
         el('button', {
           class: 'menu-item menu-danger',
+          /**
+           * Typed out, and what has to be typed is the code.
+           *
+           * It used to be the initiative name, which two departments can share, which somebody
+           * can read off the row above by mistake, and which is the field most likely to be
+           * blank. The code belongs to one assessment and to no other, and copying it out of
+           * the row you meant is the act that proves you meant that row.
+           */
           onclick: () => confirmTyped({
             title: `Delete the ${a.initiative.name || 'unnamed'} assessment?`,
             consequences: [
               `Every answer in it: ${row.r.answered} of ${row.r.scoreable} questions.`,
               'The reasoning and the evidence links on each answer.',
               'Every audited score, verdict and reason written against it.',
-              a.ref ? `The reference ${a.ref}, which any email about this assessment quotes.` : 'Its reference.',
+              'The record of who saved each version of it.',
+              a.id
+                ? `The code ${formatCode(a.id)} stops working, and anybody holding it loses the assessment.`
+                : 'Its code.',
             ],
-            phrase: a.initiative.name || (a.ref ?? 'unnamed'),
-            phraseLabel: a.initiative.name ? 'the initiative name' : 'the reference',
+            phrase: a.id ? formatCode(a.id) : (a.initiative.name || 'unnamed'),
+            phraseLabel: a.id ? 'this assessment\u2019s code' : 'the initiative name',
             commitLabel: 'Delete this assessment',
             onCommit: () => {
               const id = a.id;

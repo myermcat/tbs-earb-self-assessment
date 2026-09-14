@@ -345,88 +345,6 @@ function rank(flags2) {
   });
 }
 
-// src/csv.ts
-function cell(v2) {
-  const s = v2 === null || v2 === void 0 ? "" : String(v2);
-  return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
-}
-function csvHeader(rubric2) {
-  const cols = [
-    "ref",
-    "access_code",
-    "initiative",
-    "department",
-    "contact",
-    "lifecycle_stage",
-    "rubric_version",
-    "saved_by_name",
-    "saved_by_email",
-    "submitted_at",
-    "overall_score",
-    "band",
-    "completeness_pct"
-  ];
-  for (const d of rubric2.domains) cols.push(`domain_${d.id}`);
-  for (const d of rubric2.domains) for (const s of d.sections) cols.push(`section_${d.id}_${s.id}`);
-  for (const t of rubric2.topics ?? []) cols.push(`topic_${t.id}`);
-  for (const d of rubric2.domains) {
-    for (const s of d.sections) {
-      for (const q of s.questions) {
-        cols.push(`${q.id}_score`, `${q.id}_na`, `${q.id}_picklist`, `${q.id}_evidence_count`);
-      }
-    }
-  }
-  cols.push("flags_high", "flags_total", "audited_by", "audited_overall");
-  return cols;
-}
-function csvRow(rubric2, a, flagCounts) {
-  const r = score(rubric2, a);
-  const row = [
-    a.ref ?? "",
-    a.id ?? "",
-    a.initiative.name,
-    a.initiative.department,
-    a.initiative.contact,
-    a.initiative.lifecycleStage,
-    a.rubric.version,
-    // Typed by whoever saved it and checked by nobody, which is why the sheet carries both
-    // halves: a name on its own invites somebody to treat it as identification.
-    a.meta.savedBy?.name ?? "",
-    a.meta.savedBy?.email ?? "",
-    a.meta.updatedAt,
-    r.overall === null ? "" : r.overall.toFixed(2),
-    r.band?.label ?? "",
-    String(Math.round(r.completeness * 100))
-  ];
-  for (const d of r.domains) row.push(d.score === null ? "" : d.score.toFixed(2));
-  for (const d of r.domains) for (const s of d.sections) row.push(s.score === null ? "" : s.score.toFixed(2));
-  for (const t of r.topics) row.push(t.score === null ? "" : t.score.toFixed(2));
-  for (const d of rubric2.domains) {
-    for (const sec of d.sections) {
-      for (const q of sec.questions) {
-        const ans = a.answers[q.id];
-        row.push(
-          ans?.score === null || ans?.score === void 0 ? "" : String(ans.score),
-          ans?.na ? "yes" : "",
-          ans?.picklist === "other" ? `other: ${ans.picklistOther ?? ""}` : ans?.picklist ?? "",
-          String(ans?.evidence?.length ?? 0)
-        );
-      }
-    }
-  }
-  row.push(String(flagCounts.high), String(flagCounts.total), a.audit?.reviewer ?? "", auditedOverall(a));
-  return row;
-}
-function auditedOverall(a) {
-  if (!a.audit) return "";
-  const vals = Object.values(a.audit.perQuestion).map((e) => e.auditedScore).filter((v2) => typeof v2 === "number");
-  if (!vals.length) return "";
-  return (vals.reduce((s, v2) => s + v2, 0) / vals.length).toFixed(2);
-}
-function toCsv(rows) {
-  return rows.map((r) => r.map(cell).join(",")).join("\r\n");
-}
-
 // src/firebase.ts
 function isRecord(v2) {
   return typeof v2 === "object" && v2 !== null && !Array.isArray(v2);
@@ -509,6 +427,95 @@ function fromFields(fields) {
   if (!isRecord(fields)) return out;
   for (const [key, value] of Object.entries(fields)) out[key] = fromValue(value);
   return out;
+}
+
+// src/storage.ts
+function refOf(a) {
+  if (a.ref) return a.ref;
+  return (a.id ?? "").slice(0, 4) || "----";
+}
+
+// src/csv.ts
+function cell(v2) {
+  const s = v2 === null || v2 === void 0 ? "" : String(v2);
+  return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+}
+function csvHeader(rubric2) {
+  const cols = [
+    "code",
+    "email_tag",
+    "initiative",
+    "department",
+    "contact",
+    "lifecycle_stage",
+    "rubric_version",
+    "saved_by_name",
+    "saved_by_email",
+    "submitted_at",
+    "overall_score",
+    "band",
+    "completeness_pct"
+  ];
+  for (const d of rubric2.domains) cols.push(`domain_${d.id}`);
+  for (const d of rubric2.domains) for (const s of d.sections) cols.push(`section_${d.id}_${s.id}`);
+  for (const t of rubric2.topics ?? []) cols.push(`topic_${t.id}`);
+  for (const d of rubric2.domains) {
+    for (const s of d.sections) {
+      for (const q of s.questions) {
+        cols.push(`${q.id}_score`, `${q.id}_na`, `${q.id}_picklist`, `${q.id}_evidence_count`);
+      }
+    }
+  }
+  cols.push("flags_high", "flags_total", "audited_by", "audited_overall");
+  return cols;
+}
+function csvRow(rubric2, a, flagCounts) {
+  const r = score(rubric2, a);
+  const row = [
+    // One code, and the four characters of it that appear in email subject lines.
+    a.id ?? "",
+    refOf(a),
+    a.initiative.name,
+    a.initiative.department,
+    a.initiative.contact,
+    a.initiative.lifecycleStage,
+    a.rubric.version,
+    // Typed by whoever saved it and checked by nobody, which is why the sheet carries both
+    // halves: a name on its own invites somebody to treat it as identification.
+    a.meta.savedBy?.name ?? "",
+    a.meta.savedBy?.email ?? "",
+    a.meta.updatedAt,
+    r.overall === null ? "" : r.overall.toFixed(2),
+    r.band?.label ?? "",
+    String(Math.round(r.completeness * 100))
+  ];
+  for (const d of r.domains) row.push(d.score === null ? "" : d.score.toFixed(2));
+  for (const d of r.domains) for (const s of d.sections) row.push(s.score === null ? "" : s.score.toFixed(2));
+  for (const t of r.topics) row.push(t.score === null ? "" : t.score.toFixed(2));
+  for (const d of rubric2.domains) {
+    for (const sec of d.sections) {
+      for (const q of sec.questions) {
+        const ans = a.answers[q.id];
+        row.push(
+          ans?.score === null || ans?.score === void 0 ? "" : String(ans.score),
+          ans?.na ? "yes" : "",
+          ans?.picklist === "other" ? `other: ${ans.picklistOther ?? ""}` : ans?.picklist ?? "",
+          String(ans?.evidence?.length ?? 0)
+        );
+      }
+    }
+  }
+  row.push(String(flagCounts.high), String(flagCounts.total), a.audit?.reviewer ?? "", auditedOverall(a));
+  return row;
+}
+function auditedOverall(a) {
+  if (!a.audit) return "";
+  const vals = Object.values(a.audit.perQuestion).map((e) => e.auditedScore).filter((v2) => typeof v2 === "number");
+  if (!vals.length) return "";
+  return (vals.reduce((s, v2) => s + v2, 0) / vals.length).toFixed(2);
+}
+function toCsv(rows) {
+  return rows.map((r) => r.map(cell).join(",")).join("\r\n");
 }
 
 // src/rubric.ts

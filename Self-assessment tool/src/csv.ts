@@ -1,4 +1,5 @@
 import type { Assessment, Rubric } from './types';
+import { refOf } from './storage';
 import { score } from './scoring';
 
 /** One row per assessment. This is the file Nick and Allison open in Excel to do trend analysis. */
@@ -22,7 +23,7 @@ export function csvHeader(rubric: Rubric): string[] {
    * no uniqueness check behind it.
    */
   const cols = [
-    'ref', 'access_code', 'initiative', 'department', 'contact', 'lifecycle_stage',
+    'code', 'email_tag', 'initiative', 'department', 'contact', 'lifecycle_stage',
     'rubric_version', 'saved_by_name', 'saved_by_email', 'submitted_at',
     'overall_score', 'band', 'completeness_pct',
   ];
@@ -46,7 +47,8 @@ export function csvHeader(rubric: Rubric): string[] {
 export function csvRow(rubric: Rubric, a: Assessment, flagCounts: { high: number; total: number }): string[] {
   const r = score(rubric, a);
   const row: string[] = [
-    a.ref ?? '', a.id ?? '',
+    // One code, and the four characters of it that appear in email subject lines.
+    a.id ?? '', refOf(a),
     a.initiative.name, a.initiative.department, a.initiative.contact, a.initiative.lifecycleStage,
     a.rubric.version,
     // Typed by whoever saved it and checked by nobody, which is why the sheet carries both
