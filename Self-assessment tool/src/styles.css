@@ -1100,11 +1100,13 @@ code.mark-subject { display: block; margin: .25rem 0; }
  * dashes are drawn and never typed.
  * ------------------------------------------------------------------------------------------ */
 .code-field { display: flex; align-items: center; gap: .3rem; flex-wrap: wrap; margin: .5rem 0; }
-.code-box { width: 2.1rem; height: 2.6rem; padding: 0; text-align: center;
+/* input[type=text] sets width: 100% and outranks a bare class, which is why these spanned the
+   whole window. The selector has to carry the element too. */
+input.code-box { width: 2.1rem; height: 2.6rem; padding: 0; text-align: center;
   font-family: var(--mono); font-size: 1.05rem; font-weight: 650; text-transform: uppercase;
   border: 1px solid var(--line-2); border-radius: var(--radius-sm);
   background: var(--surface); color: var(--ink); }
-.code-box:focus { outline: 2px solid var(--accent); outline-offset: 1px; border-color: var(--accent); }
+input.code-box:focus { outline: 2px solid var(--accent); outline-offset: 1px; border-color: var(--accent); }
 .code-dash { color: var(--ink-3); padding: 0 .15rem; user-select: none; }
 /* The code as somebody reads it back, beside a way to take a copy of it. */
 .code-shown { display: inline-flex; align-items: center; gap: .55rem; flex-wrap: wrap;
@@ -1114,7 +1116,7 @@ code.mark-subject { display: block; margin: .25rem 0; }
 .share-code-row { display: flex; align-items: center; gap: .55rem; flex-wrap: wrap;
   margin: .4rem 0 .9rem; }
 @media (max-width: 480px) {
-  .code-box { width: 1.75rem; height: 2.3rem; font-size: .95rem; }
+  input.code-box { width: 1.75rem; height: 2.3rem; font-size: .95rem; }
 }
 .pool-art { flex: none; width: 148px; color: var(--accent); }
 .sad-cat { display: block; width: 100%; height: auto; }
