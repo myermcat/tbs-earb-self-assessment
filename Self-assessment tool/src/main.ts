@@ -1,6 +1,7 @@
 import type { Assessment, Rubric } from './types';
 import { el, clear } from './dom';
 import { ICON_DOWN, ICON_MAIL, ICON_PRINT, ICON_SHARE } from './icons';
+import { codeField } from './code-field';
 import { validate } from './rubric';
 import { completion } from './scoring';
 import { goToFirstGap, overviewFieldProgress, renderSubmit, resetOverviewToFirstGap, setRepaint,
@@ -17,7 +18,7 @@ import { openShareDialog } from './views-share';
 import { bootLang, coverage, lang, type Lang, setLang } from './i18n';
 import { endpointHost, flushWrites, goneFromStore, isHosted, listRecords, putRecord,
   saveOnlineNow } from './store';
-import { canSignIn, currentUser, forgetRole, pageAddress, isConfigured as firebaseConfigured, knownRole, lastSignInProblem,
+import { canSignIn, currentUser, forgetRole, getAssessment, looksLikeCode, pageAddress, tidyCode, isConfigured as firebaseConfigured, knownRole, lastSignInProblem,
   loadRole, resumeSignIn, signInWithGoogle, signOut } from './firebase';
 import { t } from './i18n';
 import { answeredCount, APP_VERSION, autosave, blankAssessment, clearDraft, download, ensureRef,
@@ -303,6 +304,67 @@ function initialsOf(email: string): string {
   const parts = name.split(/[._-]+/).filter(Boolean);
   const letters = parts.length > 1 ? `${parts[0][0]}${parts[1][0]}` : name.slice(0, 2);
   return letters.toUpperCase() || '??';
+}
+
+/**
+ * Open an assessment somebody sent you the access code for.
+ *
+ * The code is the record's own name in the store, so entering it is the whole of "let me in".
+ * Whether the store answers is the store's decision and not this page's: the rules on Google's
+ * side see the request, and a refusal is reported in their words.
+ */
+function openWithCode(): void {
+  const field = codeField(() => { /* the button is the way in, so nothing happens on the last box */ });
+  const said = el('p', { class: 'cf-note' }, [
+    t('Twelve characters, in three groups. Paste the whole thing into any box.',
+      'Douze caractères, en trois groupes. Collez le tout dans n\u2019importe quelle case.'),
+  ]);
+  const dlg = document.createElement('dialog');
+  dlg.className = 'confirm tier-plain';
+  const close = () => { try { dlg.close(); } catch { /* already closed */ } dlg.remove(); };
+
+  const tryOpen = async () => {
+    if (!looksLikeCode(field.value())) {
+      said.textContent = t('That is not a complete code yet.', 'Ce code n\u2019est pas encore complet.');
+      return;
+    }
+    said.textContent = t('Looking for it...', 'Recherche en cours...');
+    try {
+      const found = await getAssessment(tidyCode(field.value()));
+      if (!found) {
+        said.textContent = t('No assessment has that code. Check it against the message you were sent.',
+          'Aucune évaluation ne porte ce code. Vérifiez-le par rapport au message que vous avez reçu.');
+        return;
+      }
+      assessment = ensureRef(found);
+      autosave(assessment);
+      close();
+      go('submit');
+    } catch (err) {
+      said.textContent = t(`The store would not open it: ${(err as Error).message}`,
+        `Le dépôt n\u2019a pas voulu l\u2019ouvrir : ${(err as Error).message}`);
+    }
+  };
+
+  dlg.appendChild(el('div', { class: 'cf-head' }, [
+    el('h2', { class: 'cf-title' }, [t('Open with an access code', 'Ouvrir avec un code d\u2019accès')]),
+  ]));
+  dlg.appendChild(el('div', { class: 'cf-body' }, [
+    el('p', {}, [
+      t('Whoever is working on an assessment can send you its access code. Entering it opens that assessment here.',
+        'La personne qui travaille sur une évaluation peut vous envoyer son code d\u2019accès. En le saisissant, vous ouvrez cette évaluation ici.'),
+    ]),
+    field.node,
+    said,
+  ]));
+  dlg.appendChild(el('div', { class: 'cf-actions' }, [
+    el('button', { class: 'primary cf-wide', onclick: () => { void tryOpen(); } }, [t('Open it', 'L\u2019ouvrir')]),
+    el('button', { class: 'cf-wide', onclick: close }, [t('Cancel', 'Annuler')]),
+  ]));
+  document.body.appendChild(dlg);
+  closeOnOutsideClick(dlg, close);
+  openDialog(dlg);
+  field.focus();
 }
 
 /**
@@ -778,6 +840,14 @@ function renderHome(root: HTMLElement) {
             picker,
           ]);
         })(),
+        isHosted()
+          ? el('span', { class: 'or' }, [t('or', 'ou')])
+          : null,
+        isHosted()
+          ? el('button', { class: 'linkish', onclick: () => openWithCode() }, [
+              t('open with an access code', 'ouvrir avec un code d\u2019accès'),
+            ])
+          : null,
       ]),
       started ? draftNote(draft!, total) : null,
     ]),

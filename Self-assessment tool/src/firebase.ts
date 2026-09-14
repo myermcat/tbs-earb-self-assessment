@@ -571,17 +571,36 @@ async function authorized(url: string, init: RequestInit = {}): Promise<Reply> {
   return call(url, { ...init, headers });
 }
 
-const ID_ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+/**
+ * The alphabet an access code is drawn from.
+ *
+ * Thirty-two characters with I, O, 0 and 1 removed, so nothing in a code can be misread on a
+ * call or mistyped from a sticky note. It is the same alphabet the four-character reference
+ * uses, for the same reason.
+ */
+const ID_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+
+/** How long an access code is, and how it is grouped when a person has to read it. */
+export const CODE_LENGTH = 12;
+export const CODE_GROUP = 4;
 
 /**
- * A name for a record going online for the first time.
+ * A name for a record going online for the first time, which is also its access code.
  *
- * Twenty characters, the same shape Firestore mints for itself. Letting Firestore name it would
- * take a second request to find out what it chose, and the name has to be known before the
- * write so the browser's own copy can be matched to it afterwards.
+ * One value doing both jobs, deliberately. The id is the document's path, so knowing it is
+ * what lets somebody fetch that one record and nothing else, which is exactly what an access
+ * code has to mean. A separate code would need a lookup table and two things to keep in step.
+ *
+ * Twelve characters from a 32-symbol alphabet is 2^60. At a billion guesses a second that is
+ * thirty-six years, and at 50,000 assessments the chance any two codes collide is about one in
+ * a billion. It was twenty characters from a 62-symbol alphabet, which is stronger and
+ * unreadable: a person has to carry this one over Teams, read it down a phone and type it back.
+ *
+ * The name has to be known before the write, so the browser's own copy can be matched to it
+ * afterwards. Letting Firestore choose would cost a second request to find out what it chose.
  */
-function newDocId(): string {
-  const bytes = new Uint8Array(20);
+export function newDocId(): string {
+  const bytes = new Uint8Array(CODE_LENGTH);
   if (typeof crypto !== 'undefined' && typeof crypto.getRandomValues === 'function') {
     crypto.getRandomValues(bytes);
   } else {
@@ -590,6 +609,30 @@ function newDocId(): string {
   let out = '';
   for (let i = 0; i < bytes.length; i++) out += ID_ALPHABET[bytes[i] % ID_ALPHABET.length];
   return out;
+}
+
+/** The code as a person reads it: three groups of four. */
+export function formatCode(code: string): string {
+  const clean = tidyCode(code);
+  const groups: string[] = [];
+  for (let i = 0; i < clean.length; i += CODE_GROUP) groups.push(clean.slice(i, i + CODE_GROUP));
+  return groups.join('-');
+}
+
+/**
+ * A typed or pasted code, reduced to what it means.
+ *
+ * People paste with the dashes, without them, with a stray space from a chat client, and in
+ * lower case because a phone keyboard did it for them. All of those are the same code.
+ */
+export function tidyCode(raw: string): string {
+  return raw.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, CODE_LENGTH);
+}
+
+/** Whether this is a complete code. It says nothing about whether a record exists. */
+export function looksLikeCode(raw: string): boolean {
+  const clean = tidyCode(raw);
+  return clean.length === CODE_LENGTH && [...clean].every((c) => ID_ALPHABET.includes(c));
 }
 
 function assessmentFrom(doc: unknown): Assessment | null {

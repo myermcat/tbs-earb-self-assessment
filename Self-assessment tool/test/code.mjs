@@ -1,0 +1,102 @@
+/**
+ * The access code: how it is minted, and how it is typed.
+ *
+ * The code is the record's own name in the store, so it is the whole of "let me in". Two things
+ * follow and both are asserted here. It has to be unguessable, which is arithmetic. And it has
+ * to be typeable by somebody reading it off a Teams message, which is the part that decides
+ * whether sharing gets used at all: a field people fight with is a feature nobody uses.
+ */
+import { readFile } from 'node:fs/promises';
+import { JSDOM } from 'jsdom';
+
+let fails = 0;
+const ok = (name, cond, extra = '') => {
+  if (!cond) { fails++; console.log(`  FAIL  ${name} ${extra}`); } else console.log(`  ok    ${name}`);
+};
+
+const html = await readFile('dist/index.html', 'utf8');
+const settle = () => new Promise((r) => setTimeout(r, 40));
+
+const dom = new JSDOM(html, {
+  runScripts: 'dangerously',
+  url: 'https://example.gc.ca/tool/',
+  pretendToBeVisual: true,
+  beforeParse(w) {
+    w.scrollTo = () => {};
+    w.alert = () => {};
+    // Nothing in this suite should reach the network, and anything that tries is a finding.
+    w.fetch = async () => ({ ok: true, status: 200, json: async () => ({}), text: async () => '{}' });
+  },
+});
+await settle();
+const { document, KeyboardEvent, Event } = dom.window;
+const q = (s) => document.querySelector(s);
+const qa = (s) => [...document.querySelectorAll(s)];
+const byText = (s, t) => qa(s).find((n) => n.textContent.trim().toLowerCase().includes(t.toLowerCase()));
+
+console.log('\nThe access code\n');
+
+/* --------------------------------------------------------------------------------------- */
+// The alphabet is the argument. I, O, 0 and 1 are out, because somebody reads this down a
+// phone, and 62 mixed-case characters with all four of them in was the previous shape.
+{
+  const ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  ok('the code alphabet has no character that can be misread',
+     !/[IO01]/.test(ALPHABET) && ALPHABET.length === 32);
+  ok('and twelve of them is more than a billion billion codes',
+     Math.pow(ALPHABET.length, 12) > 1e18, String(Math.pow(ALPHABET.length, 12)));
+}
+
+/* --------------------------------------------------------------------------------------- */
+{
+  const entry = byText('.hero-actions button', 'access code');
+  ok('the home page offers a way in with a code', !!entry, entry?.textContent);
+  entry.click();
+  await settle();
+  ok('and it opens a window that says so', /Open with an access code/.test(q('.cf-title')?.textContent ?? ''));
+
+  const boxes = qa('.code-field .code-box');
+  ok('the field is one box per character', boxes.length === 12, String(boxes.length));
+  ok('with a dash drawn between each group of four',
+     qa('.code-field .code-dash').length === 2, String(qa('.code-field .code-dash').length));
+  ok('and the dashes are hidden from a screen reader, which would read them as words',
+     qa('.code-field .code-dash').every((d) => d.getAttribute('aria-hidden') === 'true'));
+  ok('the group is named for somebody who cannot see the boxes',
+     q('.code-field')?.getAttribute('aria-label') === 'Access code');
+  ok('and every box says which one it is',
+     boxes.every((b, i) => b.getAttribute('aria-label') === `Character ${i + 1} of 12`));
+
+  /**
+   * The paste case, which is what almost everybody will do. A code copied out of Teams arrives
+   * with its dashes, and a phone keyboard may have lower-cased it. Both are the same code.
+   */
+  boxes[0].value = 'kfrm-92tx-bq7h';
+  boxes[0].dispatchEvent(new Event('input', { bubbles: true }));
+  await settle();
+  ok('pasting a dashed lower-case code fills every box',
+     boxes.map((b) => b.value).join('') === 'KFRM92TXBQ7H', boxes.map((b) => b.value).join(''));
+
+  // Backspace out of an empty box goes back and clears, which is what a person expects when
+  // they have mistyped one character in the middle.
+  boxes[5].value = '';
+  boxes[5].focus();
+  boxes[5].dispatchEvent(new KeyboardEvent('keydown', { key: 'Backspace', bubbles: true }));
+  ok('backspace in an empty box walks back to the one before', document.activeElement === boxes[4]);
+
+  boxes[3].focus();
+  boxes[3].dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true }));
+  ok('and the arrow keys move between boxes', document.activeElement === boxes[4]);
+
+  // A code with a character that is not in the alphabet is not a code.
+  for (const b of boxes) b.value = '';
+  boxes[0].value = 'IIII-OOOO-0000';
+  boxes[0].dispatchEvent(new Event('input', { bubbles: true }));
+  await settle();
+  byText('.cf-actions button', 'Open it').click();
+  await settle();
+  ok('a code made of characters the alphabet excludes is refused',
+     /not a complete code/i.test(q('.cf-note')?.textContent ?? ''), q('.cf-note')?.textContent);
+}
+
+console.log(fails ? `\n${fails} access code check(s) failed\n` : '\nall access code checks passed\n');
+process.exit(fails ? 1 : 0);

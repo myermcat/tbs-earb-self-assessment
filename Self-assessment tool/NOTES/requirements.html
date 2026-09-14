@@ -116,9 +116,9 @@ background:var(--surface);border:1px solid var(--line);border-radius:10px;list-s
 .kpi a{color:inherit;text-decoration:none}
 </style>
 <div class="head"><div class="head-in"><h1>GC EA self-assessment: requirements specification</h1>
-<p class="sub">Living document, updated 2026-09-01. 108 requirements, baselined at each release. Following ISO/IEC/IEEE 29148:2018, tailored.</p></div></div>
+<p class="sub">Living document, updated 2026-09-01. 110 requirements, baselined at each release. Following ISO/IEC/IEEE 29148:2018, tailored.</p></div></div>
 <nav class="topnav"><div class="topnav-in">
-<span class="nav-kpi"><b>56</b><span>built</span></span>
+<span class="nav-kpi"><b>58</b><span>built</span></span>
 <span class="nav-kpi"><b>27</b><span>agreed, not built</span></span>
 <span class="nav-kpi"><b>6</b><span>proposed</span></span>
 <span class="nav-kpi"><b>19</b><span>open</span></span>
@@ -316,6 +316,18 @@ background:var(--surface);border:1px solid var(--line);border-radius:10px;list-s
 <span class="req-id mono">S4</span>
 <span class="req-t">Until sign-in exists, the assessor side opens on a screen shaped like a sign-in that says it is a mockup, and everything it produces is labelled unverified.</span>
 <span class="st st-done">Built</span>
+</div>
+<div class="req">
+<span class="req-id mono">S21</span>
+<span class="req-t">An assessment carries an access code, which is its own name in the store, twelve characters in three groups of four.</span>
+<span class="st st-done">Built</span>
+<span class="req-note">The id and the access code are one value, because the id is the document path and knowing a path is exactly what "may open this one record and nothing else" means. A separate code would need a lookup table and two things to keep in step. Twelve characters from a 32-symbol alphabet with I, O, 0 and 1 removed is 2^60: thirty-six years of guessing at a billion a second, and about a one in a billion chance any two collide at 50,000 assessments. It was twenty characters from a 62-symbol alphabet, which is stronger and unreadable, and somebody has to carry this one over Teams and read it down a phone.</span>
+</div>
+<div class="req">
+<span class="req-id mono">S22</span>
+<span class="req-t">The access code is typed into one box per character, and everything a person might reasonably do with it works.</span>
+<span class="st st-done">Built</span>
+<span class="req-note">Paste the whole code into any box with or without dashes and in any case, type it straight through with the focus moving on by itself, backspace out of an empty box into the one before, and arrow between boxes. The dashes are drawn and never typed, and they are hidden from a screen reader, which would otherwise read them as words. A field people fight with is a feature nobody uses.</span>
 </div>
 <div class="req">
 <span class="req-id mono">S18</span>

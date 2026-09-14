@@ -71,8 +71,10 @@ ok('the save state ended online', saveStatus().state === 'online', saveStatus().
 ok('one request went out', sent.length === 1, String(sent.length));
 const req = sent[0];
 ok('it was a PATCH', req.init.method === 'PATCH', String(req.init.method));
+// Twelve characters from the read-aloud alphabet, because the id is also the access code
+// somebody reads down a phone. I, O, 0 and 1 are not in it.
 ok('to the assessments collection with a minted id',
-   /firestore\.googleapis\.com\/v1\/projects\/placeholder-project\/databases\/\(default\)\/documents\/assessments\/[A-Za-z0-9]{20}$/.test(req.url), req.url);
+   /documents\/assessments\/[ABCDEFGHJKLMNPQRSTUVWXYZ23456789]{12}$/.test(req.url), req.url);
 ok('with no updateMask, so the whole document is replaced', !req.url.includes('updateMask'));
 const headers = req.init.headers as Record<string, string>;
 ok('carrying the bearer token', headers.authorization === 'Bearer TOKEN', JSON.stringify(headers));
@@ -83,7 +85,7 @@ ok('ownerEmail was filled in from the signed-in address',
 ok('the id is left out of the fields, because the path carries it', body.fields.id === undefined);
 ok('a null score went as nullValue',
    JSON.stringify(body.fields.answers).includes('"nullValue":null'), JSON.stringify(body.fields.answers));
-ok('the id came back onto the assessment this browser holds', typeof a.id === 'string' && a.id.length === 20, String(a.id));
+ok('the id came back onto the assessment this browser holds', typeof a.id === 'string' && a.id.length === 12, String(a.id));
 
 // The name the store gave the record has to survive a reload, or the next write makes a
 // second document for the same assessment.
