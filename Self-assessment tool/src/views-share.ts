@@ -15,7 +15,7 @@
  */
 import type { Assessment } from './types';
 import { el } from './dom';
-import { openDialog, closeOnOutsideClick } from './confirm';
+import { openDialog, closeOnOutsideClick, confirmStep } from './confirm';
 import { t } from './i18n';
 import { codeChip } from './code-chip';
 
@@ -46,6 +46,36 @@ export function sharedPanel(a: Assessment, open: () => void): HTMLElement {
         ])
       : null,
   ]);
+}
+
+
+/**
+ * The code, the first time it exists.
+ *
+ * One window, at the one moment it matters, and it is here rather than in main.ts because
+ * three different acts reach it now: pressing Save online, accepting the guard's offer to save
+ * before replacing the draft, and marking an assessment ready. All three mint a code, and a
+ * code somebody is never shown is a record they cannot reach again.
+ *
+ * The sentence people have to read is that this is the only way back. The browser is holding
+ * the assessment too, so it feels safe, and it stays safe right up until somebody opens a
+ * colleague's assessment with a code and their own is gone from this machine. That is not a
+ * rare accident: it is the ordinary use of the tool.
+ */
+export function showNewCode(a: Assessment, after: () => void = () => {}): void {
+  if (!a.id) { after(); return; }
+  confirmStep({
+    tier: 'plain',
+    title: t('Saved online. Keep this code', 'Enregistrée en ligne. Conservez ce code'),
+    body: t('This code is the only way back to this assessment. Put it somewhere you keep things: a note to yourself, the initiative\u2019s folder, an email to your team. Anybody holding it can open this assessment and change it, and nobody without it can, including you.',
+      'Ce code est le seul moyen de revenir à cette évaluation. Placez-le quelque part où vous conservez vos choses : une note, le dossier de l\u2019initiative, un courriel à votre équipe. Toute personne qui le détient peut ouvrir cette évaluation et la modifier, et personne ne le peut sans lui, vous compris.'),
+    extra: codeChip(a.id),
+    note: t('This browser is holding the assessment as well, so you will not need the code today. You will need it the day you open somebody else\u2019s assessment, or work from another computer.',
+      'Ce navigateur conserve aussi l\u2019évaluation, vous n\u2019aurez donc pas besoin du code aujourd\u2019hui. Vous en aurez besoin le jour où vous ouvrirez l\u2019évaluation de quelqu\u2019un d\u2019autre, ou travaillerez depuis un autre ordinateur.'),
+    commitLabel: t('I have saved the code', 'J\u2019ai conservé le code'),
+    cancelLabel: '',
+    onCommit: after,
+  });
 }
 
 /**

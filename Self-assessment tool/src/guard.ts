@@ -22,6 +22,7 @@ import { confirmStep } from './confirm';
 import { answeredCount, hasWork } from './storage';
 import { onlineIsCurrent, saveOnlineNow, savedOnline, isHosted } from './store';
 import { codeChip } from './code-chip';
+import { showNewCode } from './views-share';
 import { t } from './i18n';
 
 export type ReplaceAct = 'open' | 'code' | 'switch' | 'discard' | 'undo';
@@ -30,7 +31,14 @@ export type ReplaceAct = 'open' | 'code' | 'switch' | 'discard' | 'undo';
 export type DraftRisk = 'none' | 'never-online' | 'behind-online' | 'safe-online';
 
 export function draftRisk(a: Assessment): DraftRisk {
-  if (!hasWork(a)) return 'none';
+  /**
+   * An assessment that is in the store is never nothing, however empty the form looks.
+   *
+   * hasWork asks whether anything has been typed. A record whose answers have all been cleared
+   * has nothing typed and still has an access code, and that code is the only way back to it.
+   * Testing hasWork first sent those silently to their replacement.
+   */
+  if (!hasWork(a) && !savedOnline(a)) return 'none';
   if (!isHosted() || !savedOnline(a)) return 'never-online';
   return onlineIsCurrent(a) ? 'safe-online' : 'behind-online';
 }
@@ -69,9 +77,9 @@ export interface GuardOptions {
 /**
  * Ask, unless there is nothing to ask about.
  *
- * The offer saves online and then goes ahead in one step, because a person who has said "save
- * it first" has already decided, and making them confirm twice is how a two-step guard becomes
- * a reflex.
+ * The careful way out saves online, shows the access code, and then goes ahead. A person who
+ * has said "save it first" has already decided, so nothing asks them twice; what the code
+ * window asks is different, and is the thing they would otherwise have had no chance to do.
  */
 export function guardDraft(o: GuardOptions): void {
   const risk = draftRisk(o.current);
@@ -108,13 +116,31 @@ export function guardDraft(o: GuardOptions): void {
     // somebody closes this window and cannot find their way back.
     extra: code ? codeChip(code) : undefined,
     stake,
-    offer: risk === 'never-online' || risk === 'behind-online'
+    /**
+     * Saving first, and then showing the code, and only then replacing anything.
+     *
+     * This used to save and go ahead in one press. The save that MINTS a code therefore closed
+     * the window, replaced the draft, and never showed the code it had just made: somebody took
+     * the careful option and lost the assessment more completely than if they had taken the
+     * other one. Now the three things happen in the order they have to: save, show the code,
+     * replace. Acknowledging the code window is what goes ahead.
+     */
+    alt: risk === 'never-online' || risk === 'behind-online'
       ? {
-          label: t('Save this online first, then go ahead', 'L’enregistrer en ligne d’abord, puis continuer'),
-          commits: true,
+          label: t('Save this online first, then go ahead', 'L\u2019enregistrer en ligne d\u2019abord, puis continuer'),
           run: () => {
-            void saveOnlineNow(o.current).then(() => o.after?.());
-            return '';
+            const first = !savedOnline(o.current);
+            void saveOnlineNow(o.current).then((res) => {
+              o.after?.();
+              if (!res.ok) {
+                // It did not go, so nothing is replaced. The draft is still here and the
+                // person can try again or choose the other way out.
+                alert(res.problem);
+                return;
+              }
+              if (first) showNewCode(o.current, () => { o.onCommit(); o.after?.(); });
+              else { o.onCommit(); o.after?.(); }
+            });
           },
         }
       : undefined,

@@ -17,7 +17,8 @@ import { saveBadge } from './save-badge';
 import { SAD_CAT } from './cat';
 import { openShareDialog } from './views-share';
 import { hasAccounts } from './who';
-import { codeChip } from './code-chip';
+import { rememberSigner, signerFields, signerProblem } from './signer';
+import { showNewCode } from './views-share';
 import { bootLang, coverage, lang, type Lang, setLang } from './i18n';
 import { endpointHost, goneFromStore, isHosted, listRecords, putRecord,
   saveOnlineNow, savedOnline, showWhereItStands } from './store';
@@ -25,7 +26,7 @@ import { canSignIn, currentUser, forgetRole, getAssessment, looksLikeCode, pageA
   loadRole, resumeSignIn, signInWithGoogle, signOut } from './firebase';
 import { t } from './i18n';
 import { answeredCount, APP_VERSION, autosave, blankAssessment, clearDraft, download, ensureRef,
-  hasWork, lastSaveInfo, loadDraft, readJsonFiles, saveAssessmentFile, slug } from './storage';
+  hasWork, loadDraft, readJsonFiles, saveAssessmentFile, slug } from './storage';
 import { bannerFor, evidenceNote } from './marking';
 import BUILTIN from '../rubric/rubric.v1-dan.json';
 
@@ -400,19 +401,32 @@ function askForCode(): void {
  */
 function offerOnlineSave(): void {
   const c = completion(rubric, assessment);
+  const who = signerFields();
   confirmStep({
     tier: 'plain',
     title: t('Save this online?', 'Enregistrer ceci en ligne?'),
     body: c.complete
       ? t('Your assessment is saved on this computer only. Saving it online puts a copy on the TBS server, so it survives a closed tab or a lost laptop, and your assessor can read it.',
           'Votre évaluation est enregistrée sur cet ordinateur seulement. L\u2019enregistrement en ligne place une copie sur le serveur du SCT : elle survit à un onglet fermé ou à un ordinateur perdu, et votre évaluateur peut la lire.')
-      : t(`Your assessment is saved on this computer only. Saving it online puts a copy on the TBS server, so it survives a closed tab or a lost laptop, and your assessor can read it. ${c.questionsLeft} of ${c.total} questions have no answer yet, so they will see it unfinished. They cannot change anything in it, and nobody is asked to review it until you say it is finished.`,
-          `Votre évaluation est enregistrée sur cet ordinateur seulement. L\u2019enregistrement en ligne place une copie sur le serveur du SCT : elle survit à un onglet fermé ou à un ordinateur perdu, et votre évaluateur peut la lire. ${c.questionsLeft} des ${c.total} questions n\u2019ont pas encore de réponse, il la verra donc inachevée. Il ne peut rien y modifier, et personne n\u2019est invité à l\u2019évaluer avant que vous ne disiez que c\u2019est terminé.`),
-    note: t('The first save gives this assessment an access code, which is how anybody else opens it, including you from another computer. It saves the version you have now: change something afterwards and it stays on this computer until you save online again.',
-      'Le premier enregistrement attribue un code d\u2019accès à cette évaluation; c\u2019est ainsi que quiconque d\u2019autre l\u2019ouvre, y compris vous depuis un autre ordinateur. Il enregistre la version actuelle : si vous modifiez quelque chose ensuite, cela reste sur cet ordinateur jusqu\u2019au prochain enregistrement en ligne.'),
+      : t(`Your assessment is saved on this computer only. Saving it online puts a copy on the TBS server, so it survives a closed tab or a lost laptop, and your assessor can read it. ${c.questionsLeft} of ${c.total} questions have no answer yet, so they will see it unfinished.`,
+          `Votre évaluation est enregistrée sur cet ordinateur seulement. L\u2019enregistrement en ligne place une copie sur le serveur du SCT : elle survit à un onglet fermé ou à un ordinateur perdu, et votre évaluateur peut la lire. ${c.questionsLeft} des ${c.total} questions n\u2019ont pas encore de réponse, il la verra donc inachevée.`),
+    /**
+     * Who is saving, asked every time. It rides in the window rather than sitting on the
+     * results page because it is part of the act: an assessor holding a version needs to know
+     * whose it is and who to ask about it, and that is a fact about this save and not about
+     * the assessment.
+     */
+    extra: who.node,
+    focusFirst: () => who.focus(),
+    gate: () => signerProblem(who.value()),
+    note: savedOnline(assessment)
+      ? t('It saves the version you have now. Change something afterwards and it stays on this computer until you save online again.',
+          'Il enregistre la version actuelle. Si vous modifiez quelque chose ensuite, cela reste sur cet ordinateur jusqu\u2019au prochain enregistrement en ligne.')
+      : t('The first save gives this assessment an access code, which is the only way anybody opens it afterwards, including you from another computer.',
+          'Le premier enregistrement attribue à cette évaluation un code d\u2019accès, seul moyen de l\u2019ouvrir par la suite, y compris pour vous depuis un autre ordinateur.'),
     stake: t('Nothing in this tool may be above Unclassified. Saving online says that this assessment, and everything it points at, is Unclassified.',
       'Rien dans cet outil ne peut dépasser Non classifié. L\u2019enregistrement en ligne affirme que cette évaluation, et tout ce à quoi elle renvoie, est Non classifié.'),
-    alt: {
+    alt: savedOnline(assessment) ? undefined : {
       label: t('No, keep it on this computer only', 'Non, la garder sur cet ordinateur seulement'),
       run: () => {
         assessment.meta.onlineDeclined = true;
@@ -422,32 +436,13 @@ function offerOnlineSave(): void {
     commitLabel: t('Save online', 'Enregistrer en ligne'),
     cancelLabel: t('Cancel', 'Annuler'),
     onCommit: () => {
+      const signer = who.value();
       const first = !savedOnline(assessment);
-      void saveOnlineNow(assessment).then((res) => {
+      rememberSigner(signer);
+      void saveOnlineNow(assessment, signer).then((res) => {
         if (!res.ok) { alert(res.problem); paint(); return; }
         paint();
-        /**
-         * The one moment the code is worth interrupting for.
-         *
-         * It exists from this second onwards and it is the only way back to this assessment
-         * from any other computer. Showing it once, where it can be copied, is cheaper than
-         * the conversation that follows somebody clearing their browser. Only on the first
-         * save: every save after this would be noise.
-         */
-        if (first && assessment.id) {
-          confirmStep({
-            tier: 'plain',
-            title: t('Saved online. This is its access code', 'Enregistr\u00e9e en ligne. Voici son code d\u2019acc\u00e8s'),
-            body: t('Anybody holding this code can open this assessment and change it, and nobody without it can. It is also how you open it yourself from another computer, so keep it somewhere you will find it.',
-              'Toute personne ayant ce code peut ouvrir cette \u00e9valuation et la modifier, et personne ne le peut sans lui. C\u2019est aussi ainsi que vous l\u2019ouvrez depuis un autre ordinateur, alors gardez-le quelque part o\u00f9 vous le retrouverez.'),
-            extra: codeChip(assessment.id),
-            note: t('It is on the results page and in the File menu as well, so you are not the only copy of it.',
-              'Il se trouve aussi sur la page des r\u00e9sultats et dans le menu Fichier; vous n\u2019en \u00eates donc pas la seule copie.'),
-            commitLabel: t('I have it', 'Je l\u2019ai'),
-            cancelLabel: '',
-            onCommit: () => {},
-          });
-        }
+        if (first && assessment.id) showNewCode(assessment);
       });
     },
   });
@@ -1475,15 +1470,17 @@ function paneDanger(pane: HTMLElement) {
   const button = el('button', {
     class: 'danger btn-icon', disabled: !anything,
     html: `${TRASH}<span>Discard this assessment</span>`,
-    onclick: () => confirmDestructive({
-      tier: 'danger',
-      title: n > 0 ? `Discard ${n} answer${n === 1 ? '' : 's'}?` : 'Discard this assessment?',
-      body: assessment.id && isHosted() && currentUser()
-        ? `Discarding empties the form and erases the draft this browser is holding. The questions themselves stay the same. The copy already kept at ${endpointHost()} is not touched: an admin is the only person who can remove that one, so ask yours if it has to go.`
-        : 'Discarding empties the form and erases the draft this browser is holding. The questions themselves stay the same.',
-      saveLabel: 'Save a file, then discard',
-      commitLabel: 'Discard permanently',
-      cancelLabel: 'Keep my answers',
+    /**
+     * Through the one guard, like every other path that replaces what this browser holds.
+     *
+     * It was the last one still asking its own way: it offered a file download, never showed
+     * the access code, and when the assessment was already in the store it said the online copy
+     * was untouched, which reads as "nothing is lost" to somebody who is about to lose the only
+     * copy of the code that reaches it.
+     */
+    onclick: () => guardDraft({
+      current: assessment,
+      act: 'discard',
       onCommit: () => {
         rescued = assessment;
         clearDraft();
@@ -1491,6 +1488,7 @@ function paneDanger(pane: HTMLElement) {
         resetOverviewToFirstGap(rubric, assessment);
         go('settings');
       },
+      after: () => paint(),
     }),
   });
 
@@ -1502,92 +1500,6 @@ function paneDanger(pane: HTMLElement) {
     button,
     { tier: 'danger', badge: 'Cannot be undone' },
   ));
-}
-
-/* ------------------------------------------------------------------------------------------
-   The confirmation.
-   ------------------------------------------------------------------------------------------ */
-
-interface ConfirmOpts {
-  tier: 'caution' | 'danger';
-  title: string;
-  body: string;
-  saveLabel: string;
-  commitLabel: string;
-  cancelLabel: string;
-  onCommit: () => void;
-}
-
-/**
- * Native <dialog> brings the focus trap, Escape, the inert background and focus restoration,
- * with no dependency. jsdom has no showModal, so there is a plain-confirm fallback: without it
- * every test that reaches Settings would throw.
- *
- * The recommendation is the first button and the only filled one. Saving never auto-discards,
- * because a browser download has no completion event: the person confirms they have the file,
- * which is the only honest thing a page that cannot see the filesystem can do.
- */
-function confirmDestructive(o: ConfirmOpts): void {
-  const dlg = document.createElement('dialog') as HTMLDialogElement;
-
-  dlg.className = `confirm tier-${o.tier}`;
-  const actions = el('div', { class: 'cf-actions' });
-  const body = el('div', { class: 'cf-body' }, [el('p', {}, [o.body])]);
-
-  const stake = () => {
-    const last = lastSaveInfo();
-    return last
-      ? el('p', { class: 'cf-stake ok' }, [
-          `You saved ${last.name} at ${new Date(last.at).toLocaleTimeString()}. `,
-          'If you still have that file, you can open it again from the start page.',
-        ])
-      : el('p', { class: 'cf-stake' }, [
-          'This browser is holding the only copy. Nothing has been saved to a file since this page was opened.',
-        ]);
-  };
-  let stakeEl = stake();
-  body.appendChild(stakeEl);
-
-  const close = () => { try { dlg.close(); } catch { /* already closed */ } dlg.remove(); };
-
-  const paintActions = (saved: boolean) => {
-    clear(actions);
-    if (!saved) {
-      actions.appendChild(el('button', { class: 'primary cf-wide', onclick: () => {
-        const name = saveAssessmentFile(assessment);
-        const fresh = el('p', { class: 'cf-stake ok' }, [
-          `Saving as ${name}. Check your Downloads folder. `,
-          'If your browser asked where to put it and you cancelled, save it again.',
-        ]);
-        stakeEl.replaceWith(fresh);
-        stakeEl = fresh;
-        paintActions(true);
-      } }, [o.saveLabel]));
-      actions.appendChild(el('button', { class: 'danger cf-wide', onclick: () => { close(); o.onCommit(); } }, [
-        o.commitLabel,
-      ]));
-    } else {
-      actions.appendChild(el('button', { class: 'danger-solid cf-wide', onclick: () => { close(); o.onCommit(); } }, [
-        'I have the file. ' + o.commitLabel.toLowerCase(),
-      ]));
-      actions.appendChild(el('button', { class: 'cf-wide', onclick: () => { saveAssessmentFile(assessment); } }, [
-        'Save it again',
-      ]));
-    }
-    // The safest control takes focus, so Enter and Escape both cancel.
-    const cancel = el('button', { class: 'cf-wide', onclick: close }, [o.cancelLabel]);
-    actions.appendChild(cancel);
-    setTimeout(() => cancel.focus?.(), 0);
-  };
-  paintActions(false);
-
-  dlg.appendChild(el('div', { class: 'cf-head' }, [el('h2', { class: 'cf-title' }, [o.title])]));
-  dlg.appendChild(body);
-  dlg.appendChild(actions);
-  dlg.addEventListener('close', () => dlg.remove());
-  closeOnOutsideClick(dlg, close);
-  document.body.appendChild(dlg);
-  openDialog(dlg);
 }
 
 /**

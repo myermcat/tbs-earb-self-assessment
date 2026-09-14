@@ -353,11 +353,14 @@ function cell(v2) {
 function csvHeader(rubric2) {
   const cols = [
     "ref",
+    "access_code",
     "initiative",
     "department",
     "contact",
     "lifecycle_stage",
     "rubric_version",
+    "saved_by_name",
+    "saved_by_email",
     "submitted_at",
     "overall_score",
     "band",
@@ -380,11 +383,16 @@ function csvRow(rubric2, a, flagCounts) {
   const r = score(rubric2, a);
   const row = [
     a.ref ?? "",
+    a.id ?? "",
     a.initiative.name,
     a.initiative.department,
     a.initiative.contact,
     a.initiative.lifecycleStage,
     a.rubric.version,
+    // Typed by whoever saved it and checked by nobody, which is why the sheet carries both
+    // halves: a name on its own invites somebody to treat it as identification.
+    a.meta.savedBy?.name ?? "",
+    a.meta.savedBy?.email ?? "",
     a.meta.updatedAt,
     r.overall === null ? "" : r.overall.toFixed(2),
     r.band?.label ?? "",

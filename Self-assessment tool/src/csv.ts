@@ -9,9 +9,22 @@ function cell(v: unknown): string {
 }
 
 export function csvHeader(rubric: Rubric): string[] {
+  /**
+   * Two identifiers, and they are not the same thing.
+   *
+   * `ref` is four characters minted when an assessment is created, before it has ever been
+   * online. It is the subject line of every evidence email, frozen into mail already sent, so
+   * it cannot change and it is how a reply in somebody's inbox matches a row here.
+   *
+   * `access_code` is the twelve-character name the assessment has in the store, and it exists
+   * only once it has been saved online. It is unique by construction and it is what opens the
+   * assessment. Without it in this sheet the only stable key was a four-character string with
+   * no uniqueness check behind it.
+   */
   const cols = [
-    'ref', 'initiative', 'department', 'contact', 'lifecycle_stage',
-    'rubric_version', 'submitted_at', 'overall_score', 'band', 'completeness_pct',
+    'ref', 'access_code', 'initiative', 'department', 'contact', 'lifecycle_stage',
+    'rubric_version', 'saved_by_name', 'saved_by_email', 'submitted_at',
+    'overall_score', 'band', 'completeness_pct',
   ];
   for (const d of rubric.domains) cols.push(`domain_${d.id}`);
   for (const d of rubric.domains) for (const s of d.sections) cols.push(`section_${d.id}_${s.id}`);
@@ -33,8 +46,13 @@ export function csvHeader(rubric: Rubric): string[] {
 export function csvRow(rubric: Rubric, a: Assessment, flagCounts: { high: number; total: number }): string[] {
   const r = score(rubric, a);
   const row: string[] = [
-    a.ref ?? '', a.initiative.name, a.initiative.department, a.initiative.contact, a.initiative.lifecycleStage,
-    a.rubric.version, a.meta.updatedAt,
+    a.ref ?? '', a.id ?? '',
+    a.initiative.name, a.initiative.department, a.initiative.contact, a.initiative.lifecycleStage,
+    a.rubric.version,
+    // Typed by whoever saved it and checked by nobody, which is why the sheet carries both
+    // halves: a name on its own invites somebody to treat it as identification.
+    a.meta.savedBy?.name ?? '', a.meta.savedBy?.email ?? '',
+    a.meta.updatedAt,
     r.overall === null ? '' : r.overall.toFixed(2),
     r.band?.label ?? '',
     String(Math.round(r.completeness * 100)),
