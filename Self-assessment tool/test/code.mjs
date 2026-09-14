@@ -164,16 +164,10 @@ console.log('\nThe access code\n');
   const all = (sel) => [...d2.querySelectorAll(sel)];
   const find = (sel, txt) => all(sel).find((n) => n.textContent.toLowerCase().includes(txt.toLowerCase()));
 
+  // The guard comes first, before the typing. Asking somebody for twelve characters and only
+  // then telling them it replaces their work is the wrong order to learn it in.
   find('.hero-actions button', 'access code').click();
   await settle();
-  const boxes = all('.code-field .code-box');
-  boxes[0].value = 'KFRM-92TX-BQ7H';
-  boxes[0].dispatchEvent(new two.window.Event('input', { bubbles: true }));
-  await settle();
-  find('.cf-actions button', 'Open it').click();
-  await settle();
-  await new Promise((r) => setTimeout(r, 60));
-
   const guard = all('dialog.confirm').find((x) => /Replace what this browser/.test(x.textContent));
   ok('opening by code asks before replacing work', !!guard,
      all('dialog.confirm').map((x) => x.querySelector('.cf-title')?.textContent).join(' | '));
@@ -185,6 +179,12 @@ console.log('\nThe access code\n');
      all('.cf-actions button').map((b) => b.textContent).join(' | '));
   ok('and the way out keeps what you have',
      !!find('.cf-actions button', 'Keep what I have'));
+
+  // Going ahead is what opens the field.
+  find('.cf-actions button', 'Go ahead without saving').click();
+  await settle();
+  const boxes = all('.code-field .code-box');
+  ok('and only then does it ask for the code', boxes.length === 12, String(boxes.length));
   two.window.close();
 }
 

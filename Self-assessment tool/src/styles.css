@@ -834,7 +834,14 @@ details[open] > .section-summary::before { transform: rotate(90deg); }
 .q-text { font-weight: 550; flex: 1 1 20rem; }
 
 .badge { font-size: .72rem; font-weight: 600; padding: .08rem .42rem; border-radius: 999px;
-  border: 1px solid; white-space: nowrap; }
+  border: 1px solid; white-space: nowrap;
+  /* A tag reads as part of the word before it when nothing separates them. Every badge in the
+     app carries its own left margin, because the alternative is remembering to add one at
+     forty call sites and forgetting at six. */
+  margin-left: .4rem; }
+/* Where a badge starts a line or a flex row that already has a gap, the margin is noise. */
+.head-row .badge, .actions .badge, .res-toolbar .badge, .pool-in .badge, .share-row .badge,
+.flag-title .badge, .code-shown .badge, .crossover .badge:first-child { margin-left: 0; }
 .badge-warn { color: var(--warn); border-color: color-mix(in srgb, var(--warn) 45%, transparent); background: var(--warn-bg); }
 .badge-soft { color: var(--ink-3); border-color: var(--line); background: var(--surface-2); }
 

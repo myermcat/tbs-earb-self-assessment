@@ -274,22 +274,14 @@ export function openShareDialog(a: Assessment, owner: string, after: () => void)
               'Cette évaluation n\u2019a pas encore de code d\u2019accès. Elle en reçoit un lors du premier enregistrement en ligne.'),
           ]),
         ]),
-    el('div', { class: 'card warn tight' }, [
-      el('p', { class: 'small' }, [
-        t('Addresses you add are written into your assessment and shown here. No email is sent, and nobody gains access to anything. This is the shape of sharing, agreed before it is built.',
-          'Les adresses que vous ajoutez sont inscrites dans votre évaluation et affichées ici. Aucun courriel n’est envoyé et personne n’obtient d’accès. Ceci est la forme du partage, convenue avant sa construction.'),
-      ]),
-    ]),
-    el('label', { class: 'share-add' }, [
-      el('span', { class: 'small' }, [t('Address', 'Adresse')]),
-      field,
-    ]),
-    roles,
-    el('div', { class: 'actions' }, [
-      el('button', { class: 'primary', onclick: take }, [t('Add to the list', 'Ajouter à la liste')]),
-    ]),
-    said,
-    list,
+    /**
+     * The list of people, which records who was given the code.
+     *
+     * It used to be the sharing mechanism, back when there was none: you typed an address and
+     * nothing happened, and the screen said so four times over. The code is the mechanism now,
+     * so this is a note to yourself about who has it. Nothing here grants anything, and nothing
+     * here sends anything, which is the same as before and now for a different reason.
+     */
     el('p', { class: 'tiny dim' }, [
       t('Naming an assessor does not let them score. Scoring is granted by an admin, so nobody can appoint their own assessor.',
         'Nommer un évaluateur ne lui permet pas de noter. La notation est accordée par un administrateur, personne ne peut donc nommer son propre évaluateur.'),

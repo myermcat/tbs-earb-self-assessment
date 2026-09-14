@@ -2,15 +2,13 @@ import type { Assessment, Rubric } from './types';
 import { el, clear, tone, bar } from './dom';
 import { nextAnchor, score, strongest, weakest, type Result } from './scoring';
 import { flags } from './flags';
-import { csvHeader, csvRow, toCsv } from './csv';
-import { autosave, download, slug } from './storage';
-import { humanSize, totalAttachedBytes } from './attach';
+import { autosave } from './storage';
 import { markingProblems } from './marking';
 import { t } from './i18n';
-import { isHosted, putRecord } from './store';
+import { isHosted, putRecord, savedOnline } from './store';
 import { currentUser } from './firebase';
 import { openShareDialog, sharedPanel } from './views-share';
-import { repaint } from './views-submit';
+import { repaint, saveOnline } from './views-submit';
 import { confirmStep } from './confirm';
 
 /**
@@ -302,20 +300,18 @@ export function renderResults(root: HTMLElement, rubric: Rubric, a: Assessment, 
   r4.appendChild(submitBlock(rubric, a, r, problems.length > 0));
   root.appendChild(r4);
 
-  const attached = totalAttachedBytes(a.answers);
   r4.appendChild(el('div', { class: 'actions' }, [
-    el('button', {
-      class: 'primary', disabled: problems.length > 0,
-      onclick: () => sendPackage(rubric, a, { high: highs, total: fs.length }),
-    }, [
-      attached ? `Save the file to send to TBS (${humanSize(attached)} of evidence attached)` : t('Save the file to send to TBS', 'Enregistrer le fichier à envoyer au SCT'),
+    // Saving online is the act on this page, so it is the strong control here as well as in
+    // the questionnaire footer. Everything a file used to do is in the File menu.
+    isHosted() && !savedOnline(a)
+      ? el('button', {
+          class: 'primary', disabled: problems.length > 0,
+          onclick: () => saveOnline(),
+        }, [t('Save online', 'Enregistrer en ligne')])
+      : null,
+    el('button', { class: 'ghost', onclick: () => window.print() }, [
+      t('Print or save as a PDF', 'Imprimer ou enregistrer en PDF'),
     ]),
-    el('button', {
-      class: 'ghost', disabled: problems.length > 0,
-      onclick: () => handOff(a, r.overall, r.band?.label ?? ''),
-    }, [t('Draft the email', 'Rédiger le courriel')]),
-    el('button', { class: 'ghost', onclick: () => saveCsv(rubric, a, { high: highs, total: fs.length }) }, [t('Save a CSV row', 'Enregistrer une ligne CSV')]),
-    el('button', { class: 'ghost', onclick: () => window.print() }, [t('Print or save as PDF', 'Imprimer ou enregistrer en PDF')]),
     el('button', { class: 'ghost', onclick: onBack }, [t('Back to the questions', 'Retour aux questions')]),
   ]));
 }
@@ -336,10 +332,10 @@ function submitBlock(rubric: Rubric, a: Assessment, r: Result, blocked: boolean)
   }
 
   box.appendChild(el('div', { class: 'head-row' }, [
-    el('h2', {}, [
+    el('h3', {}, [
       submitted
-        ? t('TBS has been told it is ready', 'Le SCT a été informé que c\u2019est prêt')
-        : t('Telling TBS it is ready to review', 'Dire au SCT que c\u2019est prêt à évaluer'),
+        ? t('An assessor has been asked to review this', 'Un évaluateur a été invité à évaluer ceci')
+        : t('Asking an assessor to review this', 'Demander à un évaluateur d\u2019évaluer ceci'),
     ]),
     submitted ? el('span', { class: 'badge' }, [t('Ready to review', 'Prêt à évaluer')]) : null,
   ]));
@@ -361,19 +357,20 @@ function submitBlock(rubric: Rubric, a: Assessment, r: Result, blocked: boolean)
   box.appendChild(el('p', { class: 'muted' }, [
     isHosted() && currentUser()
       ? t('Your work is kept at TBS as you go. Nobody has been asked to read it yet.', 'Votre travail est conservé au SCT à mesure. Personne n\u2019a encore été invité à le lire.')
-      : t('Your answers are in this browser and nowhere else. Signing in keeps them at TBS as you work.', 'Vos réponses sont dans ce navigateur et nulle part ailleurs. La connexion les conserve au SCT pendant que vous travaillez.'),
+      : t('Your answers are on this computer and nowhere else. Save online to put a copy where your assessor can read it.',
+          'Vos réponses sont sur cet ordinateur et nulle part ailleurs. Enregistrez en ligne pour en placer une copie là où votre évaluateur peut la lire.'),
   ]));
 
   const go = el('button', {
     class: 'primary', disabled: blocked,
     title: blocked
       ? t('Fix what is listed above first', 'Corrigez d\u2019abord ce qui est indiqué ci-dessus')
-      : t('Tell TBS this assessment is ready to review', 'Dire au SCT que cette évaluation est prête à évaluer'),
+      : t('Ask an assessor to review this assessment', 'Demander à un évaluateur d\u2019évaluer cette évaluation'),
     onclick: () => {
       const ev = Object.values(a.answers).reduce((n, x) => n + (x.evidence ?? []).length, 0);
       confirmStep({
         tier: 'caution',
-        title: t('Tell TBS this is ready to review?', 'Dire au SCT que c\u2019est prêt à évaluer?'),
+        title: t('Ask an assessor to review this?', 'Demander à un évaluateur d\u2019évaluer ceci?'),
         body: `${r.answered} of ${r.scoreable} answers, ${ev} piece${ev === 1 ? '' : 's'} of evidence, and everything you wrote about the initiative. Your assessor sees all of it. This saves nothing new: your work is already kept at TBS. It puts your assessment in front of an assessor, and you can keep working on it afterwards.`,
         stake: t('Everything in this tool is unclassified. By telling them it is ready you are saying this is too.', 'Tout dans cet outil est non classifié. En disant que c\u2019est prêt, vous affirmez que ceci l\u2019est aussi.'),
         commitLabel: t('It is unclassified. Tell them', 'C\u2019est non classifié. Les informer'),
@@ -401,7 +398,7 @@ function submitBlock(rubric: Rubric, a: Assessment, r: Result, blocked: boolean)
         },
       });
     },
-  }, [t('Tell TBS it is ready to review', 'Dire au SCT que c\u2019est prêt')]);
+  }, [t('Ask an assessor to review it', 'Demander une évaluation')]);
 
   box.appendChild(el('div', { class: 'actions' }, [go]));
   box.appendChild(el('p', { class: 'tiny dim' }, [
@@ -449,10 +446,6 @@ function addSnapHint(root: HTMLElement): void {
   });
 }
 
-function sendPackage(rubric: Rubric, a: Assessment, counts: { high: number; total: number }) {
-  download(`${slug(a.initiative.name)}-self-assessment.json`, JSON.stringify(a, null, 2));
-}
-
 /**
  * A page with no network cannot send anything, and should not pretend to. This opens the
  * person's own mail client with the message written for them; they attach the saved file
@@ -472,9 +465,4 @@ export function handOff(a: Assessment, overall: number | null = null, band = '')
     '(Attach the .json file you just saved before sending - a web page cannot attach it for you.)',
   ].join('\r\n');
   window.location.href = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-}
-
-function saveCsv(rubric: Rubric, a: Assessment, counts: { high: number; total: number }) {
-  const csv = toCsv([csvHeader(rubric), csvRow(rubric, a, counts)]);
-  download(`${slug(a.initiative.name)}-self-assessment.csv`, csv, 'text/csv');
 }

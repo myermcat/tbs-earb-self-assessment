@@ -21,6 +21,7 @@ import type { Assessment } from './types';
 import { confirmStep } from './confirm';
 import { answeredCount, hasWork } from './storage';
 import { onlineIsCurrent, saveOnlineNow, savedOnline, isHosted } from './store';
+import { formatCode } from './firebase';
 import { t } from './i18n';
 
 export type ReplaceAct = 'open' | 'code' | 'switch' | 'discard' | 'undo';
@@ -79,14 +80,24 @@ export function guardDraft(o: GuardOptions): void {
   const n = answeredCount(o.current);
   const answers = `${n} answer${n === 1 ? '' : 's'}`;
 
+  /**
+   * The access code is the only way back to an assessment, so a window that might lose one has
+   * to put the code in front of the person.
+   *
+   * There is no file any more and no list to find it in. A submitter who goes on without the
+   * code has no route back to that work at all, which is a thing to say out loud and not a
+   * thing to leave them to discover.
+   */
+  const code = savedOnline(o.current) && o.current.id ? formatCode(o.current.id) : '';
+
   const stake = risk === 'never-online'
-    ? t(`This copy has never been saved online, so ${answers} would be gone.`,
-        `Cette copie n’a jamais été enregistrée en ligne, donc ${answers === '1 answer' ? '1 réponse' : `${n} réponses`} seraient perdues.`)
+    ? t(`This copy has never been saved online, so ${answers} would be gone, and there is no other way back to it.`,
+        `Cette copie n’a jamais été enregistrée en ligne, donc ${answers === '1 answer' ? '1 réponse' : `${n} réponses`} seraient perdues, et il n’y a aucun autre moyen d’y revenir.`)
     : risk === 'behind-online'
-      ? t('The copy online is behind this one, so anything typed since the last save would be gone.',
-          'La copie en ligne est en retard sur celle-ci, donc tout ce qui a été saisi depuis le dernier enregistrement serait perdu.')
-      : t('This is saved online, so nothing is lost. It can be opened again with its access code.',
-          'Ceci est enregistré en ligne, donc rien n’est perdu. On peut la rouvrir avec son code d’accès.');
+      ? t(`The copy online is behind this one, so anything typed since the last save would be gone. Its access code is ${code}, and that code is the only way back to it.`,
+          `La copie en ligne est en retard sur celle-ci, donc tout ce qui a été saisi depuis le dernier enregistrement serait perdu. Son code d’accès est ${code}, et ce code est le seul moyen d’y revenir.`)
+      : t(`This is saved online, so nothing is lost. Its access code is ${code}, and that code is the only way back to it, so keep it somewhere before you go on.`,
+          `Ceci est enregistré en ligne, donc rien n’est perdu. Son code d’accès est ${code}, et ce code est le seul moyen d’y revenir : conservez-le quelque part avant de continuer.`);
 
   confirmStep({
     // Nothing is lost when the copy online is current, so the window stops shouting.
