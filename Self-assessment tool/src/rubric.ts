@@ -24,6 +24,16 @@ export function validate(x: unknown): { ok: true; rubric: Rubric } | { ok: false
   if (!Array.isArray(r.bands) || !r.bands.length) problems.push('Needs at least one band.');
   if (!Array.isArray(r.lifecycleStages) || !r.lifecycleStages.length) problems.push('Needs lifecycle stages.');
 
+  /**
+   * The topics a question is allowed to carry.
+   *
+   * A topic id nobody declared is the one error in a rubric file that cannot be seen
+   * afterwards: the question counts towards nothing, every page renders correctly, and a
+   * category TBS asked for is quietly short. "secuirty" on one question out of 176 is a number
+   * nobody can check by looking. So it is caught when the file is loaded.
+   */
+  const topicIds = new Set((r.topics ?? []).map((t) => t.id));
+
   const ids = new Set<string>();
   for (const d of r.domains ?? []) {
     if (typeof d.weight !== 'number') problems.push(`Domain ${d.id}: weight must be a number.`);
@@ -37,6 +47,11 @@ export function validate(x: unknown): { ok: true; rubric: Rubric } | { ok: false
         ids.add(q.id);
         if (typeof q.weight !== 'number') problems.push(`Question ${q.id}: weight must be a number.`);
         if (!q.text) problems.push(`Question ${q.id}: no text.`);
+        for (const topic of q.topics ?? []) {
+          if (!topicIds.has(topic)) {
+            problems.push(`Question ${q.id}: topic "${topic}" is not one this question set declares.`);
+          }
+        }
       }
     }
   }
