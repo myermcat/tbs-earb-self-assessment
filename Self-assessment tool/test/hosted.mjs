@@ -177,6 +177,35 @@ console.log('\nThe published build, signed in\n');
    * Nothing covered it, which is why it survived this long.
    */
   const labels = [...doc.querySelectorAll('button')].map((b) => b.textContent.trim());
+  /**
+   * The table has to fit its box, and the row menu has to escape it.
+   *
+   * Reported together, and they are the same rule: `.table-wrap { overflow-x: auto }` made the
+   * twelve-column table scroll sideways inside a 940px column, and the same declaration made
+   * the box clip in both directions, so the row menu's pop-up was cut off below and to the
+   * right of it. The column is 1200px now and the wrap does not clip above 900px.
+   */
+  const wrap = doc.querySelector('.body-review .table-wrap');
+  ok('the table is in its own box', !!wrap);
+  /**
+   * jsdom has no layout and does not evaluate @media in getComputedStyle, so this one is read
+   * off the stylesheet. It is read as "the last word on the subject" rather than grepped for a
+   * declaration, because a gate written the lazy way once passed on a page where a later rule
+   * was cancelling the rule it had found.
+   */
+  const css = html.slice(html.indexOf('.table-wrap'));
+  const lastWord = [...css.matchAll(/\.(?:body-review |body-admin )?\.?table-wrap[^{}]*\{([^}]*)\}/g)]
+    .map((m) => m[1]).filter((d) => /overflow/.test(d)).pop() ?? '';
+  ok('and above phone width the box does not clip what opens inside it',
+     /overflow:\s*visible/.test(lastWord), lastWord);
+  ok('and the menu is painted above the rows it opens over',
+     /\.row-menu \.set-menu-pop\s*\{[^}]*z-index:\s*\d/.test(html));
+  ok('the assessor column is wider than the reading column, because it holds a table',
+     parseFloat(w.getComputedStyle(doc.querySelector('.body-review')).maxWidth) >= 1200,
+     w.getComputedStyle(doc.querySelector('.body-review')).maxWidth);
+  ok('and nothing in the table refuses to wrap',
+     w.getComputedStyle(doc.querySelector('.triage td')).overflowWrap === 'anywhere');
+
   ok('there is no Clear on the toolbar', !labels.includes('Clear'), labels.slice(0, 12).join(','));
   ok('the export is on a toolbar above the table', !!doc.querySelector('.res-toolbar .btn-icon'));
   ok('and it carries an icon', !!doc.querySelector('.res-toolbar .btn-icon svg'));
@@ -437,7 +466,7 @@ console.log('\nThe published build, signed in\n');
     meta: { createdAt: 'x', updatedAt: 'x', appVersion: 'test', savedOnlineAt: 'x' },
     ownerEmail: ME,
   };
-  const { doc, dom, seen } = await boot({ session: live, side: 'submit', draft: mine });
+  const { doc, dom, seen } = await boot({ session: live, side: 'submit', hash: '#results', draft: mine });
   const badge = doc.querySelector('.save-state');
 
   /**
@@ -449,6 +478,66 @@ console.log('\nThe published build, signed in\n');
   ok('and this record was saved online in an earlier session, and edited since, so it says so',
      badge?.className.includes('st-behind'), `${badge?.className} :: ${badge?.textContent}`);
   ok('in words, not in a colour alone', /out of date/i.test(badge?.textContent ?? ''), badge?.textContent);
+
+  /**
+   * Who saved it, asked every time, because a version used to arrive with nobody attached.
+   *
+   * The owner's address is set once, when the record is created, and somebody holding the
+   * access code left no trace at all, so an assessor could not tell whose work was in front of
+   * them or who to ask about it. It is typed and checked by nobody, which is what every screen
+   * showing it has to say.
+   */
+  const saveBtn = [...doc.querySelectorAll('button')]
+    .find((b) => /^Save online( again)?$/.test(b.textContent.trim()));
+  ok('the results page offers to save online', !!saveBtn, saveBtn?.textContent);
+  saveBtn.click();
+  await new Promise((r) => setTimeout(r, 60));
+  const win = [...doc.querySelectorAll('dialog.confirm')].find((x) => /Save this online/.test(x.textContent));
+  ok('and the window asks who is saving', !!win?.querySelector('.signer'));
+  const boxes = [...(win?.querySelectorAll('input.signer-box') ?? [])];
+  ok('with two fields, a name and an address', boxes.length === 2, String(boxes.length));
+  ok('and the address field is an email field', boxes[1]?.type === 'email', boxes[1]?.type);
+  ok('and one of them holds the caret, so Enter is the answer',
+     doc.activeElement === boxes[0], doc.activeElement?.className);
+
+  // An empty name must not commit, and must not close the window and lose what was typed.
+  const commitBtn = [...win.querySelectorAll('.cf-actions button')]
+     .find((b) => /Save online/.test(b.textContent));
+  commitBtn.click();
+  await new Promise((r) => setTimeout(r, 30));
+  ok('pressing save with nothing typed does not close the window',
+     doc.body.contains(win), 'window gone');
+  ok('and says what is missing', /Put your name in/i.test(win.textContent));
+
+  boxes[0].value = 'Mariia Yermolenko';
+  boxes[1].value = 'not an address';
+  commitBtn.click();
+  await new Promise((r) => setTimeout(r, 30));
+  ok('an address that is not one is refused too',
+     doc.body.contains(win) && /does not look like an email/i.test(win.textContent));
+
+  /**
+   * And then it is accepted, including addresses that are not gc.ca. There is no single
+   * Government of Canada domain: every public servant has one at their department and one at
+   * canada.ca, the Senate is two levels below gc.ca, and Canada Post is not on gc.ca at all. A
+   * form that turns away a real person is the worse failure, because nobody verifies this name.
+   */
+  boxes[1].value = 'someone@sen.parl.gc.ca';
+  commitBtn.click();
+  await new Promise((r) => setTimeout(r, 60));
+  ok('a real, unusual government address is accepted', !doc.body.contains(win));
+  // Read back what the page kept, not the object this test seeded: they are separate copies.
+  const kept = JSON.parse(dom.window.localStorage.getItem(DRAFT) ?? '{}');
+  ok('and the name and address go into the record with the version',
+     kept.meta?.savedBy?.name === 'Mariia Yermolenko'
+     && kept.meta?.savedBy?.email === 'someone@sen.parl.gc.ca',
+     JSON.stringify(kept.meta?.savedBy));
+  ok('marked unverified, because nobody checked it', kept.meta?.savedBy?.unverified === true);
+  ok('and the save is kept as a trail, since a save replaces the document',
+     (kept.meta?.saves ?? []).length === 1, String((kept.meta?.saves ?? []).length));
+  ok('and this browser remembers it for next time',
+     JSON.parse(dom.window.localStorage.getItem('gc-arch-assessment:signer') ?? '{}').name
+       === 'Mariia Yermolenko');
 
   const wrote = () => seen.filter((r) => r.method === 'PATCH' || r.method === 'POST');
   const before = wrote().length;

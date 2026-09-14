@@ -387,7 +387,12 @@ function paintList(rubric: Rubric, root: HTMLElement) {
       el('td', {}, [l.a.initiative?.department ?? '--']),
       el('td', { class: 'small' }, [l.a.initiative?.classification || 'unmarked']),
       el('td', { class: 'small mono' }, [
-        l.a.ref ? el('span', { class: 'ref-chip', title: 'The code in this submission\u2019s email subjects' }, [l.a.ref]) : null,
+        l.a.ref
+          ? el('span', {
+              class: 'ref-chip',
+              title: 'The reference in this submission\u2019s email subject lines. Not the access code, which is in the row menu.',
+            }, [`Ref ${l.a.ref}`])
+          : null,
         ' ',
         l.a.rubric.version,
         l.substituted ? el('span', { class: 'badge badge-warn tiny' }, ['set missing']) : null,

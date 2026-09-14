@@ -1107,17 +1107,27 @@ ok('the favicon is inline, so the built file needs no second request', html.incl
 
   ok('the danger pane names what is at stake', /Erases the \d+ answers/.test(view()), view().slice(0, 80));
 
-  // Refuse the confirmation: nothing may change.
+  /**
+   * Discarding goes through the one guard now, like every other act that replaces what this
+   * browser holds. It used to ask its own way: it offered a file download, never showed the
+   * access code, and when the assessment was already in the store it said the online copy was
+   * untouched, which reads as "nothing is lost" to somebody about to lose the only copy of the
+   * code that reaches it.
+   */
   q('.set-row.danger button.danger').click();
-  ok('the discard dialog says what will go', dialogText().includes('Discard'), dialogText().slice(0, 60));
-  ok('and states whether a file was ever saved', /saved|only copy/i.test(dialogText()));
-  dialogAct('Keep');
+  ok('the discard dialog says what is about to be replaced',
+     /Replace what this browser is holding/i.test(dialogText()), dialogText().slice(0, 80));
+  ok('and says what discarding does', /empties the form/i.test(dialogText()), dialogText().slice(0, 200));
+  ok('and says what would be lost', /never been saved online/i.test(dialogText()), dialogText().slice(0, 240));
+  ok('and offers to save online first',
+     /Save this online first/i.test(dialogText()), dialogText().slice(-200));
+  dialogAct('Keep what I have');
   ok('saying no changes nothing', answeredNow() === before, `${answeredNow()} vs ${before}`);
   ok('and no undo is offered, because nothing happened', !q('.undo-bar'));
 
-  // Accept it, without taking a file first.
+  // Accept it, without saving first.
   q('.set-row.danger button.danger').click();
-  dialogAct('Discard permanently');
+  dialogAct('Go ahead without saving');
   ok('discarding empties the assessment', answeredNow() === 0, String(answeredNow()));
   ok('the browser draft is cleared too', !window.localStorage.getItem('gc-arch-assessment:draft'));
   ok('and it stays on the pane that did it, so the loss is visible', !!q('.set-row.danger'));

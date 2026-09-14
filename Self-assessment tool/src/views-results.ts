@@ -4,11 +4,11 @@ import { nextAnchor, score, strongest, weakest, type Result } from './scoring';
 import { flags } from './flags';
 import { autosave } from './storage';
 import { markingProblems } from './marking';
-import { codeChip } from './code-chip';
 import { t } from './i18n';
 import { isHosted, onlineIsCurrent, saveOnlineNow, savedOnline } from './store';
 import { currentUser, formatCode, pageAddress } from './firebase';
-import { openShareDialog, sharedPanel } from './views-share';
+import { openShareDialog, sharedPanel, showNewCode } from './views-share';
+import { rememberSigner, signerFields, signerProblem } from './signer';
 import { repaint, saveOnline } from './views-submit';
 import { confirmStep } from './confirm';
 
@@ -40,9 +40,21 @@ export function renderResults(root: HTMLElement, rubric: Rubric, a: Assessment, 
       el('p', { class: 'muted' }, [
         [a.initiative.department, rubric.lifecycleStages.find((s) => s.id === a.initiative.lifecycleStage)?.label]
           .filter(Boolean).join(' - ') || t('No department or stage set', 'Aucun ministère ni étape indiqué'),
-        // The reference travels with the score, because this is the page somebody prints and
-        // sends on, and it is what an assessor matches an email to.
-        a.ref ? el('span', { class: 'ref-chip' }, [a.ref]) : null,
+        /**
+         * The reference, labelled, because there are now two codes on this page.
+         *
+         * This one is four characters and is the subject line of every evidence email. The
+         * access code further down is twelve and is what opens the assessment. They are drawn
+         * from the same alphabet and were sitting a few centimetres apart with nothing saying
+         * which was which, which is a question somebody would have got wrong exactly once.
+         */
+        a.ref
+          ? el('span', {
+              class: 'ref-chip',
+              title: t('The reference in this assessment\u2019s email subject lines. Not the access code.',
+                'La référence dans les objets de courriel de cette évaluation. Ce n\u2019est pas le code d\u2019accès.'),
+            }, [t(`Reference ${a.ref}`, `Référence ${a.ref}`)])
+          : null,
       ]),
       r.maturity
         ? el('div', { class: 'maturity' }, [
@@ -359,6 +371,13 @@ function submitBlock(rubric: Rubric, a: Assessment, r: Result, blocked: boolean)
       t('You can keep working. An assessor reads the version you last saved online, so save again after you change anything.',
         'Vous pouvez continuer \u00e0 travailler. Un \u00e9valuateur lit la version que vous avez enregistr\u00e9e en ligne en dernier; enregistrez de nouveau apr\u00e8s toute modification.'),
     ]));
+    const by = a.meta.savedBy;
+    if (by) {
+      box.appendChild(el('p', { class: 'muted small' }, [
+        t(`Last saved online by ${by.name} (${by.email}). `, `Dernier enregistrement en ligne par ${by.name} (${by.email}). `),
+        el('span', { class: 'badge badge-warn tiny' }, [t('unverified', 'non vérifié')]),
+      ]));
+    }
     /**
      * Taking the mark back off.
      *
@@ -424,11 +443,17 @@ function submitBlock(rubric: Rubric, a: Assessment, r: Result, blocked: boolean)
       : t('Mark this assessment ready to review', 'Marquer cette \u00e9valuation comme pr\u00eate \u00e0 \u00e9valuer'),
     onclick: () => {
       const ev = Object.values(a.answers).reduce((n, x) => n + (x.evidence ?? []).length, 0);
+      // Marking ready saves online, so it asks the same question saving online asks. An
+      // assessor opening this version has to be able to see whose it is.
+      const who = signerFields();
+      const first = !savedOnline(a);
       confirmStep({
         tier: 'caution',
         title: t('Mark this ready to review?', 'Marquer ceci comme pr\u00eat \u00e0 \u00e9valuer?'),
         body: `${r.answered} of ${r.scoreable} answers, ${ev} piece${ev === 1 ? '' : 's'} of evidence, and everything you wrote about the initiative. Anybody who opens this assessment sees all of it. Marking it ready saves it online and puts "Ready to review" beside it in the assessor\u2019s list. Nothing is sent, and you can keep working on it afterwards.`,
-        extra: a.id ? codeChip(a.id) : undefined,
+        extra: who.node,
+        focusFirst: () => who.focus(),
+        gate: () => signerProblem(who.value()),
         note: a.id
           ? t('Send your assessor this code. It is the only way they can open it.',
               'Envoyez ce code \u00e0 votre \u00e9valuateur. C\u2019est le seul moyen pour lui de l\u2019ouvrir.')
@@ -440,7 +465,10 @@ function submitBlock(rubric: Rubric, a: Assessment, r: Result, blocked: boolean)
         onCommit: () => {
           a.meta.submittedAt = new Date().toISOString();
           autosave(a);
-          void saveOnlineNow(a).then((res) => {
+          const signer = who.value();
+          rememberSigner(signer);
+          void saveOnlineNow(a, signer).then((res) => {
+            if (res.ok && first && a.id) showNewCode(a);
             if (!res.ok) {
               // The mark comes back off, because it never reached the store, and an assessor
               // would never have seen it.

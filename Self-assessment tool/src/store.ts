@@ -1,4 +1,11 @@
-import type { Assessment } from './types';
+import type { Assessment, SavedBy } from './types';
+import type { Signer } from './signer';
+
+/**
+ * How many saves the trail keeps. A save replaces the document, so this is the only version
+ * history the tool has, and it rides inside the document, which has a size.
+ */
+const SAVES_KEPT = 20;
 import { beginWrite, keepDraft, hasWork, loadDraft, localOnly, registerAfterSave, writeFailed, writeLanded, writeBehind,
   writeOffline, } from './storage';
 import { markingProblems } from './marking';
@@ -347,7 +354,10 @@ export function showWhereItStands(a: Assessment): void {
  *
  * So the button is the only writer, and the badge says when the store is behind.
  */
-export async function saveOnlineNow(a: Assessment): Promise<{ ok: true } | { ok: false; problem: string }> {
+export async function saveOnlineNow(
+  a: Assessment,
+  who?: Signer,
+): Promise<{ ok: true } | { ok: false; problem: string }> {
   if (!isHosted()) return { ok: false, problem: 'This build has no store to write to.' };
   // A new assessment needs an account, because creating one is an account's act in the store's
   // rules. An assessment that already has an id has an access code, and the code is what grants
@@ -357,6 +367,18 @@ export async function saveOnlineNow(a: Assessment): Promise<{ ok: true } | { ok:
   }
   const gate = markingProblems(a);
   if (gate.length) return { ok: false, problem: gate[0].message };
+  /**
+   * Who is saving, written onto the record before it goes rather than after, because it is part
+   * of the version and not a note about it. Unverified, always, and every screen showing it
+   * says so.
+   */
+  if (who) {
+    const stamp: SavedBy = {
+      name: who.name, email: who.email, at: new Date().toISOString(), unverified: true,
+    };
+    a.meta.savedBy = stamp;
+    a.meta.saves = [...(a.meta.saves ?? []), stamp].slice(-SAVES_KEPT);
+  }
   const res = await putRecord(a);
   if (res.ok) {
     a.meta.savedOnlineAt = new Date().toISOString();

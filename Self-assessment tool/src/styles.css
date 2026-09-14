@@ -207,7 +207,7 @@ li { margin-bottom: .22rem; }
 .tab:hover { color: var(--ink); }
 .tab.on { background: var(--surface); color: var(--ink); box-shadow: var(--shadow); }
 
-.body { max-width: 940px; margin: 1.15rem auto 6rem; padding: 0 1.15rem; flex: 1 0 auto; }
+.body { max-width: min(940px, 100%); margin: 1.15rem auto 6rem; padding: 0 1.15rem; flex: 1 0 auto; }
 .body-submit { padding-bottom: 9rem; }
 .sitefoot { text-align: center; color: var(--ink-3); font-size: .78rem; padding: .8rem 1rem 2.5rem;
   background: var(--surface-2); border-top: 1px solid var(--line); }
@@ -1066,7 +1066,20 @@ code.mark-subject { display: block; margin: .25rem 0; }
  * inside, so two unrelated blocks were 3.2px CLOSER together than a heading was to its own
  * content. Every complaint about buttons crowding the text follows from that one inversion.
  * --------------------------------------------------------------------------------------- */
-.body-review, .body-admin { padding-bottom: 3rem; }
+/**
+ * The assessor's column is wider than the submitter's, because what it holds is different.
+ *
+ * The submitter reads prose, and 940px is a reading measure. The assessor reads a twelve-column
+ * table of every submission, and at 940px that table could not fit: it overflowed its box by
+ * 309px and turned into a sideways scroll, reported as "the preview is longer horizontally than
+ * the box given for it". 1200px is the width the questionnaire already uses, so this is not a
+ * new number, and the three declarations under it take the table's own floor from 1173px to
+ * 413px so it fits here and on a 1024px laptop.
+ */
+.body-review, .body-admin { padding-bottom: 3rem; max-width: 1200px; }
+/* A badge that cannot wrap is a column that cannot shrink. */
+.triage .badge { white-space: normal; margin-left: 0; }
+.triage td { overflow-wrap: anywhere; }
 /* Only the bottom margin is reset. `> section` outranks `> * + *`, so resetting all four
    sides here silently cancelled the gap below, which is how the first version of this measured
    0px between two cards. */
@@ -1382,6 +1395,17 @@ td.t0, td.t1, td.t2, td.t3, td.t4, td.t5, td.t6, td.t7, td.t8, td.t9, td.t10 { f
 /* ---------- tables ---------------------------------------------------------------------- */
 
 .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+/**
+ * A row menu has to open outside the table.
+ *
+ * `overflow-x: auto` makes the computed `overflow-y` `auto` as well, so this box clips in both
+ * directions, and the row menu's pop-up is inside it: the last row's menu was cut 71px below
+ * the box and 300px to its right. No z-index fixes that, because clipping is not paint order.
+ * Above the width where the table fits, nothing needs to scroll, so nothing needs to clip. The
+ * phone keeps the scroll, which is the sanctioned exception: a table, in its own container.
+ */
+@media (min-width: 900px) { .body-review .table-wrap, .body-admin .table-wrap { overflow: visible; } }
+.row-menu .set-menu-pop { z-index: 40; }
 table { border-collapse: collapse; width: 100%; font-size: .875rem; }
 th, td { text-align: left; padding: .4rem .55rem; border-bottom: 1px solid var(--line); vertical-align: top; }
 th { font-size: .74rem; text-transform: uppercase; letter-spacing: .05em; color: var(--ink-3);
@@ -1548,3 +1572,24 @@ dialog.pledge.no-modal {
 }
 .pledge-hint { font-size: .78rem; color: var(--ink-3); margin: 0 0 .5rem; }
 .pledge-out { border-top: 1px solid var(--line); padding-top: .6rem; }
+
+/* ---------- who is saving ----------------------------------------------------------------
+   Two fields inside the save-online window. The remembered values are shown as placeholder
+   text rather than filled in, because a filled field is a claim the tool is making on
+   somebody's behalf, and the second person to use a shared machine would save under the first
+   person's name without reading it. */
+.signer { display: grid; gap: .5rem; margin: .2rem 0 .1rem; }
+.signer-row { display: grid; grid-template-columns: 8.5rem 1fr; align-items: center; gap: .6rem; }
+.signer-label { font-size: .8rem; color: var(--ink-2); font-weight: 600; }
+input.signer-box { width: 100%; padding: .42rem .55rem; font: inherit; font-size: .9rem;
+  border: 1px solid var(--line-2); border-radius: 6px; background: var(--surface);
+  color: var(--ink); }
+input.signer-box:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px;
+  border-color: var(--accent-line); }
+input.signer-box::placeholder { color: var(--ink-3); opacity: 1; }
+.signer-advice:empty { display: none; }
+.signer-advice { font-size: .78rem; color: var(--warn); margin: 0; }
+.signer-hint { font-size: .76rem; color: var(--ink-3); margin: 0; }
+@media (max-width: 520px) {
+  .signer-row { grid-template-columns: 1fr; gap: .2rem; }
+}

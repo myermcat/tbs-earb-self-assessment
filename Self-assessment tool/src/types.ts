@@ -17,6 +17,15 @@ export interface PicklistOption { value: string; label: string }
  */
 export type AnswerType = 'scale' | 'yesno';
 
+/** A name and an address somebody typed, with the moment they pressed the button. Unverified. */
+export interface SavedBy {
+  name: string;
+  email: string;
+  at: string;
+  /** Always true. There is no authentication behind a submitter's name in this tool. */
+  unverified: true;
+}
+
 export interface Topic {
   id: string;
   label: string;
@@ -288,6 +297,25 @@ export interface Assessment {
      * memory of the last write, and the badge went blank until somebody typed.
      */
     onlineVersion?: string;
+    /**
+     * Who put this version in the store, and when.
+     *
+     * Asked for by Dan on 14 September. A version used to arrive with nobody attached to it:
+     * ownerEmail is set once when the record is created, and somebody holding the access code
+     * left no trace at all, so an assessor could not tell whose work was in front of them.
+     *
+     * Typed, and checked by nobody. Every screen that shows it says so, the same way the
+     * assessor's own name has always said so.
+     */
+    savedBy?: SavedBy;
+    /**
+     * The last twenty saves, newest last, as the version trail this tool has.
+     *
+     * A save replaces the document, so there is no history of the answers themselves. There is
+     * a history of who pressed the button, which is the question an assessor actually asks. It
+     * is bounded because it rides inside the document and the document has a size.
+     */
+    saves?: SavedBy[];
     /** Set when the person has been offered online saving and said the browser is enough. */
     onlineDeclined?: boolean;
     /** When the submitter marked it ready for an assessor to read. Nothing is sent. */

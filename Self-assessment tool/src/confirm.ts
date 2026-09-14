@@ -37,6 +37,16 @@ export interface ConfirmStep {
    */
   note?: string;
   /**
+   * Something the window needs before it will commit, checked when the button is pressed.
+   *
+   * Returns the problem in words, or null when there is none. It exists because saving online
+   * now asks who is saving, and a window with a field in it has to be able to say "not yet"
+   * without closing and losing what was typed.
+   */
+  gate?: () => string | null;
+  /** Focused when the window opens, if the window has something to type in. */
+  focusFirst?: () => void;
+  /**
    * The keep-a-copy escape. Runs, then reports back so the wording can change.
    *
    * `commits` makes it one action: take the copy and go ahead. Without it the copy is taken
@@ -127,12 +137,24 @@ export function confirmStep(o: ConfirmStep): void {
         o.alt!.run();
       } }, [o.alt.label]));
     }
-    actions.appendChild(el('button', {
+    const commit = el('button', {
       class: `${o.tier === 'danger' ? 'danger-solid' : o.tier === 'plain' ? 'primary' : 'danger'} cf-wide`,
-      onclick: () => { close(); o.onCommit(); },
+      onclick: () => {
+        const problem = o.gate?.();
+        if (problem) {
+          const said = el('p', { class: 'cf-stake' }, [problem]);
+          if (stakeEl) stakeEl.replaceWith(said); else body.appendChild(said);
+          stakeEl = said;
+          o.focusFirst?.();
+          return;
+        }
+        close();
+        o.onCommit();
+      },
     }, [kept && o.offer
       ? t(`I have the copy. ${o.commitLabel.toLowerCase()}`, `J\u2019ai la copie. ${o.commitLabel.toLowerCase()}`)
-      : o.commitLabel]));
+      : o.commitLabel]);
+    actions.appendChild(commit);
 
     /**
      * The safe control takes focus, so Enter and Escape both mean cancel.
@@ -145,8 +167,19 @@ export function confirmStep(o: ConfirmStep): void {
       ? el('button', { class: 'cf-wide', onclick: close }, [o.cancelLabel])
       : null;
     if (cancel) actions.appendChild(cancel);
+    /**
+     * A window with a field in it puts the caret in the field instead, because somebody who has
+     * been asked a question is going to answer it, and Enter from there is the commit.
+     */
     const rest = cancel ?? (actions.lastElementChild as HTMLElement | null);
-    setTimeout(() => rest?.focus?.(), 0);
+    setTimeout(() => { if (o.focusFirst) o.focusFirst(); else rest?.focus?.(); }, 0);
+    dlg.addEventListener('keydown', (e) => {
+      const k = (e as KeyboardEvent).key;
+      if (k === 'Enter' && o.focusFirst && (e.target as HTMLElement)?.tagName === 'INPUT') {
+        e.preventDefault();
+        commit.click();
+      }
+    });
   };
   paint(false);
 
