@@ -290,6 +290,61 @@ export const sections = [
  * How a requirement gets checked, which is the section ISO 29148 expects and the one most
  * requirements documents leave out. It is worth having because the answer here is mechanical.
  */
+/**
+ * Risks we have looked at and accepted.
+ *
+ * A risk register is the conventional home for this, and it is a separate thing from a
+ * requirement: a requirement says what the tool must do, and a risk says what could go wrong
+ * anyway, how likely it is, what it would cost, and who decided to carry it. The one that
+ * matters to a reviewer is the last column. An unowned risk is a surprise waiting; an accepted
+ * one is a decision.
+ *
+ * Accepted does not mean solved. Each of these stays here until the mitigation is built or the
+ * risk goes away, and the date says when somebody last looked at it.
+ */
+export const risks = {
+  title: 'Risks we have accepted',
+  lead: 'What could go wrong that we are choosing to carry, why it is bearable at this stage, and who said so. A risk leaves this list when it is mitigated or when it stops being possible.',
+  rows: [
+    {
+      id: 'RK1',
+      what: 'Somebody spends the store\u2019s daily read allowance and takes the tool offline for a day.',
+      because: 'A submitter opens an assessment with a code and no account, so reads have to be permitted without one. Every read counts against 50,000 a day on the free plan, and a script can spend them in minutes.',
+      likelihood: 'Low',
+      cost: 'The tool stops answering for everybody until midnight UTC. Nothing is lost and nothing is exposed.',
+      doing: 'Undecided, and the conventional answer has a price. Firebase App Check refuses a request that cannot prove it came from our own page, before a read is billed, and it is what Google provides for exactly this. It works by loading reCAPTCHA from Google, which means external script on a page whose policy is default-src none with everything inlined, and that policy is the whole security story the tool tells a reviewer. So App Check costs the one-file property and needs three more hosts in the policy. Meanwhile: a budget alert makes it visible, and guessing codes is not a way in at 2^60, so this is vandalism and not a route to anybody\u2019s data.',
+      accepted: 'Mariia, 14 September 2026',
+    },
+    {
+      id: 'RK2',
+      what: 'An access code reaches somebody it was never meant to reach, and cannot be taken back.',
+      because: 'A code is a bearer token: whoever holds it can open that assessment. Forwarded once, it is permanent, and there is no list of who holds it.',
+      likelihood: 'Medium',
+      cost: 'One assessment is readable by one more person than intended. Everything in the tool is Unclassified, so this is embarrassment and not disclosure.',
+      doing: 'Nothing yet. Rotating a code means minting a new id, copying the record and deleting the old one, which also breaks every message already sent quoting the old code. Worth building when somebody asks for it.',
+      accepted: 'Mariia, 14 September 2026',
+    },
+    {
+      id: 'RK3',
+      what: 'A name on an audit entry is not the person who wrote it.',
+      because: 'On the code route a name is typed and checked by nobody.',
+      likelihood: 'Low',
+      cost: 'The record says who scored a question and cannot prove it.',
+      doing: 'Every name the tool has not checked is stamped unverified, in the file and on screen, so nothing can later be mistaken for a checked one. Nothing in this process depends on the name being true.',
+      accepted: 'Dan and Mariia, 8 September 2026',
+    },
+    {
+      id: 'RK4',
+      what: 'The prototype store has no owner of record inside TBS.',
+      because: 'It is a personal Firebase project on a free plan, made so the tool could be tried at all.',
+      likelihood: 'Certain, until somebody takes it',
+      cost: 'A reviewer asks who owns the data and there is no departmental answer.',
+      doing: 'Owner of record written down, a deletion date at the end of the work term, and the whole store exports from the portfolio view in an afternoon. H5 carries the text.',
+      accepted: 'Mariia, 3 September 2026',
+    },
+  ],
+};
+
 export const verification = {
   title: 'How each requirement gets checked',
   lead: 'Four gates run on every change, and a requirement is not built until the gate that covers it passes. A fifth runs against the live store when the rules change.',
