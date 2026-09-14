@@ -23,6 +23,7 @@ const rubric = JSON.parse(await readFile('rubric/rubric.v1-dan.json', 'utf8'));
 
 const SESSION = 'gc-arch-assessment:firebase-session';
 const SIDE = 'gc-arch-assessment:side';
+const DRAFT = 'gc-arch-assessment:draft';
 const ME = 'assessor@tbs-sct.gc.ca';
 
 /** One submission, in the shape Firestore hands back. Enough of it to score and to name. */
@@ -57,7 +58,7 @@ const asDoc = (a) => ({ name: `projects/p/databases/(default)/documents/assessme
  * One page, booted with whatever storage and whatever store answer a case needs.
  * `listAnswer` decides what the assessments list does: a page of documents, or a refusal.
  */
-async function boot({ session = null, side = null, listAnswer = { documents: [] }, role = null, hash = '', url = null } = {}) {
+async function boot({ session = null, side = null, listAnswer = { documents: [] }, role = null, hash = '', url = null, draft = null } = {}) {
   const seen = [];
   const dom = new JSDOM(html, {
     runScripts: 'dangerously',
@@ -69,6 +70,7 @@ async function boot({ session = null, side = null, listAnswer = { documents: [] 
       try {
         if (session) w.localStorage.setItem(SESSION, JSON.stringify(session));
         if (side) w.localStorage.setItem(SIDE, side);
+        if (draft) w.localStorage.setItem(DRAFT, JSON.stringify(draft));
       } catch { /* no storage on this origin */ }
       w.scrollTo = () => {};
       w.alert = () => {};
@@ -320,6 +322,52 @@ console.log('\nThe published build, signed in\n');
   // A submitter is not an assessor, and the home page has to work signed in or out.
   const { doc, dom } = await boot({ session: live });
   ok('the submitter home page renders for a signed-in person', /Assess your own architecture/.test(body(doc)));
+  dom.window.close();
+}
+
+/* --------------------------------------------------------------------------------------- */
+{
+  /**
+   * What the button on the results page claims, and what it does.
+   *
+   * It was called "Ask an assessor to review it", over a paragraph saying it put the assessment
+   * in front of one. Nothing is put in front of anybody: it writes a mark on the record, and an
+   * assessor reading the pool sees the mark. The user asked what the button actually did, which
+   * is the question a name like that produces. Telling somebody stays a thing a person does,
+   * outside the tool, and the code is what they need to do it.
+   */
+  const mine = {
+    fileType: 'gc-arch-assessment', formatVersion: 1, ref: 'ZZ99', id: 'KFRM92TXBQ7H',
+    rubric: { id: rubric.id, version: rubric.version, title: 'x' },
+    initiative: {
+      name: 'Licensing Renewal', department: 'DFO', contact: ME,
+      lifecycleStage: 'beta', summary: 'A thing.', classification: 'Unclassified',
+    },
+    answers: {},
+    meta: { createdAt: 'x', updatedAt: 'x', appVersion: 'test', savedOnlineAt: 'x', owner: ME },
+  };
+  const { doc, dom } = await boot({ session: live, side: 'submit', hash: '#results', draft: mine });
+  const said = body(doc);
+  const labels = [...doc.querySelectorAll('.submit-box button')].map((b) => b.textContent.trim());
+
+  ok('the results page offers to mark it ready', labels.some((l) => /Mark it ready to review/.test(l)),
+     labels.join(' | '));
+  ok('and never claims to ask anybody anything', !/Ask an assessor/i.test(said));
+  ok('it says what the mark does', /beside this assessment in the assessor/i.test(said), said.slice(0, 200));
+  ok('and that the tool sends nothing', /sends nothing and tells nobody/i.test(said));
+  ok('and that telling them is yours to do', /Tell your assessor yourself/i.test(said));
+
+  /**
+   * Every code on screen is something you can take a copy of. Reading twelve characters off a
+   * screen and retyping them into a chat window is the failure this removes, and the results
+   * page is where somebody goes looking for the code to send.
+   */
+  const chip = doc.querySelector('.res-sub .code-chip');
+  ok('the access code is on the results page', !!chip);
+  ok('as a control and not as text', !!chip?.querySelector('button'));
+  ok('shown the way it is read aloud', /KFRM-92TX-BQ7H/.test(chip?.textContent ?? ''), chip?.textContent);
+  ok('and the page says holding it is enough to change the assessment',
+     /open this assessment and change it/i.test(said));
   dom.window.close();
 }
 

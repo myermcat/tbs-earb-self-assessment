@@ -1043,11 +1043,11 @@ ok('the cards on it are still cards',
    !/\.body-results\s*>\s*section\s*\{[^}]*box-shadow:\s*none/s.test(html));
 ok('and the dots still watch against the window',
    !/\{\s*root,\s*rootMargin/.test(html));
-// Submitting is one deliberate act, and with no store there is nothing to press. The block
-// says which of those two it is rather than showing a button that cannot work.
+// Marking an assessment ready is one deliberate act, and with no store there is nothing to
+// press: no code exists, so no assessor could open it. The block says so and shows no button.
 ok('the results page has a submit block', !!q('.submit-box'));
-ok('and with no store it says so and points at the file',
-   view().includes('Not hosted yet') && view().includes('nowhere to send it yet'));
+ok('and with no store it says why there is nothing to press',
+   view().includes('Not hosted yet') && view().includes('nowhere to keep an assessment'));
 ok('with no button that cannot work', !byText('.submit-box button', 'ready to review'));
 
 ok('backlog section present', view().includes('weakest five'));

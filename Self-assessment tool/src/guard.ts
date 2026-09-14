@@ -21,7 +21,7 @@ import type { Assessment } from './types';
 import { confirmStep } from './confirm';
 import { answeredCount, hasWork } from './storage';
 import { onlineIsCurrent, saveOnlineNow, savedOnline, isHosted } from './store';
-import { formatCode } from './firebase';
+import { codeChip } from './code-chip';
 import { t } from './i18n';
 
 export type ReplaceAct = 'open' | 'code' | 'switch' | 'discard' | 'undo';
@@ -88,22 +88,25 @@ export function guardDraft(o: GuardOptions): void {
    * code has no route back to that work at all, which is a thing to say out loud and not a
    * thing to leave them to discover.
    */
-  const code = savedOnline(o.current) && o.current.id ? formatCode(o.current.id) : '';
+  const code = savedOnline(o.current) && o.current.id ? o.current.id : '';
 
   const stake = risk === 'never-online'
     ? t(`This copy has never been saved online, so ${answers} would be gone, and there is no other way back to it.`,
         `Cette copie n’a jamais été enregistrée en ligne, donc ${answers === '1 answer' ? '1 réponse' : `${n} réponses`} seraient perdues, et il n’y a aucun autre moyen d’y revenir.`)
     : risk === 'behind-online'
-      ? t(`The copy online is behind this one, so anything typed since the last save would be gone. Its access code is ${code}, and that code is the only way back to it.`,
-          `La copie en ligne est en retard sur celle-ci, donc tout ce qui a été saisi depuis le dernier enregistrement serait perdu. Son code d’accès est ${code}, et ce code est le seul moyen d’y revenir.`)
-      : t(`This is saved online, so nothing is lost. Its access code is ${code}, and that code is the only way back to it, so keep it somewhere before you go on.`,
-          `Ceci est enregistré en ligne, donc rien n’est perdu. Son code d’accès est ${code}, et ce code est le seul moyen d’y revenir : conservez-le quelque part avant de continuer.`);
+      ? t('The copy online is behind this one, so anything typed since the last save would be gone. Its access code is the only way back to it, so take a copy before you go on.',
+          'La copie en ligne est en retard sur celle-ci, donc tout ce qui a été saisi depuis le dernier enregistrement serait perdu. Son code d’accès est le seul moyen d’y revenir : copiez-le avant de continuer.')
+      : t('This is saved online, so nothing is lost. Its access code is the only way back to it, so take a copy before you go on.',
+          'Ceci est enregistré en ligne, donc rien n’est perdu. Son code d’accès est le seul moyen d’y revenir : copiez-le avant de continuer.');
 
   confirmStep({
     // Nothing is lost when the copy online is current, so the window stops shouting.
     tier: risk === 'safe-online' ? 'plain' : 'danger',
     title: t('Replace what this browser is holding?', 'Remplacer ce que ce navigateur conserve?'),
     body: t(ACT[o.act].en, ACT[o.act].fr),
+    // The code itself, to take with them. Mentioning one and leaving it as text is how
+    // somebody closes this window and cannot find their way back.
+    extra: code ? codeChip(code) : undefined,
     stake,
     offer: risk === 'never-online' || risk === 'behind-online'
       ? {

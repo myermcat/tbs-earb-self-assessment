@@ -1,11 +1,12 @@
 /**
  * Sharing, and the promises it must not make.
  *
- * This is a mockup: it records addresses and does nothing else. The assertions that matter are
- * the negative ones. Nothing here may open a mail client, because a message that leaves is a
- * promise the rest of the feature cannot keep, and the results page has a control a few lines
- * away that does exactly that. Nothing here may suggest that naming an assessor lets them
- * score, because scoring is granted by an admin and anybody could otherwise appoint a friend.
+ * Sharing is the access code: whoever holds it opens the assessment and changes it. The window
+ * behind File exists to explain that and hand the code over, and the assertions that matter are
+ * still the negative ones. Nothing here may send a message or look as though it did, because the
+ * tool has no way to put anything in front of anybody. Nothing here may ask for an address,
+ * because that was the previous idea and it granted nothing; the user found both halves on one
+ * screen and asked which of them was real.
  */
 import { readFile } from 'node:fs/promises';
 import { JSDOM } from 'jsdom';
@@ -47,7 +48,7 @@ const qa = (s) => [...document.querySelectorAll(s)];
 const byText = (s, t) => qa(s).find((n) => n.textContent.trim().toLowerCase().includes(t.toLowerCase()));
 const said = () => (q('.share-dialog')?.textContent ?? '').replace(/\s+/g, ' ');
 
-console.log('\nSharing, as a mockup\n');
+console.log('\nSharing by access code\n');
 
 // Sharing is reached through the File menu, where a document editor keeps it. The separate
 // button at the top right went: the header was carrying too much.
@@ -56,25 +57,29 @@ ok('and it holds a way to share access', !!byText('.file-menu .menu-item', 'Shar
 byText('.file-menu .menu-item', 'Share access').click();
 await settle();
 
-ok('and it opens a list', !!q('dialog.share-dialog'));
-/**
- * The code is the sharing mechanism now, so it comes first and the email box has gone.
- *
- * The box was the mechanism back when there was none: you typed an address, nothing happened,
- * and the screen said so four times over. Two mechanisms on one window, one of them pretend,
- * is what the user was reading when she asked why it still wanted an email.
- */
-ok('the access code leads the window', !!q('.share-dialog .code-shown'));
-ok('shown in groups of four, the way it is read', /KFRM-92TX-BQ7H/.test(said()), said().slice(0, 120));
-ok('with a way to take a copy of it', !!byText('.share-dialog button', 'Copy the code'));
-ok('and the sentence that you send it yourself', /Send it to them yourself/.test(said()));
-ok('there is no box asking for an email', !q('.share-dialog input[type=email]'));
-ok('and it still says that naming an assessor does not let them score',
-   /does not let them score/.test(said()));
+ok('and it opens a window about the code', !!q('dialog.share-dialog'));
+ok('which is what the window is called', /access code/i.test(q('.share-dialog .cf-title')?.textContent ?? ''));
 
-// The list of people that used to be the mechanism is now a note about who was given the code.
-// What it must never do has not changed, and is the only thing left worth asserting about it.
-ok('nothing on the sharing list opens a mail client', !/mailto:/.test(q('.share-dialog').innerHTML));
+/**
+ * The code is the mechanism, so the window hands it over rather than describing it. Every place
+ * a code appears it is a control you can copy from, because reading twelve characters off a
+ * screen and retyping them into a chat window is the failure this is here to remove.
+ */
+ok('the code is on the window', !!q('.share-dialog .code-chip'));
+ok('shown in groups of four, the way it is read', /KFRM-92TX-BQ7H/.test(said()), said().slice(0, 120));
+ok('and it is a control, not a line of text', !!q('.share-dialog .code-chip button'));
+ok('whose job it names for a screen reader',
+   /copy the access code/i.test(q('.share-dialog .code-chip button')?.getAttribute('aria-label') ?? ''));
+
+ok('it says holding the code is enough to change the assessment',
+   /open this assessment and change it/i.test(said()), said().slice(0, 200));
+ok('and that sending it is something you do yourself', /in a message yourself/i.test(said()));
+ok('and that it cannot be taken back', /cannot be taken back/i.test(said()));
+
+// What the previous idea left behind, and what it must never grow back into.
+ok('there is no box asking for an email', !q('.share-dialog input[type=email]'));
+ok('nothing on it opens a mail client', !/mailto:/.test(q('.share-dialog').innerHTML));
+ok('and it does not call itself a mockup', !q('.share-dialog .badge-mockup'));
 
 console.log(fails ? `\n${fails} sharing check(s) failed\n` : '\nall sharing checks passed\n');
 process.exit(fails ? 1 : 0);

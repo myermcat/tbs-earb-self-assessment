@@ -4,9 +4,10 @@ import { nextAnchor, score, strongest, weakest, type Result } from './scoring';
 import { flags } from './flags';
 import { autosave } from './storage';
 import { markingProblems } from './marking';
+import { codeChip } from './code-chip';
 import { t } from './i18n';
 import { isHosted, putRecord, savedOnline } from './store';
-import { currentUser } from './firebase';
+import { currentUser, formatCode, pageAddress } from './firebase';
 import { openShareDialog, sharedPanel } from './views-share';
 import { repaint, saveOnline } from './views-submit';
 import { confirmStep } from './confirm';
@@ -322,11 +323,12 @@ function submitBlock(rubric: Rubric, a: Assessment, r: Result, blocked: boolean)
 
   if (!isHosted()) {
     box.appendChild(el('div', { class: 'head-row' }, [
-      el('h3', {}, [t('Sending it to TBS', 'L\u2019envoi au SCT')]),
-      el('span', { class: 'badge badge-warn' }, [t('Not hosted yet', 'Pas encore hébergé')]),
+      el('h3', {}, [t('Handing it to an assessor', 'La remise \u00e0 un \u00e9valuateur')]),
+      el('span', { class: 'badge badge-warn' }, [t('Not hosted yet', 'Pas encore h\u00e9berg\u00e9')]),
     ]));
     box.appendChild(el('p', { class: 'muted' }, [
-      t('There is nowhere to send it yet. Save the file below and pass it on the way you would pass on any document, and the moment a shared store exists this becomes one button.', 'Il n\u2019y a encore nulle part où l\u2019envoyer. Enregistrez le fichier ci-dessous et transmettez-le comme n\u2019importe quel document; dès qu\u2019un dépôt partagé existera, ce sera un seul bouton.'),
+      t('This copy of the tool has nowhere to keep an assessment, so there is nothing an assessor could open. The hosted copy gives every assessment an access code, and that code is how it is handed over.',
+        'Cette copie de l\u2019outil n\u2019a nulle part o\u00f9 conserver une \u00e9valuation, il n\u2019y a donc rien qu\u2019un \u00e9valuateur puisse ouvrir. La copie h\u00e9berg\u00e9e attribue un code d\u2019acc\u00e8s \u00e0 chaque \u00e9valuation, et ce code est la fa\u00e7on de la remettre.'),
     ]));
     return box;
   }
@@ -334,62 +336,77 @@ function submitBlock(rubric: Rubric, a: Assessment, r: Result, blocked: boolean)
   box.appendChild(el('div', { class: 'head-row' }, [
     el('h3', {}, [
       submitted
-        ? t('An assessor has been asked to review this', 'Un évaluateur a été invité à évaluer ceci')
-        : t('Asking an assessor to review this', 'Demander à un évaluateur d\u2019évaluer ceci'),
+        ? t('Marked ready for an assessor', 'Marqu\u00e9e pr\u00eate pour un \u00e9valuateur')
+        : t('Marking it ready for an assessor', 'Marquer comme pr\u00eate pour un \u00e9valuateur'),
     ]),
-    submitted ? el('span', { class: 'badge' }, [t('Ready to review', 'Prêt à évaluer')]) : null,
+    submitted ? el('span', { class: 'badge' }, [t('Ready to review', 'Pr\u00eate \u00e0 \u00e9valuer')]) : null,
   ]));
 
   if (submitted) {
     const when = new Date(a.meta.submittedAt as string);
     box.appendChild(el('p', { class: 'muted' }, [
-      `${Number.isNaN(when.getTime()) ? t('Told on an earlier visit. ', 'Signalé lors d\u2019une visite précédente. ') : t(`Told on ${when.toLocaleString()}. `, `Signalé le ${when.toLocaleString()}. `)}`,
-      t('You can keep working. Changes are kept at TBS as you make them, and your assessor reads the current version.', 'Vous pouvez continuer à travailler. Les modifications sont conservées au SCT à mesure, et votre évaluateur lit la version actuelle.'),
+      Number.isNaN(when.getTime())
+        ? t('Marked ready on an earlier visit. ', 'Marqu\u00e9e pr\u00eate lors d\u2019une visite pr\u00e9c\u00e9dente. ')
+        : t(`Marked ready on ${when.toLocaleString()}. `, `Marqu\u00e9e pr\u00eate le ${when.toLocaleString()}. `),
+      t('You can keep working. An assessor reads the version you last saved online, so save again after you change anything.',
+        'Vous pouvez continuer \u00e0 travailler. Un \u00e9valuateur lit la version que vous avez enregistr\u00e9e en ligne en dernier; enregistrez de nouveau apr\u00e8s toute modification.'),
     ]));
     return box;
   }
 
   /**
-   * Saving and handing in are two different acts, and naming them as one is what made this
-   * screen confusing. Signed in, the work is already at TBS. This button is the sentence that
-   * tells an assessor to read it.
+   * What this button does, and the reason its name changed.
+   *
+   * It was called "Ask an assessor to review it", which reads as a message going somewhere. No
+   * message goes anywhere. It sets a mark on the assessment and saves it, and the mark is what
+   * an assessor sees beside it in their list. Telling somebody is still a thing a person does,
+   * in whatever they already use, and the code is what they need in hand to do it.
    */
   box.appendChild(el('p', { class: 'muted' }, [
-    isHosted() && currentUser()
-      ? t('Your work is kept at TBS as you go. Nobody has been asked to read it yet.', 'Votre travail est conservé au SCT à mesure. Personne n\u2019a encore été invité à le lire.')
-      : t('Your answers are on this computer and nowhere else. Save online to put a copy where your assessor can read it.',
-          'Vos réponses sont sur cet ordinateur et nulle part ailleurs. Enregistrez en ligne pour en placer une copie là où votre évaluateur peut la lire.'),
+    t('Marking it ready puts "Ready to review" beside this assessment in the assessor\u2019s list, so somebody looking through the pool can tell it is finished.',
+      'Le marquage affiche \u00ab Pr\u00eate \u00e0 \u00e9valuer \u00bb \u00e0 c\u00f4t\u00e9 de cette \u00e9valuation dans la liste de l\u2019\u00e9valuateur, pour qu\u2019on voie qu\u2019elle est termin\u00e9e.'),
+  ]));
+  box.appendChild(el('p', { class: 'muted' }, [
+    t('The tool sends nothing and tells nobody. Tell your assessor yourself, the way you would tell them about any other document, and give them the access code so they can open it.',
+      'L\u2019outil n\u2019envoie rien et n\u2019avertit personne. Informez vous-m\u00eame votre \u00e9valuateur, comme pour tout autre document, et donnez-lui le code d\u2019acc\u00e8s pour qu\u2019il puisse l\u2019ouvrir.'),
   ]));
 
   const go = el('button', {
     class: 'primary', disabled: blocked,
     title: blocked
-      ? t('Fix what is listed above first', 'Corrigez d\u2019abord ce qui est indiqué ci-dessus')
-      : t('Ask an assessor to review this assessment', 'Demander à un évaluateur d\u2019évaluer cette évaluation'),
+      ? t('Fix what is listed above first', 'Corrigez d\u2019abord ce qui est indiqu\u00e9 ci-dessus')
+      : t('Mark this assessment ready to review', 'Marquer cette \u00e9valuation comme pr\u00eate \u00e0 \u00e9valuer'),
     onclick: () => {
       const ev = Object.values(a.answers).reduce((n, x) => n + (x.evidence ?? []).length, 0);
       confirmStep({
         tier: 'caution',
-        title: t('Ask an assessor to review this?', 'Demander à un évaluateur d\u2019évaluer ceci?'),
-        body: `${r.answered} of ${r.scoreable} answers, ${ev} piece${ev === 1 ? '' : 's'} of evidence, and everything you wrote about the initiative. Your assessor sees all of it. This saves nothing new: your work is already kept at TBS. It puts your assessment in front of an assessor, and you can keep working on it afterwards.`,
-        stake: t('Everything in this tool is unclassified. By telling them it is ready you are saying this is too.', 'Tout dans cet outil est non classifié. En disant que c\u2019est prêt, vous affirmez que ceci l\u2019est aussi.'),
-        commitLabel: t('It is unclassified. Tell them', 'C\u2019est non classifié. Les informer'),
+        title: t('Mark this ready to review?', 'Marquer ceci comme pr\u00eat \u00e0 \u00e9valuer?'),
+        body: `${r.answered} of ${r.scoreable} answers, ${ev} piece${ev === 1 ? '' : 's'} of evidence, and everything you wrote about the initiative. Anybody who opens this assessment sees all of it. Marking it ready saves it online and puts "Ready to review" beside it in the assessor\u2019s list. Nothing is sent, and you can keep working on it afterwards.`,
+        extra: a.id ? codeChip(a.id) : undefined,
+        note: a.id
+          ? t('Send your assessor this code. It is the only way they can open it.',
+              'Envoyez ce code \u00e0 votre \u00e9valuateur. C\u2019est le seul moyen pour lui de l\u2019ouvrir.')
+          : undefined,
+        stake: t('Everything in this tool is unclassified. Marking it ready says this assessment is too.',
+          'Tout dans cet outil est non classifi\u00e9. Le marquer comme pr\u00eat affirme que cette \u00e9valuation l\u2019est aussi.'),
+        commitLabel: t('It is unclassified. Mark it ready', 'C\u2019est non classifi\u00e9. Marquer comme pr\u00eat'),
         cancelLabel: t('Not yet', 'Pas encore'),
         onCommit: () => {
           a.meta.submittedAt = new Date().toISOString();
           autosave(a);
           void putRecord(a).then((res) => {
             if (!res.ok) {
-              // The submitted stamp comes back off, because it did not go.
+              // The mark comes back off, because it never reached the store, and an assessor
+              // would never have seen it.
               delete a.meta.submittedAt;
               autosave(a);
             }
             const fresh = submitBlock(rubric, a, r, blocked);
-            // The reason used to be computed and dropped, so a refused send looked like a
+            // The reason used to be computed and dropped, so a refused save looked like a
             // button that did nothing at all.
             if (!res.ok) {
               fresh.appendChild(el('p', { class: 'card warn tight small' }, [
-                el('strong', {}, [t('It did not send. ', 'L\u2019envoi n\u2019a pas abouti. ')]),
+                el('strong', {}, [t('It was not marked. ', 'Le marquage n\u2019a pas abouti. ')]),
                 res.problem,
               ]));
             }
@@ -398,11 +415,12 @@ function submitBlock(rubric: Rubric, a: Assessment, r: Result, blocked: boolean)
         },
       });
     },
-  }, [t('Ask an assessor to review it', 'Demander une évaluation')]);
+  }, [t('Mark it ready to review', 'Marquer comme pr\u00eate')]);
 
   box.appendChild(el('div', { class: 'actions' }, [go]));
   box.appendChild(el('p', { class: 'tiny dim' }, [
-    t('It asks you to confirm before anything goes.', 'Une confirmation est demandée avant tout envoi.'),
+    t('It asks you to confirm first, and the mark can be nothing but a mark.',
+      'Une confirmation est demand\u00e9e d\u2019abord, et le marquage n\u2019est rien de plus qu\u2019un marquage.'),
   ]));
   return box;
 }
@@ -447,12 +465,20 @@ function addSnapHint(root: HTMLElement): void {
 }
 
 /**
- * A page with no network cannot send anything, and should not pretend to. This opens the
- * person's own mail client with the message written for them; they attach the saved file
- * themselves, through the channel their department already trusts.
+ * A draft message, in the person's own mail client, carrying the access code.
+ *
+ * The tool sends nothing, and this is the one place that comes close enough to need saying so.
+ * It opens whatever handles mail on that machine with the message already written; the person
+ * reads it, addresses it and sends it themselves, through the channel their department already
+ * trusts. Nothing leaves this page.
+ *
+ * It used to carry a sentence telling the person to attach a file they had just saved, from
+ * when a file was the only way to move an assessment. The code moves it now, so the code is
+ * what the message carries, and there is nothing to attach.
  */
 export function handOff(a: Assessment, overall: number | null = null, band = '') {
   const subject = `GC EA self-assessment - ${a.initiative.name || 'untitled initiative'}`;
+  const where = pageAddress();
   const body = [
     `Initiative: ${a.initiative.name}`,
     `Department: ${a.initiative.department}`,
@@ -460,9 +486,14 @@ export function handOff(a: Assessment, overall: number | null = null, band = '')
     `Marking: ${a.initiative.classification}`,
     `Self-assessed score: ${overall === null ? 'not scored' : overall.toFixed(1)} out of 10${band ? ` (${band})` : ''}`,
     '',
-    'The assessment file is attached. It contains every answer, the reasoning, and the evidence.',
+    a.id
+      ? `Open it here: ${where}`
+      : 'This assessment has not been saved online yet, so there is nothing to open.',
+    a.id ? `Access code: ${formatCode(a.id)}` : '',
     '',
-    '(Attach the .json file you just saved before sending - a web page cannot attach it for you.)',
-  ].join('\r\n');
+    a.id
+      ? 'Anyone with that code can open the assessment and change it, so pass it on the way you would pass on the assessment itself.'
+      : '',
+  ].filter((line) => line !== '').join('\r\n');
   window.location.href = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
 }
