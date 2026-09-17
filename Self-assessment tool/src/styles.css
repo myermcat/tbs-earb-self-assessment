@@ -1087,7 +1087,7 @@ code.mark-subject { display: block; margin: .25rem 0; }
 /* A qualifier under a column heading, for a word that would otherwise read as the tool's own
    finding: State is what the department said about itself. */
 .triage th .th-sub { display: block; font-weight: 500; text-transform: none; letter-spacing: 0;
-  font-size: .68rem; color: var(--ink-3); }
+  font-size: .66rem; line-height: 1.15; color: var(--ink-3); margin-bottom: .12rem; }
 /* A heading may wrap onto two lines. A button in a cell may not: "Open" broke in half. */
 .triage th { white-space: normal; line-height: 1.15; vertical-align: bottom; }
 .triage .row-acts { display: flex; gap: .3rem; align-items: center; justify-content: flex-end; }
@@ -1710,11 +1710,23 @@ dialog.confirm.shake { animation: cf-shake .34s cubic-bezier(.36, .07, .19, .97)
    low category score is ask which questions made it low. */
 .cat-open { border-bottom: 1px solid var(--line); }
 .cat-open:last-of-type { border-bottom: none; }
-.cat-open > summary { cursor: pointer; list-style: none; padding: .1rem 0; border-radius: 6px; }
+/* A fourth track for the chevron. It was floated instead, which in a three-column grid makes
+   it a fourth grid item: it sat on an implicit row under the bar and jumped when the row
+   reflowed on open. A float has no business inside a grid. */
+.cat-open > summary.bar-row {
+  /* Said outright. A <summary> is display:list-item by default, and relying on .bar-row to
+     turn it into a grid leaves the outcome to rule order. */
+  display: grid;
+  cursor: pointer; list-style: none; border-radius: 6px;
+  grid-template-columns: minmax(9rem, 14rem) 1fr 3.2rem 1.1rem;
+  align-items: center;
+}
 .cat-open > summary::-webkit-details-marker { display: none; }
 .cat-open > summary::after {
-  content: "\203A"; float: right; margin-left: .5rem; color: var(--ink-3);
-  transition: transform .18s; display: inline-block;
+  content: "\203A";
+  color: var(--ink-3); font-size: 1.05rem; line-height: 1;
+  justify-self: end; align-self: center;
+  transition: transform .18s;
 }
 .cat-open[open] > summary::after { transform: rotate(90deg); }
 .cat-open > summary:hover .bar-label { color: var(--accent); }
@@ -1753,3 +1765,39 @@ dialog.confirm.shake { animation: cf-shake .34s cubic-bezier(.36, .07, .19, .97)
   .cat-open > summary::after, .cat-q-go { transition: none; }
   .q-block.brought-here, [data-qid].brought-here { animation: none; box-shadow: 0 0 0 3px var(--accent-line); }
 }
+
+/* ---------- where the score comes from, as one block ---------------------------------------
+   Two panels inside one frame: the domains that build the number, and the same answers cut by
+   category. They were two loose subsections under a heading and read as two unrelated lists. */
+.cuts {
+  border: 1px solid var(--line); border-radius: 12px;
+  background: var(--surface); overflow: hidden;
+}
+.cuts > .cut { padding: 1.15rem 1.25rem 1.3rem; margin: 0; }
+.cuts > .cut + .cut { border-top: 1px solid var(--line); }
+.cuts > .cut > h3 { margin-top: 0; }
+@media (max-width: 520px) { .cuts > .cut { padding: 1rem .9rem 1.1rem; } }
+
+/* ---------- the verdict card ---------------------------------------------------------------
+   It is the summary of everything and it was reading as the first paragraph of one long block
+   of text. So the card carries its own ground and a little more air, and the code sits on its
+   own line with a word saying what it is: inline it pressed against the department name with
+   nothing between them but a space. */
+.verdict { background: var(--surface-2); padding-top: 1.5rem; padding-bottom: 1.4rem; }
+.verdict-where { margin-bottom: 0; }
+.verdict-code {
+  display: flex; align-items: center; gap: .6rem; flex-wrap: wrap;
+  margin-top: .85rem; padding-top: .8rem;
+  border-top: 1px solid var(--line);
+}
+.verdict-code-key {
+  font-size: .72rem; letter-spacing: .06em; text-transform: uppercase;
+  color: var(--ink-3); font-weight: 650;
+}
+/* Room around it, so it reads as a control and not as a run of characters in a sentence. */
+.verdict-code .code-chip-btn { padding: .3rem .6rem; }
+
+/* The assessor's copy of the category list is read-only: an opinion about a question belongs in
+   the audit, which is its own screen with its own reasons attached. */
+.cat-q-flat { cursor: default; grid-template-columns: 2.3rem 1fr; }
+.cat-q-flat:hover { background: none; color: var(--ink-2); }

@@ -968,14 +968,28 @@ ok('routing is stated as a suggestion', view().includes('does not decide it'));
   // They are parts of one region now, because they are the same 176 answers at two grains.
   const parts = qa('.res-sub');
   const domainPart = parts.find((c) => c.querySelector('h3')?.textContent === 'By architecture domain');
-  const topicPart = parts.find((c) => c.querySelector('h3')?.textContent === 'Across the domains');
+  const topicPart = parts.find((c) => c.querySelector('h3')?.textContent === 'By category');
   ok('the domain bars are a part of a region', !!domainPart);
   ok('four domain bars rendered', domainPart?.querySelectorAll('.bar-row').length === 4,
      String(domainPart?.querySelectorAll('.bar-row').length));
-  ok('and the cross-cutting topics are shown separately, with a provisional label',
-     !!topicPart && topicPart.querySelectorAll('.bar-row').length > 0 &&
-     topicPart.textContent.includes('provisional'),
+  /**
+   * Two panels inside one frame, named the same way. They were two loose subsections under a
+   * heading and read as two unrelated lists, and "Across the domains" beside "By architecture
+   * domain" named the same thing twice with different words.
+   */
+  ok('both cuts sit inside one block', qa('.cuts > .cut').length === 2,
+     String(qa('.cuts > .cut').length));
+  ok('and the categories are one of them',
+     !!topicPart && topicPart.querySelectorAll('.bar-row').length > 0,
      String(topicPart?.querySelectorAll('.bar-row').length));
+  /**
+   * No "provisional grouping" badge and no note about how thin a category is. Both are between
+   * us and TBS about who owns the assignments and about this question set at this moment; a
+   * department filling this in has no use for either.
+   */
+  ok('and it carries no note meant for the build team',
+     !topicPart.querySelector('.badge-warn') && !/rests on \d+ question/.test(topicPart.textContent),
+     topicPart.textContent.slice(0, 120));
   ok('the topic block says the numbers do not add up to the overall',
      topicPart.textContent.includes('do not add up to the overall'));
 
