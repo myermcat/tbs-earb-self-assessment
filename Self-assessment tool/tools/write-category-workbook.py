@@ -115,7 +115,7 @@ def read_me():
          else 'A template. The Categories column is empty and waiting for you.',
          11, False, MUTED)
     line()
-    line('The one thing we are asking for', 14, True)
+    line('What we are asking you for', 14, True)
     line('Every question already belongs to one domain: the tab it is on. That never changes and '
          'you never type it.')
     line('Some questions are also about something else. A question about encrypting a data store '
@@ -133,17 +133,17 @@ def read_me():
          'in. A category nobody recognises would otherwise score nothing, on every screen, and '
          'never be noticed.')
     line()
-    line('The nine categories', 14, True)
-    line('Four are the domains themselves, filled in by the tab a question is on: Business, Data, '
-         'Application, Technology.')
-    line('Five are what the Categories column asks for: Security, Privacy, Financial, '
-         'Accessibility, Official Languages.')
+    line('The five you fill in', 14, True)
+    line('Security, Privacy, Financial, Accessibility, Official Languages. Those are the whole '
+         'of the Categories column.')
+    line('Business, Data, Application and Technology are categories too, and you never type '
+         'them: a question carries the one its own tab is named after, automatically.')
     line()
     line('A question can carry as many as apply. It still counts once in the overall score, '
          'through its domain, and at full weight inside every category it carries. So the '
          'category scores do not add up to the overall, and the tool says so.')
     line()
-    line('Never duplicate a question onto a second tab', 14, True, 'B03A2E')
+    line('Never put a question in two domains', 14, True, 'B03A2E')
     line('A question that appears on two tabs is counted twice in the overall score, and the '
          'department’s number moves because of how we filed a question. One question, one '
          'tab, as many categories as apply.')

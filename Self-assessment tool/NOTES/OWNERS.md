@@ -14,21 +14,47 @@ anybody. They are chosen so two people are rarely in the same file on the same d
 | Assessor and admin | `src/views-review.ts`, `src/views-dashboard.ts`, the audit | |
 | Requirements and risks | `NOTES/requirements.data.mjs`, the risk register | Mariia |
 
-## How two people work on this without stepping on each other
+## How two sessions work on this without stepping on each other
 
-**Branch, then pull request.** Nobody pushes to `main`. The branch is named for the seam:
-`assessor/ready-column`, not `fix-2`.
+**These rules exist because they were broken.** Two sessions worked this repository on `main` at
+the same time. One commit swept up the other session's half-finished work. Another went out with
+the suite red, because the suite was run, code was edited afterwards, and the push happened
+without running it again. Nothing was published, because `deploy/publish-preview.sh` runs the
+suite before it builds, but that is a backstop and not a process.
 
-**Commit as often as you like, push at the end of your day.** If two people are working on
-different days this is enough on its own: the day starts with `git pull`, so you start from
-what the other person finished.
+Sessions are often both the same person driving two Claude windows. That makes the rules more
+necessary rather than less: neither window remembers what the other did.
 
-**If you are both working the same day, say which seam you are in before you start.** One
-line in chat. It costs ten seconds and it is the whole of the coordination problem.
+**1. Branch. `main` only through a pull request.** The branch is named for the seam:
+`assessor/ready-column`, not `fix-2`. Branch protection on `main` refuses force pushes and
+deletions and requires the `test` check.
 
-**The test suite is the referee.** `npm test` before every push, and CI runs it again on the
-pull request. Nobody has to ask permission to change something; the suite says whether it
-broke.
+**2. `git pull --rebase` before the first commit of a sitting.** Not just at the start of the
+day. The other session may have pushed while you were reading.
 
-**Decisions go in `NOTES/requirements.data.mjs` the day they are made.** Not in a commit
+**3. Say which seam you are in before you start.** Update the table above, in a commit. Not in
+chat: chat is gone by Thursday and the person who joins in October reads this file.
+
+**4. `npm test` immediately before every push, not before the last edit.** If you change
+anything after running it, run it again. This is the one that was broken.
+
+**5. Commit as often as you like, push at the end of your sitting.** If two sessions are on
+different days, rules 1 to 4 are already enough on their own.
+
+**6. Decisions go in `NOTES/requirements.data.mjs` the day they are made.** Not in a commit
 message, not in chat. That file is how two people hold the same picture of what this is.
+
+**7. Do not commit build output.** `dist/` is ignored, and it stays ignored: two sessions
+rebuilding one file is a conflict on every commit, and `publish-preview.sh` builds it fresh.
+
+### What to do when you have collided anyway
+
+Rebase, do not merge, and do not force. `git pull --rebase`, fix the conflict, run `npm test`,
+push. If the suite is red after a rebase it is usually a test the other session wrote against
+behaviour you changed: read their test before changing it, because it is describing a decision.
+
+### Publishing
+
+Only from `main`, only green, and `bash deploy/publish-preview.sh` runs the suite itself and
+refuses to publish if it fails. Publishing from a branch puts half a feature in front of TBS.
+
