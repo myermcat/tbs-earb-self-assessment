@@ -47,7 +47,7 @@ import { validate } from './rubric';
 import BUILTIN from '../rubric/rubric.v1-dan.json';
 import { currentUser, deleteAssessment, getAssessment, isConfigured, listAssessments,
   putAssessment, storeHost } from './firebase';
-import { hasAccounts } from './who';
+import { hasAccounts, nameIsChecked } from './who';
 
 /**
  * The store, and how to point at one.
@@ -419,12 +419,22 @@ export async function saveOnlineNow(
   if (gate.length) return { ok: false, problem: gate[0].message };
   /**
    * Who is saving, written onto the record before it goes rather than after, because it is part
-   * of the version and not a note about it. Unverified, always, and every screen showing it
-   * says so.
+   * of the version and not a note about it. Unchecked on the code route, which is every route a
+   * submitter has, and the screens that show it say what was and was not checked.
    */
   if (who) {
     const stamp: SavedBy = {
-      name: who.name, email: who.email, at: new Date().toISOString(), unverified: true,
+      name: who.name, email: who.email, at: new Date().toISOString(),
+      /**
+       * Checked only when the address typed is the address somebody is signed in as.
+       *
+       * An account existing is not the same as this name being checked: the boxes take any
+       * address, so a signed-in person can type a colleague's and the record would claim it was
+       * verified. The one case where the tool knows the address is real is when the provider
+       * already told it that same address.
+       */
+      unverified: !(nameIsChecked()
+        && who.email.trim().toLowerCase() === (currentUser()?.email ?? '').trim().toLowerCase()),
       moment: savedOnline(a) ? moment : 'first',
       ...snapshot(a),
     };

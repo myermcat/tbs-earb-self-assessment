@@ -22,8 +22,14 @@ export interface SavedBy {
   name: string;
   email: string;
   at: string;
-  /** Always true. There is no authentication behind a submitter's name in this tool. */
-  unverified: true;
+  /**
+   * Whether anybody checked this name.
+   *
+   * True on the code route, always, because that route has no sign-in by design. It was typed
+   * as the literal `true`, which meant a checked name could not be recorded even where one
+   * exists, and every badge in the product ignored the field and printed the word anyway.
+   */
+  unverified: boolean;
   /**
    * Which save this was. The two named ones are the versions somebody asks about later: the
    * one where the assessment first existed at TBS, and the one where it was handed to an
@@ -196,8 +202,8 @@ export interface AuditMove {
   at: string;
   score: number | null;
   note: string;
-  /** Never verified. There is no authentication in this tool. */
-  unverified: true;
+  /** Whether the person who made this move was signed in. False once an account is behind it. */
+  unverified: boolean;
 }
 
 export interface AuditEntry {

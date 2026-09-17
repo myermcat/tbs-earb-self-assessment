@@ -224,11 +224,20 @@ export function signerFields(): SignerFields {
       : null,
   ]);
 
+  /**
+   * What is in the boxes, and nothing else.
+   *
+   * This used to fall back to the remembered pair when a box was left empty, and the gate is
+   * fed this same value, so two empty boxes passed every check and the version went into the
+   * store under whoever used this browser last. The comment at the top of this function says
+   * that cannot happen; it could. Tab already fills both boxes visibly, which is the accept
+   * path, so the only thing lost here is a save nobody looked at.
+   */
   return {
     node,
     value: () => ({
-      name: name.value.trim() || was.name,
-      email: (email.value.trim() || was.email).replace(/[\s ]+/g, ''),
+      name: name.value.trim(),
+      email: email.value.trim().replace(/[\s ]+/g, ''),
     }),
     focus: () => name.focus(),
   };
