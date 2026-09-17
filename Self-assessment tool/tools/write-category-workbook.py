@@ -229,6 +229,18 @@ def domain_sheet(d):
                          bold=row['answerType'].startswith('Yes'))
         kind.fill = PatternFill('solid', fgColor=PICK_BG)
 
+        # Dan's own column, and his fills itself, so this one does too: the Assessment Scale tab
+        # is the lookup, and a score of 7 reads back "Scalable & Secure". A yes-or-no answer has
+        # no maturity, and neither does an empty cell, so both come back blank rather than as an
+        # error somebody has to ignore on 176 rows.
+        acol = get_column_letter(ANSWER_COL)
+        label = ws.cell(row=r, column=ANSWER_COL + 1, value=(
+            f'=IF(OR({acol}{r}="",NOT(ISNUMBER({acol}{r}))),"",'
+            f"IFERROR(VLOOKUP({acol}{r},'Assessment Scale'!$A$3:$C$13,3,FALSE),\"\"))"
+        ))
+        label.alignment = Alignment(vertical='center')
+        label.font = Font(name='Calibri', size=10, color=MUTED)
+
         for i in range(1, last + 1):
             ws.cell(row=r, column=i).border = box
         r += 1
@@ -236,8 +248,11 @@ def domain_sheet(d):
     def picker(values, cells, prompt, title):
         if not cells:
             return
+        # Reject rather than warn. A Google Sheets dropdown can only hold more than one value
+        # when it rejects what is not on the list, so a warning-only rule arrives with "Allow
+        # multiple selections" greyed out.
         dv = DataValidation(type='list', formula1='"%s"' % ','.join(values).replace('"', ''),
-                            allow_blank=True, showErrorMessage=False)
+                            allow_blank=True, showErrorMessage=True)
         dv.prompt = prompt
         dv.promptTitle = title
         ws.add_data_validation(dv)
@@ -293,7 +308,12 @@ def scale_sheet(rows):
         if not any(row):
             continue
         for i, v in enumerate(row[:4], start=1):
-            c = ws.cell(row=r, column=i, value=v or None)
+            # The score is written as a number. It arrives from the CSV as text, and a VLOOKUP
+            # of a number against text matches nothing, so the Maturity Label column on every
+            # question sheet would have come back empty.
+            if i == 1 and (v or '').strip().isdigit():
+                v = int(v.strip())
+            c = ws.cell(row=r, column=i, value=v if v != '' else None)
             c.alignment = wrap_top if i == 4 else centre
             c.font = Font(name='Calibri', size=10.5)
             c.border = box

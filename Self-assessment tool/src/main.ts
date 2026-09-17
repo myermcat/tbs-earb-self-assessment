@@ -109,7 +109,7 @@ let side: Side = booted.side;
 let mode: Mode = booted.mode;
 if (booted.stop) setStopKey(booted.stop);
 
-type SettingsPane = 'questions' | 'answers' | 'build' | 'danger';
+type SettingsPane = 'questions' | 'answers' | 'pages' | 'build' | 'danger';
 let settingsPane: SettingsPane = 'questions';
 
 /**
@@ -547,10 +547,22 @@ function header(bare = false): HTMLElement {
     el('div', { class: 'brand', onclick: () => go(side === 'assess' ? 'review' : 'home') }, [
       el('span', { class: 'brand-mark' }, ['EA']),
       el('strong', {}, [rubric.title]),
+      /**
+       * Which side you are on, and not who you are.
+       *
+       * This badge used to print the signed-in address, which the account chip at the other end
+       * of the same header already holds, and holds better: the chip is where every signed-in
+       * service keeps an identity, and it opens to show the address in full. Two copies of one
+       * address, at opposite ends of one bar, is the header carrying the same fact twice and
+       * charging the width for it.
+       *
+       * A typed name on a build with no provider is different, and it stays, because nothing
+       * else on screen says whose name is going onto the audit or that nobody has checked it.
+       */
       side === 'assess' && !bare
         ? el('span', { class: 'side-badge' }, [
-            !assessorName.trim() ? t('Assessor', 'Évaluateur')
-              : firebaseConfigured() ? assessorName.trim()
+            firebaseConfigured() || !assessorName.trim()
+              ? t('Assessor', 'Évaluateur')
               : `${assessorName.trim()} · ${t('unverified', 'non vérifié')}`,
           ])
         : null,
@@ -1106,6 +1118,7 @@ function renderSettings(root: HTMLElement) {
     nav.appendChild(el('span', { class: 'set-navgroup' }, [t('Settings', 'Paramètres')]));
     nav.appendChild(navRow(t('Question set', 'Jeu de questions'), 'questions'));
     if (mine) nav.appendChild(navRow(t('Your answers', 'Vos réponses'), 'answers'));
+    nav.appendChild(navRow(t('Pages', 'Pages'), 'pages'));
     nav.appendChild(navRow(t('This build', 'Cette version'), 'build'));
     if (mine) {
       nav.appendChild(el('span', { class: 'set-navsep', 'aria-hidden': true }));
@@ -1115,6 +1128,7 @@ function renderSettings(root: HTMLElement) {
     clear(pane);
     if (settingsPane === 'questions') paneQuestions(pane);
     else if (settingsPane === 'answers' && mine) paneAnswers(pane);
+    else if (settingsPane === 'pages') panePages(pane);
     else if (settingsPane === 'build') paneBuild(pane);
     else if (mine) paneDanger(pane);
     else paneQuestions(pane);
@@ -1439,6 +1453,21 @@ function paneBuild(pane: HTMLElement) {
     ));
   })();
 
+}
+
+/**
+ * The pages that are not this tool.
+ *
+ * Their own pane, because they are not a setting and they are not a fact about the build: they
+ * are places to go. Putting them under "This build" made somebody looking for the explanation
+ * read a page about version numbers first.
+ */
+function panePages(pane: HTMLElement) {
+  pane.appendChild(el('h1', { tabindex: -1 }, [t('Pages', 'Pages')]));
+  pane.appendChild(el('p', { class: 'set-lead' }, [
+    t('The explanation of how a question is filed, the spreadsheets Dan fills in, and the team\u2019s own working pages. Each opens in a new tab.',
+      'L\u2019explication du classement des questions, les feuilles de calcul que Dan remplit, et les pages de travail de l\u2019\u00e9quipe. Chacune s\u2019ouvre dans un nouvel onglet.'),
+  ]));
   /**
    * The pages that are not this tool, as cards rather than as rows.
    *
@@ -1478,6 +1507,24 @@ function paneBuild(pane: HTMLElement) {
       href: 'https://myermcat.github.io/tbs-earb-self-assessment-preview/domains-and-categories.html',
     }),
     linkCard({
+      accent: '#7C5CB8', ghost: '\u2261',
+      eyebrow: 'For Dan \u00b7 Google Sheets',
+      title: 'The categories spreadsheet',
+      body: 'His own four domain sheets, with a Categories column to fill in and his Assessment Scale and Summary Dashboard alongside. This is the empty one.',
+      meta: ['Anybody with the link can comment'],
+      cta: 'Open the template',
+      href: 'https://docs.google.com/spreadsheets/d/1Fa7j9acWJNLZylwYs4LkdpufU4yA1bv8YhKr55bvdLE/edit',
+    }),
+    linkCard({
+      accent: '#3E9E82', ghost: '\u2713',
+      eyebrow: 'For Dan \u00b7 Google Sheets',
+      title: 'The same thing, filled in',
+      body: 'Every category we read out of the wording of each question, so the shape is visible before anybody starts. Ours and provisional: his to confirm or overrule.',
+      meta: ['Anybody with the link can comment'],
+      cta: 'Open the example',
+      href: 'https://docs.google.com/spreadsheets/d/1SuEuo3_iK--XjVy0jzsvmwGhxOV5JqEeLzNIUMTY9xw/edit',
+    }),
+    linkCard({
       accent: '#4E90C8', ghost: '\u00a7',
       eyebrow: 'The build team',
       title: 'Requirements',
@@ -1498,14 +1545,14 @@ function paneBuild(pane: HTMLElement) {
   ]);
 
   /**
-   * The first card is for everybody. The other two name colleagues and the state of internal
-   * decisions, so they are offered to an admin and to a build with no project, which is
-   * somebody working on the tool itself.
+   * The first three are for anybody: the explanation, and the two spreadsheets, which are
+   * shared for comment and hold nothing but Dan's own question set. The last two name
+   * colleagues and the state of internal decisions, so they are offered to an admin and to a
+   * build with no project, which is somebody working on the tool itself.
    */
   if (firebaseConfigured() && knownRole() !== 'admin') {
-    cards.querySelectorAll('.hub-card').forEach((c, i) => { if (i > 0) c.remove(); });
+    cards.querySelectorAll('.hub-card').forEach((c, i) => { if (i > 2) c.remove(); });
   }
-  pane.appendChild(el('h2', { class: 'set-sub' }, ['Pages that explain this']));
   pane.appendChild(cards);
 }
 
