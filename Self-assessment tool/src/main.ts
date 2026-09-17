@@ -371,10 +371,27 @@ function askForCode(): void {
     }
     said.textContent = t('Looking for it...', 'Recherche en cours...');
     try {
-      const found = await getAssessment(tidyCode(field.value()));
+      const asked = tidyCode(field.value());
+      const found = await getAssessment(asked);
       if (!found) {
-        said.textContent = t('No assessment has that code. Check it against the message you were sent.',
-          'Aucune évaluation ne porte ce code. Vérifiez-le par rapport au message que vous avez reçu.');
+        /**
+         * The code of the assessment this browser is already holding, which has never been
+         * saved online.
+         *
+         * An assessment is given its code when it is created, before it has ever been in the
+         * store, so a submitter can copy their own code out of their own results page and be
+         * told no assessment has it. That sentence reads as the tool having lost their work.
+         * Nothing is lost: there is nothing in the store under that name because nothing has
+         * been sent there.
+         */
+        said.textContent = asked === assessment.id && !savedOnline(assessment)
+          ? t('That is this assessment\u2019s own code, and this assessment has never been saved online. There is nothing in the store under it yet. Nothing is lost: press Save online and this code starts opening it.',
+              'C\u2019est le code de cette évaluation, et cette évaluation n\u2019a jamais été enregistrée en ligne. Il n\u2019y a encore rien dans le dépôt sous ce code. Rien n\u2019est perdu : appuyez sur Enregistrer en ligne et ce code commencera à l\u2019ouvrir.')
+          : asked === assessment.id
+            ? t('That is this assessment\u2019s own code, and the store no longer has it. It was saved online once, so somebody with an admin account has removed it. The copy in this browser is the one you are looking at.',
+                'C\u2019est le code de cette évaluation, et le dépôt ne l\u2019a plus. Elle a été enregistrée en ligne une fois : une personne disposant d\u2019un compte administrateur l\u2019a donc supprimée. La copie dans ce navigateur est celle que vous consultez.')
+            : t('No assessment has that code. Check it against the message you were sent.',
+                'Aucune évaluation ne porte ce code. Vérifiez-le par rapport au message que vous avez reçu.');
         return;
       }
       close();
