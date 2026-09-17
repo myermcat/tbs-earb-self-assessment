@@ -57,11 +57,12 @@ PICKS = payload['picks']
 FILLED = payload['filled']
 
 # #, Q#, Assessment Question, Categories, Score, Maturity Label, Notes / Evidence
-CAT_COL = 4
-TYPE_COL = 5
-ANSWER_COL = 6
-HEADERS = ['#', 'Q#', 'Assessment Question', 'Categories', 'Answer type',
-           'Answer', 'Maturity Label', 'Notes / Evidence']
+CAT_HEADERS = payload['catHeaders']
+CAT_COL = 4                                   # the first of three, all sharing one picker
+TYPE_COL = CAT_COL + len(CAT_HEADERS)
+ANSWER_COL = TYPE_COL + 1
+HEADERS = (['#', 'Q#', 'Assessment Question'] + CAT_HEADERS
+           + ['Answer type', 'Answer', 'Maturity Label', 'Notes / Evidence'])
 
 # Ten questions out of 176 read as yes or no rather than as a maturity, and Dan named that
 # defect himself. One Answer column, with the right picker on each row: a scale question offers
@@ -118,16 +119,22 @@ def read_me():
          'categories, and the Categories column is where they go.')
     line()
     line('How to fill it in', 14, True)
-    line('1.  Click a cell in the Categories column. A dropdown appears.')
-    line('2.  Choose the entry that matches. The list holds each category on its own and the '
-         'combinations anybody is likely to need.')
-    line('3.  Leave it empty when the question is only about its own domain. That is the normal '
-         'case: about three quarters of them.')
+    line('1.  Click a cell under "Also about". A dropdown appears with the five categories.')
+    line('2.  Pick one. If the question is about a second thing, use the next column, and the '
+         'one after that for a third. Four questions out of 176 need all three.')
+    line('3.  Leave them empty when the question is only about its own domain. That is the '
+         'normal case: 130 of the 176.')
     line()
-    line('If you need a combination the list does not hold, type it, separated by commas. The '
-         'tool checks every name when it reads this file and refuses the whole import if one is '
-         'not recognised, naming the question it was in. A category nobody recognises would '
-         'otherwise score nothing, on every screen, and never be noticed.')
+    line('Three columns and not one because neither Google Sheets nor Excel has a dropdown you '
+         'can pick more than one thing from. Putting the combinations into a single list does '
+         'not work either: a dropdown list is itself comma separated, so "Security, Privacy" '
+         'splits into two entries. Three columns sharing one list is the shape that works with '
+         'nothing typed, and nothing typed means nothing mistyped.')
+    line()
+    line('If you do type into these cells, the tool checks every name when it reads this file '
+         'and refuses the whole import if one is not recognised, naming the question it was in. '
+         'A category nobody recognises would otherwise score nothing, on every screen, and never '
+         'be noticed.')
     line()
     line('The nine categories', 14, True)
     line('Four are the domains themselves, filled in by the tab a question is on: Business, Data, '
@@ -167,7 +174,7 @@ def domain_sheet(d):
     ws = wb.create_sheet(d['label'][:31])
     ws.sheet_view.showGridLines = False
 
-    for i, w in enumerate([5, 6, 62, 28, 13, 11, 16, 32], start=1):
+    for i, w in enumerate([5, 6, 58] + [17] * len(CAT_HEADERS) + [13, 11, 15, 30], start=1):
         ws.column_dimensions[get_column_letter(i)].width = w
     last = len(HEADERS)
 
@@ -213,11 +220,12 @@ def domain_sheet(d):
         q.alignment = wrap_top
         q.font = Font(name='Calibri', size=10.5)
 
-        # The two columns anybody has to fill in, tinted so it is obvious which ones they are.
-        cat = ws.cell(row=r, column=CAT_COL, value=row['categories'] or None)
-        cat.alignment = Alignment(vertical='center', horizontal='center', wrap_text=True)
-        cat.font = Font(name='Calibri', size=10, bold=bool(row['categories']), color=HEAD)
-        cat.fill = PatternFill('solid', fgColor=PICK_BG)
+        # The columns anybody has to fill in, tinted so it is obvious which ones they are.
+        for n, value in enumerate(row['categories']):
+            cat = ws.cell(row=r, column=CAT_COL + n, value=value or None)
+            cat.alignment = Alignment(vertical='center', horizontal='center', wrap_text=True)
+            cat.font = Font(name='Calibri', size=10, bold=bool(value), color=HEAD)
+            cat.fill = PatternFill('solid', fgColor=PICK_BG)
 
         kind = ws.cell(row=r, column=TYPE_COL, value=row['answerType'])
         kind.alignment = centre
@@ -241,10 +249,16 @@ def domain_sheet(d):
         for c in cells:
             dv.add(c)
 
-    col = get_column_letter(CAT_COL)
-    picker(PICKS, [f'{col}4:{col}{r - 1}'],
-           'Pick the subjects this question is also about, beyond its own domain. '
-           'Leave it empty when there are none.', 'What else is it about?')
+    # One picker, three columns. A spreadsheet has no multi-select dropdown, and putting the
+    # combinations into one list does not work: a validation list is itself comma separated, so
+    # "Security, Privacy" splits into two entries and the list shows five choices instead of
+    # eleven. Three columns give the same answer with nothing typed.
+    for n in range(len(CAT_HEADERS)):
+        col = get_column_letter(CAT_COL + n)
+        picker(PICKS, [f'{col}4:{col}{r - 1}'],
+               'One subject this question is also about, beyond its own domain. Use the next '
+               'column for a second. Leave them empty when there are none.',
+               'What else is it about?')
 
     tcol = get_column_letter(TYPE_COL)
     picker(['Scale 0-10', 'Yes / No'], [f'{tcol}4:{tcol}{r - 1}'],
@@ -334,12 +348,24 @@ read_me()
 for d in payload['sheets']:
     domain_sheet(d)
 scale_sheet(payload['scale'])
-plain_sheet('Summary Dashboard', payload['dashboard'], [46, 14, 20, 34])
+
+# Two of Dan's tabs, reproduced so the workbook is recognisably his and not a fragment of it.
+# The dashboard computes nothing here and says so: its formulas live in his own file, and the
+# scoring that matters happens in the tool, where one implementation is easier to trust than
+# two that can drift.
+dash = plain_sheet('Summary Dashboard', payload['dashboard'], [46, 14, 20, 34])
+note = dash.cell(row=dash.max_row + 2, column=1,
+                 value='This tab is your own Summary Dashboard, reproduced so nothing is '
+                       'missing from this copy. It does not calculate here: this workbook is '
+                       'for the Categories columns, and the scoring happens in the tool.')
+note.font = Font(name='Calibri', size=10, italic=True, color=MUTED)
+note.alignment = wrap_top
 
 wb.save(payload['out'])
 total = sum(s['questions'] for s in payload['sheets'])
 done = sum(1 for s in payload['sheets'] for row in s['rows']
-           if row['kind'] == 'question' and row['categories'])
+           if row['kind'] == 'question' and any(row['categories']))
 print(payload['out'].split('/')[-1])
-print(f"  {len(wb.sheetnames)} tabs, {total} questions, one Categories picker with "
-      f"{len(PICKS)} entries" + (f", {done} rows pre-filled" if FILLED else ", all empty"))
+print(f"  {len(wb.sheetnames)} tabs, {total} questions, {len(CAT_HEADERS)} category columns "
+      f"sharing one picker of {len(PICKS)}"
+      + (f", {done} rows pre-filled" if FILLED else ", all empty"))

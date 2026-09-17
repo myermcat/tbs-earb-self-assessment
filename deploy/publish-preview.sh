@@ -53,6 +53,19 @@ cp "$HERE/Self-assessment tool/dist/index.html" "$WORK/site/docs/index.html"
 # nothing of Dan's question set is in it beyond counts.
 cp "$HERE/Self-assessment tool/NOTES/backlog.html" "$WORK/site/docs/backlog.html"
 cp "$HERE/Self-assessment tool/NOTES/requirements.html" "$WORK/site/docs/requirements.html"
+# The explanation of domains and categories, which is the page somebody presents. It needs no
+# sign-in, because the people who have to read it are in meetings and not in the tool.
+#
+# The source is written as a fragment, because it is also published as a Claude artifact and
+# that wraps it. Standing on its own it needs a document around it, and that is all this does.
+{
+  printf '%s\n' '<!doctype html>' '<html lang="en">' '<head>' \
+    '<meta charset="utf-8">' \
+    '<meta name="viewport" content="width=device-width, initial-scale=1">' \
+    '</head>' '<body>'
+  cat "$HERE/Self-assessment tool/NOTES/domains-and-categories.html"
+  printf '%s\n' '</body>' '</html>'
+} > "$WORK/site/docs/domains-and-categories.html"
 
 cd "$WORK/site"
 if git diff --quiet; then
@@ -60,7 +73,7 @@ if git diff --quiet; then
   exit 0
 fi
 
-git add docs/index.html docs/backlog.html docs/requirements.html
+git add docs/index.html docs/backlog.html docs/requirements.html docs/domains-and-categories.html
 git commit --quiet -m "Preview build $(date -u '+%Y-%m-%d %H:%M UTC')"
 git push --quiet
 echo "Published. GitHub Pages takes a minute or two to pick it up."

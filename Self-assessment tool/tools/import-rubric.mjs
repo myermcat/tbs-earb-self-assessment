@@ -149,20 +149,28 @@ const TOPIC_IDS = new Set([
 ]);
 
 /**
- * Where a Topics column is, if Dan has added one.
+ * Where the category columns are, if Dan's workbook has them.
  *
- * Found by its header rather than by position, so it can go anywhere in the sheet and the
- * import does not break the day somebody inserts a column before it. The header row is the one
- * carrying "Assessment Question", which is also how the rest of this file recognises the sheet.
+ * Three of them, headed "Also about", "and", "and", because a spreadsheet has no multi-select
+ * dropdown and putting the combinations into one list does not work: a validation list is
+ * itself comma separated, so "Security, Privacy" splits into two entries. Three single-pick
+ * columns give the same answer with nothing typed.
+ *
+ * Found by their headers rather than by position, so they can sit anywhere in the sheet and an
+ * inserted column does not break the import. The older single-column shapes are still accepted,
+ * because a workbook somebody filled in last week should not stop importing.
  */
-function topicColumnIn(rows) {
+function topicColumnsIn(rows) {
   for (const r of rows.slice(0, 6)) {
     const at = r.findIndex((c) => /assessment question/i.test(clean(c)));
     if (at < 0) continue;
-    const topics = r.findIndex((c) => /^(topics?|categor(y|ies))$/i.test(clean(c)));
-    return topics < 0 ? -1 : topics;
+    const cols = [];
+    r.forEach((c, i) => {
+      if (/^(topics?|categor(y|ies)|also about|and)$/i.test(clean(c))) cols.push(i);
+    });
+    return cols;
   }
-  return -1;
+  return [];
 }
 
 /**
@@ -221,8 +229,8 @@ for (const d of DOMAINS) {
   let current = null;
   // Dan's own assignments, if he has put a Topics column in this sheet. Without one the
   // keyword pass below is what fills them, and the rubric says so on every screen.
-  const topicAt = topicColumnIn(rows);
-  if (topicAt >= 0) fromColumn.add(d.id);
+  const topicCols = topicColumnsIn(rows);
+  if (topicCols.length) fromColumn.add(d.id);
 
   for (const r of rows.slice(2)) {
     const first = clean(r[0]);
@@ -250,8 +258,9 @@ for (const d of DOMAINS) {
        * and a cell left blank means "this one is only about its own domain", which is the
        * common case and should cost nobody any typing.
        */
-      const named = topicAt >= 0 ? topicsFromCell(r[topicAt], qid, badTopics) : [];
-      const topics = topicAt >= 0
+      // Every category column on the row, joined. A blank cell is the normal case.
+      const named = topicCols.flatMap((c) => topicsFromCell(r[c], qid, badTopics));
+      const topics = topicCols.length
         ? [...new Set([d.id, ...named])]
         : topicsFor(d.id, qText);
       current.questions.push({
@@ -453,7 +462,7 @@ rubric.topicsNote = allFromColumn
   : rubric.topicsNote;
 if (!allFromColumn && fromColumn.size) {
   warnings.push(
-    `A Topics column was found in ${fromColumn.size} of ${DOMAINS.length} domain sheets `
+    `Category columns were found in ${fromColumn.size} of ${DOMAINS.length} domain sheets `
     + `(${[...fromColumn].join(', ')}). The sheets without one fall back to the keyword pass, so the `
     + 'grouping is half his and half ours and the tool still calls it provisional.',
   );

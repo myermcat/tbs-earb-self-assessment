@@ -57,30 +57,23 @@ const DOMAINS = [
 const ASKED = ['Security', 'Privacy', 'Financial', 'Accessibility', 'Official Languages'];
 
 /**
- * What the one Categories dropdown offers.
+ * What every category dropdown offers, and why there are three of them.
  *
- * One column with a picker, which is what was asked for, and the reason it can be one column is
- * arithmetic: five categories have 31 possible combinations, and the ones a question actually
- * needs are few. Today's 176 questions use four combinations between them. These ten cover
- * every pairing anybody has a reason to want, and the list stays short enough to read.
+ * A single cell holding several categories does not work in a spreadsheet, and the way it fails
+ * is worth recording. The first attempt put the combinations into one dropdown as whole
+ * entries: "Security, Privacy" as one choice. A validation list is itself comma separated, so
+ * the list split those entries on their own commas and Google Sheets showed five choices
+ * instead of eleven. Neither Sheets nor Excel has a multi-select dropdown.
  *
- * The validation warns rather than refuses, so a combination nobody anticipated can still be
- * typed. Nothing is lost by allowing that: the importer checks every name against the nine and
- * refuses the whole file, loudly, naming the question, if one of them is not recognised.
+ * So: one picker, three columns. The first is "Also about" and the next two are "and". A
+ * question that is about one more thing uses one cell, one that is about three uses three, and
+ * four questions out of 176 need the third. Nothing is typed, nothing can be mistyped, and
+ * there is no combination explosion to maintain.
  */
-const PICKS = [
-  'Security',
-  'Privacy',
-  'Financial',
-  'Accessibility',
-  'Official Languages',
-  'Security, Privacy',
-  'Security, Financial',
-  'Privacy, Financial',
-  'Accessibility, Official Languages',
-  'Privacy, Accessibility, Official Languages',
-  'Security, Privacy, Financial',
-];
+const PICKS = ['Security', 'Privacy', 'Financial', 'Accessibility', 'Official Languages'];
+
+/** The headers of the three, in order. The importer finds them by these names. */
+const CAT_HEADERS = ['Also about', 'and', 'and '];
 
 /* The CSVs are Windows-1252, which is what Excel writes on a Canadian English install. */
 const CP1252_HIGH = [
@@ -184,7 +177,7 @@ async function build(filled) {
         const named = ASKED.filter((a) => picked.includes(a.toLowerCase().replace(/ /g, '-')));
         out.push({
           kind: 'question', num: first, q: qNum, text: qText,
-          categories: named.join(', '),
+          categories: [named[0] ?? '', named[1] ?? '', named[2] ?? ''],
           // Ours, and provisional, the same as the categories. Dan named this defect and gave
           // one example; the sheet shows our reading so he can confirm or overrule it.
           answerType: answerTypeOf.get(`${domainIdOf(d.label)}:${qNum}`) === 'yesno' ? 'Yes / No' : 'Scale 0-10',
@@ -205,7 +198,7 @@ async function build(filled) {
     ? 'GC EA assessment tool - categories, filled as an example.xlsx'
     : 'GC EA assessment tool - categories template.xlsx';
   const payload = {
-    out: `${OUT_DIR}/${name}`, filled, asked: ASKED, picks: PICKS, sheets,
+    out: `${OUT_DIR}/${name}`, filled, asked: ASKED, picks: PICKS, catHeaders: CAT_HEADERS, sheets,
     scale: await passThrough('Assessment Scale'),
     dashboard: await passThrough('Summary Dashboard'),
   };

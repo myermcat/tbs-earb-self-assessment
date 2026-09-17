@@ -403,16 +403,19 @@ function paintList(rubric: Rubric, root: HTMLElement) {
       ]),
       el('td', {}, [l.a.initiative?.department ?? '--']),
       el('td', { class: 'small' }, [l.a.initiative?.classification || 'unmarked']),
+      // Two facts, one under the other. Side by side they read as one string, and "ZZ99 1.0-dan"
+      // is not a thing anybody has.
       el('td', { class: 'small mono' }, [
         l.a.id
-          ? el('span', {
+          ? el('div', {}, [el('span', {
               class: 'ref-chip mono',
               title: `The first four characters of this assessment's code, which is what its email subjects quote. The whole code is in the row menu.`,
-            }, [refOf(l.a)])
+            }, [refOf(l.a)])])
           : null,
-        ' ',
-        l.a.rubric.version,
-        l.substituted ? el('span', { class: 'badge badge-warn tiny' }, ['set missing']) : null,
+        el('div', { class: 'dim' }, [
+          l.a.rubric.version,
+          l.substituted ? el('span', { class: 'badge badge-warn tiny tag' }, ['set missing']) : null,
+        ]),
       ]),
       el('td', { class: 'small' }, [l.rubric.lifecycleStages.find((s) => s.id === l.a.initiative.lifecycleStage)?.label ?? '--']),
       el('td', { class: `num ${tone(l.r.overall)}` }, [l.r.overall === null ? '--' : l.r.overall.toFixed(1)]),
