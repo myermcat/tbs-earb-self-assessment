@@ -101,12 +101,27 @@ console.log('\nThe submitter, with no account\n');
   const { join } = await import('node:path');
   const out = join(mkdtempSync(join(tmpdir(), 'earb-')), 'deep', 'assessor.html');
   execFileSync(process.execPath, ['build.mjs'], {
-    env: { ...process.env, EARB_OUT: out, EARB_ACCESS: 'accounts', EARB_FIREBASE: '' },
+    env: { ...process.env, EARB_OUT: out, EARB_ACCESS: 'accounts', EARB_SIDE: 'assess', EARB_FIREBASE: '' },
     stdio: 'ignore',
   });
   ok('the build writes where it is told, making the folder if it has to', existsSync(out), out);
-  ok('and that page is the one with accounts on it',
-     existsSync(out) && /Continue with Google/.test(readFileSync(out, 'utf8')));
+
+  /**
+   * And it opens on the side it was built for.
+   *
+   * The assessor's address used to open the questionnaire, with a button on it marked "open
+   * the assessor view". Somebody sent that address to test the assessor side saw the
+   * submitter's home page, the submitter's account badge and the submitter's everything, and
+   * had to find a door to get to what they came for.
+   */
+  const page = new JSDOM(readFileSync(out, 'utf8'), {
+    runScripts: 'dangerously', url: 'https://example.gc.ca/tool/assessor/', pretendToBeVisual: true,
+    beforeParse(w) { w.scrollTo = () => {}; w.alert = () => {}; w.fetch = async () => ({ ok: true, status: 200, text: async () => '{}' }); },
+  });
+  await settle();
+  const said = page.window.document.querySelector('#app').textContent;
+  ok('the assessor page opens on the assessor side', /Sign in/.test(said), said.slice(0, 90));
+  ok('and not on the questionnaire', !/Start an assessment|What to expect/.test(said), said.slice(0, 90));
 }
 
 /* --------------------------------------------------------------------------------------- */

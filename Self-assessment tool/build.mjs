@@ -76,6 +76,25 @@ if (ACCESS !== 'accounts' && ACCESS !== 'code') {
 }
 
 /**
+ * Which side this page opens on.
+ *
+ * The two sides are two published pages now, and a page that opens on the wrong one is a page
+ * that looks like the other product. The assessor's address used to open the questionnaire
+ * with a button on it marked "open the assessor view", which is a door in a wall that should
+ * not have needed one.
+ *
+ * It is separate from EARB_ACCESS because a build can hold both sides and often should: the
+ * default build is what the tests drive and what somebody runs locally, and it opens where it
+ * always has. A bookmarked address still wins over this, and so does the side somebody was
+ * last on.
+ */
+const SIDE = (process.env.EARB_SIDE ?? 'submit').trim() || 'submit';
+if (SIDE !== 'submit' && SIDE !== 'assess') {
+  console.error(`Build refused: EARB_SIDE is "${SIDE}". It takes submit or assess.`);
+  process.exit(1);
+}
+
+/**
  * The three hosts a Firestore build talks to. Identity Toolkit signs a person in, Firestore
  * holds the documents, and the token host is the only place a refresh token can be exchanged,
  * so an hour into an assessment nobody is thrown out mid-answer.
@@ -107,6 +126,7 @@ async function once() {
       // behaviour that had already been changed in a build the reader did not have.
       __EARB_BUILT__: JSON.stringify(new Date().toISOString().slice(0, 16).replace('T', ' ')),
       __EARB_ACCESS__: JSON.stringify(ACCESS),
+      __EARB_SIDE__: JSON.stringify(SIDE),
     },
     logLevel: 'warning',
   });
@@ -128,7 +148,7 @@ async function once() {
   // The store is named on the line every build prints, because the way this goes wrong is a
   // build that was meant to have one and does not.
   const store = FIREBASE ? 'Firestore' : ORIGIN ? new URL(ORIGIN).host : 'none';
-  console.log(`${OUT_FILE}  ${kb} KB  (rubric ${rubric.version}, ${rubric.status}, store ${store}, access ${ACCESS})`);
+  console.log(`${OUT_FILE}  ${kb} KB  (rubric ${rubric.version}, ${rubric.status}, store ${store}, access ${ACCESS}, opens on ${SIDE})`);
 }
 
 await once();

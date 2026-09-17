@@ -645,8 +645,29 @@ export function formatCode(code: string): string {
  * lower case because a phone keyboard did it for them. All of those are the same code.
  */
 export function tidyCode(raw: string): string {
-  return raw.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, CODE_LENGTH);
+  return [...raw.toUpperCase()].filter((c) => ID_ALPHABET.includes(c)).join('').slice(0, CODE_LENGTH);
 }
+
+/**
+ * The characters somebody offered that a code can never contain.
+ *
+ * I, O, 0 and 1 are not in the alphabet, so a code holds none of them and one that arrives is
+ * a misreading: an O read off a screen and typed as a zero, or the other way about. Dropping
+ * them quietly and reporting the field incomplete was the tool's own answer for a while, and
+ * it told somebody with twelve characters typed that they had not finished, which is the
+ * least useful true thing it could have said.
+ *
+ * Case and punctuation are not strays. A pasted code arrives lower case, with dashes, and
+ * sometimes with a space a chat client added, and all of that is the same code.
+ */
+export function strayInCode(raw: string): string[] {
+  const seen = [...raw.toUpperCase()]
+    .filter((c) => /[A-Z0-9]/.test(c) && !ID_ALPHABET.includes(c));
+  return [...new Set(seen)];
+}
+
+/** The characters a code is made of, for a screen that has to say what is allowed. */
+export const CODE_ALPHABET = ID_ALPHABET;
 
 /** Whether this is a complete code. It says nothing about whether a record exists. */
 export function looksLikeCode(raw: string): boolean {
@@ -705,6 +726,85 @@ export async function getAssessment(id: string): Promise<Assessment | null> {
   return assessmentFrom(reply.body);
 }
 
+/* ------------------------------------------------------------------------------------------
+   Writing only what changed.
+   ------------------------------------------------------------------------------------------ */
+
+/**
+ * The copy of an assessment the store last had from this browser.
+ *
+ * It is what a write is compared against, so a save can name the fields it is changing and
+ * leave the rest of the document alone. Without it a save is a replacement of everything, and
+ * two people working from one code overwrite each other's answers by taking turns pressing a
+ * button that says Save.
+ *
+ * Kept per assessment, because a browser can hold one draft and open somebody else's record by
+ * its code in the same session.
+ */
+const BASE_KEY = 'gc-arch-assessment:online-base';
+
+function readBase(id: string): Record<string, unknown> | null {
+  try {
+    const raw = localStorage.getItem(`${BASE_KEY}:${id}`);
+    if (!raw) return null;
+    const parsed: unknown = JSON.parse(raw);
+    return isRecord(parsed) ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
+function keepBase(id: string, doc: Record<string, unknown>): void {
+  try {
+    localStorage.setItem(`${BASE_KEY}:${id}`, JSON.stringify(doc));
+  } catch {
+    /* No room, or storage disabled. The next write compares against what the store holds. */
+  }
+}
+
+/**
+ * A field path as Firestore's updateMask spells it.
+ *
+ * A segment that is not a plain identifier has to be quoted in backticks, and an answer id is
+ * `BU-Q1`, which is not: unquoted, the hyphen reads as part of a path expression and the
+ * request is refused. A backtick inside a segment is escaped, which no question id has and
+ * every question id could.
+ */
+function fieldPath(...segments: string[]): string {
+  return segments
+    .map((seg) => (/^[A-Za-z_][A-Za-z_0-9]*$/.test(seg) ? seg : `\`${seg.replace(/[\\`]/g, '\\$&')}\``))
+    .join('.');
+}
+
+/**
+ * Which paths differ between what the store has and what is being sent.
+ *
+ * Answers are compared one at a time, because they are the part two people touch at once and
+ * the part a blanking write would take. Everything else is compared whole: the overview, the
+ * rubric and the metadata are edited by one person at a time and are small.
+ *
+ * A path that is present in the mask and absent from the body deletes that field, which is how
+ * a deleted answer and a deleted justification leave the store.
+ */
+export function changedPaths(base: Record<string, unknown>, next: Record<string, unknown>): string[] {
+  const paths: string[] = [];
+  const same = (a: unknown, b: unknown) => JSON.stringify(a ?? null) === JSON.stringify(b ?? null);
+
+  const keys = new Set([...Object.keys(base), ...Object.keys(next)]);
+  for (const key of keys) {
+    if (key === 'answers') continue;
+    if (!same(base[key], next[key])) paths.push(fieldPath(key));
+  }
+
+  const wasAnswers = isRecord(base.answers) ? base.answers : {};
+  const nowAnswers = isRecord(next.answers) ? next.answers : {};
+  const ids = new Set([...Object.keys(wasAnswers), ...Object.keys(nowAnswers)]);
+  for (const id of ids) {
+    if (!same(wasAnswers[id], nowAnswers[id])) paths.push(fieldPath('answers', id));
+  }
+  return paths;
+}
+
 /**
  * Write one assessment, and answer with the id it was written under.
  *
@@ -752,11 +852,56 @@ export async function putAssessment(a: Assessment): Promise<string> {
   // to one question the first time a record is copied.
   delete body.id;
 
-  const reply = await withCodeOrAccount(`${docsRoot()}/assessments/${encodeURIComponent(id)}`, {
-    method: 'PATCH',
-    body: JSON.stringify({ fields: toFields(body) }),
-  });
+  /**
+   * A save names the fields it is changing, and leaves the rest of the document alone.
+   *
+   * It used to send the whole document every time, with no mask. That is the shape of the two
+   * worst things a code can do: two people working from one code overwrite each other's
+   * answers by taking turns pressing Save, and one save from a copy that has been emptied
+   * empties the record. Neither is a rule Google could refuse, because both are one write of
+   * one document by somebody entitled to write it.
+   *
+   * The comparison is against what the store last had from this browser. When this browser has
+   * no record of that, the document is read first: it costs one read on the first save from a
+   * new machine and it is the only way to know what is being left alone. If the read fails the
+   * write goes unmasked, because refusing to save somebody's work to protect a field is the
+   * wrong trade.
+   *
+   * A path in the mask with nothing under it in the body deletes that field, which is how a
+   * deleted answer and a deleted justification leave the store.
+   */
+  let mask = '';
+  if (!making) {
+    let base = readBase(id);
+    if (!base) {
+      try {
+        const had = await withCodeOrAccount(`${docsRoot()}/assessments/${encodeURIComponent(id)}`);
+        if (had.status === 200) {
+          const doc = assessmentFrom(had.body);
+          if (doc) {
+            const { id: _drop, ...rest } = doc;
+            base = rest as unknown as Record<string, unknown>;
+          }
+        }
+      } catch {
+        /* The write is the point. An unmasked one still saves the work. */
+      }
+    }
+    if (base) {
+      const paths = changedPaths(base, body);
+      // Nothing changed, and a mask with no paths in it is a request Firestore refuses. There
+      // is nothing to send, so the record is already what this browser holds.
+      if (!paths.length) { keepBase(id, body); return id; }
+      mask = paths.map((path) => `updateMask.fieldPaths=${encodeURIComponent(path)}`).join('&');
+    }
+  }
+
+  const reply = await withCodeOrAccount(
+    `${docsRoot()}/assessments/${encodeURIComponent(id)}${mask ? `?${mask}` : ''}`,
+    { method: 'PATCH', body: JSON.stringify({ fields: toFields(body) }) },
+  );
   if (reply.status !== 200) throw new Error(problemFrom(reply));
+  keepBase(id, body);
   return id;
 }
 
