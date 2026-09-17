@@ -455,7 +455,51 @@ console.log('\nThe published build, signed in\n');
     listAnswer: { documents: [draft, ready].map(asDoc) },
   });
   const heads = [...doc.querySelectorAll('.triage thead th')].map((h) => h.textContent.trim());
-  ok('the pool has a column for whether it is finished', heads.includes('State'), heads.join(' | '));
+  ok('the pool has a column for whether it is finished',
+     heads.some((h) => /State/.test(h)), heads.join(' | '));
+  // A column reading "Ready to review" with nothing saying who decided it invites somebody to
+  // read it as a status the tool worked out.
+  ok('and says the department decided it, above the word itself',
+     heads.some((h) => /^self-marked by submitter\s*State$/i.test(h.replace(/\s+/g, ' ').trim())),
+     heads.join(' | '));
+
+  /**
+   * The qualifier is paler than the heading it qualifies.
+   *
+   * Both were --ink-3, so the two lines read as one two-line heading. jsdom does not resolve
+   * custom properties, so this is read off the stylesheet the same way the table-wrap gate
+   * above is: the last rule that has anything to say about the colour, rather than the first
+   * one a grep happens to meet.
+   */
+  {
+    const decl = [...html.matchAll(/\.triage th \.th-sub[^{}]*\{([^}]*)\}/g)]
+      .map((m) => m[1]).filter((d) => /color:/.test(d)).pop() ?? '';
+    ok('the column qualifier is mixed toward the surface, so it sits back from its heading',
+       /color:\s*color-mix\([^;]*--ink-3[^;]*--surface/.test(decl), decl);
+  }
+
+  /**
+   * Severity is a rail and a dot on the audit screen, never a fill.
+   *
+   * Reported as "a mishmash of colour, really hard to see anything". Measured in a rendered
+   * page: four tinted grounds and five rail colours at once, 166 rows out of 166 carrying the
+   * same amber, a medium finding painted the amber of the row holding it and a low finding the
+   * grey of the quotation beside it. Two rules produced all of it, and both are gated here.
+   */
+  {
+    const fills = [...html.matchAll(/\.flag\.sev-[a-z]+[^{}]*\{([^}]*)\}/g)]
+      .map((m) => m[1]).filter((d) => /background/.test(d));
+    ok('no severity of finding is painted as a fill', fills.length === 0, fills.join(' // '));
+
+    const rowDecl = [...html.matchAll(/\.audit-row\.flagged[^{}]*\{([^}]*)\}/g)].map((m) => m[1]);
+    ok('and a row is not tinted for being flagged on a screen where every row is flagged',
+       !rowDecl.some((d) => /background|box-shadow/.test(d)), rowDecl.join(' // '));
+
+    const dot = [...html.matchAll(/\.sev-dot[^{}]*\{([^}]*)\}/g)]
+      .map((m) => m[1]).filter((d) => /background/.test(d)).pop() ?? '';
+    ok('and the dot takes the same severity token the rail takes, so it cannot stop carrying it',
+       /background:\s*var\(--sev\)/.test(dot), dot);
+  }
 
   const rows = [...doc.querySelectorAll('.triage tbody tr')];
   const cell = (tr) => tr.children[1]?.textContent?.trim();
@@ -468,6 +512,28 @@ console.log('\nThe published build, signed in\n');
      rows.map(cell).join(' | '));
   ok('and the ready one is listed first, because that is the work',
      /^Ready$/.test(cell(rows[0])), cell(rows[0]));
+
+  /**
+   * The same cut by category the submitter gets, on the assessor's side of the same answers.
+   *
+   * A department that is fine overall and weak on security is the case an assessor exists to
+   * catch, and the four domain numbers hide it by dividing those questions four ways. It is
+   * read-only here: an opinion about a question belongs in the audit, which is its own screen
+   * with its own reasons attached.
+   */
+  [...doc.querySelectorAll('.row-acts button')].find((b) => /^Open$/.test(b.textContent.trim())).click();
+  await new Promise((r) => setTimeout(r, 60));
+  const catBox = [...doc.querySelectorAll('.card')]
+    .find((c) => c.querySelector('h2')?.textContent === 'By category');
+  ok('the submission detail carries the category cut', !!catBox);
+  ok('and every category opens onto its own questions',
+     (catBox?.querySelectorAll('.cat-open').length ?? 0) > 0,
+     String(catBox?.querySelectorAll('.cat-open').length));
+  ok('and says they do not add up to the overall',
+     /do not add up to the overall/.test(catBox?.textContent ?? ''));
+  ok('and the questions are read-only, because a score belongs in the audit',
+     [...(catBox?.querySelectorAll('.cat-q') ?? [])].every((n) => n.tagName !== 'BUTTON'),
+     [...(catBox?.querySelectorAll('.cat-q') ?? [])].map((n) => n.tagName).join(','));
   dom.window.close();
 }
 

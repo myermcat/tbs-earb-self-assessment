@@ -55,6 +55,14 @@ person than "layout bug".
 `npm test` is the contract. It runs in CI on every push and every pull request. If it is red,
 nothing else matters until it is green.
 
+**jsdom cannot answer a question about colour.** It does not resolve `var()`, it does not
+evaluate `@media` in `getComputedStyle`, and it returns nothing for a background that a
+stylesheet sets. A claim about what a screen looks like has to be measured in a real engine, so
+`.claude/launch.json` serves `dist/` and the page can be driven and read there. A defect found
+that way still gets a gate in `npm test`: read the stylesheet as the last rule that has anything
+to say about the property, the way `test/hosted.mjs` already does, rather than grepping for a
+declaration that a later rule may be cancelling.
+
 ## Publishing
 
     bash ../deploy/publish-preview.sh

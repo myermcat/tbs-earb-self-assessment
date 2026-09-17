@@ -495,8 +495,15 @@ function stable(x: unknown): string {
   ok('and neither is data being accessible to other departments',
      !(byId('D-Q33')?.topics ?? []).includes('accessibility'), (byId('D-Q33')?.topics ?? []).join(','));
 
+  /**
+   * And says whose the real assignments are, without naming anybody. A built tool prints its
+   * strings to departments who did not sit in the meeting, and a colleague's name in one of
+   * them reads as a record about a person.
+   */
   ok('and the note says who owns the real assignments',
-     /Dan owns the real assignments/.test(rubric.topicsNote ?? ''));
+     /TBS owns the real assignments/.test(rubric.topicsNote ?? ''));
+  ok('and names nobody', !/\bDan\b|\bNick\b|\bAllison\b/.test(JSON.stringify(rubric)),
+     (JSON.stringify(rubric).match(/.{0,40}\bDan\b.{0,40}/) || [])[0] ?? '');
   ok('and names where the real assignments come from',
      /Categories column/.test(rubric.topicsNote ?? ''));
   ok('and says the two thin ones are thin and not absent',
