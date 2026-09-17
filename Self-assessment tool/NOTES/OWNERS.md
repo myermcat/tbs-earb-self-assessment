@@ -53,6 +53,19 @@ Rebase, do not merge, and do not force. `git pull --rebase`, fix the conflict, r
 push. If the suite is red after a rebase it is usually a test the other session wrote against
 behaviour you changed: read their test before changing it, because it is describing a decision.
 
+### Things that live outside this repository
+
+Some deliverables are not files here, and they have addresses people have been given. Changing
+one means changing its contents, never replacing it with a new one:
+
+| What | Where | How it is updated |
+|---|---|---|
+| The categories spreadsheet | Google Sheets, in the Claude TBS folder | File → Import → Replace spreadsheet. See `NOTES/HANDOFF-category-workbook.md` |
+| Domains and categories | published with the site at `/domains-and-categories.html` | edit `NOTES/domains-and-categories.html`, then publish |
+| Requirements, backlog | published with the site | generated on every publish |
+
+A new upload means a new id, a new link in `src/main.ts`, and a dead link in somebody's inbox.
+
 ### Publishing
 
 Only from `main`, only green, and `bash deploy/publish-preview.sh` runs the suite itself and
