@@ -12,7 +12,7 @@
  */
 import { listRecords, putRecord, deleteRecord, endpointHost, isHosted, onlineIsCurrent,
   saveOnlineNow } from '../src/store';
-import { currentUser, roleOf } from '../src/firebase';
+import { changedPaths, currentUser, roleOf, toFields } from '../src/firebase';
 import { autosave, saveStatus } from '../src/storage';
 import { mode } from '../src/who';
 import type { Assessment } from '../src/types';
@@ -101,7 +101,9 @@ ok('it was a PATCH', req.init.method === 'PATCH', String(req.init.method));
 // somebody reads down a phone. I, O, 0 and 1 are not in it.
 ok('to the assessments collection with a minted id',
    /documents\/assessments\/[ABCDEFGHJKLMNPQRSTUVWXYZ23456789]{12}$/.test(req.url), req.url);
-ok('with no updateMask, so the whole document is replaced', !req.url.includes('updateMask'));
+// A create sends everything, because there is nothing in the store to leave alone. Later
+// writes name the fields they change, which is asserted further down.
+ok('a create sends no updateMask', !req.url.includes('updateMask'));
 const headers = req.init.headers as Record<string, string>;
 ok('carrying the bearer token', headers.authorization === 'Bearer TOKEN', JSON.stringify(headers));
 const body = JSON.parse(String(req.init.body)) as { fields: Record<string, unknown> };
@@ -382,6 +384,93 @@ await wait(0);
     email: 'ok@example.gc.ca', idToken: 'STALE', refreshToken: 'R', expiresAt: Date.now() - 1000,
   }));
   ok('and an expired one that can be refreshed is still somebody', currentUser()?.email === 'ok@example.gc.ca');
+}
+
+/* -------------------------------------------------------------------------------------------
+   Writing only what changed.
+
+   The two worst things a code can do are one write each, and no rule can refuse either: two
+   people working from one code overwrite each other's answers by taking turns pressing Save,
+   and one save from a copy that has been emptied empties the record. A mask is what makes both
+   of them impossible by accident, so what is in the mask is the whole of it.
+   ------------------------------------------------------------------------------------------- */
+{
+  ok('a changed answer is one path', JSON.stringify(changedPaths(
+    { answers: { 'BU-Q1': { score: 1 } }, meta: { updatedAt: 'a' } },
+    { answers: { 'BU-Q1': { score: 2 } }, meta: { updatedAt: 'a' } },
+  )) === '["answers.`BU-Q1`"]', JSON.stringify(changedPaths(
+    { answers: { 'BU-Q1': { score: 1 } } }, { answers: { 'BU-Q1': { score: 2 } } })));
+  ok('an answer id is quoted, because a hyphen is not a path',
+     changedPaths({ answers: {} }, { answers: { 'BU-Q1': {} } })[0] === 'answers.`BU-Q1`');
+  ok('an answer nobody touched is not in it', changedPaths(
+    { answers: { a: { score: 1 }, b: { score: 1 } } },
+    { answers: { a: { score: 1 }, b: { score: 2 } } },
+  ).join() === 'answers.b');
+  ok('a deleted answer is in it, so the store loses it too',
+     changedPaths({ answers: { a: { score: 1 } } }, { answers: {} }).join() === 'answers.a');
+  ok('nothing changed is no paths at all',
+     changedPaths({ answers: { a: { score: 1 } }, ref: 'X' }, { answers: { a: { score: 1 } }, ref: 'X' }).length === 0);
+
+  // A record the store already has, and a browser that knows what it sent last.
+  const online: Assessment = JSON.parse(JSON.stringify(a));
+  online.id = 'KFRM92TXBQ7H';
+  online.meta.savedOnlineAt = '2026-09-01T00:00:00.000Z';
+  mem.set(`gc-arch-assessment:online-base:${online.id}`,
+          JSON.stringify({ ...online, id: undefined, meta: { ...online.meta } }));
+
+  // A token with an hour on it, because the suite left an expired one behind and a refresh
+  // request ahead of the write would be counted as the write.
+  mem.set('gc-arch-assessment:firebase-session', JSON.stringify({
+    email: 'someone@example.gc.ca', idToken: 'TOKEN', refreshToken: 'REFRESH',
+    expiresAt: Date.now() + 3600_000,
+  }));
+  const docs = () => sent.filter((x) => x.url.includes('/documents/assessments/'));
+  sent.length = 0;
+  reply = { status: 200, body: { name: 'projects/p/databases/(default)/documents/assessments/KFRM92TXBQ7H', fields: {} } };
+  globalThis.fetch = ((url: string, init: RequestInit = {}) => {
+    sent.push({ url: String(url), init });
+    return Promise.resolve({ status: 200, ok: true, text: () => Promise.resolve(JSON.stringify(reply.body)) } as Response);
+  }) as typeof fetch;
+
+  online.answers.q2 = { score: 9, evidence: [] };
+  await putRecord(online);
+  ok('a later write carries a mask', docs().length === 1 && docs()[0].url.includes('updateMask'),
+     docs().map((x) => x.url).join(' | '));
+  const paths = [...new URL(docs()[0].url).searchParams.getAll('updateMask.fieldPaths')];
+  ok('naming the answer that changed', paths.includes('answers.q2'), paths.join(' | '));
+  ok('and not the one that did not', !paths.includes('answers.q1'), paths.join(' | '));
+
+  // Saving twice with nothing typed in between asks the store for nothing.
+  sent.length = 0;
+  await putRecord(online);
+  ok('a save with nothing changed sends no request', docs().length === 0, String(docs().length));
+
+  // A browser that has never sent this record reads it before it writes, because it cannot
+  // otherwise know what it would be leaving alone.
+  mem.delete(`gc-arch-assessment:online-base:${online.id}`);
+  // What the store holds, taken before the next edit, so the read answers with the older copy
+  // the way a real store would.
+  const stored = JSON.parse(JSON.stringify({ ...online, id: undefined })) as Record<string, unknown>;
+  sent.length = 0;
+  let asked = 0;
+  globalThis.fetch = ((url: string, init: RequestInit = {}) => {
+    sent.push({ url: String(url), init });
+    asked++;
+    const body = init.method === 'PATCH'
+      ? { name: 'projects/p/databases/(default)/documents/assessments/KFRM92TXBQ7H', fields: {} }
+      : { name: 'projects/p/databases/(default)/documents/assessments/KFRM92TXBQ7H',
+          fields: toFields(stored) };
+    return Promise.resolve({ status: 200, ok: true, text: () => Promise.resolve(JSON.stringify(body)) } as Response);
+  }) as typeof fetch;
+  online.answers.q2 = { score: 3, evidence: [] };
+  await putRecord(online);
+  const both = docs();
+  ok('with no record of what it sent, it reads the document first',
+     both.length === 2 && both[0].init.method === undefined,
+     both.map((x) => x.init.method ?? 'GET').join(' | '));
+  const second = [...new URL(both[1].url).searchParams.getAll('updateMask.fieldPaths')];
+  ok('and still masks the write', second.includes('answers.q2'), second.join(' | '));
+  ok('and that is one read and one write, and nothing else', both.length === 2, String(asked));
 }
 
 console.log(fails === 0 ? '\nall wiring checks passed' : `\n${fails} FAILED`);

@@ -16,13 +16,13 @@ import { closeMenusOnOutsideClick, closeOnOutsideClick, confirmStep, openDialog 
 import { saveBadge } from './save-badge';
 import { SAD_CAT } from './cat';
 import { openShareDialog } from './views-share';
-import { hasAccounts, mode as accessMode } from './who';
+import { hasAccounts, mode as accessMode, opensOn } from './who';
 import { rememberSigner, signerFields, signerProblem } from './signer';
 import { showNewCode } from './views-share';
 import { bootLang, coverage, lang, type Lang, setLang } from './i18n';
 import { endpointHost, goneFromStore, isHosted, listRecords, putRecord,
   saveOnlineNow, savedOnline, showWhereItStands } from './store';
-import { canSignIn, currentUser, formatCode, forgetRole, getAssessment, looksLikeCode, pageAddress, tidyCode, isConfigured as firebaseConfigured, knownRole, lastSignInProblem,
+import { canSignIn, CODE_LENGTH, currentUser, formatCode, forgetRole, getAssessment, looksLikeCode, pageAddress, tidyCode, isConfigured as firebaseConfigured, knownRole, lastSignInProblem,
   loadRole, resumeSignIn, signInWithGoogle, signOut } from './firebase';
 import { t } from './i18n';
 import { answeredCount, APP_VERSION, autosave, blankAssessment, clearDraft, download, ensureRef,
@@ -96,8 +96,10 @@ function bootRoute(): Route {
     // opening the questionnaire.
     if (accessMode() === 'accounts' && localStorage.getItem(SIDE_KEY) === 'assess') return { side: 'assess', mode: 'review' };
   } catch {
-    /* private window, or storage disabled. The submitter side is the right default. */
+    /* private window, or storage disabled. The build's own side is the right default. */
   }
+  // What this page is for, which on a published assessor page is the assessor.
+  if (opensOn() === 'assess') return { side: 'assess', mode: 'review' };
   return { side: 'submit', mode: 'home' };
 }
 
@@ -336,18 +338,35 @@ function openWithCode(): void {
 }
 
 function askForCode(): void {
-  const field = codeField(() => { /* the button is the way in, so nothing happens on the last box */ });
-  const said = el('p', { class: 'cf-note' }, [
-    t('Twelve characters, in three groups. Paste the whole thing into any box.',
-      'Douze caractères, en trois groupes. Collez le tout dans n\u2019importe quelle case.'),
-  ]);
+  const hint = t('Twelve characters, in three groups. Paste the whole thing into any box. A code never contains I, O, 0 or 1.',
+    'Douze caractères, en trois groupes. Collez le tout dans n\u2019importe quelle case. Un code ne contient jamais I, O, 0 ni 1.');
+  const said = el('p', { class: 'cf-note' }, [hint]);
+  /**
+   * A character a code cannot hold is refused at the box and named here.
+   *
+   * Somebody pasted a code with a zero in it, twelve boxes filled, and the screen said it was
+   * not a complete code yet. It was not complete, and saying so answered a question nobody had
+   * asked: what they needed to know is which character could not be part of a code, so they
+   * could look at the message they were sent and read it again.
+   */
+  const field = codeField(
+    () => { /* the button is the way in, so nothing happens on the last box */ },
+    (stray) => {
+      const list = stray.join(', ');
+      said.textContent = t(`A code never contains I, O, 0 or 1, so ${list} was not taken. Look at the code you were sent: that character is one of the others.`,
+        `Un code ne contient jamais I, O, 0 ni 1 : ${list} n\u2019a donc pas été retenu. Regardez le code qu\u2019on vous a envoyé : ce caractère est l\u2019un des autres.`);
+    },
+  );
   const dlg = document.createElement('dialog');
   dlg.className = 'confirm tier-plain';
   const close = () => { try { dlg.close(); } catch { /* already closed */ } dlg.remove(); };
 
   const tryOpen = async () => {
     if (!looksLikeCode(field.value())) {
-      said.textContent = t('That is not a complete code yet.', 'Ce code n\u2019est pas encore complet.');
+      const short = CODE_LENGTH - field.value().length;
+      said.textContent = short === 1
+        ? t('One character to go.', 'Il manque un caractère.')
+        : t(`${short} characters to go.`, `Il manque ${short} caractères.`);
       return;
     }
     said.textContent = t('Looking for it...', 'Recherche en cours...');
@@ -874,24 +893,14 @@ function renderHome(root: HTMLElement) {
   ]));
 
   /**
-   * The way across, which is here for testing and for nothing else.
+   * There is no way across from here, on purpose.
    *
-   * The two sides are separate products, and on the build that runs on codes they are also two
-   * published pages: an assessor opens their own address and never arrives through this one.
-   * A submitter's home page offering a door to the assessor view describes a product that is
-   * not theirs, which is the one thing neither side may do.
+   * There used to be a button marked "For testing" that opened the assessor view, back when
+   * the two sides shared one published page. They are two pages now, at two addresses, and a
+   * submitter's home page offering a door to the assessor view describes a product that is
+   * not theirs. Both addresses are in the repository's README, which is where somebody
+   * testing both of them goes looking.
    */
-  if (accessMode() === 'accounts') root.appendChild(el('p', { class: 'crossover tiny dim' }, [
-    el('span', { class: 'badge badge-mockup tiny' }, [t('For testing', 'Pour les tests')]),
-    ' ',
-    el('button', { class: 'linkish', onclick: () => setSide('assess') }, [
-      t('Open the assessor view', 'Ouvrir la vue de l\u2019évaluateur'),
-    ]),
-    el('span', { class: 'dim' }, [
-      t(' The finished tool sends an assessor to their own address.',
-        ' L\u2019outil fini envoie l\u2019évaluateur à sa propre adresse.'),
-    ]),
-  ]));
 
 
   root.appendChild(el('section', { class: 'note' }, [
@@ -1550,7 +1559,7 @@ function paneDocs(pane: HTMLElement) {
       body: 'His own four domain sheets with a Categories column to fill in, his Assessment Scale, and a Summary Dashboard that calculates. The same arithmetic as the tool, in a form he can check.',
       meta: ['Anybody with the link can comment'],
       cta: 'Open the spreadsheet',
-      href: 'https://docs.google.com/spreadsheets/d/1SuEuo3_iK--XjVy0jzsvmwGhxOV5JqEeLzNIUMTY9xw/edit',
+      href: 'https://docs.google.com/spreadsheets/d/1bpppXg3ZRk0g8-DGNuq42scVgTFDWe5SJvqlsQhfNrY/edit',
     }),
   ]));
 }
