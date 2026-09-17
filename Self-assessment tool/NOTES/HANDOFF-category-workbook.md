@@ -3,6 +3,29 @@
 `node tools/make-category-workbook.mjs` writes two files into `../Deliverables`: the template
 with the Categories column empty, and the same thing filled with our provisional readings.
 
+## The URL never changes. Do not upload a second file.
+
+**The spreadsheet lives at one address and keeps it:**
+
+    https://docs.google.com/spreadsheets/d/1Hxtjj0EIVlf1hBfQy9hrgR-_U7D3i3t_R38XaHnda9A
+
+That link is in the tool, in `src/main.ts`, and it has been sent to people. A new upload makes a
+new file with a new id, which means a new link in the tool, a stale link in somebody’s inbox,
+and a folder full of files nobody can tell apart. That happened four times before this was
+written down.
+
+**To publish a change, replace the contents of that file rather than the file:**
+
+1. `node tools/make-category-workbook.mjs`, which writes `../Deliverables/GC EA assessment tool
+   - categories.xlsx`.
+2. Open the spreadsheet at the link above.
+3. **File → Import → Upload**, choose that .xlsx, and pick **Replace spreadsheet**.
+4. Re-do the four multi-select toggles below. An import brings the validation in as `Arrow`
+   again, so this is needed every time.
+
+The id stays, the sharing stays, every link anybody holds keeps working, and there is nothing
+to clean up afterwards.
+
 ## The one manual step, and the thing that blocks it
 
 **Turn on multiple selections, once per domain tab, after converting to Google Sheets.**
