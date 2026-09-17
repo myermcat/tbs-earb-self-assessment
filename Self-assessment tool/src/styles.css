@@ -772,7 +772,11 @@ dialog.confirm.tier-danger .danger-solid:hover, dialog.confirm.tier-danger .dang
   border-left: 2px solid var(--line-2); color: var(--ink-3); font-size: .84rem; }
 .tier-plain .cf-stake { border-left-color: var(--line-2); background: var(--surface-2);
   color: var(--ink-2); }
-.cf-title { font-size: 1.1rem; }
+/* The window's own sentence, at the size of a page heading. A confirmation is read in the
+   order things are loud, and the loudest thing used to be the button that lost the work. */
+.cf-title { font-size: 1.5rem; line-height: 1.2; font-weight: 700; }
+.tier-caution .cf-title { color: var(--warn); }
+.tier-danger .cf-title { color: var(--bad); }
 .cf-body { padding: .35rem 1.15rem 0; font-size: .9rem; color: var(--ink-2); }
 .cf-stake { display: block; border-left: 3px solid var(--bad); background: var(--bad-bg);
   color: var(--ink); padding: .5rem .7rem; margin: .7rem 0 0;

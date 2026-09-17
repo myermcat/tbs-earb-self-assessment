@@ -19,7 +19,7 @@
  * fight with is the thing that decides whether sharing gets used at all.
  */
 import { el } from './dom';
-import { CODE_GROUP, CODE_LENGTH, tidyCode } from './firebase';
+import { CODE_GROUP, CODE_LENGTH, strayInCode, tidyCode } from './firebase';
 
 export interface CodeField {
   /** The field, ready to append. */
@@ -34,8 +34,11 @@ export interface CodeField {
 /**
  * @param onComplete called once the twelfth character arrives, so a form can act without
  *        anybody pressing a button. It is also fine to leave the button as the only way in.
+ * @param onStray called with the characters a code cannot contain when somebody types or
+ *        pastes one, so the screen can say what happened to it rather than leaving a box
+ *        that refuses to fill.
  */
-export function codeField(onComplete: () => void = () => {}): CodeField {
+export function codeField(onComplete: () => void = () => {}, onStray: (chars: string[]) => void = () => {}): CodeField {
   const boxes: HTMLInputElement[] = [];
   const node = el('div', { class: 'code-field', role: 'group', 'aria-label': 'Access code' });
 
@@ -47,6 +50,8 @@ export function codeField(onComplete: () => void = () => {}): CodeField {
 
   /** Spread a string across the boxes from a starting point, and leave the caret after it. */
   const spread = (from: number, text: string) => {
+    const stray = strayInCode(text);
+    if (stray.length) onStray(stray);
     const clean = tidyCode(text);
     let at = from;
     for (const ch of clean) {

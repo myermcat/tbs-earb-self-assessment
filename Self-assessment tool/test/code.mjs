@@ -94,8 +94,11 @@ console.log('\nThe access code\n');
   await settle();
   byText('.cf-actions button', 'Open it').click();
   await settle();
+  // Nothing of it reaches a box, so the field is empty and the screen says how far off it is
+  // rather than pretending twelve wrong characters were twelve characters.
   ok('a code made of characters the alphabet excludes is refused',
-     /not a complete code/i.test(q('.cf-note')?.textContent ?? ''), q('.cf-note')?.textContent);
+     qa('.code-field .code-box').every((b) => !b.value)
+       && /12 characters to go/i.test(q('.cf-note')?.textContent ?? ''), q('.cf-note')?.textContent);
 }
 
 /* --------------------------------------------------------------------------------------- */
@@ -126,9 +129,9 @@ console.log('\nThe access code\n');
     pretendToBeVisual: true,
     beforeParse(w) {
       w.localStorage.setItem('gc-arch-assessment:draft', JSON.stringify(withWork));
-      // A session, because the store still asks for an account before it reads anything. The
-      // rule that lets a code stand on its own has not been published, so without this the path
-      // stops at the refusal and never reaches the guard.
+      // A session, because this build runs on accounts and the assessment being opened has an
+      // owner. The published rules grant a read on the code with no account at all, which the
+      // submitter build is driven through in test/submitter.mjs.
       w.localStorage.setItem('gc-arch-assessment:firebase-session', JSON.stringify({
         email: 'someone@dfo-mpo.gc.ca', idToken: 't', refreshToken: 'r', expiresAt: Date.now() + 36e5,
       }));
@@ -180,12 +183,57 @@ console.log('\nThe access code\n');
   ok('and the way out keeps what you have',
      !!find('.cf-actions button', 'Keep what I have'));
 
+  /**
+   * Which control is the brightest, on a window where something can be lost.
+   *
+   * Somebody at this window is not going to read four lines of prose: they look for the
+   * brightest thing and press it. It used to be the solid red "Go ahead without saving", so
+   * the window's own design pointed at the answer that loses the work.
+   */
+  {
+    const buttons = [...guard.querySelectorAll('.cf-actions button')];
+    const loud = buttons.filter((b) => b.classList.contains('primary'));
+    const destroying = find('.cf-actions button', 'Go ahead without saving');
+    ok('one control is the brightest', loud.length === 1,
+       buttons.map((b) => `${b.textContent}:${b.className}`).join(' | '));
+    ok('and it is the one that keeps the work', /Save this online first/.test(loud[0]?.textContent ?? ''),
+       loud[0]?.textContent);
+    ok('the answer that loses it is outlined', destroying.classList.contains('danger')
+       && !destroying.classList.contains('primary'), destroying.className);
+  }
+
   // Going ahead is what opens the field.
   find('.cf-actions button', 'Go ahead without saving').click();
   await settle();
   const boxes = all('.code-field .code-box');
   ok('and only then does it ask for the code', boxes.length === 12, String(boxes.length));
   two.window.close();
+}
+
+/* --------------------------------------------------------------------------------------- */
+/**
+ * A character a code cannot hold, which is the way this field went wrong in somebody's hands.
+ *
+ * Twelve boxes filled, one of them a zero, and the screen said the code was not complete yet.
+ * True, and useless: what they needed was the name of the character that could not be in a
+ * code, so they could read the message they were sent again.
+ */
+{
+  const entry = byText('.hero-actions button', 'access code');
+  entry.click();
+  await settle();
+  const boxes = qa('.code-field .code-box');
+  boxes[0].value = 'LJ0J-WP7S-EBGB';
+  boxes[0].dispatchEvent(new Event('input', { bubbles: true }));
+  await settle();
+  const typed = qa('.code-field .code-box').map((b) => b.value).join('');
+  ok('a zero never reaches a box', !typed.includes('0'), typed);
+  ok('and the characters around it are kept', typed.startsWith('LJJ'), typed);
+  const note = [...document.querySelectorAll('dialog[open] .cf-note')].pop().textContent;
+  ok('the screen names the character it refused', /\b0\b/.test(note), note);
+  ok('and says which four a code never holds', /I, O, 0 or 1/.test(note), note);
+  byText('.cf-actions button', 'Cancel')?.click();
+  await settle();
 }
 
 console.log(fails ? `\n${fails} access code check(s) failed\n` : '\nall access code checks passed\n');
