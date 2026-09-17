@@ -463,6 +463,44 @@ console.log('\nThe published build, signed in\n');
      heads.some((h) => /^self-marked by submitter\s*State$/i.test(h.replace(/\s+/g, ' ').trim())),
      heads.join(' | '));
 
+  /**
+   * The qualifier is paler than the heading it qualifies.
+   *
+   * Both were --ink-3, so the two lines read as one two-line heading. jsdom does not resolve
+   * custom properties, so this is read off the stylesheet the same way the table-wrap gate
+   * above is: the last rule that has anything to say about the colour, rather than the first
+   * one a grep happens to meet.
+   */
+  {
+    const decl = [...html.matchAll(/\.triage th \.th-sub[^{}]*\{([^}]*)\}/g)]
+      .map((m) => m[1]).filter((d) => /color:/.test(d)).pop() ?? '';
+    ok('the column qualifier is mixed toward the surface, so it sits back from its heading',
+       /color:\s*color-mix\([^;]*--ink-3[^;]*--surface/.test(decl), decl);
+  }
+
+  /**
+   * Severity is a rail and a dot on the audit screen, never a fill.
+   *
+   * Reported as "a mishmash of colour, really hard to see anything". Measured in a rendered
+   * page: four tinted grounds and five rail colours at once, 166 rows out of 166 carrying the
+   * same amber, a medium finding painted the amber of the row holding it and a low finding the
+   * grey of the quotation beside it. Two rules produced all of it, and both are gated here.
+   */
+  {
+    const fills = [...html.matchAll(/\.flag\.sev-[a-z]+[^{}]*\{([^}]*)\}/g)]
+      .map((m) => m[1]).filter((d) => /background/.test(d));
+    ok('no severity of finding is painted as a fill', fills.length === 0, fills.join(' // '));
+
+    const rowDecl = [...html.matchAll(/\.audit-row\.flagged[^{}]*\{([^}]*)\}/g)].map((m) => m[1]);
+    ok('and a row is not tinted for being flagged on a screen where every row is flagged',
+       !rowDecl.some((d) => /background|box-shadow/.test(d)), rowDecl.join(' // '));
+
+    const dot = [...html.matchAll(/\.sev-dot[^{}]*\{([^}]*)\}/g)]
+      .map((m) => m[1]).filter((d) => /background/.test(d)).pop() ?? '';
+    ok('and the dot takes the same severity token the rail takes, so it cannot stop carrying it',
+       /background:\s*var\(--sev\)/.test(dot), dot);
+  }
+
   const rows = [...doc.querySelectorAll('.triage tbody tr')];
   const cell = (tr) => tr.children[1]?.textContent?.trim();
   ok('a marked assessment says it is ready', rows.some((tr) => /^Ready$/.test(cell(tr))),

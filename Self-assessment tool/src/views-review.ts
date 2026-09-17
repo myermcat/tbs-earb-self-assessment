@@ -722,7 +722,7 @@ function openDetail(rubric: Rubric, root: HTMLElement, l: Loaded) {
       if (qs) rows.appendChild(auditRow(rubric, a, qs, audit, byQuestion.get(qid) ?? [], repaint, true));
     }
     flagBox.appendChild(el('div', { class: `flag sev-${f.severity}` }, [
-      el('div', { class: 'flag-title' }, [el('span', { class: 'sev-dot' }), el('strong', {}, [f.title])]),
+      flagTitle(f),
       el('div', { class: 'small' }, [f.detail]),
       f.challenge ? el('div', { class: 'small challenge' }, [f.challenge]) : null,
       el('details', {}, [
@@ -883,9 +883,25 @@ function kpi(value: string, label: string): HTMLElement {
   ]);
 }
 
+/**
+ * The severity of a finding, in words as well as in colour.
+ *
+ * The submitter's copy of this list has said the word since it was written, for the reason
+ * given there: colour on its own is not a signal for everybody reading it. The assessor's copy
+ * carried the colour alone, and once severity stopped being a fill the dot was all that was
+ * left of it.
+ */
+function flagTitle(f: Flag): HTMLElement {
+  return el('div', { class: 'flag-title' }, [
+    el('span', { class: 'sev-dot' }),
+    el('strong', {}, [f.title]),
+    el('span', { class: 'badge tiny' }, [f.severity]),
+  ]);
+}
+
 function flagCard(f: Flag): HTMLElement {
   return el('div', { class: `flag sev-${f.severity}` }, [
-    el('div', { class: 'flag-title' }, [el('span', { class: 'sev-dot' }), el('strong', {}, [f.title])]),
+    flagTitle(f),
     el('div', { class: 'small' }, [f.detail]),
     f.challenge ? el('div', { class: 'small challenge' }, [f.challenge]) : null,
   ]);
@@ -924,7 +940,7 @@ function auditRow(
     ]),
 
     ...qflags.map((f) => el('div', { class: `flag sev-${f.severity}` }, [
-      el('div', { class: 'flag-title' }, [el('span', { class: 'sev-dot' }), el('strong', {}, [f.title])]),
+      flagTitle(f),
       el('div', { class: 'small' }, [f.detail]),
       f.challenge ? el('div', { class: 'small challenge' }, [f.challenge]) : null,
     ])),
