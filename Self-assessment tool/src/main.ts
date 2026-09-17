@@ -1124,7 +1124,7 @@ function renderSettings(root: HTMLElement) {
     nav.appendChild(el('span', { class: 'set-navgroup' }, [t('Settings', 'Paramètres')]));
     nav.appendChild(navRow(t('Question set', 'Jeu de questions'), 'questions'));
     if (mine) nav.appendChild(navRow(t('Your answers', 'Vos réponses'), 'answers'));
-    nav.appendChild(navRow(t('Pages', 'Pages'), 'pages'));
+    nav.appendChild(navRow(t('Documentation', 'Documentation'), 'docs'));
     nav.appendChild(navRow(t('This build', 'Cette version'), 'build'));
     if (mine) {
       nav.appendChild(el('span', { class: 'set-navsep', 'aria-hidden': true }));
@@ -1134,7 +1134,7 @@ function renderSettings(root: HTMLElement) {
     clear(pane);
     if (settingsPane === 'questions') paneQuestions(pane);
     else if (settingsPane === 'answers' && mine) paneAnswers(pane);
-    else if (settingsPane === 'pages') panePages(pane);
+    else if (settingsPane === 'docs') paneDocs(pane);
     else if (settingsPane === 'build') paneBuild(pane);
     else if (mine) paneDanger(pane);
     else paneQuestions(pane);
@@ -1459,55 +1459,86 @@ function paneBuild(pane: HTMLElement) {
     ));
   })();
 
+
+  /**
+   * The team's own working pages. They name colleagues and the state of internal decisions, so
+   * they are offered to an admin and to a build with no project, which is somebody working on
+   * the tool itself. They belong here and not under Documentation: they are facts about this
+   * build and about what is left to do to it.
+   */
+  if (!firebaseConfigured() || knownRole() === 'admin') {
+    pane.appendChild(el('h2', { class: 'set-sub' }, ['What is decided, and what is left']));
+    pane.appendChild(el('div', { class: 'hub-cards' }, [
+      linkCard({
+        accent: '#4E90C8', ghost: '\u00a7',
+        eyebrow: 'The build team',
+        title: 'Requirements',
+        body: 'Every requirement, numbered, with its state and whoever owes an answer. Decisions are written here the day they are made, and the open ones are listed at the top.',
+        meta: ['Updated on every publish'],
+        cta: 'Open the requirements',
+        href: 'https://myermcat.github.io/tbs-earb-self-assessment-preview/requirements.html',
+      }),
+      linkCard({
+        accent: '#C08A3E', ghost: '\u2713',
+        eyebrow: 'The build team',
+        title: 'Backlog',
+        body: 'What is done, what is next, and what is waiting on a person. The same page the team works from.',
+        meta: ['Updated on every publish'],
+        cta: 'Open the backlog',
+        href: 'https://myermcat.github.io/tbs-earb-self-assessment-preview/backlog.html',
+      }),
+    ]));
+  }
 }
 
 /**
- * The pages that are not this tool.
+ * The pages that are not this tool, as cards rather than as rows.
  *
- * Their own pane, because they are not a setting and they are not a fact about the build: they
- * are places to go. Putting them under "This build" made somebody looking for the explanation
- * read a page about version numbers first.
+ * A setRow is for a setting: a sentence and a control beside it. These are destinations, and
+ * a person looking for one is looking for a place and not for a paragraph. The shape is the
+ * course-hub card, asked for by name: a coloured rail down the left, a mono eyebrow, a large
+ * title, a line of prose, and a mono call to action with an arrow that moves on hover. You
+ * find the one you want without reading anything.
  */
-function panePages(pane: HTMLElement) {
-  pane.appendChild(el('h1', { tabindex: -1 }, [t('Pages', 'Pages')]));
+const ARROW = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" '
+  + 'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
+  + '<path d="M5 12h13"/><path d="M12 5l7 7-7 7"/></svg>';
+
+const linkCard = (o: {
+  accent: string; ghost: string; eyebrow: string; title: string; body: string;
+  meta: string[]; cta: string; href: string;
+}) => el('a', {
+  class: 'hub-card', href: o.href, target: '_blank', rel: 'noopener',
+  style: `--card-accent:${o.accent}`,
+}, [
+  el('span', { class: 'hub-ghost', 'aria-hidden': true }, [o.ghost]),
+  el('span', { class: 'hub-eyebrow' }, [o.eyebrow]),
+  el('h3', {}, [o.title]),
+  el('p', {}, [o.body]),
+  el('span', { class: 'hub-meta' }, o.meta.map((m) => el('span', {}, [m]))),
+  el('span', { class: 'hub-go' }, [o.cta, el('span', { class: 'hub-arrow', html: ARROW, 'aria-hidden': true })]),
+]);
+
+
+/**
+ * How the instrument is put together, for somebody who has to explain it.
+ *
+ * Its own pane and not a corner of "This build", because a version number is a fact about this
+ * copy of the tool and these are about the assessment itself. The requirements and the backlog
+ * are the other kind and stay where they were.
+ */
+function paneDocs(pane: HTMLElement) {
+  pane.appendChild(el('h1', { tabindex: -1 }, [t('Documentation', 'Documentation')]));
   pane.appendChild(el('p', { class: 'set-lead' }, [
-    t('The explanation of how a question is filed, the spreadsheets Dan fills in, and the team\u2019s own working pages. Each opens in a new tab.',
-      'L\u2019explication du classement des questions, les feuilles de calcul que Dan remplit, et les pages de travail de l\u2019\u00e9quipe. Chacune s\u2019ouvre dans un nouvel onglet.'),
+    t('How a question is filed, and the spreadsheet that decides it. Each opens in a new tab.',
+      'Comment une question est class\u00e9e, et la feuille de calcul qui en d\u00e9cide. Chacune s\u2019ouvre dans un nouvel onglet.'),
   ]));
-  /**
-   * The pages that are not this tool, as cards rather than as rows.
-   *
-   * A setRow is for a setting: a sentence and a control beside it. These are destinations, and
-   * a person looking for one is looking for a place and not for a paragraph. The shape is the
-   * course-hub card, asked for by name: a coloured rail down the left, a mono eyebrow, a large
-   * title, a line of prose, and a mono call to action with an arrow that moves on hover. You
-   * find the one you want without reading anything.
-   */
-  const ARROW = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" '
-    + 'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
-    + '<path d="M5 12h13"/><path d="M12 5l7 7-7 7"/></svg>';
-
-  const linkCard = (o: {
-    accent: string; ghost: string; eyebrow: string; title: string; body: string;
-    meta: string[]; cta: string; href: string;
-  }) => el('a', {
-    class: 'hub-card', href: o.href, target: '_blank', rel: 'noopener',
-    style: `--card-accent:${o.accent}`,
-  }, [
-    el('span', { class: 'hub-ghost', 'aria-hidden': true }, [o.ghost]),
-    el('span', { class: 'hub-eyebrow' }, [o.eyebrow]),
-    el('h3', {}, [o.title]),
-    el('p', {}, [o.body]),
-    el('span', { class: 'hub-meta' }, o.meta.map((m) => el('span', {}, [m]))),
-    el('span', { class: 'hub-go' }, [o.cta, el('span', { class: 'hub-arrow', html: ARROW, 'aria-hidden': true })]),
-  ]);
-
-  const cards = el('div', { class: 'hub-cards' }, [
+  pane.appendChild(el('div', { class: 'hub-cards' }, [
     linkCard({
-      accent: '#3E9E82', ghost: '9',
+      accent: '#3E9E82', ghost: '4\u00b75',
       eyebrow: 'For anybody \u00b7 no sign-in',
       title: 'Domains and categories',
-      body: 'What the four domains are, what the nine categories are, why a question belongs to one domain and carries as many categories as apply, and how the arithmetic works.',
+      body: 'Where a question lives, what it is about, and why those are two different things. Four domains, five categories, and the arithmetic that keeps them apart.',
       meta: ['One page', 'Made to be shown to somebody'],
       cta: 'Open the explanation',
       href: 'https://myermcat.github.io/tbs-earb-self-assessment-preview/domains-and-categories.html',
@@ -1515,51 +1546,13 @@ function panePages(pane: HTMLElement) {
     linkCard({
       accent: '#7C5CB8', ghost: '\u2261',
       eyebrow: 'For Dan \u00b7 Google Sheets',
-      title: 'The categories spreadsheet',
-      body: 'His own four domain sheets, with a Categories column to fill in and his Assessment Scale and Summary Dashboard alongside. This is the empty one.',
+      title: 'The question set, as a spreadsheet',
+      body: 'His own four domain sheets with a Categories column to fill in, his Assessment Scale, and a Summary Dashboard that calculates. The same arithmetic as the tool, in a form he can check.',
       meta: ['Anybody with the link can comment'],
-      cta: 'Open the template',
-      href: 'https://docs.google.com/spreadsheets/d/1Fa7j9acWJNLZylwYs4LkdpufU4yA1bv8YhKr55bvdLE/edit',
-    }),
-    linkCard({
-      accent: '#3E9E82', ghost: '\u2713',
-      eyebrow: 'For Dan \u00b7 Google Sheets',
-      title: 'The same thing, filled in',
-      body: 'Every category we read out of the wording of each question, so the shape is visible before anybody starts. Ours and provisional: his to confirm or overrule.',
-      meta: ['Anybody with the link can comment'],
-      cta: 'Open the example',
+      cta: 'Open the spreadsheet',
       href: 'https://docs.google.com/spreadsheets/d/1SuEuo3_iK--XjVy0jzsvmwGhxOV5JqEeLzNIUMTY9xw/edit',
     }),
-    linkCard({
-      accent: '#4E90C8', ghost: '\u00a7',
-      eyebrow: 'The build team',
-      title: 'Requirements',
-      body: 'Every requirement, numbered, with its state and whoever owes an answer. Decisions are written here the day they are made, and the open ones are listed at the top.',
-      meta: ['Updated on every publish'],
-      cta: 'Open the requirements',
-      href: 'https://myermcat.github.io/tbs-earb-self-assessment-preview/requirements.html',
-    }),
-    linkCard({
-      accent: '#C08A3E', ghost: '\u2713',
-      eyebrow: 'The build team',
-      title: 'Backlog',
-      body: 'What is done, what is next, and what is waiting on a person. The same page the team works from.',
-      meta: ['Updated on every publish'],
-      cta: 'Open the backlog',
-      href: 'https://myermcat.github.io/tbs-earb-self-assessment-preview/backlog.html',
-    }),
-  ]);
-
-  /**
-   * The first three are for anybody: the explanation, and the two spreadsheets, which are
-   * shared for comment and hold nothing but Dan's own question set. The last two name
-   * colleagues and the state of internal decisions, so they are offered to an admin and to a
-   * build with no project, which is somebody working on the tool itself.
-   */
-  if (firebaseConfigured() && knownRole() !== 'admin') {
-    cards.querySelectorAll('.hub-card').forEach((c, i) => { if (i > 2) c.remove(); });
-  }
-  pane.appendChild(cards);
+  ]));
 }
 
 function paneDanger(pane: HTMLElement) {

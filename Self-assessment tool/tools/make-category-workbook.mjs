@@ -172,7 +172,12 @@ async function build(filled) {
       const first = clean(r[0]);
       const qNum = clean(r[1]);
       const qText = clean(r[2]);
-      if (/Section weight:/i.test(first)) { out.push({ kind: 'section', text: first }); current = first; continue; }
+      if (/Section weight:/i.test(first)) {
+        const pct = Number(first.match(/Section weight:\s*(\d+(?:\.\d+)?)/i)?.[1] ?? 0);
+        out.push({ kind: 'section', text: first, weight: pct });
+        current = first;
+        continue;
+      }
       if (/^Q\d+$/.test(qNum) && qText) {
         const picked = guess.get(`${domainIdOf(d.label)}:${qNum}`) ?? [];
         // In the order the picker lists them, so a cell always matches an entry in the list.
@@ -198,9 +203,7 @@ async function build(filled) {
     });
   }
 
-  const name = filled
-    ? 'GC EA assessment tool - categories, filled as an example.xlsx'
-    : 'GC EA assessment tool - categories template.xlsx';
+  const name = 'GC EA assessment tool - categories.xlsx';
   const payload = {
     out: `${OUT_DIR}/${name}`, filled, asked: ASKED, picks: PICKS, catHeaders: CAT_HEADERS, sheets,
     scale: await passThrough('Assessment Scale'),
@@ -211,5 +214,12 @@ async function build(filled) {
   process.stdout.write(stdout);
 }
 
-await build(false);
+/**
+ * One file, not two.
+ *
+ * There was a template with the Categories column empty and an example with our readings in it,
+ * and the difference between them was 46 cells. Nobody learns anything from the empty one that
+ * the filled one does not teach better, and two files means two things to send, two to keep in
+ * step and two to be out of date.
+ */
 await build(true);
