@@ -120,8 +120,26 @@ const PRIVACY_WORDS = /\b(privacy|personal information|PIA|Privacy Impact|consen
 const FINANCIAL_WORDS = /\b(cost|costing|budget|funding|funded|financial|expenditure|licen[cs]ing fee|total cost of ownership|TCO|invest(ment|ing)|value for money|business case)/i;
 
 /**
- * The nine topics Dan named on 8 September, as ids. Declared here as well as in the rubric it
- * writes, because a Topics column has to be checked against something while it is being read
+ * Accessibility and official languages, which an earlier version of this file said the
+ * instrument did not ask about at all.
+ *
+ * That was wrong, and it was wrong because the pattern was loose and the conclusion was drawn
+ * from the number of hits rather than from reading them. Six questions mention something
+ * "accessible" and three of them are about accessibility; two mention official languages and
+ * both are genuine. Saying the categories were empty put a false statement into the README, the
+ * explainer page, the workbook and the requirements.
+ *
+ * The distinction that makes the pattern right is grammatical. "Accessibility" the noun, and
+ * WCAG, are always the policy sense. "Accessible" the adjective is the one that also means
+ * findable data: the FAIR principles' Accessible, and data accessible to other departments.
+ * So this matches the noun and the standard, and not the adjective.
+ */
+const ACCESSIBILITY_WORDS = /\b(accessibilit(y|ies)|WCAG|screen reader|assistive technolog)/i;
+const OFFICIAL_LANGUAGES_WORDS = /\b(official languages|bilingualism|bilingual|linguistic dualit)/i;
+
+/**
+ * The nine topics Dan named on 8 September, as ids. Declared here as well as in the rubric this
+ * writes, because a Topics column has to be checked against something while it is being read,
  * and failing at import is the whole point: a topic nobody declared scores nothing, silently,
  * on every screen.
  */
@@ -141,17 +159,17 @@ function topicColumnIn(rows) {
   for (const r of rows.slice(0, 6)) {
     const at = r.findIndex((c) => /assessment question/i.test(clean(c)));
     if (at < 0) continue;
-    const topics = r.findIndex((c) => /^topics?$/i.test(clean(c)));
+    const topics = r.findIndex((c) => /^(topics?|categor(y|ies))$/i.test(clean(c)));
     return topics < 0 ? -1 : topics;
   }
   return -1;
 }
 
 /**
- * Read one cell of a Topics column: "security, privacy" or "Security; Privacy" or blank.
+ * Read one cell of a Topics column: "Security, Privacy" or "Security; Privacy" or blank.
  *
  * Anything it does not recognise is returned as a problem rather than dropped, because a
- * mistyped topic is invisible afterwards: the question simply counts towards nothing and every
+ * mistyped category is invisible afterwards: the question counts towards nothing and every
  * screen looks right.
  */
 function topicsFromCell(cell, qid, bad) {
@@ -161,7 +179,7 @@ function topicsFromCell(cell, qid, bad) {
     if (!name) continue;
     const id = slug(name);
     if (TOPIC_IDS.has(id)) out.push(id);
-    else bad.push(`${qid}: "${name}" is not one of the nine topics.`);
+    else bad.push(`${qid}: "${name}" is not one of the nine categories.`);
   }
   return out;
 }
@@ -171,6 +189,8 @@ function topicsFor(domainId, text) {
   if (SECURITY_WORDS.test(text)) out.push('security');
   if (PRIVACY_WORDS.test(text)) out.push('privacy');
   if (FINANCIAL_WORDS.test(text)) out.push('financial');
+  if (ACCESSIBILITY_WORDS.test(text)) out.push('accessibility');
+  if (OFFICIAL_LANGUAGES_WORDS.test(text)) out.push('official-languages');
   return out;
 }
 
@@ -354,16 +374,15 @@ const rubric = {
     'list. A no on a yes/no question raises a red flag: it colours the section and the person carries ' +
     'on. Nothing in this tool stops an assessment.',
   topicsNote:
-    'A second axis. The four domains still produce the overall score and a question counts once ' +
-    'there. A question also counts at full weight inside every topic it carries, which is where the ' +
-    'weights genuinely differ. Dan named nine on 8 September: Business, Data, Application, ' +
-    'Technology, Security, Privacy, Accessibility, Official Languages and Financial. The four domain ' +
-    'topics are mechanical. Security, privacy and financial were derived from the question wording ' +
-    'and are PROVISIONAL: Dan owns the real assignments. Accessibility and Official Languages are ' +
-    'declared and empty, because no question in the instrument asks about either: a sweep of all 176 ' +
-    'found official languages in two and accessibility in three, always in another sense. They stay ' +
-    'on the list so the gap is visible. What fills them is one Topics column in each domain sheet, ' +
-    'comma separated, filled only on the rows that need more than their own domain.',
+    'A second axis. The four domains still produce the overall score and a question counts once '
+    + 'there. A question also counts at full weight inside every category it carries, which is '
+    + 'where the weights genuinely differ. Dan named nine on 8 September: Business, Data, '
+    + 'Application, Technology, Security, Privacy, Accessibility, Official Languages and '
+    + 'Financial. The four domain categories are mechanical. The other five are read from the '
+    + 'wording of each question and are PROVISIONAL: Dan owns the real assignments, and the '
+    + 'Categories column in his workbook is where they come from. Accessibility and Official '
+    + 'Languages are thin rather than absent, at three questions and two, which is worth knowing '
+    + 'before anybody reads a score for either.',
 
   lifecycleStages,
   phases,

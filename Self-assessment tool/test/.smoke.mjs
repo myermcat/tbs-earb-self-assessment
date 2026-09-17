@@ -757,7 +757,7 @@ var rubric_v1_dan_default = {
     }
   ],
   answerTypesNote: "PROVISIONAL. Dan named this defect: several questions are yes or no wearing a 0 to 10 scale. The ones marked yesno here are the ones whose wording is unambiguously binary. He owns the real list. A no on a yes/no question raises a red flag: it colours the section and the person carries on. Nothing in this tool stops an assessment.",
-  topicsNote: "A second axis. The four domains still produce the overall score and a question counts once there. A question also counts at full weight inside every topic it carries, which is where the weights genuinely differ. Dan named nine on 8 September: Business, Data, Application, Technology, Security, Privacy, Accessibility, Official Languages and Financial. The four domain topics are mechanical. Security, privacy and financial were derived from the question wording and are PROVISIONAL: Dan owns the real assignments. Accessibility and Official Languages are declared and empty, because no question in the instrument asks about either: a sweep of all 176 found official languages in two and accessibility in three, always in another sense. They stay on the list so the gap is visible. What fills them is one Topics column in each domain sheet, comma separated, filled only on the rows that need more than their own domain.",
+  topicsNote: "A second axis. The four domains still produce the overall score and a question counts once there. A question also counts at full weight inside every category it carries, which is where the weights genuinely differ. Dan named nine on 8 September: Business, Data, Application, Technology, Security, Privacy, Accessibility, Official Languages and Financial. The four domain categories are mechanical. The other five are read from the wording of each question and are PROVISIONAL: Dan owns the real assignments, and the Categories column in his workbook is where they come from. Accessibility and Official Languages are thin rather than absent, at three questions and two, which is worth knowing before anybody reads a score for either.",
   lifecycleStages: [
     {
       id: "discovery",
@@ -978,7 +978,9 @@ var rubric_v1_dan_default = {
               answerType: "scale",
               topics: [
                 "business",
-                "privacy"
+                "privacy",
+                "accessibility",
+                "official-languages"
               ]
             }
           ],
@@ -1458,7 +1460,9 @@ var rubric_v1_dan_default = {
               weight: 1,
               answerType: "scale",
               topics: [
-                "business"
+                "business",
+                "accessibility",
+                "official-languages"
               ]
             },
             {
@@ -2225,7 +2229,8 @@ var rubric_v1_dan_default = {
               weight: 1,
               answerType: "yesno",
               topics: [
-                "application"
+                "application",
+                "accessibility"
               ]
             },
             {
@@ -3296,6 +3301,7 @@ function stable(x) {
   }
   const all = rubric.domains.flatMap((d) => d.sections.flatMap((s2) => s2.questions));
   const carrying = (id) => all.filter((q) => (q.topics ?? []).includes(id)).length;
+  const byId = (id) => all.find((q) => q.id === id);
   ok(
     "a question can carry more than one category",
     all.filter((q) => (q.topics ?? []).length > 1).length > 30,
@@ -3306,19 +3312,42 @@ function stable(x) {
     rubric.domains.every((d) => d.sections.every((s2) => s2.questions.every((q) => (q.topics ?? []).includes(d.id))))
   );
   ok("financial is derived and not empty", carrying("financial") > 5, String(carrying("financial")));
-  ok("accessibility is declared and empty", carrying("accessibility") === 0, String(carrying("accessibility")));
   ok(
-    "official languages is declared and empty",
-    carrying("official-languages") === 0,
+    "accessibility is asked about, and thinly",
+    carrying("accessibility") === 3,
+    String(carrying("accessibility"))
+  );
+  ok(
+    "official languages too",
+    carrying("official-languages") === 2,
     String(carrying("official-languages"))
+  );
+  ok(
+    "and the one question that names both carries both",
+    ["accessibility", "official-languages"].every((t) => (byId("B-Q14")?.topics ?? []).includes(t)),
+    (byId("B-Q14")?.topics ?? []).join(",")
+  );
+  ok(
+    "while the FAIR principles' Accessible is not counted as accessibility",
+    !(byId("D-Q31")?.topics ?? []).includes("accessibility"),
+    (byId("D-Q31")?.topics ?? []).join(",")
+  );
+  ok(
+    "and neither is data being accessible to other departments",
+    !(byId("D-Q33")?.topics ?? []).includes("accessibility"),
+    (byId("D-Q33")?.topics ?? []).join(",")
   );
   ok(
     "and the note says who owns the real assignments",
     /Dan owns the real assignments/.test(rubric.topicsNote ?? "")
   );
   ok(
-    "and names what would fill the empty two",
-    /Topics column/.test(rubric.topicsNote ?? "")
+    "and names where the real assignments come from",
+    /Categories column/.test(rubric.topicsNote ?? "")
+  );
+  ok(
+    "and says the two thin ones are thin and not absent",
+    /thin rather than absent/.test(rubric.topicsNote ?? "")
   );
   const bent = JSON.parse(JSON.stringify(rubric));
   bent.domains[0].sections[0].questions[0].topics = ["business", "secuirty"];

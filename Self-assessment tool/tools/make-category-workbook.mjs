@@ -35,12 +35,19 @@ const run = promisify(execFile);
 const KB = '../EARB target state knowledge base';
 const OUT_DIR = '../Deliverables';
 
-/** Dan's four sheets, and the colour each one gets. */
+/**
+ * Dan's four question sheets.
+ *
+ * No colour per domain. An earlier version of this file invented one for each, and it was
+ * inventing: his own colour system is the 0-10 score ladder on the Assessment Scale tab, where
+ * every score from Absent to Symbiotic has a named colour. That tab comes across whole, with
+ * its colours, and nothing here adds a second scheme beside it.
+ */
 const DOMAINS = [
-  { sheet: 'Business Architecture', label: 'Business Architecture', colour: '1F4E79' },
-  { sheet: 'Data & Info Architecture', label: 'Data & Information Architecture', colour: '2E7D5B' },
-  { sheet: 'Application Architecture', label: 'Application & Virtual Architecture', colour: '7A4E9E' },
-  { sheet: 'Technology Architecture', label: 'Technology & Physical Architecture', colour: 'A85C1E' },
+  { sheet: 'Business Architecture', label: 'Business Architecture' },
+  { sheet: 'Data & Info Architecture', label: 'Data & Information Architecture' },
+  { sheet: 'Application Architecture', label: 'Application & Virtual Architecture' },
+  { sheet: 'Technology Architecture', label: 'Technology & Physical Architecture' },
 ];
 
 /**
@@ -48,6 +55,32 @@ const DOMAINS = [
  * themselves, so they are never asked for.
  */
 const ASKED = ['Security', 'Privacy', 'Financial', 'Accessibility', 'Official Languages'];
+
+/**
+ * What the one Categories dropdown offers.
+ *
+ * One column with a picker, which is what was asked for, and the reason it can be one column is
+ * arithmetic: five categories have 31 possible combinations, and the ones a question actually
+ * needs are few. Today's 176 questions use four combinations between them. These ten cover
+ * every pairing anybody has a reason to want, and the list stays short enough to read.
+ *
+ * The validation warns rather than refuses, so a combination nobody anticipated can still be
+ * typed. Nothing is lost by allowing that: the importer checks every name against the nine and
+ * refuses the whole file, loudly, naming the question, if one of them is not recognised.
+ */
+const PICKS = [
+  'Security',
+  'Privacy',
+  'Financial',
+  'Accessibility',
+  'Official Languages',
+  'Security, Privacy',
+  'Security, Financial',
+  'Privacy, Financial',
+  'Accessibility, Official Languages',
+  'Privacy, Accessibility, Official Languages',
+  'Security, Privacy, Financial',
+];
 
 /* The CSVs are Windows-1252, which is what Excel writes on a Canadian English install. */
 const CP1252_HIGH = [
@@ -93,6 +126,18 @@ async function sheetRows(name) {
  * filled example and the tool agree. They are a keyword pass and the example says so on its
  * own first tab.
  */
+/** What kind of answer each question takes, read back out of the rubric the importer built. */
+async function answerTypes() {
+  const rubric = JSON.parse(await readFile('rubric/rubric.v1-dan.json', 'utf8'));
+  const by = new Map();
+  for (const d of rubric.domains) {
+    for (const s of d.sections) {
+      for (const q of s.questions) by.set(`${d.id}:${q.sheetRef}`, q.answerType ?? 'scale');
+    }
+  }
+  return by;
+}
+
 async function guesses() {
   const rubric = JSON.parse(await readFile('rubric/rubric.v1-dan.json', 'utf8'));
   const byRef = new Map();
@@ -108,8 +153,21 @@ async function guesses() {
 
 const domainIdOf = (label) => label.toLowerCase().split(/[ &]/)[0];
 
+/**
+ * A sheet of Dan's that we change nothing about.
+ *
+ * The Assessment Scale is the one that matters: it carries his colour for every score from 0 to
+ * 10, which is the colour system this workbook uses. Passing it through rather than rebuilding
+ * it means the day he changes a label, this is one command.
+ */
+async function passThrough(name) {
+  const rows = await sheetRows(name);
+  return rows.map((r) => r.map(clean));
+}
+
 async function build(filled) {
   const guess = filled ? await guesses() : new Map();
+  const answerTypeOf = await answerTypes();
   const sheets = [];
   for (const d of DOMAINS) {
     const rows = await sheetRows(d.sheet);
@@ -122,10 +180,14 @@ async function build(filled) {
       if (/Section weight:/i.test(first)) { out.push({ kind: 'section', text: first }); current = first; continue; }
       if (/^Q\d+$/.test(qNum) && qText) {
         const picked = guess.get(`${domainIdOf(d.label)}:${qNum}`) ?? [];
+        // In the order the picker lists them, so a cell always matches an entry in the list.
+        const named = ASKED.filter((a) => picked.includes(a.toLowerCase().replace(/ /g, '-')));
         out.push({
-          kind: 'question',
-          num: first, q: qNum, text: qText,
-          ticks: ASKED.map((a) => picked.includes(a.toLowerCase().replace(/ /g, '-')) ? 'x' : ''),
+          kind: 'question', num: first, q: qNum, text: qText,
+          categories: named.join(', '),
+          // Ours, and provisional, the same as the categories. Dan named this defect and gave
+          // one example; the sheet shows our reading so he can confirm or overrule it.
+          answerType: answerTypeOf.get(`${domainIdOf(d.label)}:${qNum}`) === 'yesno' ? 'Yes / No' : 'Scale 0-10',
         });
       }
     }
@@ -142,7 +204,11 @@ async function build(filled) {
   const name = filled
     ? 'GC EA assessment tool - categories, filled as an example.xlsx'
     : 'GC EA assessment tool - categories template.xlsx';
-  const payload = { out: `${OUT_DIR}/${name}`, filled, asked: ASKED, sheets };
+  const payload = {
+    out: `${OUT_DIR}/${name}`, filled, asked: ASKED, picks: PICKS, sheets,
+    scale: await passThrough('Assessment Scale'),
+    dashboard: await passThrough('Summary Dashboard'),
+  };
   await writeFile('/tmp/earb-workbook.json', JSON.stringify(payload));
   const { stdout } = await run('python3', ['tools/write-category-workbook.py', '/tmp/earb-workbook.json']);
   process.stdout.write(stdout);
