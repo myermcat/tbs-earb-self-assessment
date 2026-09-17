@@ -129,9 +129,9 @@ console.log('\nThe access code\n');
     pretendToBeVisual: true,
     beforeParse(w) {
       w.localStorage.setItem('gc-arch-assessment:draft', JSON.stringify(withWork));
-      // A session, because the store still asks for an account before it reads anything. The
-      // rule that lets a code stand on its own has not been published, so without this the path
-      // stops at the refusal and never reaches the guard.
+      // A session, because this build runs on accounts and the assessment being opened has an
+      // owner. The published rules grant a read on the code with no account at all, which the
+      // submitter build is driven through in test/submitter.mjs.
       w.localStorage.setItem('gc-arch-assessment:firebase-session', JSON.stringify({
         email: 'someone@dfo-mpo.gc.ca', idToken: 't', refreshToken: 'r', expiresAt: Date.now() + 36e5,
       }));
@@ -182,6 +182,25 @@ console.log('\nThe access code\n');
      all('.cf-actions button').map((b) => b.textContent).join(' | '));
   ok('and the way out keeps what you have',
      !!find('.cf-actions button', 'Keep what I have'));
+
+  /**
+   * Which control is the brightest, on a window where something can be lost.
+   *
+   * Somebody at this window is not going to read four lines of prose: they look for the
+   * brightest thing and press it. It used to be the solid red "Go ahead without saving", so
+   * the window's own design pointed at the answer that loses the work.
+   */
+  {
+    const buttons = [...guard.querySelectorAll('.cf-actions button')];
+    const loud = buttons.filter((b) => b.classList.contains('primary'));
+    const destroying = find('.cf-actions button', 'Go ahead without saving');
+    ok('one control is the brightest', loud.length === 1,
+       buttons.map((b) => `${b.textContent}:${b.className}`).join(' | '));
+    ok('and it is the one that keeps the work', /Save this online first/.test(loud[0]?.textContent ?? ''),
+       loud[0]?.textContent);
+    ok('the answer that loses it is outlined', destroying.classList.contains('danger')
+       && !destroying.classList.contains('primary'), destroying.className);
+  }
 
   // Going ahead is what opens the field.
   find('.cf-actions button', 'Go ahead without saving').click();

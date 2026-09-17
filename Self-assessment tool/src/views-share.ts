@@ -66,9 +66,12 @@ export function showNewCode(a: Assessment, after: () => void = () => {}): void {
   if (!a.id) { after(); return; }
   confirmStep({
     tier: 'plain',
-    title: t('Saved online. Keep this code', 'Enregistrée en ligne. Conservez ce code'),
-    body: t('This code is the only way back to this assessment. Put it somewhere you keep things: a note to yourself, the initiative\u2019s folder, an email to your team. Anybody holding it can open this assessment and change it, and nobody without it can, including you.',
-      'Ce code est le seul moyen de revenir à cette évaluation. Placez-le quelque part où vous conservez vos choses : une note, le dossier de l\u2019initiative, un courriel à votre équipe. Toute personne qui le détient peut ouvrir cette évaluation et la modifier, et personne ne le peut sans lui, vous compris.'),
+    // The imperative, and not the past tense. "Saved online. Keep this code" opened with the
+    // news and asked second, and the asking is the part that matters: this is the only window
+    // in the tool where not reading it costs somebody the whole assessment.
+    title: t('Save this code somewhere', 'Conservez ce code quelque part'),
+    body: t('It is saved online. This code is the only way back to this assessment. Put it somewhere you keep things: a note to yourself, the initiative\u2019s folder, an email to your team. Anybody holding it can open this assessment and change it, and nobody without it can, including you.',
+      'Elle est enregistrée en ligne. Ce code est le seul moyen de revenir à cette évaluation. Placez-le quelque part où vous conservez vos choses : une note, le dossier de l\u2019initiative, un courriel à votre équipe. Toute personne qui le détient peut ouvrir cette évaluation et la modifier, et personne ne le peut sans lui, vous compris.'),
     extra: codeChip(a.id),
     mustAgree: t('I have saved this code somewhere', 'J\u2019ai conservé ce code quelque part'),
     note: t('This browser is holding the assessment as well, so you will not need the code today. You will need it the day you open somebody else\u2019s assessment, or work from another computer.',
