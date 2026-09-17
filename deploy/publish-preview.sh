@@ -38,8 +38,19 @@ echo "Testing..."
   exit 1
 }
 
-echo "Building..."
-( cd "$HERE/Self-assessment tool" && npm run --silent build )
+# Two pages, because the tool is two products.
+#
+# The submitter's runs on access codes and has no account in it anywhere: an assessment is
+# reached by the twelve characters that are its name in the store, which the published rules
+# grant on. The assessor's keeps accounts, because no Firestore rule can grant a list on a
+# filter, so "show me every submission" is a right given to an identity or to everybody, and
+# everybody means every department's draft is public.
+#
+# Same site, one folder apart, so Google's sign-in needs no new address registered.
+echo "Building the submitter's page..."
+( cd "$HERE/Self-assessment tool" && EARB_ACCESS=code npm run --silent build )
+echo "Building the assessor's page..."
+( cd "$HERE/Self-assessment tool" && EARB_ACCESS=accounts EARB_OUT=dist/assessor.html npm run --silent build )
 ( cd "$HERE/Self-assessment tool" && node tools/build-backlog.mjs >/dev/null )
 ( cd "$HERE/Self-assessment tool" && node tools/build-requirements.mjs >/dev/null )
 
@@ -47,6 +58,8 @@ echo "Cloning $REPO..."
 git clone --quiet --depth 1 "https://github.com/$REPO.git" "$WORK/site"
 
 cp "$HERE/Self-assessment tool/dist/index.html" "$WORK/site/docs/index.html"
+mkdir -p "$WORK/site/docs/assessor"
+cp "$HERE/Self-assessment tool/dist/assessor.html" "$WORK/site/docs/assessor/index.html"
 
 # The backlog travels with the build, so it can be opened from a link rather than a file path.
 # It names colleagues and the state of internal decisions. Nothing in it is protected, and
@@ -68,12 +81,15 @@ cp "$HERE/Self-assessment tool/NOTES/requirements.html" "$WORK/site/docs/require
 } > "$WORK/site/docs/domains-and-categories.html"
 
 cd "$WORK/site"
-if git diff --quiet; then
+# Staged before the check, because a page published for the first time is a new file and
+# `git diff` says nothing at all about those. The assessor's page was exactly that, and this
+# script would have reported everything up to date while publishing nothing.
+git add -A docs
+if git diff --cached --quiet; then
   echo "Already up to date. Nothing to publish."
   exit 0
 fi
 
-git add docs/index.html docs/backlog.html docs/requirements.html docs/domains-and-categories.html
 git commit --quiet -m "Preview build $(date -u '+%Y-%m-%d %H:%M UTC')"
 git push --quiet
 echo "Published. GitHub Pages takes a minute or two to pick it up."

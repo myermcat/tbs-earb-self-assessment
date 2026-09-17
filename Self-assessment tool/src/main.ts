@@ -16,7 +16,7 @@ import { closeMenusOnOutsideClick, closeOnOutsideClick, confirmStep, openDialog 
 import { saveBadge } from './save-badge';
 import { SAD_CAT } from './cat';
 import { openShareDialog } from './views-share';
-import { hasAccounts } from './who';
+import { hasAccounts, mode as accessMode } from './who';
 import { rememberSigner, signerFields, signerProblem } from './signer';
 import { showNewCode } from './views-share';
 import { bootLang, coverage, lang, type Lang, setLang } from './i18n';
@@ -94,7 +94,7 @@ function bootRoute(): Route {
     // The remembered side is only a door on the build that has one. On codes the assessor
     // screens are not here, and sending somebody to a sign-in they cannot pass is worse than
     // opening the questionnaire.
-    if (hasAccounts() && localStorage.getItem(SIDE_KEY) === 'assess') return { side: 'assess', mode: 'review' };
+    if (accessMode() === 'accounts' && localStorage.getItem(SIDE_KEY) === 'assess') return { side: 'assess', mode: 'review' };
   } catch {
     /* private window, or storage disabled. The submitter side is the right default. */
   }
@@ -876,11 +876,12 @@ function renderHome(root: HTMLElement) {
   /**
    * The way across, which is here for testing and for nothing else.
    *
-   * The two sides are separate products that share a build, and the finished thing routes a
-   * person to one of them at sign-in. Until the two builds are split, this is how the assessor
-   * side gets opened without typing an address, and it says on its face that it is temporary.
+   * The two sides are separate products, and on the build that runs on codes they are also two
+   * published pages: an assessor opens their own address and never arrives through this one.
+   * A submitter's home page offering a door to the assessor view describes a product that is
+   * not theirs, which is the one thing neither side may do.
    */
-  root.appendChild(el('p', { class: 'crossover tiny dim' }, [
+  if (accessMode() === 'accounts') root.appendChild(el('p', { class: 'crossover tiny dim' }, [
     el('span', { class: 'badge badge-mockup tiny' }, [t('For testing', 'Pour les tests')]),
     ' ',
     el('button', { class: 'linkish', onclick: () => setSide('assess') }, [
@@ -973,10 +974,15 @@ function renderRealSignIn(root: HTMLElement) {
           el('p', { class: 'mono tiny' }, [pageAddress()]),
           el('p', { class: 'small' }, [
             t('Open the published address and sign in there: ', 'Ouvrez l\u2019adresse publiée et connectez-vous là : '),
+            /**
+             * The assessor's own address, and not the site root. The root is the submitter's
+             * page now, which has no sign-in on it at all, so sending somebody there to sign
+             * in lands them on a screen that cannot do it.
+             */
             el('a', {
-              href: 'https://myermcat.github.io/tbs-earb-self-assessment-preview/',
+              href: 'https://myermcat.github.io/tbs-earb-self-assessment-preview/assessor/',
               target: '_blank', rel: 'noopener',
-            }, ['myermcat.github.io/tbs-earb-self-assessment-preview']),
+            }, ['myermcat.github.io/tbs-earb-self-assessment-preview/assessor']),
           ]),
         ])
       : null,
