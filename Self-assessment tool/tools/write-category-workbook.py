@@ -198,15 +198,21 @@ def domain_sheet(d):
     ws.row_dimensions[3].height = 30
     ws.freeze_panes = 'D4'
 
+    acol = get_column_letter(ANSWER_COL)
+    sections = []                    # (row of the header, weight, first question row)
     r = 4
     for row in d['rows']:
         if row['kind'] == 'section':
-            ws.merge_cells(start_row=r, start_column=1, end_row=r, end_column=last)
+            # Merge everything except the two columns the section's own score lives in, so the
+            # band still reads as one bar and still has somewhere to put a number.
+            ws.merge_cells(start_row=r, start_column=1, end_row=r, end_column=ANSWER_COL - 1)
             c = ws.cell(row=r, column=1, value=row['text'])
             c.font = Font(name='Calibri', size=11, bold=True, color=HEAD)
-            c.fill = PatternFill('solid', fgColor=BAND)
             c.alignment = Alignment(vertical='center', indent=1)
+            for i in range(1, last + 1):
+                ws.cell(row=r, column=i).fill = PatternFill('solid', fgColor=BAND)
             ws.row_dimensions[r].height = 24
+            sections.append({'head': r, 'weight': row.get('weight') or 0, 'first': r + 1})
             r += 1
             continue
 
@@ -275,12 +281,49 @@ def domain_sheet(d):
            'How this question is answered. Ours, and provisional: change it if it reads wrong.',
            'Scale or yes-or-no?')
 
+    # The sheet does the arithmetic, because a spreadsheet that shows how the tool works has to
+    # work. Each section band carries the average of its own answers; AVERAGE ignores text, so
+    # Yes, No and N/A drop out of it exactly as they drop out of the tool.
+    for i, sec in enumerate(sections):
+        end = (sections[i + 1]['head'] - 1) if i + 1 < len(sections) else (r - 1)
+        if end < sec['first']:
+            continue
+        cell = ws.cell(row=sec['head'], column=ANSWER_COL,
+                       value=f"=IFERROR(ROUND(AVERAGE({acol}{sec['first']}:{acol}{end}),1),\"\")")
+        cell.alignment = centre
+        cell.font = Font(name='Calibri', size=11, bold=True, color=HEAD)
+        weight = ws.cell(row=sec['head'], column=ANSWER_COL + 1, value=sec['weight'] / 100)
+        weight.number_format = '0%'
+        weight.alignment = centre
+        weight.font = Font(name='Calibri', size=9, color=MUTED)
+
+    # The domain's own score, where the dashboard reads it from. Weighted by the section weights
+    # that have a score, so a half-finished sheet still reports out of ten rather than low.
+    # The domain's own score, where the dashboard reads it from. Weighted by the section
+    # weights, and divided only by the weights of the sections that have a score, so a
+    # half-finished sheet still reports out of ten rather than reporting low.
+    wcol = get_column_letter(ANSWER_COL + 1)
+    cells = [(f'{acol}{x["head"]}', f'{wcol}{x["head"]}') for x in sections]
+    top = '+'.join(f'N({a})*N({w})' for a, w in cells)
+    bot = '+'.join(f'({a}<>"")*N({w})' for a, w in cells)
+    total = r + 1
+    ws.cell(row=total, column=1, value='Domain score, weighted across the sections answered').font = \
+        Font(name='Calibri', size=11, bold=True, color=HEAD)
+    ws.merge_cells(start_row=total, start_column=1, end_row=total, end_column=ANSWER_COL - 1)
+    dom = ws.cell(row=total, column=ANSWER_COL, value=f'=IFERROR(ROUND(({top})/({bot}),1),"")')
+    dom.font = Font(name='Calibri', size=13, bold=True, color=HEAD)
+    dom.alignment = centre
+    for i in range(1, last + 1):
+        ws.cell(row=total, column=i).fill = PatternFill('solid', fgColor=PICK_BG)
+        ws.cell(row=total, column=i).border = box
+    ws.cell(row=total, column=ANSWER_COL + 1, value='out of 10').font = Font(name='Calibri', size=9, color=MUTED)
+
+
     # One list on the whole column, so any answer can go on any row.
-    acol = get_column_letter(ANSWER_COL)
     picker(ANSWER_PICK, [f'{acol}4:{acol}{r - 1}'],
            'A maturity score from 0 to 10, or Yes or No for a question that reads as one, or '
            'N/A when the question does not apply.', 'The answer')
-    return ws
+    return ws, f"'{ws.title}'!{acol}{total}"
 
 
 def scale_sheet(rows):
@@ -358,19 +401,51 @@ def plain_sheet(title, rows, widths):
 
 
 read_me()
+domain_totals = []
 for d in payload['sheets']:
-    domain_sheet(d)
+    _, where = domain_sheet(d)
+    domain_totals.append((d['label'], where))
 scale_sheet(payload['scale'])
 
-# Two of Dan's tabs, reproduced so the workbook is recognisably his and not a fragment of it.
-# The dashboard computes nothing here and says so: its formulas live in his own file, and the
-# scoring that matters happens in the tool, where one implementation is easier to trust than
-# two that can drift.
-dash = plain_sheet('Summary Dashboard', payload['dashboard'], [46, 14, 20, 34])
+# Dan's Summary Dashboard, wired to the four sheets the way his own is meant to be.
+#
+# It computed nothing in the first version and said so, which was the wrong call: a spreadsheet
+# that exists to show how the tool works has to work. Each domain reads its own total, the
+# overall is the four of them at 25% each over the ones that have a score, and the maturity
+# label comes off the same ladder every question uses.
+dash = plain_sheet('Summary Dashboard', payload['dashboard'], [46, 14, 24, 34])
+SCALE = "'Assessment Scale'!$A$3:$C$13"
+rows = []
+for i, (label, where) in enumerate(domain_totals):
+    row = 4 + i
+    rows.append(row)
+    c = dash.cell(row=row, column=2, value=f'=IFERROR({where},"")')
+    c.font = Font(name='Calibri', size=12, bold=True, color=HEAD)
+    c.alignment = centre
+    dash.cell(row=row, column=3, value=(
+        f'=IF(B{row}="","Awaiting input",IFERROR(VLOOKUP(ROUND(B{row},0),{SCALE},3,FALSE),"Awaiting input"))'
+    )).font = Font(name='Calibri', size=10.5)
+
+top = '+'.join(f'N(B{n})' for n in rows)
+bot = '+'.join(f'(B{n}<>"")' for n in rows)
+overall_row = None
+for rr in range(1, dash.max_row + 1):
+    if 'OVERALL' in str(dash.cell(row=rr, column=1).value or ''):
+        overall_row = rr
+        break
+if overall_row:
+    o = dash.cell(row=overall_row, column=2, value=f'=IFERROR(ROUND(({top})/({bot}),1),"")')
+    o.font = Font(name='Calibri', size=14, bold=True, color=HEAD)
+    o.alignment = centre
+    dash.cell(row=overall_row, column=3, value=(
+        f'=IF(B{overall_row}="","Awaiting input",'
+        f'IFERROR(VLOOKUP(ROUND(B{overall_row},0),{SCALE},3,FALSE),"Awaiting input"))'
+    )).font = Font(name='Calibri', size=12, bold=True)
+
 note = dash.cell(row=dash.max_row + 2, column=1,
-                 value='This tab is your own Summary Dashboard, reproduced so nothing is '
-                       'missing from this copy. It does not calculate here: this workbook is '
-                       'for the Categories columns, and the scoring happens in the tool.')
+                 value='Every number on this tab is calculated from the four question sheets. '
+                       'The four domains carry 25% each, and a domain with no answers yet is '
+                       'left out of the overall rather than counted as zero.')
 note.font = Font(name='Calibri', size=10, italic=True, color=MUTED)
 note.alignment = wrap_top
 
