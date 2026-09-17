@@ -1,6 +1,6 @@
 import { classRank, type Assessment, type AuditEntry, type Rubric } from './types';
 import { refOf } from './storage';
-import { el, clear, tone } from './dom';
+import { el, clear, tone, bar } from './dom';
 import { allQuestionScores, score, type QuestionScore, type Result } from './scoring';
 import { flags, type Flag } from './flags';
 import { csvHeader, csvRow, toCsv } from './csv';
@@ -374,8 +374,10 @@ function paintList(rubric: Rubric, root: HTMLElement) {
       // The department says this, not us and not an assessor. A column reading "Ready to
       // review" with nothing saying who decided it invites somebody to read it as a status the
       // tool worked out.
+      // The qualifier goes above the word, because it is read before it: what follows is what
+      // the department said about itself, and not a state the tool worked out.
       el('th', { title: 'The submitter says this about their own assessment' }, [
-        'State', el('span', { class: 'th-sub' }, ['self-marked']),
+        el('span', { class: 'th-sub' }, ['self-marked by submitter']), 'State',
       ]),
       el('th', {}, ['Department']), el('th', {}, ['Marking']),
       el('th', {}, ['Code and set']),
@@ -606,6 +608,65 @@ function openDetail(rubric: Rubric, root: HTMLElement, l: Loaded) {
       box.appendChild(list);
     }
     root.appendChild(box);
+  }
+
+  /**
+   * The same answers cut by category, for the person who has to decide what to ask about.
+   *
+   * The submitter gets this on their results page and the assessor did not, which is the wrong
+   * way round: a department that is fine overall and weak on security is exactly the case an
+   * assessor exists to catch, and the four domain numbers hide it by dividing those questions
+   * four ways.
+   *
+   * Read-only here. An assessor's opinion of a question belongs in the audit, which is its own
+   * screen with its own reasons attached, and a second place to change a score is a second
+   * place for the two to disagree.
+   */
+  {
+    const domainIds = new Set(rubric.domains.map((d) => d.id));
+    const cats = r.topics.filter((x) => x.total > 0 && !domainIds.has(x.topic.id));
+    if (cats.length) {
+      const box = el('section', { class: 'card' }, [
+        el('h2', {}, ['By category']),
+        el('p', { class: 'muted small' }, [
+          'The same questions grouped by what they are about. One question can be in several ',
+          'categories at once, so these do not add up to the overall.',
+        ]),
+      ]);
+      for (const cat of cats) {
+        const mine = allQuestionScores(r)
+          .filter((qs) => (qs.question.topics ?? []).includes(cat.topic.id))
+          .sort((x, y) => (x.answered ? (x.raw as number) : 99) - (y.answered ? (y.raw as number) : 99));
+        const rows = el('div', { class: 'cat-list' }, mine.map((qs) => {
+          const said = qs.answered ? (qs.raw as number).toFixed(0)
+            : a.answers[qs.question.id]?.na ? 'n/a' : 'not answered';
+          return el('div', { class: 'cat-q cat-q-flat' }, [
+            el('span', { class: `cat-q-score ${qs.answered ? tone(qs.raw as number) : 'dim'}` }, [said]),
+            el('span', { class: 'cat-q-text' }, [
+              qs.question.text,
+              el('span', { class: 'cat-q-where' }, [qs.question.id]),
+            ]),
+          ]);
+        }));
+        box.appendChild(el('details', { class: 'cat-open' }, [
+          el('summary', { class: 'bar-row' }, [
+            el('div', { class: 'bar-label' }, [
+              cat.topic.label,
+              el('span', { class: 'muted small' }, [` ${cat.answered} of ${cat.total} answered`]),
+              cat.redFlags.length
+                ? el('span', { class: 'badge badge-bad' }, [`${cat.redFlags.length} answered no`])
+                : null,
+            ]),
+            el('div', { class: 'bar-track' }, [
+              el('div', { class: `bar-fill ${bar(cat.score)}`, style: `width:${((cat.score ?? 0) / 10) * 100}%` }),
+            ]),
+            el('div', { class: `bar-num ${tone(cat.score)}` }, [cat.score === null ? '--' : cat.score.toFixed(1)]),
+          ]),
+          rows,
+        ]));
+      }
+      root.appendChild(box);
+    }
   }
 
   root.appendChild(el('section', { class: 'card headline' }, [

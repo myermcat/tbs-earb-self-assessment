@@ -456,11 +456,12 @@ console.log('\nThe published build, signed in\n');
   });
   const heads = [...doc.querySelectorAll('.triage thead th')].map((h) => h.textContent.trim());
   ok('the pool has a column for whether it is finished',
-     heads.some((h) => h.startsWith('State')), heads.join(' | '));
+     heads.some((h) => /State/.test(h)), heads.join(' | '));
   // A column reading "Ready to review" with nothing saying who decided it invites somebody to
   // read it as a status the tool worked out.
-  ok('and says the department decided it, not the tool',
-     heads.some((h) => /self-marked/i.test(h)), heads.join(' | '));
+  ok('and says the department decided it, above the word itself',
+     heads.some((h) => /^self-marked by submitter\s*State$/i.test(h.replace(/\s+/g, ' ').trim())),
+     heads.join(' | '));
 
   const rows = [...doc.querySelectorAll('.triage tbody tr')];
   const cell = (tr) => tr.children[1]?.textContent?.trim();
@@ -473,6 +474,28 @@ console.log('\nThe published build, signed in\n');
      rows.map(cell).join(' | '));
   ok('and the ready one is listed first, because that is the work',
      /^Ready$/.test(cell(rows[0])), cell(rows[0]));
+
+  /**
+   * The same cut by category the submitter gets, on the assessor's side of the same answers.
+   *
+   * A department that is fine overall and weak on security is the case an assessor exists to
+   * catch, and the four domain numbers hide it by dividing those questions four ways. It is
+   * read-only here: an opinion about a question belongs in the audit, which is its own screen
+   * with its own reasons attached.
+   */
+  [...doc.querySelectorAll('.row-acts button')].find((b) => /^Open$/.test(b.textContent.trim())).click();
+  await new Promise((r) => setTimeout(r, 60));
+  const catBox = [...doc.querySelectorAll('.card')]
+    .find((c) => c.querySelector('h2')?.textContent === 'By category');
+  ok('the submission detail carries the category cut', !!catBox);
+  ok('and every category opens onto its own questions',
+     (catBox?.querySelectorAll('.cat-open').length ?? 0) > 0,
+     String(catBox?.querySelectorAll('.cat-open').length));
+  ok('and says they do not add up to the overall',
+     /do not add up to the overall/.test(catBox?.textContent ?? ''));
+  ok('and the questions are read-only, because a score belongs in the audit',
+     [...(catBox?.querySelectorAll('.cat-q') ?? [])].every((n) => n.tagName !== 'BUTTON'),
+     [...(catBox?.querySelectorAll('.cat-q') ?? [])].map((n) => n.tagName).join(','));
   dom.window.close();
 }
 
