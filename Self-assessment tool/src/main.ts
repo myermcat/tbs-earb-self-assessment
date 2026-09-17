@@ -1395,6 +1395,23 @@ function paneBuild(pane: HTMLElement) {
     ));
   })();
 
+  /**
+   * How a question is filed, which is the one page here that is for everybody.
+   *
+   * It needs no sign-in and it is not a working page: it is the explanation somebody presents
+   * in a meeting, and the people who have to read it are in meetings and not in this tool. So
+   * it sits above the gate that hides the team's own pages.
+   */
+  pane.appendChild(setRow(
+    'Domains and categories, explained',
+    'What the four domains are, what the nine categories are, why a question belongs to one domain and carries as many categories as apply, and how the arithmetic works. One page, no sign-in, made to be shown to somebody.',
+    el('a', {
+      class: 'ghost',
+      href: 'https://myermcat.github.io/tbs-earb-self-assessment-preview/domains-and-categories.html',
+      target: '_blank', rel: 'noopener',
+    }, ['Open the explanation']),
+  ));
+
   // The requirements and the backlog are the build team's own working pages. They name
   // colleagues and the state of internal decisions, so they are offered to an admin and to a
   // build with no project, which is somebody working on the tool itself.
