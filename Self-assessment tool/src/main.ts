@@ -109,7 +109,7 @@ let side: Side = booted.side;
 let mode: Mode = booted.mode;
 if (booted.stop) setStopKey(booted.stop);
 
-type SettingsPane = 'questions' | 'answers' | 'pages' | 'build' | 'danger';
+type SettingsPane = 'questions' | 'answers' | 'docs' | 'build' | 'danger';
 let settingsPane: SettingsPane = 'questions';
 
 /**
