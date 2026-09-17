@@ -300,6 +300,14 @@ export interface Assessment {
      */
     savedOnlineAt?: string;
     /**
+     * The document name this record used to have, when that name could not be read to anybody.
+     *
+     * Records made before 14 September are named with twenty mixed-case characters. They are
+     * given a readable code on their next save, and the old name is kept here so the copy left
+     * behind in the store can be matched to the record that replaced it.
+     */
+    previousId?: string;
+    /**
      * What the copy in the store contains, so the tool can say whether it is behind this one.
      *
      * The fingerprint of the assessment as it went, kept in the assessment itself and so
