@@ -236,5 +236,64 @@ console.log('\nThe access code\n');
   await settle();
 }
 
+/* --------------------------------------------------------------------------------------- */
+/**
+ * Somebody typing the code of the assessment this browser is already holding.
+ *
+ * An assessment carries its code from the moment it is created, so a submitter can copy their
+ * own code off their own results page, type it in, and be told no assessment has it. That
+ * sentence reads as the tool having lost the work. Nothing is lost: nothing has been sent to
+ * the store under that name.
+ */
+{
+  const withCode = {
+    fileType: 'gc-arch-assessment', formatVersion: 1, ref: 'ZZ99', id: 'KFRM92TXBQ7H',
+    rubric: { id: 'gc-ea-selfassess', version: '1.0-dan', title: 'x' },
+    initiative: {
+      name: 'Licensing Renewal', department: 'DFO', contact: 'a@b.gc.ca',
+      lifecycleStage: 'beta', summary: 'A thing.', classification: 'Unclassified',
+    },
+    answers: { 'B-Q1': { score: 7, evidence: [] } },
+    meta: { createdAt: 'x', updatedAt: 'x', appVersion: 'test' },
+  };
+  const own = new JSDOM(html, {
+    runScripts: 'dangerously', url: 'https://example.gc.ca/tool/', pretendToBeVisual: true,
+    beforeParse(w) {
+      w.localStorage.setItem('gc-arch-assessment:draft', JSON.stringify(withCode));
+      w.scrollTo = () => {}; w.alert = () => {};
+      // The store has nothing under that name, which is the whole point: it was never sent.
+      w.localStorage.setItem('gc-arch-assessment:firebase-session', JSON.stringify({
+        email: 'someone@dfo-mpo.gc.ca', idToken: 't', refreshToken: 'r', expiresAt: Date.now() + 36e5,
+      }));
+      // The store has nothing under that name, which is the whole point: it was never sent.
+      w.fetch = async () => ({ ok: false, status: 404, json: async () => ({}), text: async () => '{}' });
+    },
+  });
+  await settle();
+  const d = own.window.document;
+  const all = (sel) => [...d.querySelectorAll(sel)];
+  const find = (sel, txt) => all(sel).find((n) => n.textContent.toLowerCase().includes(txt.toLowerCase()));
+
+  const entry = find('.hero-actions button', 'access code') ?? find('button', 'access code');
+  ok('the home page offers a way in with a code even with work in this browser', !!entry,
+     all('.hero-actions button').map((b) => b.textContent).join(' | '));
+  entry.click();
+  await settle();
+  find('.cf-actions button', 'Go ahead without saving')?.click();
+  await settle();
+  const boxes = all('.code-field .code-box');
+  boxes[0].value = 'KFRM92TXBQ7H';
+  boxes[0].dispatchEvent(new own.window.Event('input', { bubbles: true }));
+  await settle();
+  find('.cf-actions button', 'Open it').click();
+  await new Promise((r) => setTimeout(r, 80));
+  const note = all('dialog[open] .cf-note').pop().textContent;
+  ok('typing your own code is not reported as an unknown code',
+     !/No assessment has that code/.test(note), note);
+  ok('it says the assessment has never been saved online',
+     /never been saved online/.test(note), note);
+  ok('and says nothing is lost', /Nothing is lost/.test(note), note);
+}
+
 console.log(fails ? `\n${fails} access code check(s) failed\n` : '\nall access code checks passed\n');
 process.exit(fails ? 1 : 0);

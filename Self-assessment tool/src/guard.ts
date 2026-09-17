@@ -98,9 +98,17 @@ export function guardDraft(o: GuardOptions): void {
    */
   const code = savedOnline(o.current) && o.current.id ? o.current.id : '';
 
+  /**
+   * Why there is no code on this window, on the one branch where there is none to give.
+   *
+   * An assessment carries its code from the moment it is created, so somebody who has seen
+   * theirs on the results page expects it here, and its absence reads as the tool having
+   * mislaid it. It is absent because nothing has been sent to the store: a code opens a
+   * document, and there is no document.
+   */
   const stake = risk === 'never-online'
-    ? t(`This copy has never been saved online, so ${answers} would be gone, and there is no other way back to it.`,
-        `Cette copie n’a jamais été enregistrée en ligne, donc ${answers === '1 answer' ? '1 réponse' : `${n} réponses`} seraient perdues, et il n’y a aucun autre moyen d’y revenir.`)
+    ? t(`This copy has never been saved online, so ${answers} would be gone, and there is no other way back to it. There is no code to copy here, because a code opens a record in the store and nothing has been sent there yet. Saving online first is what gives you one.`,
+        `Cette copie n’a jamais été enregistrée en ligne, donc ${answers === '1 answer' ? '1 réponse' : `${n} réponses`} seraient perdues, et il n’y a aucun autre moyen d’y revenir. Il n’y a pas de code à copier ici : un code ouvre un enregistrement dans le dépôt, et rien n’y a encore été envoyé. L’enregistrement en ligne est ce qui vous en donne un.`)
     : risk === 'behind-online'
       ? t('The copy online is behind this one, so anything typed since the last save would be gone. Its access code is the only way back to it, so take a copy before you go on.',
           'La copie en ligne est en retard sur celle-ci, donc tout ce qui a été saisi depuis le dernier enregistrement serait perdu. Son code d’accès est le seul moyen d’y revenir : copiez-le avant de continuer.')
