@@ -632,6 +632,16 @@ export function newDocId(): string {
 
 /** The code as a person reads it: three groups of four. */
 export function formatCode(code: string): string {
+  /**
+   * A name this tool would not mint is shown as it is, and never tidied into something else.
+   *
+   * Records made before 14 September carry a twenty-character mixed-case id, from back when
+   * the document name was a name and not a thing a person reads down a phone. Putting one
+   * through the tidier uppercased it, dropped every character the current alphabet excludes
+   * and cut what was left to twelve, so the screen showed a code that opened nothing and the
+   * submitter copied it in good faith. Showing the real one is the least this can do.
+   */
+  if (!isCode(code)) return code;
   const clean = tidyCode(code);
   const groups: string[] = [];
   for (let i = 0; i < clean.length; i += CODE_GROUP) groups.push(clean.slice(i, i + CODE_GROUP));
@@ -668,6 +678,30 @@ export function strayInCode(raw: string): string[] {
 
 /** The characters a code is made of, for a screen that has to say what is allowed. */
 export const CODE_ALPHABET = ID_ALPHABET;
+
+/**
+ * Whether this record is named in a way this tool can still hand to a person.
+ *
+ * True for every record made before the code became readable. The document is in the store
+ * under that name and nothing is wrong with it; what cannot be done is telling somebody the
+ * name over Teams, which is the whole purpose the name now serves.
+ */
+export function needsANewCode(id: string | undefined): boolean {
+  return !!id && !isCode(id);
+}
+
+/**
+ * Whether this string, exactly as it stands, is a code this tool would mint.
+ *
+ * Stricter than `looksLikeCode`, and the difference is the whole of this bug. That one is
+ * asked about something a person typed, so it tidies first: it uppercases, drops what the
+ * alphabet excludes and keeps the first twelve. Asked about a stored document name, tidying
+ * is exactly wrong, because a twenty-character mixed-case name tidies down to twelve
+ * characters that are all in the alphabet and answers yes.
+ */
+export function isCode(raw: string): boolean {
+  return raw.length === CODE_LENGTH && [...raw].every((c) => ID_ALPHABET.includes(c));
+}
 
 /** Whether this is a complete code. It says nothing about whether a record exists. */
 export function looksLikeCode(raw: string): boolean {
@@ -843,6 +877,17 @@ export async function putAssessment(a: Assessment): Promise<string> {
    * back. Two writes started close together would otherwise each mint an id and the one record
    * would become two documents.
    */
+  /**
+   * A record whose name nobody can type gets a new one, on the next save.
+   *
+   * The old document stays where it is: deleting it is an admin's right and this page does not
+   * have it. It is unreachable, which is what it already was. What changes is that the
+   * assessment somebody is working on acquires a name they can be given.
+   */
+  if (needsANewCode(a.id)) {
+    a.meta = { ...a.meta, previousId: a.id };
+    a.id = newDocId();
+  }
   a.id = a.id ?? newDocId();
   a.ownerEmail = owner || undefined;
   const id = a.id;
