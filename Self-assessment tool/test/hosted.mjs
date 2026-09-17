@@ -221,8 +221,45 @@ console.log('\nThe published build, signed in\n');
   ok('there is no Clear on the toolbar', !labels.includes('Clear'), labels.slice(0, 12).join(','));
   ok('the export is on a toolbar above the table', !!doc.querySelector('.res-toolbar .btn-icon'));
   ok('and it carries an icon', !!doc.querySelector('.res-toolbar .btn-icon svg'));
-  ok('closing one submission is a per-row action',
-     [...doc.querySelectorAll('.row-acts .row-menu .menu-item')].some((b) => /Close this one/.test(b.textContent)));
+  /**
+   * And it says what it does, which is not deleting.
+   *
+   * It said "Close this one", in red, on a list of submissions read out of the shared pool.
+   * Somebody came here to remove an assessment, pressed it, watched the row go and had every
+   * reason to believe the assessment had gone with it. Nothing left the store, because nothing
+   * on this page can make it.
+   */
+  const rowActs = [...doc.querySelectorAll('.row-acts .row-menu .menu-item')];
+  ok('taking one submission off the list is a per-row action',
+     rowActs.some((b) => /Take it off this list/.test(b.textContent)),
+     rowActs.map((b) => b.textContent).join(' | '));
+  ok('and it is not offered as a deletion',
+     !rowActs.some((b) => /^Close this one$/.test(b.textContent.trim())),
+     rowActs.map((b) => b.textContent).join(' | '));
+  ok('and it is not drawn as the destroying red one, because it destroys nothing in the store',
+     !rowActs.some((b) => /Take it off this list/.test(b.textContent) && b.classList.contains('menu-danger')));
+
+  /**
+   * It asks, even with nothing audited on the row.
+   *
+   * With no audit it used to drop the row and say nothing at all, which is how somebody came
+   * to believe an assessment had been deleted.
+   */
+  {
+    const before = doc.querySelectorAll('.triage tbody tr').length;
+    rowActs.find((b) => /Take it off this list/.test(b.textContent)).click();
+    await new Promise((r) => setTimeout(r, 40));
+    const dlg = doc.querySelector('dialog[open]');
+    ok('taking a row off the list asks first', !!dlg, String(before));
+    ok('and says the record stays in the shared store',
+       /stays in the shared store/.test(dlg?.textContent ?? ''), dlg?.textContent?.slice(0, 140));
+    ok('and says where removing it for everybody lives',
+       /portfolio view/.test(dlg?.textContent ?? ''), dlg?.textContent?.slice(0, 200));
+    ok('and the row is still there until it is answered',
+       doc.querySelectorAll('.triage tbody tr').length === before, String(before));
+    [...dlg.querySelectorAll('.cf-actions button')].find((b) => /Keep it open/.test(b.textContent))?.click();
+    await new Promise((r) => setTimeout(r, 20));
+  }
   /**
    * And nothing on this toolbar closes everything at once.
    *
