@@ -6,8 +6,17 @@
 import { build } from 'esbuild';
 import { readFile, writeFile, mkdir } from 'node:fs/promises';
 
-const OUT_DIR = 'dist';
-const OUT_FILE = `${OUT_DIR}/index.html`;
+/**
+ * Where the built page lands.
+ *
+ * One variable and not one constant, because the tool is published as two pages now: the
+ * submitter's at the site root and the assessor's a folder down. The default is what every
+ * test reads, so nothing has to pass this to get the ordinary build.
+ *
+ *   EARB_OUT=dist/assessor.html EARB_ACCESS=accounts npm run build
+ */
+const OUT_FILE = (process.env.EARB_OUT ?? '').trim() || 'dist/index.html';
+const OUT_DIR = OUT_FILE.includes('/') ? OUT_FILE.slice(0, OUT_FILE.lastIndexOf('/')) : '.';
 const watch = process.argv.includes('--watch');
 
 /**

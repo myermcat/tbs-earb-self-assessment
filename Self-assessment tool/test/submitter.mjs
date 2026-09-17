@@ -76,6 +76,40 @@ console.log('\nThe submitter, with no account\n');
 }
 
 /* --------------------------------------------------------------------------------------- */
+// The two sides are two published pages now, so the submitter's home page has no door to the
+// other one. It had a testing door, which was right while there was one page and one build.
+{
+  const dom = await open();
+  const { document } = dom.window;
+  ok('the home page has no way across to the assessor view',
+     !document.querySelector('.crossover'),
+     document.querySelector('.crossover')?.textContent ?? '');
+}
+
+/* --------------------------------------------------------------------------------------- */
+/**
+ * The other half of the split, which is a build input and not a screen.
+ *
+ * publish-preview.sh puts the two pages at two paths, and the path is the only thing telling
+ * them apart on disk. A build that ignored EARB_OUT would overwrite the submitter's page with
+ * the assessor's and publish one product twice, which no screen test could see.
+ */
+{
+  const { execFileSync } = await import('node:child_process');
+  const { mkdtempSync, existsSync, readFileSync } = await import('node:fs');
+  const { tmpdir } = await import('node:os');
+  const { join } = await import('node:path');
+  const out = join(mkdtempSync(join(tmpdir(), 'earb-')), 'deep', 'assessor.html');
+  execFileSync(process.execPath, ['build.mjs'], {
+    env: { ...process.env, EARB_OUT: out, EARB_ACCESS: 'accounts', EARB_FIREBASE: '' },
+    stdio: 'ignore',
+  });
+  ok('the build writes where it is told, making the folder if it has to', existsSync(out), out);
+  ok('and that page is the one with accounts on it',
+     existsSync(out) && /Continue with Google/.test(readFileSync(out, 'utf8')));
+}
+
+/* --------------------------------------------------------------------------------------- */
 // A session left behind by an earlier build, which reads back perfectly well.
 {
   asked = [];

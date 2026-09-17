@@ -1,4 +1,10 @@
 node_modules/
+
+# Built output. It is generated from src/ by build.mjs, and publish-preview.sh builds it
+# fresh before it publishes, so a copy in the history buys nothing. Tracked, it conflicted on
+# every branch that had also been built, and a conflict in a generated file says nothing about
+# whether the code disagrees: the resolution was always one more build.
+dist/
 .DS_Store
 test/.smoke.mjs
 test/.measure.mjs
