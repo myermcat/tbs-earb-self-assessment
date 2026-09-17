@@ -28,7 +28,7 @@
   --accent-soft: #eaf0fb;
   --accent-line: #b9caea;
 
-  /* Dan's eleven score colours, as an even ramp */
+  /* The question set's eleven score colours, as an even ramp */
   --s0:  #1b1d21;  --s1:  #7f1d1d;  --s2:  #c0392b;  --s3:  #d97528;
   --s4:  #d9a520;  --s5:  #c9b528;  --s6:  #8faa23;  --s7:  #3f8f4a;
   --s8:  #1f6b3c;  --s9:  #2a6fbd;  --s10: #6c4bb0;
@@ -886,7 +886,7 @@ details[open] > .section-summary::before { transform: rotate(90deg); }
 tr.red-flag td { background: var(--bad-bg); }
 tr.red-flag td:first-child { box-shadow: inset 2px 0 0 var(--bad); }
 
-/* the 0-10 selector, in Dan's colours */
+/* the 0-10 selector, in the question set's own colours */
 .score-line { display: flex; gap: .5rem; flex-wrap: wrap; align-items: center; margin: .5rem 0 .35rem; }
 .score-row { display: flex; gap: .2rem; flex-wrap: wrap; align-items: center; }
 .score-btn[aria-disabled='true'] { opacity: .3; }
@@ -1084,6 +1084,10 @@ code.mark-subject { display: block; margin: .25rem 0; }
 /* A badge that cannot wrap is a column that cannot shrink. */
 .triage .badge { white-space: normal; margin-left: 0; }
 .triage td { overflow-wrap: anywhere; }
+/* A qualifier under a column heading, for a word that would otherwise read as the tool's own
+   finding: State is what the department said about itself. */
+.triage th .th-sub { display: block; font-weight: 500; text-transform: none; letter-spacing: 0;
+  font-size: .68rem; color: var(--ink-3); }
 /* A heading may wrap onto two lines. A button in a cell may not: "Open" broke in half. */
 .triage th { white-space: normal; line-height: 1.15; vertical-align: bottom; }
 .triage .row-acts { display: flex; gap: .3rem; align-items: center; justify-content: flex-end; }
@@ -1699,3 +1703,53 @@ dialog.confirm.shake { animation: cf-shake .34s cubic-bezier(.36, .07, .19, .97)
   .hub-card:hover { transform: none; }
 }
 @media (max-width: 520px) { .hub-card { padding: 1.3rem 1.2rem 1.15rem; } .hub-ghost { font-size: 4rem; } }
+
+/* ---------- a category, opened -------------------------------------------------------------
+   The bar is the summary and the questions behind it are the detail. A number with nothing
+   behind it is a number somebody has to take on trust, and the first thing anybody does with a
+   low category score is ask which questions made it low. */
+.cat-open { border-bottom: 1px solid var(--line); }
+.cat-open:last-of-type { border-bottom: none; }
+.cat-open > summary { cursor: pointer; list-style: none; padding: .1rem 0; border-radius: 6px; }
+.cat-open > summary::-webkit-details-marker { display: none; }
+.cat-open > summary::after {
+  content: "\203A"; float: right; margin-left: .5rem; color: var(--ink-3);
+  transition: transform .18s; display: inline-block;
+}
+.cat-open[open] > summary::after { transform: rotate(90deg); }
+.cat-open > summary:hover .bar-label { color: var(--accent); }
+.cat-open > summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.cat-list { display: flex; flex-direction: column; gap: .2rem; margin: .5rem 0 1rem; }
+.cat-q {
+  display: grid; grid-template-columns: 2.3rem 1fr 1rem; gap: .7rem; align-items: baseline;
+  width: 100%; text-align: left; padding: .5rem .6rem;
+  background: none; border: none; border-radius: 7px;
+  font: inherit; font-size: .88rem; color: var(--ink-2); cursor: pointer;
+}
+.cat-q:hover { background: var(--surface-2); color: var(--ink); }
+.cat-q:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.cat-q-score {
+  font-family: var(--mono); font-variant-numeric: tabular-nums; font-weight: 600;
+  font-size: .82rem; text-align: right;
+}
+.cat-q-score.dim { color: var(--ink-3); font-weight: 400; font-size: .72rem; }
+.cat-q-text { min-width: 0; }
+.cat-q-where { display: block; font-size: .74rem; color: var(--ink-3); margin-top: .1rem; }
+.cat-q-go { color: var(--ink-3); transition: transform .16s; }
+.cat-q:hover .cat-q-go { transform: translateX(3px); color: var(--accent); }
+
+/* Where the eye should land after a jump. Twenty near-identical question cards do not tell
+   anybody which one they were brought to, and they clicked a specific question by name. */
+.q-block.brought-here, [data-qid].brought-here {
+  animation: brought-here 2.4s ease-out both;
+  border-radius: 10px;
+}
+@keyframes brought-here {
+  0%, 55% { box-shadow: 0 0 0 3px var(--accent-line), 0 0 0 8px var(--accent-soft); }
+  100% { box-shadow: 0 0 0 3px transparent, 0 0 0 8px transparent; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .cat-open > summary::after, .cat-q-go { transition: none; }
+  .q-block.brought-here, [data-qid].brought-here { animation: none; box-shadow: 0 0 0 3px var(--accent-line); }
+}

@@ -370,7 +370,14 @@ function paintList(rubric: Rubric, root: HTMLElement) {
   const table = el('table', { class: 'triage' }, [
     el('colgroup', {}, widths.map((w) => el('col', { style: `width:${w}` }))),
     el('thead', {}, [el('tr', {}, [
-      el('th', {}, ['Initiative']), el('th', {}, ['State']), el('th', {}, ['Department']), el('th', {}, ['Marking']),
+      el('th', {}, ['Initiative']),
+      // The department says this, not us and not an assessor. A column reading "Ready to
+      // review" with nothing saying who decided it invites somebody to read it as a status the
+      // tool worked out.
+      el('th', { title: 'The submitter says this about their own assessment' }, [
+        'State', el('span', { class: 'th-sub' }, ['self-marked']),
+      ]),
+      el('th', {}, ['Department']), el('th', {}, ['Marking']),
       el('th', {}, ['Code and set']),
       el('th', {}, ['Stage']), el('th', {}, ['Score']), el('th', {}, ['Routing']),
       el('th', {}, ['Must ask']), el('th', {}, ['Evidence']), el('th', {}, ['Complete']), el('th', {}, ['']),
@@ -456,7 +463,9 @@ function paintList(rubric: Rubric, root: HTMLElement) {
   root.appendChild(el('section', { class: 'card' }, [
     el('h2', {}, [`${loaded.length} submission${loaded.length === 1 ? '' : 's'}, weakest first`]),
     el('p', { class: 'muted small' }, [
-      'Sorted so the ones that need you are at the top. The middle of the list is where you spend the least time.',
+      'Sorted so the ones that need you are at the top. The middle of the list is where you spend the least time. ',
+      el('b', {}, ['State is self-marked: ']),
+      'the department says when its own assessment is ready, and a draft is somebody still working.',
     ]),
     /**
      * The toolbar. It goes above the table, where it reads as belonging to it.

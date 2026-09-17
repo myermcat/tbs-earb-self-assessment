@@ -978,6 +978,52 @@ ok('routing is stated as a suggestion', view().includes('does not decide it'));
      String(topicPart?.querySelectorAll('.bar-row').length));
   ok('the topic block says the numbers do not add up to the overall',
      topicPart.textContent.includes('do not add up to the overall'));
+
+  /**
+   * Every category opens onto its own questions, and every question is a control.
+   *
+   * A number with nothing behind it has to be taken on trust, and the first thing anybody does
+   * with a low category score is ask which questions made it low. Before this they had twenty
+   * pages to hunt through.
+   */
+  const cats = [...topicPart.querySelectorAll('.cat-open')];
+  ok('every category opens', cats.length === topicPart.querySelectorAll('.bar-row').length,
+     `${cats.length} openable of ${topicPart.querySelectorAll('.bar-row').length}`);
+  ok('and closed is how they start, so the page still reads as a summary',
+     cats.every((c) => !c.hasAttribute('open')));
+
+  const sec = cats.find((c) => /Security/.test(c.querySelector('.bar-label')?.textContent ?? ''));
+  const qs = [...sec.querySelectorAll('.cat-q')];
+  ok('security opens onto its own questions', qs.length === 25, String(qs.length));
+  ok('each one is a control and not a line of text', qs.every((b) => b.tagName === 'BUTTON'));
+  ok('each says what it scored and which domain it lives in',
+     qs.every((b) => b.querySelector('.cat-q-score') && b.querySelector('.cat-q-where')?.textContent?.trim()),
+     qs[0]?.textContent?.slice(0, 80));
+  ok('and the weakest is at the top, because that is the one to act on',
+     (() => {
+       const nums = qs.map((b) => Number(b.querySelector('.cat-q-score')?.textContent))
+         .filter((n) => Number.isFinite(n));
+       return nums.every((n, i) => i === 0 || nums[i - 1] <= n);
+     })(), qs.map((b) => b.querySelector('.cat-q-score')?.textContent).join(','));
+
+  /**
+   * And clicking one takes you to it. Editing in place was the alternative and was rejected: a
+   * score needs its anchors, its stage expectation, its help text, its evidence rows and its
+   * justification box, which is most of a question card, and two places to maintain the hardest
+   * UI in the tool is two places for them to drift.
+   */
+  const first = qs[0];
+  const wanted = first.querySelector('.cat-q-text')?.textContent ?? '';
+  first.click();
+  ok('clicking a question leaves the results page', !q('.res-sub'));
+  const landed = q('[data-qid].brought-here');
+  ok('and lands on that question, marked so the eye finds it', !!landed,
+     q('#app')?.textContent?.slice(0, 90));
+  ok('and it is the question that was clicked',
+     wanted.startsWith((landed?.textContent ?? '').slice(0, 40).trim().slice(0, 25))
+       || (landed?.textContent ?? '').includes(wanted.slice(0, 40)),
+     (landed?.textContent ?? '').slice(0, 80));
+  byText('.tab', 'My results').click();
 }
 
 /**

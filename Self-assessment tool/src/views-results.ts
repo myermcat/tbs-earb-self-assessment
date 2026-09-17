@@ -1,7 +1,7 @@
 import type { Assessment, Rubric } from './types';
 import { el, clear, tone, bar } from './dom';
 import { codeChip } from './code-chip';
-import { nextAnchor, score, strongest, weakest, type Result } from './scoring';
+import { allQuestionScores, nextAnchor, score, strongest, weakest, type Result } from './scoring';
 import { flags } from './flags';
 import { autosave } from './storage';
 import { markingProblems } from './marking';
@@ -17,7 +17,13 @@ import { confirmStep } from './confirm';
  * What the submitter sees. Deliberately ordered: the number, then the routing,
  * then where they are weak and what to do about it. Detail is available but folded away.
  */
-export function renderResults(root: HTMLElement, rubric: Rubric, a: Assessment, onBack: () => void): void {
+export function renderResults(
+  root: HTMLElement,
+  rubric: Rubric,
+  a: Assessment,
+  onBack: () => void,
+  onOpenQuestion: (questionId: string) => void = () => {},
+): void {
   clear(root);
   addSnapHint(root);
   const r = score(rubric, a);
@@ -169,20 +175,58 @@ export function renderResults(root: HTMLElement, rubric: Rubric, a: Assessment, 
         rubric.topicsNote ? el('span', { class: 'badge badge-warn' }, ['provisional grouping']) : null,
       ]),
     ]);
-    for (const t of withTopics) {
-      tbox.appendChild(el('div', { class: 'bar-row' }, [
-        el('div', { class: 'bar-label' }, [
-          t.topic.label,
-          el('span', { class: 'muted small' }, [` ${t.answered} of ${t.total} answered`]),
-          t.redFlags.length
-            ? el('span', { class: 'badge badge-bad' }, [`${t.redFlags.length} answered no`])
-            : null,
+    /**
+     * Each bar opens onto its own questions.
+     *
+     * A number with nothing behind it is a number somebody has to take on trust, and the first
+     * thing anybody does with a low category score is ask which questions made it low. Before
+     * this they had to hunt through twenty pages for them. It opens in place, so nobody loses
+     * the page they were reading, and each question is a control that takes you to it.
+     */
+    const domainOf = new Map<string, string>();
+    for (const d of rubric.domains) {
+      for (const sec of d.sections) for (const q of sec.questions) domainOf.set(q.id, d.label);
+    }
+
+    for (const cat of withTopics) {
+      const mine = allQuestionScores(r)
+        .filter((qs) => (qs.question.topics ?? []).includes(cat.topic.id))
+        .sort((x, y) => (x.answered ? (x.raw as number) : 99) - (y.answered ? (y.raw as number) : 99));
+
+      const rows = el('div', { class: 'cat-list' }, mine.map((qs) => {
+        const ans = a.answers[qs.question.id];
+        const said = qs.answered ? (qs.raw as number).toFixed(0)
+          : ans?.na ? t('n/a', 's.o.') : t('not yet', 'pas encore');
+        return el('button', {
+          class: 'cat-q',
+          onclick: () => onOpenQuestion(qs.question.id),
+        }, [
+          el('span', { class: `cat-q-score ${qs.answered ? tone(qs.raw as number) : 'dim'}` }, [said]),
+          el('span', { class: 'cat-q-text' }, [
+            qs.question.text,
+            el('span', { class: 'cat-q-where' }, [domainOf.get(qs.question.id) ?? '']),
+          ]),
+          el('span', { class: 'cat-q-go', 'aria-hidden': true }, ['\u2192']),
+        ]);
+      }));
+
+      const open = el('details', { class: 'cat-open' }, [
+        el('summary', { class: 'bar-row' }, [
+          el('div', { class: 'bar-label' }, [
+            cat.topic.label,
+            el('span', { class: 'muted small' }, [` ${cat.answered} of ${cat.total} answered`]),
+            cat.redFlags.length
+              ? el('span', { class: 'badge badge-bad' }, [`${cat.redFlags.length} answered no`])
+              : null,
+          ]),
+          el('div', { class: 'bar-track' }, [
+            el('div', { class: `bar-fill ${bar(cat.score)}`, style: `width:${((cat.score ?? 0) / 10) * 100}%` }),
+          ]),
+          el('div', { class: `bar-num ${tone(cat.score)}` }, [cat.score === null ? '--' : cat.score.toFixed(1)]),
         ]),
-        el('div', { class: 'bar-track' }, [
-          el('div', { class: `bar-fill ${bar(t.score)}`, style: `width:${((t.score ?? 0) / 10) * 100}%` }),
-        ]),
-        el('div', { class: `bar-num ${tone(t.score)}` }, [t.score === null ? '--' : t.score.toFixed(1)]),
-      ]));
+        rows,
+      ]);
+      tbox.appendChild(open);
     }
     /**
      * A category held up by two or three questions is the most useful thing on this block.
