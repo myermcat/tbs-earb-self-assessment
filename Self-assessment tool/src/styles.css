@@ -1159,6 +1159,14 @@ input.code-box:focus { outline: 2px solid var(--accent); outline-offset: 1px; bo
   padding: .35rem .6rem; border: 1px solid var(--line-2); border-radius: var(--radius-sm);
   background: var(--surface-2); color: var(--ink); cursor: pointer; }
 .code-chip-btn:hover { border-color: var(--accent-line); color: var(--accent); }
+/* In a window, the code IS the window. Somebody is being told it is the only way back to
+   their work, and the control that takes a copy of it was the quietest thing on screen. */
+.cf-extra .code-chip-btn { background: var(--accent); border-color: var(--accent);
+  color: #fff; padding: .6rem .9rem; font-weight: 600; }
+.cf-extra .code-chip-value { font-size: 1.15rem; }
+.cf-extra .code-chip-ico, .cf-extra .code-chip-btn:hover .code-chip-ico { color: #fff; }
+.cf-extra .code-chip-btn:hover { background: var(--accent); filter: brightness(1.12);
+  color: #fff; }
 .code-chip-value { font-family: var(--mono); font-size: .95rem; letter-spacing: .06em; }
 .code-chip-ico { display: inline-flex; color: var(--ink-3); }
 .code-chip-btn:hover .code-chip-ico { color: var(--accent); }
