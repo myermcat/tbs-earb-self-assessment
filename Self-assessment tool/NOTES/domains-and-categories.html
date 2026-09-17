@@ -133,6 +133,61 @@
   }
   .thesis b { font-weight: 700; }
 
+
+  /* ---- the analogy, raised off the page, because it is the thing to remember ----
+     Asked for in those words: make it the first thing, boxed, and make it scream. So it sits
+     on a tinted panel with a real shadow and a lifted edge, it comes before the definitions
+     rather than after them, and the drawing beside it is three balls and four boxes with one
+     ball landed. Nothing else on the page is raised, so this is the only thing that is. */
+  .balls {
+    display: grid;
+    grid-template-columns: minmax(0, 15rem) 1fr;
+    gap: 1.6rem 2rem;
+    align-items: center;
+    background: linear-gradient(180deg, var(--surface), var(--band));
+    border: 1px solid var(--line-2);
+    border-radius: 16px;
+    padding: 2rem 1.9rem;
+    box-shadow: 0 1px 0 rgba(255,255,255,.55) inset, 0 10px 28px -14px rgba(22,32,43,.45), 0 2px 6px -2px rgba(22,32,43,.2);
+  }
+  :root[data-theme="dark"] .balls, :root:not([data-theme="light"]) .balls {
+    box-shadow: 0 1px 0 rgba(255,255,255,.06) inset, 0 12px 30px -16px #000, 0 2px 6px -2px rgba(0,0,0,.5);
+  }
+  .balls-art { display: flex; flex-direction: column; gap: .9rem; }
+  .ball-row { display: flex; gap: .7rem; justify-content: center; }
+  .bb { width: 1.9rem; height: 1.9rem; border-radius: 999px; box-shadow: 0 3px 7px -3px rgba(22,32,43,.6); }
+  .bb-a { background: var(--data); }
+  .bb-b { background: var(--application); width: 1.35rem; height: 1.35rem; align-self: flex-end; }
+  .bb-c { background: var(--technology); width: 1.6rem; height: 1.6rem; align-self: flex-end; }
+  .bx-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: .45rem; }
+  .bx {
+    height: 3.1rem; border-radius: 7px;
+    border: 1.5px dashed var(--line-2);
+    background: color-mix(in srgb, var(--ground) 70%, transparent);
+  }
+  .bx-lit {
+    border: 2px solid var(--data);
+    background: color-mix(in srgb, var(--data) 12%, transparent);
+    position: relative;
+  }
+  .bx-lit::after {
+    content: ""; position: absolute; left: 50%; top: 50%;
+    width: 1.35rem; height: 1.35rem; margin: -.68rem 0 0 -.68rem;
+    border-radius: 999px; background: var(--data);
+    box-shadow: 0 3px 7px -3px rgba(22,32,43,.6);
+  }
+  .balls-say { display: flex; flex-direction: column; gap: .7rem; }
+  .balls-lead {
+    margin: 0; max-width: 34rem;
+    font-family: var(--serif);
+    font-size: clamp(1.08rem, 2.2vw, 1.3rem);
+    line-height: 1.42;
+  }
+  .balls-lead b { font-weight: 700; }
+  @media (max-width: 640px) {
+    .balls { grid-template-columns: 1fr; padding: 1.5rem 1.25rem; }
+  }
+
   /* ---- the diagram: one question, one box, many attributes ---- */
   .fig {
     background: var(--surface);
@@ -187,7 +242,7 @@
     color: var(--ink-2);
     background: var(--band);
   }
-  .chip.on { border-color: currentColor; background: transparent; }
+  .chip.on { border-color: var(--data); color: var(--data); background: color-mix(in srgb, var(--data) 10%, transparent); font-weight: 700; }
   .fig-note { font-size: .84rem; color: var(--muted); margin: 0; max-width: none; }
   .fig-q {
     font-family: var(--serif);
@@ -299,12 +354,28 @@
   <header>
     <p class="eyebrow">GC EA self-assessment &middot; how a question is filed</p>
     <h1>Domains and categories</h1>
-    <p class="standfirst">Two ways of grouping the same 176 questions. One builds the score. The other answers the questions the score cannot.</p>
+    <p class="standfirst">Two ways of grouping the same questions. One builds the score. The other answers what the score cannot.</p>
   </header>
+
+  <section class="balls">
+    <div class="balls-art" aria-hidden="true">
+      <div class="ball-row">
+        <span class="bb bb-a"></span><span class="bb bb-b"></span><span class="bb bb-c"></span>
+      </div>
+      <div class="bx-row">
+        <span class="bx"></span><span class="bx"></span><span class="bx bx-lit"></span><span class="bx"></span>
+      </div>
+    </div>
+    <div class="balls-say">
+      <p class="balls-lead">A question is a ball. You have four boxes, and you throw each ball into one of them.</p>
+      <p class="balls-lead">A ball can only be in one box. That box is its <b>domain</b>.</p>
+      <p class="balls-lead">But the same ball can be small <em>and</em> green <em>and</em> plastic. Those are its <b>categories</b>, and it can have as many as are true of it.</p>
+    </div>
+  </section>
 
   <section>
     <p class="thesis">A <b>domain</b> is where a question lives. A <b>category</b> is what a question is about.</p>
-    <p style="margin-top:1.2rem">Every question has exactly one domain and any number of categories. That is the whole distinction, and everything below follows from it.</p>
+    <p style="margin-top:1.2rem">Every question has exactly one domain and any number of categories. Everything below follows from that.</p>
   </section>
 
   <hr>
@@ -342,14 +413,14 @@
     <div>
       <h3>And it carries as many labels as apply</h3>
       <div class="attrs">
-        <span class="chip on b-data">Data</span>
-        <span class="chip on b-business" style="color:var(--flag)">Security</span>
-        <span class="chip on" style="color:var(--flag)">Privacy</span>
+        <span class="chip on">Data</span>
+        <span class="chip on">Security</span>
+        <span class="chip on">Privacy</span>
         <span class="chip">Financial</span>
         <span class="chip">Accessibility</span>
         <span class="chip">Official Languages</span>
       </div>
-      <p class="fig-note" style="margin-top:.7rem">Three of the nine apply to this one. Its own domain is always one of them and nobody types it.</p>
+      <p class="fig-note" style="margin-top:.7rem">Three apply to this one. The ones it does not carry are greyed. Its own domain, Data, is always one of them and nobody types it.</p>
     </div>
   </section>
 
@@ -382,7 +453,7 @@
 
   <section>
     <h2>The nine categories</h2>
-    <p>Named on 8 September. The first four are the domains themselves, filled in automatically by the sheet a question sits on. The other five are the ones that have to be answered.</p>
+    <p>Named on 8 September, and the first four are the four domains over again. A question carries its own domain as a label as well, which is what lets the tool cut by any of the nine the same way. Nobody fills those four in: the sheet a question sits on already says which. <strong>The five below them are the ones somebody has to answer</strong>, and they are the reason categories exist at all.</p>
     <div class="scroll">
       <table>
         <thead>
@@ -481,12 +552,12 @@
         </table>
       </div>
     </div>
-    <p style="margin-top:.9rem">An empty row is the normal case and means &ldquo;this one is only about its own domain&rdquo;. That is 130 of the 176. The ticks are dropdowns, so a category cannot be mistyped, and a name the tool does not recognise refuses the whole import and says which question it was in.</p>
+    <p style="margin-top:.9rem">An empty cell is the normal case and means &ldquo;this one is only about its own domain&rdquo;, which is most of them. The ticks are dropdowns, so a category cannot be mistyped, and a name the tool does not recognise refuses the whole import and says which question it was in.</p>
   </section>
 
   <section class="warn">
-    <h3>Never duplicate a question onto a second tab</h3>
-    <p style="margin:0">A question that appears on two sheets is counted twice in the overall score, and a department&rsquo;s number moves because of how we filed a question. One question, one tab, as many category ticks as apply.</p>
+    <h3>Never put a question in two domains</h3>
+    <p style="margin:0">A question copied into a second domain is counted twice in the overall score, and a department&rsquo;s number moves because of how we filed a question. One question, one domain, as many categories as apply.</p>
   </section>
 
   <hr>

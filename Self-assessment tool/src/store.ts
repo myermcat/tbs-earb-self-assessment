@@ -47,6 +47,7 @@ import { validate } from './rubric';
 import BUILTIN from '../rubric/rubric.v1-dan.json';
 import { currentUser, deleteAssessment, getAssessment, isConfigured, listAssessments,
   putAssessment, storeHost } from './firebase';
+import { hasAccounts } from './who';
 
 /**
  * The store, and how to point at one.
@@ -122,12 +123,18 @@ function recordOf(a: Assessment, source: StoreSource, id: string): StoredRecord 
  * they own is fetched by the id their own copy carries.
  */
 async function firestoreRecords(): Promise<StoredRecord[] | null> {
-  if (!currentUser()) return null;
-  try {
-    const rows = await listAssessments();
-    return rows.map((a, i) => recordOf(a, 'hosted', a.id ?? `hosted-${i}`));
-  } catch {
-    /* refused, or offline. A submitter's own record is the next thing to try. */
+  // With accounts, nobody signed in can reach anything and the local sources answer. On the
+  // code build the second request below stands on its own, and returning null here is what
+  // left `warnGoneFromStore` comparing the draft against itself: a submission an admin had
+  // deleted went on looking online to the person who sent it.
+  if (hasAccounts() && !currentUser()) return null;
+  if (currentUser()) {
+    try {
+      const rows = await listAssessments();
+      return rows.map((a, i) => recordOf(a, 'hosted', a.id ?? `hosted-${i}`));
+    } catch {
+      /* refused, or offline. A submitter's own record is the next thing to try. */
+    }
   }
   const id = loadDraft()?.id;
   if (!id) return null;
@@ -238,9 +245,13 @@ function notSaved(err: unknown): string {
  */
 export async function putRecord(a: Assessment): Promise<{ ok: true } | { ok: false; problem: string }> {
   if (isConfigured()) {
-    if (!currentUser()) {
+    if (hasAccounts() && !currentUser()) {
       // Returning quietly here is what made the submit button look like it worked. The badge
       // has a state for this, so use it: the person pressed something and deserves an answer.
+      //
+      // On the code build there is nothing to sign in to. The rules grant create and update on
+      // the document's name, so refusing here would be this page turning down a write Google
+      // would have taken, which is what made an access code mean nothing on its own.
       const problem = 'Sign in before saving to the shared store.';
       beginWrite();
       writeFailed(problem);

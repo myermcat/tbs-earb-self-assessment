@@ -14,6 +14,7 @@ import { listRecords, putRecord, deleteRecord, endpointHost, isHosted, onlineIsC
   saveOnlineNow } from '../src/store';
 import { currentUser, roleOf } from '../src/firebase';
 import { autosave, saveStatus } from '../src/storage';
+import { mode } from '../src/who';
 import type { Assessment } from '../src/types';
 
 const mem = new Map<string, string>();
@@ -52,10 +53,35 @@ const a: Assessment = {
   meta: { createdAt: 'x', updatedAt: 'x', appVersion: 'test' },
 };
 
-// Nobody signed in.
-const first = await putRecord(a);
-ok('a write with nobody signed in is refused', first.ok === false && first.problem.startsWith('Sign in'), JSON.stringify(first));
-ok('and nothing went to the network', sent.length === 0, String(sent.length));
+/**
+ * Nobody signed in, which is where the two builds part company.
+ *
+ * With accounts the browser refuses before the request goes. That guard is there because a
+ * submit button that returned quietly looked to the person like it had worked. On codes the
+ * rules grant create and update on the document's name, so the same refusal would be the
+ * browser turning down a write the store would have taken, and an access code would mean
+ * nothing to anybody without an account.
+ */
+if (mode() === 'accounts') {
+  const first = await putRecord(a);
+  ok('a write with nobody signed in is refused', first.ok === false && first.problem.startsWith('Sign in'), JSON.stringify(first));
+  ok('and nothing went to the network', sent.length === 0, String(sent.length));
+} else {
+  reply = { status: 200, body: { name: 'projects/p/databases/(default)/documents/assessments/ABC', fields: {} } };
+  const first = await putRecord(a);
+  ok('a write with nobody signed in is sent', first.ok === true, JSON.stringify(first));
+  ok('and one request went out', sent.length === 1, String(sent.length));
+  ok('carrying no bearer token, because there is nobody to name',
+     (sent[0].init.headers as Record<string, string>).authorization === undefined,
+     JSON.stringify(sent[0].init.headers));
+  const anon = JSON.parse(String(sent[0].init.body)) as { fields: Record<string, unknown> };
+  ok('and no ownerEmail on the record', anon.fields.ownerEmail === undefined, JSON.stringify(anon.fields.ownerEmail));
+  // Everything below this point is written for a signed-in browser. The id minted by the write
+  // above would make its first write look like a second one.
+  sent.length = 0;
+  a.id = undefined;
+  reply = { status: 200, body: {} };
+}
 
 // Sign somebody in by hand, with an hour left on the token.
 mem.set('gc-arch-assessment:firebase-session', JSON.stringify({

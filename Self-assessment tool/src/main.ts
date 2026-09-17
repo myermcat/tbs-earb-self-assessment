@@ -91,7 +91,10 @@ function bootRoute(): Route {
   // opens that section.
   try {
     if (window.location.hash) return hashToRoute(window.location.hash);
-    if (localStorage.getItem(SIDE_KEY) === 'assess') return { side: 'assess', mode: 'review' };
+    // The remembered side is only a door on the build that has one. On codes the assessor
+    // screens are not here, and sending somebody to a sign-in they cannot pass is worse than
+    // opening the questionnaire.
+    if (hasAccounts() && localStorage.getItem(SIDE_KEY) === 'assess') return { side: 'assess', mode: 'review' };
   } catch {
     /* private window, or storage disabled. The submitter side is the right default. */
   }
@@ -194,6 +197,15 @@ const GEAR =
  * side by side, where the next person can see they belong together.
  */
 function adoptSignedIn(): void {
+  /**
+   * A build that runs on codes ignores a session, even a real one.
+   *
+   * A Firebase session left in this browser by an earlier build still reads back, and the
+   * header hides the account chip without stopping any of this: the owner's address went onto
+   * the record, the assessor name was set from it, and a roles request went out. Two people on
+   * the same page were using two different tools.
+   */
+  if (!hasAccounts()) return;
   const me = currentUser();
   if (!me || assessorName.trim()) return;
   assessorName = me.email;
@@ -351,19 +363,11 @@ function askForCode(): void {
       autosave(assessment);
       go('submit');
     } catch (err) {
-      /**
-       * The refusal that is ours and not theirs.
-       *
-       * The store still asks for an account before it will read anything, because the rule that
-       * would let a code stand on its own has not been published. Reporting Google's words here
-       * reads as a fault in the code somebody was sent, on a screen that has just told them a
-       * code is enough. So this one case says whose problem it is.
-       */
+      // This branched once on the store asking for an account before it would read anything.
+      // The published rules grant a read on the document's name, so that sentence had become
+      // untrue and the message it replaced was the store's own.
       const why = (err as Error).message;
-      said.textContent = /sign in/i.test(why)
-        ? t('Access codes are built here and the store does not accept them yet: it still asks for an account before it will read anything. That is a change to the store\u2019s rules, and it has not been made.',
-            'Les codes d\u2019accès sont construits ici, mais le dépôt ne les accepte pas encore : il exige toujours un compte avant toute lecture. C\u2019est une modification des règles du dépôt, et elle n\u2019a pas été faite.')
-        : t(`The store would not open it: ${why}`, `Le dépôt n\u2019a pas voulu l\u2019ouvrir : ${why}`);
+      said.textContent = t(`The store would not open it: ${why}`, `Le dépôt n\u2019a pas voulu l\u2019ouvrir : ${why}`);
     }
   };
 
@@ -1417,45 +1421,73 @@ function paneBuild(pane: HTMLElement) {
   })();
 
   /**
-   * How a question is filed, which is the one page here that is for everybody.
+   * The pages that are not this tool, as cards rather than as rows.
    *
-   * It needs no sign-in and it is not a working page: it is the explanation somebody presents
-   * in a meeting, and the people who have to read it are in meetings and not in this tool. So
-   * it sits above the gate that hides the team's own pages.
+   * A setRow is for a setting: a sentence and a control beside it. These are destinations, and
+   * a person looking for one is looking for a place and not for a paragraph. The shape is the
+   * course-hub card, asked for by name: a coloured rail down the left, a mono eyebrow, a large
+   * title, a line of prose, and a mono call to action with an arrow that moves on hover. You
+   * find the one you want without reading anything.
    */
-  pane.appendChild(setRow(
-    'Domains and categories, explained',
-    'What the four domains are, what the nine categories are, why a question belongs to one domain and carries as many categories as apply, and how the arithmetic works. One page, no sign-in, made to be shown to somebody.',
-    el('a', {
-      class: 'ghost',
-      href: 'https://myermcat.github.io/tbs-earb-self-assessment-preview/domains-and-categories.html',
-      target: '_blank', rel: 'noopener',
-    }, ['Open the explanation']),
-  ));
+  const ARROW = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" '
+    + 'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
+    + '<path d="M5 12h13"/><path d="M12 5l7 7-7 7"/></svg>';
 
-  // The requirements and the backlog are the build team's own working pages. They name
-  // colleagues and the state of internal decisions, so they are offered to an admin and to a
-  // build with no project, which is somebody working on the tool itself.
-  if (!firebaseConfigured() || knownRole() === 'admin') {
-  pane.appendChild(setRow(
-    'The requirements specification',
-    'Every requirement, numbered, with its state and whoever owes an answer. Decisions are written here the day they are made, and the open ones are listed at the top.',
-    el('a', {
-      class: 'ghost',
+  const linkCard = (o: {
+    accent: string; ghost: string; eyebrow: string; title: string; body: string;
+    meta: string[]; cta: string; href: string;
+  }) => el('a', {
+    class: 'hub-card', href: o.href, target: '_blank', rel: 'noopener',
+    style: `--card-accent:${o.accent}`,
+  }, [
+    el('span', { class: 'hub-ghost', 'aria-hidden': true }, [o.ghost]),
+    el('span', { class: 'hub-eyebrow' }, [o.eyebrow]),
+    el('h3', {}, [o.title]),
+    el('p', {}, [o.body]),
+    el('span', { class: 'hub-meta' }, o.meta.map((m) => el('span', {}, [m]))),
+    el('span', { class: 'hub-go' }, [o.cta, el('span', { class: 'hub-arrow', html: ARROW, 'aria-hidden': true })]),
+  ]);
+
+  const cards = el('div', { class: 'hub-cards' }, [
+    linkCard({
+      accent: '#3E9E82', ghost: '9',
+      eyebrow: 'For anybody \u00b7 no sign-in',
+      title: 'Domains and categories',
+      body: 'What the four domains are, what the nine categories are, why a question belongs to one domain and carries as many categories as apply, and how the arithmetic works.',
+      meta: ['One page', 'Made to be shown to somebody'],
+      cta: 'Open the explanation',
+      href: 'https://myermcat.github.io/tbs-earb-self-assessment-preview/domains-and-categories.html',
+    }),
+    linkCard({
+      accent: '#4E90C8', ghost: '\u00a7',
+      eyebrow: 'The build team',
+      title: 'Requirements',
+      body: 'Every requirement, numbered, with its state and whoever owes an answer. Decisions are written here the day they are made, and the open ones are listed at the top.',
+      meta: ['Updated on every publish'],
+      cta: 'Open the requirements',
       href: 'https://myermcat.github.io/tbs-earb-self-assessment-preview/requirements.html',
-      target: '_blank', rel: 'noopener',
-    }, ['Open the requirements']),
-  ));
-  pane.appendChild(setRow(
-    'The backlog',
-    'What is done, what is next, and what is waiting on a person. It is the same page the team works from, and it opens in a new tab.',
-    el('a', {
-      class: 'ghost',
+    }),
+    linkCard({
+      accent: '#C08A3E', ghost: '\u2713',
+      eyebrow: 'The build team',
+      title: 'Backlog',
+      body: 'What is done, what is next, and what is waiting on a person. The same page the team works from.',
+      meta: ['Updated on every publish'],
+      cta: 'Open the backlog',
       href: 'https://myermcat.github.io/tbs-earb-self-assessment-preview/backlog.html',
-      target: '_blank', rel: 'noopener',
-    }, ['Open the backlog']),
-  ));
+    }),
+  ]);
+
+  /**
+   * The first card is for everybody. The other two name colleagues and the state of internal
+   * decisions, so they are offered to an admin and to a build with no project, which is
+   * somebody working on the tool itself.
+   */
+  if (firebaseConfigured() && knownRole() !== 'admin') {
+    cards.querySelectorAll('.hub-card').forEach((c, i) => { if (i > 0) c.remove(); });
   }
+  pane.appendChild(el('h2', { class: 'set-sub' }, ['Pages that explain this']));
+  pane.appendChild(cards);
 }
 
 function paneDanger(pane: HTMLElement) {

@@ -10,7 +10,13 @@ import { fileURLToPath } from 'node:url';
 import { join, dirname } from 'node:path';
 
 const here = dirname(fileURLToPath(import.meta.url));
-const out = join(here, '.firestore.mjs');
+
+/**
+ * Which way in this run is testing. The write path is the one place the two builds answer
+ * differently with nobody signed in, so the suite is run twice and the file branches once.
+ */
+const ACCESS = (process.env.EARB_ACCESS ?? 'accounts').trim() || 'accounts';
+const out = join(here, `.firestore.${ACCESS}.mjs`);
 
 await build({
   entryPoints: [join(here, 'firestore.ts')],
@@ -22,6 +28,7 @@ await build({
   logLevel: 'warning',
   define: {
     __EARB_ENDPOINT__: JSON.stringify(''),
+    __EARB_ACCESS__: JSON.stringify(ACCESS),
     __EARB_FIREBASE__: JSON.stringify(JSON.stringify({
       apiKey: 'PLACEHOLDER-NOT-A-KEY',
       projectId: 'placeholder-project',
