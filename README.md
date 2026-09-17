@@ -6,7 +6,6 @@ The tool is two products and two published pages. Neither links to the other, be
 screen may describe the other, so both live here.
 
 | | |
-|---|---|
 | **The submitter's tool** | **https://myermcat.github.io/tbs-earb-self-assessment-preview/** |
 | **The assessor's tool** | **https://myermcat.github.io/tbs-earb-self-assessment-preview/assessor/** |
 
