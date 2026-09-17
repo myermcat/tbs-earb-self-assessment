@@ -645,8 +645,29 @@ export function formatCode(code: string): string {
  * lower case because a phone keyboard did it for them. All of those are the same code.
  */
 export function tidyCode(raw: string): string {
-  return raw.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, CODE_LENGTH);
+  return [...raw.toUpperCase()].filter((c) => ID_ALPHABET.includes(c)).join('').slice(0, CODE_LENGTH);
 }
+
+/**
+ * The characters somebody offered that a code can never contain.
+ *
+ * I, O, 0 and 1 are not in the alphabet, so a code holds none of them and one that arrives is
+ * a misreading: an O read off a screen and typed as a zero, or the other way about. Dropping
+ * them quietly and reporting the field incomplete was the tool's own answer for a while, and
+ * it told somebody with twelve characters typed that they had not finished, which is the
+ * least useful true thing it could have said.
+ *
+ * Case and punctuation are not strays. A pasted code arrives lower case, with dashes, and
+ * sometimes with a space a chat client added, and all of that is the same code.
+ */
+export function strayInCode(raw: string): string[] {
+  const seen = [...raw.toUpperCase()]
+    .filter((c) => /[A-Z0-9]/.test(c) && !ID_ALPHABET.includes(c));
+  return [...new Set(seen)];
+}
+
+/** The characters a code is made of, for a screen that has to say what is allowed. */
+export const CODE_ALPHABET = ID_ALPHABET;
 
 /** Whether this is a complete code. It says nothing about whether a record exists. */
 export function looksLikeCode(raw: string): boolean {

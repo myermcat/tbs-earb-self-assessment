@@ -50,7 +50,7 @@ echo "Testing..."
 echo "Building the submitter's page..."
 ( cd "$HERE/Self-assessment tool" && EARB_ACCESS=code npm run --silent build )
 echo "Building the assessor's page..."
-( cd "$HERE/Self-assessment tool" && EARB_ACCESS=accounts EARB_OUT=dist/assessor.html npm run --silent build )
+( cd "$HERE/Self-assessment tool" && EARB_ACCESS=accounts EARB_SIDE=assess EARB_OUT=dist/assessor.html npm run --silent build )
 ( cd "$HERE/Self-assessment tool" && node tools/build-backlog.mjs >/dev/null )
 ( cd "$HERE/Self-assessment tool" && node tools/build-requirements.mjs >/dev/null )
 
