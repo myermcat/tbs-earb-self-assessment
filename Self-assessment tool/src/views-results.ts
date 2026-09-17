@@ -149,13 +149,23 @@ export function renderResults(root: HTMLElement, rubric: Rubric, a: Assessment, 
   // spread across four numbers that each look fine. These topic scores are that view. They do
   // not add up to the overall, and the page says so, because a question belongs to one domain
   // but can belong to several topics.
-  const withTopics = r.topics.filter((t) => t.total > 0);
+  /**
+   * The four domain names are categories too, and showing them here draws the same four bars
+   * twice: the block directly above is those exact questions, weighted the same way.
+   *
+   * Asked in those words: why do business, data, application and technology get colours in the
+   * categories, are those duplicates of the domains, why are they there? They are there because
+   * every question carries its own domain as a label, which is what makes the roll-up uniform.
+   * That is a fact about the arithmetic and not something a reader of this page needs on it.
+   */
+  const domainIds = new Set(rubric.domains.map((d) => d.id));
+  const withTopics = r.topics.filter((t) => t.total > 0 && !domainIds.has(t.topic.id));
   if (withTopics.length) {
     const tbox = el('div', { class: 'res-sub' }, [
       el('h3', {}, ['Across the domains']),
       el('p', { class: 'muted small' }, [
-        'The same questions, grouped by subject. A question can be about two things at once, ',
-        'so these do not add up to the overall.',
+        'The same answers, cut by subject rather than by domain. A question can be about two ',
+        'things at once, so these do not add up to the overall.',
         rubric.topicsNote ? el('span', { class: 'badge badge-warn' }, ['provisional grouping']) : null,
       ]),
     ]);
@@ -185,8 +195,8 @@ export function renderResults(root: HTMLElement, rubric: Rubric, a: Assessment, 
      * Thin is still worth saying. A score built on two questions moves a long way on one answer,
      * and somebody reading it as though it were built on forty will draw the wrong conclusion.
      */
-    const empty = r.topics.filter((x) => x.total === 0);
-    const thin = r.topics.filter((x) => x.total > 0 && x.total <= 3);
+    const empty = r.topics.filter((x) => x.total === 0 && !domainIds.has(x.topic.id));
+    const thin = r.topics.filter((x) => x.total > 0 && x.total <= 3 && !domainIds.has(x.topic.id));
     if (empty.length) {
       tbox.appendChild(el('p', { class: 'muted small' }, [
         el('b', {}, [`Nothing in this question set asks about ${empty.map((x) => x.topic.label).join(' or ')}. `]),

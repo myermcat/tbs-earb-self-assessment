@@ -118,9 +118,26 @@ ok('the destructive pane is marked as dangerous in the rail itself',
      view().includes('Question set') && view().includes('v0.1.0'));
   ok('and says whether there is a store to write to',
      view().includes('cannot send anything') || view().includes('Writing to'));
+  /**
+   * The pages that are not this tool are cards and not rows. A setting is a sentence with a
+   * control beside it; these are destinations, and the shape is the course-hub card so that
+   * somebody finds the one they want without reading anything.
+   */
+  const cards = [...qa('.hub-cards .hub-card')];
+  ok('the pages that explain this are cards', cards.length === 3, String(cards.length));
+  ok('each one has a rail colour of its own',
+     new Set(cards.map((c) => c.getAttribute('style'))).size === 3);
+  ok('and an eyebrow, a title and a call to action',
+     cards.every((c) => c.querySelector('.hub-eyebrow') && c.querySelector('h3') && c.querySelector('.hub-go')));
+  ok('the explanation is one of them, and needs no sign-in',
+     cards.some((c) => /domains-and-categories\.html$/.test(c.getAttribute('href') ?? '')
+       && /no sign-in/i.test(c.querySelector('.hub-eyebrow')?.textContent ?? '')),
+     cards.map((c) => c.getAttribute('href')).join(' | '));
   ok('and the backlog opens from here',
-     byText('.set-row a', 'Open the backlog')?.getAttribute('href')?.endsWith('/backlog.html'),
-     byText('.set-row a', 'Open the backlog')?.getAttribute('href'));
+     cards.some((c) => (c.getAttribute('href') ?? '').endsWith('/backlog.html')),
+     cards.map((c) => c.getAttribute('href')).join(' | '));
+  ok('every one of them opens in a new tab and cannot reach back',
+     cards.every((c) => c.getAttribute('target') === '_blank' && /noopener/.test(c.getAttribute('rel') ?? '')));
   pane('Question set');
 }
 

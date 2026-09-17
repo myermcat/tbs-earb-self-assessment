@@ -64,12 +64,17 @@ ANSWER_COL = TYPE_COL + 1
 HEADERS = (['#', 'Q#', 'Assessment Question'] + CAT_HEADERS
            + ['Answer type', 'Answer', 'Maturity Label', 'Notes / Evidence'])
 
-# Ten questions out of 176 read as yes or no rather than as a maturity, and Dan named that
-# defect himself. One Answer column, with the right picker on each row: a scale question offers
-# 0 to 10, a yes-or-no question offers Yes and No, and both offer N/A. Two columns would leave
-# an empty cell on every row and make the reader work out which one to look at.
-SCALE_PICK = [str(n) for n in range(11)] + ['N/A']
-YESNO_PICK = ['Yes', 'No', 'N/A']
+# One list, on every row, holding everything an answer can be.
+#
+# The first version gave each row only the picker matching what we thought that question was:
+# 0 to 10 on most, Yes and No on ten. That is backwards. Which questions are binary is a
+# judgement somebody makes while reading them, and the sheet exists so that somebody can make
+# it. A picker that has already decided leaves them nothing to do but agree, and on the next
+# question set there is nobody who knows in advance at all.
+#
+# So the Answer type column is where the judgement goes, and the Answer column takes any of
+# them from any row.
+ANSWER_PICK = [str(n) for n in range(11)] + ['Yes', 'No', 'N/A']
 
 thin = Side(style='thin', color=LINE)
 box = Border(left=thin, right=thin, top=thin, bottom=thin)
@@ -194,7 +199,6 @@ def domain_sheet(d):
     ws.freeze_panes = 'D4'
 
     r = 4
-    scale_rows, yesno_rows = [], []
     for row in d['rows']:
         if row['kind'] == 'section':
             ws.merge_cells(start_row=r, start_column=1, end_row=r, end_column=last)
@@ -224,7 +228,6 @@ def domain_sheet(d):
         kind.font = Font(name='Calibri', size=10, color=HEAD,
                          bold=row['answerType'].startswith('Yes'))
         kind.fill = PatternFill('solid', fgColor=PICK_BG)
-        (yesno_rows if row['answerType'].startswith('Yes') else scale_rows).append(r)
 
         for i in range(1, last + 1):
             ws.cell(row=r, column=i).border = box
@@ -257,13 +260,11 @@ def domain_sheet(d):
            'How this question is answered. Ours, and provisional: change it if it reads wrong.',
            'Scale or yes-or-no?')
 
-    # The Answer column gets whichever picker matches the row, so the sheet asks the right
-    # question on every line.
+    # One list on the whole column, so any answer can go on any row.
     acol = get_column_letter(ANSWER_COL)
-    picker(SCALE_PICK, [f'{acol}{n}' for n in scale_rows],
-           'A maturity score from 0 to 10, or N/A when the question does not apply.', 'Score')
-    picker(YESNO_PICK, [f'{acol}{n}' for n in yesno_rows],
-           'Yes or no, or N/A when the question does not apply.', 'Yes or no')
+    picker(ANSWER_PICK, [f'{acol}4:{acol}{r - 1}'],
+           'A maturity score from 0 to 10, or Yes or No for a question that reads as one, or '
+           'N/A when the question does not apply.', 'The answer')
     return ws
 
 
