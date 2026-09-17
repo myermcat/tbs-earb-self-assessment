@@ -1079,20 +1079,41 @@ function renderSettings(root: HTMLElement) {
    * history entry. Focus moves to the new heading, which is what announces the change to a
    * screen reader without an aria-live region reading a whole pane aloud.
    */
+  /**
+   * Two of these four panes belong to the submitter and were shown to everybody.
+   *
+   * Reported in those words: "it is in the assessor view, and the assessment the browser is
+   * holding is in the submitter view, and those two views should not be connected at all. How
+   * can you discard the assessment that is not even yours?" She is right, and it is the
+   * standing rule of the project broken in the one screen both sides share.
+   *
+   * "Your answers" describes the draft this browser is holding, which an assessor does not
+   * have. "Start again" erases it. An assessor reading the pool has no draft and no business
+   * being offered either, and the offer reads as though it would clear the submissions in front
+   * of them, which is worse than merely being useless.
+   */
+  const mine = side === 'submit';
+
   function paintPane() {
+    // Landing on a pane that is not offered on this side, by a stale value or a link.
+    if (!mine && (settingsPane === 'answers' || settingsPane === 'danger')) settingsPane = 'questions';
+
     clear(nav);
     nav.appendChild(el('span', { class: 'set-navgroup' }, [t('Settings', 'Paramètres')]));
     nav.appendChild(navRow(t('Question set', 'Jeu de questions'), 'questions'));
-    nav.appendChild(navRow(t('Your answers', 'Vos réponses'), 'answers'));
+    if (mine) nav.appendChild(navRow(t('Your answers', 'Vos réponses'), 'answers'));
     nav.appendChild(navRow(t('This build', 'Cette version'), 'build'));
-    nav.appendChild(el('span', { class: 'set-navsep', 'aria-hidden': true }));
-    nav.appendChild(navRow(t('Start again', 'Recommencer'), 'danger', true));
+    if (mine) {
+      nav.appendChild(el('span', { class: 'set-navsep', 'aria-hidden': true }));
+      nav.appendChild(navRow(t('Start again', 'Recommencer'), 'danger', true));
+    }
 
     clear(pane);
     if (settingsPane === 'questions') paneQuestions(pane);
-    else if (settingsPane === 'answers') paneAnswers(pane);
+    else if (settingsPane === 'answers' && mine) paneAnswers(pane);
     else if (settingsPane === 'build') paneBuild(pane);
-    else paneDanger(pane);
+    else if (mine) paneDanger(pane);
+    else paneQuestions(pane);
 
     const h = pane.querySelector('h1') as HTMLElement | null;
     h?.focus?.();

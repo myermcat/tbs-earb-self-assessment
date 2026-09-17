@@ -561,5 +561,27 @@ console.log('\nThe published build, signed in\n');
   dom.window.close();
 }
 
+/* --------------------------------------------------------------------------------------- */
+{
+  /**
+   * Settings is the one screen both sides share, and two of its four panes belong to the
+   * submitter. An assessor was being offered "Your answers", which describes a draft they do
+   * not have, and "Start again", which erases it. Reported as: how can you discard the
+   * assessment that is not even yours?
+   */
+  const { doc, dom } = await boot({ session: live, side: 'assess', role: 'assessor' });
+  const gear = [...doc.querySelectorAll('button')].find((b) => /Settings/i.test(b.getAttribute('title') || ''));
+    gear.click();
+    await new Promise((r) => setTimeout(r, 60));
+    const rail = [...doc.querySelectorAll('.set-navrow')].map((b) => b.textContent.trim());
+    ok('an assessor is not offered the submitter\u2019s own answers', !rail.includes('Your answers'), rail.join(' | '));
+    ok('nor a control that erases them', !rail.includes('Start again'), rail.join(' | '));
+    ok('and what is left is the question set and the build', rail.length === 2, rail.join(' | '));
+    ok('and nothing on screen offers to discard anything',
+       !/Discard this assessment/i.test(doc.querySelector('.set-pane')?.textContent ?? ''));
+  dom.window.close();
+}
+
+
 console.log(fails ? `\n${fails} hosted check(s) failed\n` : '\nall hosted checks passed\n');
 process.exit(fails ? 1 : 0);
