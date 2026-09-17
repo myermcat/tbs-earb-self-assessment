@@ -236,8 +236,11 @@ def domain_sheet(d):
     def picker(values, cells, prompt, title):
         if not cells:
             return
+        # Reject rather than warn. A Google Sheets dropdown can only hold more than one value
+        # when it rejects what is not on the list, so a warning-only rule arrives with "Allow
+        # multiple selections" greyed out.
         dv = DataValidation(type='list', formula1='"%s"' % ','.join(values).replace('"', ''),
-                            allow_blank=True, showErrorMessage=False)
+                            allow_blank=True, showErrorMessage=True)
         dv.prompt = prompt
         dv.promptTitle = title
         ws.add_data_validation(dv)

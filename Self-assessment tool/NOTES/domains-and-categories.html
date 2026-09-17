@@ -284,6 +284,12 @@
     margin-right: .5rem; vertical-align: baseline;
   }
   .zero { color: var(--flag); font-weight: 700; }
+  /* A fact somebody needs once, kept out of the way of the five that matter. */
+  .aside-note {
+    margin-top: 1rem; padding: .8rem 1rem;
+    font-size: .86rem; color: var(--muted);
+    background: var(--band); border-radius: 8px; max-width: none;
+  }
   .ours { font-size: .78rem; color: var(--muted); }
 
   /* ---- the arithmetic ---- */
@@ -452,18 +458,14 @@
   </section>
 
   <section>
-    <h2>The nine categories</h2>
-    <p>Named on 8 September, and the first four are the four domains over again. A question carries its own domain as a label as well, which is what lets the tool cut by any of the nine the same way. Nobody fills those four in: the sheet a question sits on already says which. <strong>The five below them are the ones somebody has to answer</strong>, and they are the reason categories exist at all.</p>
+    <h2>The five categories</h2>
+    <p>These are what somebody has to answer for each question, and they are the reason categories exist at all. A question carries as many as apply, and most carry none.</p>
     <div class="scroll">
       <table>
         <thead>
           <tr><th>Category</th><th class="n">Questions</th><th>Where the assignment comes from</th></tr>
         </thead>
         <tbody>
-          <tr><td><span class="swatch" style="background:var(--business)"></span>Business</td><td class="n">61</td><td class="ours">its own domain</td></tr>
-          <tr><td><span class="swatch" style="background:var(--data)"></span>Data</td><td class="n">39</td><td class="ours">its own domain</td></tr>
-          <tr><td><span class="swatch" style="background:var(--application)"></span>Application</td><td class="n">37</td><td class="ours">its own domain</td></tr>
-          <tr><td><span class="swatch" style="background:var(--technology)"></span>Technology</td><td class="n">39</td><td class="ours">its own domain</td></tr>
           <tr><td><strong>Security</strong></td><td class="n">25</td><td class="ours">a keyword pass, ours, provisional</td></tr>
           <tr><td><strong>Privacy</strong></td><td class="n">8</td><td class="ours">a keyword pass, ours, provisional</td></tr>
           <tr><td><strong>Financial</strong></td><td class="n">13</td><td class="ours">a keyword pass, ours, provisional</td></tr>
@@ -472,6 +474,7 @@
         </tbody>
       </table>
     </div>
+    <p class="aside-note"><strong>A footnote about the other four.</strong> Inside the tool each question also carries its own domain as a label, so that the same machinery can cut the answers by Business, Data, Application or Technology without a second code path. Nobody fills those in, they are not a choice anybody makes, and the results page does not draw them beside these five, because the domain bars directly above are those exact numbers. If you ever see &ldquo;nine categories&rdquo; written down, that is where the other four come from.</p>
   </section>
 
   <hr>
