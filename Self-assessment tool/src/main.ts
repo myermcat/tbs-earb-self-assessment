@@ -22,7 +22,7 @@ import { showNewCode } from './views-share';
 import { bootLang, coverage, lang, type Lang, setLang } from './i18n';
 import { endpointHost, goneFromStore, isHosted, listRecords, putRecord,
   saveOnlineNow, savedOnline, showWhereItStands } from './store';
-import { canSignIn, currentUser, forgetRole, getAssessment, looksLikeCode, pageAddress, tidyCode, isConfigured as firebaseConfigured, knownRole, lastSignInProblem,
+import { canSignIn, currentUser, formatCode, forgetRole, getAssessment, looksLikeCode, pageAddress, tidyCode, isConfigured as firebaseConfigured, knownRole, lastSignInProblem,
   loadRole, resumeSignIn, signInWithGoogle, signOut } from './firebase';
 import { t } from './i18n';
 import { answeredCount, APP_VERSION, autosave, blankAssessment, clearDraft, download, ensureRef,
@@ -622,7 +622,7 @@ function header(bare = false): HTMLElement {
        * offer is beside the save state, where somebody wondering where their work lives is
        * already looking.
        */
-      !bare && side === 'submit' && isHosted() && canSignIn() && !currentUser()
+      !bare && side === 'submit' && isHosted() && hasAccounts() && canSignIn() && !currentUser()
         ? el('button', {
             class: 'linkish small',
             onclick: () => { void signInWithGoogle().then((went) => { if (!went) paint(); }); },
@@ -1353,7 +1353,7 @@ function paneAnswers(pane: HTMLElement) {
   if (isHosted()) {
     const me = currentUser();
     pane.appendChild(setRow(
-      me ? 'Saving online is a button, every time' : 'Signing in lets you save online',
+      me || !hasAccounts() ? 'Saving online is a button, every time' : 'Signing in lets you save online',
       `Press Save online and the assessment as it stands is copied to ${endpointHost()}. Nothing else goes: edit a question afterwards and that edit is on this computer until you press it again, and the badge in the header says the copy online is out of date while that is true. It was built the other way first, sending every change a few seconds after you stopped typing, and that was wrong for a copy somebody else reads. Marking the assessment ready for an assessor is a separate act at the bottom of My results, and it saves online as part of doing it.`,
       null,
     ));
@@ -1362,16 +1362,35 @@ function paneAnswers(pane: HTMLElement) {
       'The questionnaire asks that before it will let you save at all, and the same answer decides what may go online. Until it is answered, everything stays on this computer.',
       null,
     ));
-    pane.appendChild(setRow(
-      me ? 'Signed in' : 'Sending needs you to sign in',
-      me
-        ? `You are signed in as ${me.email}. That is the name on anything you send, and the store answers only accounts it knows.`
-        : 'The store only accepts work from somebody it knows, so pressing Send asks you to sign in first. It reads your name and address from the account you use, and it never sees a password.',
-      me
-        ? el('button', { class: 'ghost', onclick: () => leave() }, ['Sign out'])
-        : el('button', { class: 'primary', onclick: () => { void signInWithGoogle().then((went) => { if (!went) paint(); }); } }, ['Sign in with Google']),
-      me ? {} : { tier: 'caution', badge: 'Not signed in' },
-    ));
+    /**
+     * What gets somebody back to their own work, which is the one question this row answers.
+     *
+     * On the accounts build it is the account. On the code build there is no account to name,
+     * and the sentence this replaced said the store only accepts work from somebody it knows,
+     * which the published rules made untrue: they grant the write on the document's name.
+     */
+    if (hasAccounts()) {
+      pane.appendChild(setRow(
+        me ? 'Signed in' : 'Sending needs you to sign in',
+        me
+          ? `You are signed in as ${me.email}. That is the name on anything you send, and the store answers only accounts it knows.`
+          : 'The store only accepts work from somebody it knows, so pressing Send asks you to sign in first. It reads your name and address from the account you use, and it never sees a password.',
+        me
+          ? el('button', { class: 'ghost', onclick: () => leave() }, ['Sign out'])
+          : el('button', { class: 'primary', onclick: () => { void signInWithGoogle().then((went) => { if (!went) paint(); }); } }, ['Sign in with Google']),
+        me ? {} : { tier: 'caution', badge: 'Not signed in' },
+      ));
+    } else {
+      pane.appendChild(setRow(
+        t('Your access code is the way back', 'Votre code d\u2019accès est le chemin du retour'),
+        assessment.id
+          ? t(`Saving online gave this assessment the code ${formatCode(assessment.id)}. Anybody holding it can open this assessment and change it, and nobody without it can, including you. There is no account here and no sign-in, so a code you lose is work you cannot reach from another computer.`,
+              `L\u2019enregistrement en ligne a donné à cette évaluation le code ${formatCode(assessment.id)}. Toute personne qui le détient peut ouvrir cette évaluation et la modifier, et personne ne le peut sans lui, vous compris. Il n\u2019y a ici ni compte ni connexion : un code perdu est un travail que vous ne pouvez pas rejoindre depuis un autre ordinateur.`)
+          : t('This assessment gets a twelve-character code the first time it is saved online, and from then on that code is the whole of getting back to it. Anybody holding it can open this assessment and change it, and nobody without it can. There is no account here and no sign-in.',
+              'Cette évaluation reçoit un code de douze caractères lors du premier enregistrement en ligne, et dès lors ce code est tout ce qui permet d\u2019y revenir. Toute personne qui le détient peut l\u2019ouvrir et la modifier, et personne ne le peut sans lui. Il n\u2019y a ici ni compte ni connexion.'),
+        null,
+      ));
+    }
   } else {
     pane.appendChild(setRow(
       'Nothing is sent anywhere in this copy',

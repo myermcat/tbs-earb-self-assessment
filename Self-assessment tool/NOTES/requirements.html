@@ -132,10 +132,10 @@ background:var(--surface);border:1px solid var(--line);border-radius:10px;list-s
 .kpi a{color:inherit;text-decoration:none}
 </style>
 <div class="head"><div class="head-in"><h1>GC EA self-assessment: requirements specification</h1>
-<p class="sub">Living document, updated 2026-09-01. 123 requirements, baselined at each release. Following ISO/IEC/IEEE 29148:2018, tailored.</p></div></div>
+<p class="sub">Living document, updated 2026-09-17. 123 requirements, baselined at each release. Following ISO/IEC/IEEE 29148:2018, tailored.</p></div></div>
 <nav class="topnav"><div class="topnav-in">
-<span class="nav-kpi"><b>68</b><span>built</span></span>
-<span class="nav-kpi"><b>31</b><span>agreed, not built</span></span>
+<span class="nav-kpi"><b>69</b><span>built</span></span>
+<span class="nav-kpi"><b>30</b><span>agreed, not built</span></span>
 <span class="nav-kpi"><b>3</b><span>proposed</span></span>
 <span class="nav-kpi"><b>21</b><span>open</span></span>
 <span class="nav-sep"></span>
@@ -407,7 +407,7 @@ background:var(--surface);border:1px solid var(--line);border-radius:10px;list-s
 <span class="req-t">What a share code must do before it may grant a write.</span>
 <span class="st st-later">Open</span>
 <span class="req-owner">Mariia owes this</span>
-<span class="req-note">Three things stand in front of it, all found on 10 September. A code that grants update is a blanking key: a rule permitting whoever holds it cannot tell a legitimate save from somebody clearing 176 answers, and putAssessment writes the whole document with no field mask, so two code-holders typing at once is last-write-wins over an entire assessment. A8 was a nicety and becomes a precondition. An open read rule also lets an unauthenticated loop spend the whole daily allowance and take the tool offline. And A5, that an assessor cannot change the evidence, survives only if the audit moves to its own document beside the assessment, which the published rules already describe and nothing has ever written to.</span>
+<span class="req-note">Still open on 17 September, and no longer a question about a rule somebody might publish: the rule granting update on the code went live that day, so the blanking key below is the exposure the tool carries now. It is acceptable while the people holding codes are three testers, and it is the first thing to answer before anybody outside that group is sent one. Three things stand in front of it, all found on 10 September. A code that grants update is a blanking key: a rule permitting whoever holds it cannot tell a legitimate save from somebody clearing 176 answers, and putAssessment writes the whole document with no field mask, so two code-holders typing at once is last-write-wins over an entire assessment. A8 was a nicety and becomes a precondition. An open read rule also lets an unauthenticated loop spend the whole daily allowance and take the tool offline. And A5, that an assessor cannot change the evidence, survives only if the audit moves to its own document beside the assessment, which the published rules already describe and nothing has ever written to.</span>
 </div>
 <div class="req">
 <span class="req-id mono">S14</span>
@@ -462,9 +462,9 @@ background:var(--surface);border:1px solid var(--line);border-radius:10px;list-s
 <div class="req">
 <span class="req-id mono">S11</span>
 <span class="req-t">Somebody holding an access code may open that one assessment and change it, with no account.</span>
-<span class="st st-next">Agreed</span>
+<span class="st st-done">Built</span>
 <span class="req-owner">Mariia, then TBS owes this</span>
-<span class="req-note">Written on 14 September in deploy/firestore.rules and not yet published: get on an assessment is granted to anybody who can name the document, because the name is the code, and update is granted on the same basis with the owner’s address, the document kind, the assessor’s verdict and the withdrawal frozen. Listing still needs an account, which is the property that matters: a stranger may open the one assessment whose twelve characters they were sent and may never ask what else is there. The arithmetic is 2^60. Publishing is one paste into the Firebase console by whoever owns the project, and deploy/check-rules.sh checks the result from outside, including that listing is still refused.</span>
+<span class="req-note">Published on 17 September, and checked from outside the same hour: deploy/check-rules.sh with no sign-in at all refuses listing the collection, listing with a page size, reading the roles, creating an assessment and making yourself an admin, and opens one by its code. Until it was published the tool minted a code, showed it, let somebody type it, and Google refused the request, so the code meant nothing on its own. Written on 14 September in deploy/firestore.rules: get on an assessment is granted to anybody who can name the document, because the name is the code, and update is granted on the same basis with the owner’s address, the document kind, the assessor’s verdict and the withdrawal frozen. Listing still needs an account, which is the property that matters: a stranger may open the one assessment whose twelve characters they were sent and may never ask what else is there. The arithmetic is 2^60. Publishing is one paste into the Firebase console by whoever owns the project, and deploy/check-rules.sh checks the result from outside, including that listing is still refused.</span>
 </div>
 <div class="req">
 <span class="req-id mono">S12</span>
