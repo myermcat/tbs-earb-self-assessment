@@ -24,12 +24,25 @@
 import { currentUser, isConfigured, knownRole, type Role } from './firebase';
 
 declare const __EARB_ACCESS__: string;
+declare const __EARB_SIDE__: string;
 
 export type AccessMode = 'accounts' | 'code';
 
 const MODE: AccessMode = __EARB_ACCESS__ === 'code' ? 'code' : 'accounts';
 
 export function mode(): AccessMode { return MODE; }
+
+/**
+ * The side this page opens on when nothing else has said otherwise.
+ *
+ * A published assessor page opens on the assessor side, because that is the product at that
+ * address. It is not derived from the access mode: a build can carry both sides, and the one
+ * every test drives does.
+ */
+const SIDE: 'submit' | 'assess' =
+  typeof __EARB_SIDE__ === 'string' && __EARB_SIDE__ === 'assess' ? 'assess' : 'submit';
+
+export function opensOn(): 'submit' | 'assess' { return SIDE; }
 
 /** Whether this build asks people to sign in. The screens that offer it read this, and not the store. */
 export function hasAccounts(): boolean { return MODE === 'accounts' && isConfigured(); }

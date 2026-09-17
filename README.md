@@ -1,6 +1,19 @@
 # GC Enterprise Architecture self-assessment
 
-**Try it: https://myermcat.github.io/tbs-earb-self-assessment-preview/**
+## The two addresses
+
+The tool is two products and two published pages. Neither links to the other, because neither
+screen may describe the other, so both live here.
+
+| | |
+|---|---|
+| **The submitter's tool** | **https://myermcat.github.io/tbs-earb-self-assessment-preview/** |
+| **The assessor's tool** | **https://myermcat.github.io/tbs-earb-self-assessment-preview/assessor/** |
+
+A submitter needs no account at all: an assessment carries a twelve-character access code, the
+code is the record's own name in the store, and whoever holds it can open that one assessment
+and nothing else. An assessor signs in, because listing every submission is a right that can
+only be granted to an identity.
 
 A department scores its own architecture against the Government of Canada Enterprise
 Architecture framework, points to evidence it already holds, and produces a structured file.
