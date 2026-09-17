@@ -1,0 +1,498 @@
+<title>Domains and Categories</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&family=Source+Sans+3:wght@400;600;700&family=IBM+Plex+Mono:wght@400;600&display=swap">
+<style>
+  :root {
+    --ground: #F6F8FA;
+    --surface: #FFFFFF;
+    --band: #EDF1F5;
+    --ink: #16202B;
+    --ink-2: #3D4E5E;
+    --muted: #64758A;
+    --line: #DBE3EB;
+    --line-2: #C3CFDB;
+
+    --business: #1F4E79;
+    --data: #2E7D5B;
+    --application: #7A4E9E;
+    --technology: #A85C1E;
+    --flag: #B03A2E;
+
+    --serif: "Source Serif 4", Georgia, "Times New Roman", serif;
+    --sans: "Source Sans 3", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    --mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ground: #101820;
+      --surface: #17212B;
+      --band: #1E2A36;
+      --ink: #E8EEF4;
+      --ink-2: #C3D0DC;
+      --muted: #8FA2B4;
+      --line: #2A3947;
+      --line-2: #3A4C5C;
+
+      --business: #6FA8DC;
+      --data: #6CC49A;
+      --application: #C09BE0;
+      --technology: #E0A063;
+      --flag: #E4776A;
+    }
+  }
+  :root[data-theme="dark"] {
+    --ground: #101820;
+    --surface: #17212B;
+    --band: #1E2A36;
+    --ink: #E8EEF4;
+    --ink-2: #C3D0DC;
+    --muted: #8FA2B4;
+    --line: #2A3947;
+    --line-2: #3A4C5C;
+
+    --business: #6FA8DC;
+    --data: #6CC49A;
+    --application: #C09BE0;
+    --technology: #E0A063;
+    --flag: #E4776A;
+  }
+
+  body {
+    background: var(--ground);
+    color: var(--ink);
+    font-family: var(--sans);
+    font-size: 16px;
+    line-height: 1.6;
+  }
+  .page {
+    max-width: 47rem;
+    margin: 0 auto;
+    padding-block: 3rem 5rem;
+    padding-left: 1.25rem;
+    padding-right: 1.25rem;
+    display: flex;
+    flex-direction: column;
+    gap: 2.6rem;
+  }
+
+  .eyebrow {
+    font-size: .74rem;
+    letter-spacing: .13em;
+    text-transform: uppercase;
+    font-weight: 700;
+    color: var(--muted);
+    margin: 0 0 .5rem;
+  }
+  h1 {
+    font-family: var(--serif);
+    font-size: clamp(2rem, 6vw, 2.9rem);
+    line-height: 1.12;
+    font-weight: 700;
+    margin: 0;
+    text-wrap: balance;
+    letter-spacing: -.012em;
+  }
+  .standfirst {
+    font-family: var(--serif);
+    font-size: 1.16rem;
+    line-height: 1.5;
+    color: var(--ink-2);
+    margin: .9rem 0 0;
+    max-width: 34rem;
+  }
+  h2 {
+    font-family: var(--serif);
+    font-size: 1.5rem;
+    font-weight: 600;
+    margin: 0 0 .7rem;
+    text-wrap: balance;
+    letter-spacing: -.008em;
+  }
+  h3 {
+    font-size: .8rem;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    font-weight: 700;
+    color: var(--muted);
+    margin: 0 0 .55rem;
+  }
+  p { margin: 0 0 .85rem; max-width: 40rem; }
+  p:last-child { margin-bottom: 0; }
+  section > p + p { margin-top: -.1rem; }
+  strong { font-weight: 700; }
+  em { font-style: italic; }
+
+  /* The one-sentence answer, given the weight of a pull quote because it is the page. */
+  .thesis {
+    border-left: 3px solid var(--line-2);
+    padding: .1rem 0 .1rem 1.3rem;
+    font-family: var(--serif);
+    font-size: 1.35rem;
+    line-height: 1.42;
+    color: var(--ink);
+    max-width: 34rem;
+  }
+  .thesis b { font-weight: 700; }
+
+  /* ---- the diagram: one question, one box, many attributes ---- */
+  .fig {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 1.4rem 1.25rem 1.2rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.4rem;
+  }
+  .boxes { display: grid; grid-template-columns: repeat(4, 1fr); gap: .6rem; }
+  .box {
+    border: 1.5px dashed var(--line-2);
+    border-radius: 8px;
+    padding: .55rem .5rem .7rem;
+    min-height: 5.4rem;
+    display: flex;
+    flex-direction: column;
+    gap: .45rem;
+    align-items: center;
+    text-align: center;
+  }
+  .box-name {
+    font-size: .72rem;
+    font-weight: 700;
+    letter-spacing: .04em;
+    line-height: 1.2;
+  }
+  .box-weight { font-family: var(--mono); font-size: .68rem; color: var(--muted); }
+  .box.landed { border-style: solid; border-width: 2px; }
+  .ball {
+    width: 1.55rem; height: 1.55rem; border-radius: 999px;
+    display: grid; place-items: center;
+    font-family: var(--mono); font-size: .58rem; font-weight: 600;
+    color: #fff;
+  }
+  :root[data-theme="dark"] .ball, :root:not([data-theme="light"]) .ball { color: #101820; }
+  @media (prefers-color-scheme: light) { :root:not([data-theme="dark"]) .ball { color: #fff; } }
+
+  .b-business { color: var(--business); } .bg-business { background: var(--business); }
+  .b-data { color: var(--data); } .bg-data { background: var(--data); }
+  .b-application { color: var(--application); } .bg-application { background: var(--application); }
+  .b-technology { color: var(--technology); } .bg-technology { background: var(--technology); }
+
+  .attrs { display: flex; flex-wrap: wrap; gap: .4rem; align-items: center; }
+  .chip {
+    font-size: .76rem;
+    font-weight: 600;
+    padding: .18rem .6rem;
+    border-radius: 999px;
+    border: 1px solid var(--line-2);
+    color: var(--ink-2);
+    background: var(--band);
+  }
+  .chip.on { border-color: currentColor; background: transparent; }
+  .fig-note { font-size: .84rem; color: var(--muted); margin: 0; max-width: none; }
+  .fig-q {
+    font-family: var(--serif);
+    font-size: 1.02rem;
+    line-height: 1.45;
+    margin: 0;
+    max-width: none;
+  }
+  .fig-q .qid { font-family: var(--mono); font-size: .8rem; color: var(--muted); margin-right: .5rem; }
+
+  /* ---- tables ---- */
+  .scroll { overflow-x: auto; }
+  table { border-collapse: collapse; width: 100%; font-size: .92rem; }
+  caption {
+    text-align: left;
+    font-size: .8rem;
+    color: var(--muted);
+    padding-bottom: .5rem;
+  }
+  th, td {
+    text-align: left;
+    padding: .5rem .7rem;
+    border-bottom: 1px solid var(--line);
+    vertical-align: top;
+  }
+  thead th {
+    font-size: .72rem;
+    letter-spacing: .07em;
+    text-transform: uppercase;
+    color: var(--muted);
+    font-weight: 700;
+    border-bottom: 1px solid var(--line-2);
+    white-space: nowrap;
+  }
+  td.n, th.n { text-align: right; font-family: var(--mono); font-variant-numeric: tabular-nums; }
+  tbody tr:last-child td { border-bottom: none; }
+  .swatch {
+    display: inline-block; width: .55rem; height: .55rem; border-radius: 2px;
+    margin-right: .5rem; vertical-align: baseline;
+  }
+  .zero { color: var(--flag); font-weight: 700; }
+  .ours { font-size: .78rem; color: var(--muted); }
+
+  /* ---- the arithmetic ---- */
+  .sums { display: grid; grid-template-columns: 1fr 1fr; gap: .8rem; }
+  .sum {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: .9rem 1rem 1rem;
+  }
+  .sum-n {
+    font-family: var(--mono);
+    font-size: 1.9rem;
+    font-weight: 600;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+  }
+  .sum-label { font-size: .84rem; color: var(--muted); margin-top: .4rem; }
+  .spread { display: flex; gap: .15rem; margin-top: .9rem; height: .5rem; border-radius: 3px; overflow: hidden; }
+  .spread i { display: block; }
+
+  /* ---- the workbook ---- */
+  .sheet {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    overflow: hidden;
+  }
+  .sheet-head {
+    background: var(--data);
+    color: #fff;
+    padding: .5rem .8rem;
+    font-size: .82rem;
+    font-weight: 700;
+  }
+  :root[data-theme="dark"] .sheet-head, :root:not([data-theme="light"]) .sheet-head { color: #101820; }
+  @media (prefers-color-scheme: light) { :root:not([data-theme="dark"]) .sheet-head { color: #fff; } }
+  .sheet table { font-size: .84rem; }
+  .sheet th, .sheet td { padding: .42rem .6rem; }
+  .tick { text-align: center; font-family: var(--mono); font-weight: 600; color: var(--data); }
+  .derived { font-family: var(--mono); font-size: .76rem; color: var(--muted); background: var(--band); }
+
+  .warn {
+    border: 1px solid var(--flag);
+    border-radius: 10px;
+    padding: .9rem 1.1rem;
+    background: var(--surface);
+  }
+  .warn h3 { color: var(--flag); }
+
+  hr {
+    border: none;
+    border-top: 1px solid var(--line);
+    margin: 0;
+  }
+  footer { font-size: .82rem; color: var(--muted); }
+  footer p { max-width: none; }
+
+  @media (max-width: 640px) {
+    .boxes { grid-template-columns: repeat(2, 1fr); }
+    .sums { grid-template-columns: 1fr; }
+    .thesis { font-size: 1.15rem; }
+  }
+</style>
+
+<div class="page">
+
+  <header>
+    <p class="eyebrow">GC EA self-assessment &middot; how a question is filed</p>
+    <h1>Domains and categories</h1>
+    <p class="standfirst">Two ways of grouping the same 176 questions. One builds the score. The other answers the questions the score cannot.</p>
+  </header>
+
+  <section>
+    <p class="thesis">A <b>domain</b> is where a question lives. A <b>category</b> is what a question is about.</p>
+    <p style="margin-top:1.2rem">Every question has exactly one domain and any number of categories. That is the whole distinction, and everything below follows from it.</p>
+  </section>
+
+  <hr>
+
+  <section class="fig">
+    <div>
+      <h3>One question</h3>
+      <p class="fig-q"><span class="qid">D-Q27</span>Are data retention and disposition policies enforced, including secure deletion and legal hold capabilities?</p>
+    </div>
+
+    <div>
+      <h3>It goes in one box, and only one</h3>
+      <div class="boxes">
+        <div class="box">
+          <div class="box-name b-business">Business</div>
+          <div class="box-weight">25%</div>
+        </div>
+        <div class="box landed b-data">
+          <div class="box-name b-data">Data</div>
+          <div class="box-weight">25%</div>
+          <div class="ball bg-data" aria-label="This question is filed here">Q27</div>
+        </div>
+        <div class="box">
+          <div class="box-name b-application">Application</div>
+          <div class="box-weight">25%</div>
+        </div>
+        <div class="box">
+          <div class="box-name b-technology">Technology</div>
+          <div class="box-weight">25%</div>
+        </div>
+      </div>
+      <p class="fig-note" style="margin-top:.7rem">Four boxes, 25% each. A question cannot be in two at once, which is what makes the four add up to one score.</p>
+    </div>
+
+    <div>
+      <h3>And it carries as many labels as apply</h3>
+      <div class="attrs">
+        <span class="chip on b-data">Data</span>
+        <span class="chip on b-business" style="color:var(--flag)">Security</span>
+        <span class="chip on" style="color:var(--flag)">Privacy</span>
+        <span class="chip">Financial</span>
+        <span class="chip">Accessibility</span>
+        <span class="chip">Official Languages</span>
+      </div>
+      <p class="fig-note" style="margin-top:.7rem">Three of the nine apply to this one. Its own domain is always one of them and nobody types it.</p>
+    </div>
+  </section>
+
+  <section>
+    <p>If it helps to say it out loud: a domain is the box you throw the ball into, and a ball cannot be in two boxes. A category is an attribute of the ball. It can be small <em>and</em> green <em>and</em> anything else that is true of it.</p>
+    <p>In the code this is the difference between the object a question belongs to and the properties it has.</p>
+  </section>
+
+  <hr>
+
+  <section>
+    <h2>The four domains</h2>
+    <p>These are the GC EA Framework&rsquo;s own themes, named in the January 2026 draft. They carry the weight and they produce the score.</p>
+    <div class="scroll">
+      <table>
+        <thead>
+          <tr>
+            <th>Domain</th><th class="n">Weight</th><th class="n">Sections</th><th class="n">Questions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td><span class="swatch" style="background:var(--business)"></span>Business Architecture</td><td class="n">25%</td><td class="n">6</td><td class="n">61</td></tr>
+          <tr><td><span class="swatch" style="background:var(--data)"></span>Data &amp; Information Architecture</td><td class="n">25%</td><td class="n">5</td><td class="n">39</td></tr>
+          <tr><td><span class="swatch" style="background:var(--application)"></span>Application &amp; Virtual Architecture</td><td class="n">25%</td><td class="n">4</td><td class="n">37</td></tr>
+          <tr><td><span class="swatch" style="background:var(--technology)"></span>Technology &amp; Physical Architecture</td><td class="n">25%</td><td class="n">5</td><td class="n">39</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <h2>The nine categories</h2>
+    <p>Named on 8 September. The first four are the domains themselves, filled in automatically by the sheet a question sits on. The other five are the ones that have to be answered.</p>
+    <div class="scroll">
+      <table>
+        <thead>
+          <tr><th>Category</th><th class="n">Questions</th><th>Where the assignment comes from</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><span class="swatch" style="background:var(--business)"></span>Business</td><td class="n">61</td><td class="ours">its own domain</td></tr>
+          <tr><td><span class="swatch" style="background:var(--data)"></span>Data</td><td class="n">39</td><td class="ours">its own domain</td></tr>
+          <tr><td><span class="swatch" style="background:var(--application)"></span>Application</td><td class="n">37</td><td class="ours">its own domain</td></tr>
+          <tr><td><span class="swatch" style="background:var(--technology)"></span>Technology</td><td class="n">39</td><td class="ours">its own domain</td></tr>
+          <tr><td><strong>Security</strong></td><td class="n">25</td><td class="ours">a keyword pass, ours, provisional</td></tr>
+          <tr><td><strong>Privacy</strong></td><td class="n">8</td><td class="ours">a keyword pass, ours, provisional</td></tr>
+          <tr><td><strong>Financial</strong></td><td class="n">13</td><td class="ours">a keyword pass, ours, provisional</td></tr>
+          <tr><td><strong>Accessibility</strong></td><td class="n zero">0</td><td class="ours">nothing in the instrument asks</td></tr>
+          <tr><td><strong>Official Languages</strong></td><td class="n zero">0</td><td class="ours">nothing in the instrument asks</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <hr>
+
+  <section>
+    <h2>Why both exist</h2>
+    <p><strong>Because the score cannot answer &ldquo;how are we doing on security?&rdquo;</strong> The 25 security questions are spread across all four domains, so no single domain is more than a quarter security. A department that is weak on it sees four domain bars that each look acceptable, because the weakness has been divided by four.</p>
+    <div class="scroll">
+      <table>
+        <caption>Where the 25 security questions actually sit</caption>
+        <thead><tr><th>Domain</th><th class="n">Security questions</th><th class="n">Of that domain</th></tr></thead>
+        <tbody>
+          <tr><td><span class="swatch" style="background:var(--data)"></span>Data &amp; Information</td><td class="n">10</td><td class="n">26%</td></tr>
+          <tr><td><span class="swatch" style="background:var(--application)"></span>Application &amp; Virtual</td><td class="n">7</td><td class="n">19%</td></tr>
+          <tr><td><span class="swatch" style="background:var(--technology)"></span>Technology &amp; Physical</td><td class="n">7</td><td class="n">18%</td></tr>
+          <tr><td><span class="swatch" style="background:var(--business)"></span>Business</td><td class="n">1</td><td class="n">2%</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p style="margin-top:.9rem">The Security category puts all 25 back together into one number, weighted exactly as they are weighted in their own domains. Same for Privacy, and for anything else worth asking about across the whole instrument.</p>
+    <p><strong>Cyber is a category, not a domain</strong>, for the same reason. Made a domain, it would take questions away from Data, Application and Technology, where they also belong. As a category it takes nothing from anyone.</p>
+  </section>
+
+  <hr>
+
+  <section>
+    <h2>The arithmetic</h2>
+    <p>A question counts <strong>once</strong> in the overall score, through its domain. It counts at <strong>full weight</strong> inside every category it carries.</p>
+    <div class="sums">
+      <div class="sum">
+        <div class="sum-n">176</div>
+        <div class="sum-label">questions, each in exactly one domain</div>
+      </div>
+      <div class="sum">
+        <div class="sum-n">222</div>
+        <div class="sum-label">category memberships across the same 176</div>
+        <div class="spread" aria-hidden="true">
+          <i style="background:var(--line-2); flex:132"></i>
+          <i style="background:var(--data); flex:42"></i>
+          <i style="background:var(--flag); flex:2"></i>
+        </div>
+        <div class="sum-label" style="margin-top:.45rem">132 carry one &middot; 42 carry two &middot; 2 carry three</div>
+      </div>
+    </div>
+    <p style="margin-top:1rem">The category scores therefore do not add up to the overall, and the tool says so in a line under them. They are a second cut through the same answers, never a second spine.</p>
+  </section>
+
+  <hr>
+
+  <section>
+    <h2>How the assignments get in</h2>
+    <p>One column on each of the four domain sheets in the workbook. A question stays on its own tab; the ticks say what else it is about. The <span style="font-family:var(--mono);font-size:.86rem">Topics</span> column is a formula and fills itself.</p>
+    <div class="sheet">
+      <div class="sheet-head">Data &amp; Information Architecture</div>
+      <div class="scroll">
+        <table>
+          <thead>
+            <tr>
+              <th>Q#</th><th>Assessment Question</th>
+              <th class="n">Security</th><th class="n">Privacy</th><th class="n">Financial</th>
+              <th>Topics</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td style="font-family:var(--mono)">Q27</td>
+              <td>Are data retention and disposition policies enforced&hellip;</td>
+              <td class="tick">x</td><td class="tick">x</td><td class="tick"></td>
+              <td class="derived">Security, Privacy</td>
+            </tr>
+            <tr>
+              <td style="font-family:var(--mono)">Q28</td>
+              <td>Are data quality rules defined and measured&hellip;</td>
+              <td class="tick"></td><td class="tick"></td><td class="tick"></td>
+              <td class="derived"></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <p style="margin-top:.9rem">An empty row is the normal case and means &ldquo;this one is only about its own domain&rdquo;. That is 132 of the 176. The ticks are dropdowns, so a category cannot be mistyped, and a name the tool does not recognise refuses the whole import and says which question it was in.</p>
+  </section>
+
+  <section class="warn">
+    <h3>Never duplicate a question onto a second tab</h3>
+    <p style="margin:0">A question that appears on two sheets is counted twice in the overall score, and a department&rsquo;s number moves because of how we filed a question. One question, one tab, as many category ticks as apply.</p>
+  </section>
+
+  <hr>
+
+  <footer>
+    <p><strong>Still open.</strong> Security, Privacy and Financial are currently derived from the wording of each question, by us, and carry a &ldquo;provisional grouping&rdquo; badge wherever they appear in the tool. Accessibility and Official Languages are declared and empty: a sweep of all 176 questions found official languages in two and accessibility in three, always in another sense &mdash; the FAIR principles&rsquo; &ldquo;Accessible&rdquo;, and programming languages. Three hits is a gap in the instrument, not a category, so the tool names the gap instead of hiding it behind a number.</p>
+  </footer>
+
+</div>
