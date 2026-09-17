@@ -1567,7 +1567,7 @@ function paneDocs(pane: HTMLElement) {
       body: 'His own four domain sheets with a Categories column to fill in, his Assessment Scale, and a Summary Dashboard that calculates. The same arithmetic as the tool, in a form he can check.',
       meta: ['Anybody with the link can comment'],
       cta: 'Open the spreadsheet',
-      href: 'https://docs.google.com/spreadsheets/d/1bpppXg3ZRk0g8-DGNuq42scVgTFDWe5SJvqlsQhfNrY/edit',
+      href: 'https://docs.google.com/spreadsheets/d/1Hxtjj0EIVlf1hBfQy9hrgR-_U7D3i3t_R38XaHnda9A/edit',
     }),
   ]));
 }
