@@ -1186,13 +1186,11 @@ byText('.tab', 'Start').click();
  * person who is has their own address. The address still reaches it, which is how this suite
  * gets there.
  */
-// The way across is back, for testing, and it says so on its face. The finished tool routes a
-// person to one side at sign-in and the two builds are split; until then this is how the
-// assessor side gets opened without typing an address.
-ok('the way across is marked as temporary', !!q('.crossover .badge-mockup'),
+// The way across came back for testing while there was one published page, and it is gone
+// again now there are two. The address is how this suite gets there, the same way a person
+// does: from the README, which carries both.
+ok('the home page offers no way across to the assessor side', !q('.crossover'),
    q('.crossover')?.textContent);
-ok('and says what the finished tool does instead',
-   /own address/.test(q('.crossover')?.textContent ?? ''));
 ok('the admin view is not a destination of its own', !byText('button', 'Open the admin view'));
 window.location.hash = '#assessor';
 window.dispatchEvent(new window.PopStateEvent('popstate', { state: null }));

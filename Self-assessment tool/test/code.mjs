@@ -94,8 +94,11 @@ console.log('\nThe access code\n');
   await settle();
   byText('.cf-actions button', 'Open it').click();
   await settle();
+  // Nothing of it reaches a box, so the field is empty and the screen says how far off it is
+  // rather than pretending twelve wrong characters were twelve characters.
   ok('a code made of characters the alphabet excludes is refused',
-     /not a complete code/i.test(q('.cf-note')?.textContent ?? ''), q('.cf-note')?.textContent);
+     qa('.code-field .code-box').every((b) => !b.value)
+       && /12 characters to go/i.test(q('.cf-note')?.textContent ?? ''), q('.cf-note')?.textContent);
 }
 
 /* --------------------------------------------------------------------------------------- */
@@ -186,6 +189,32 @@ console.log('\nThe access code\n');
   const boxes = all('.code-field .code-box');
   ok('and only then does it ask for the code', boxes.length === 12, String(boxes.length));
   two.window.close();
+}
+
+/* --------------------------------------------------------------------------------------- */
+/**
+ * A character a code cannot hold, which is the way this field went wrong in somebody's hands.
+ *
+ * Twelve boxes filled, one of them a zero, and the screen said the code was not complete yet.
+ * True, and useless: what they needed was the name of the character that could not be in a
+ * code, so they could read the message they were sent again.
+ */
+{
+  const entry = byText('.hero-actions button', 'access code');
+  entry.click();
+  await settle();
+  const boxes = qa('.code-field .code-box');
+  boxes[0].value = 'LJ0J-WP7S-EBGB';
+  boxes[0].dispatchEvent(new Event('input', { bubbles: true }));
+  await settle();
+  const typed = qa('.code-field .code-box').map((b) => b.value).join('');
+  ok('a zero never reaches a box', !typed.includes('0'), typed);
+  ok('and the characters around it are kept', typed.startsWith('LJJ'), typed);
+  const note = [...document.querySelectorAll('dialog[open] .cf-note')].pop().textContent;
+  ok('the screen names the character it refused', /\b0\b/.test(note), note);
+  ok('and says which four a code never holds', /I, O, 0 or 1/.test(note), note);
+  byText('.cf-actions button', 'Cancel')?.click();
+  await settle();
 }
 
 console.log(fails ? `\n${fails} access code check(s) failed\n` : '\nall access code checks passed\n');
