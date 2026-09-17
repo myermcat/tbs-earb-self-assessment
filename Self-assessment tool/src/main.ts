@@ -1459,6 +1459,24 @@ function paneBuild(pane: HTMLElement) {
       href: 'https://myermcat.github.io/tbs-earb-self-assessment-preview/domains-and-categories.html',
     }),
     linkCard({
+      accent: '#7C5CB8', ghost: '\u2261',
+      eyebrow: 'For Dan \u00b7 Google Sheets',
+      title: 'The categories spreadsheet',
+      body: 'His own four domain sheets, with a Categories column to fill in and his Assessment Scale and Summary Dashboard alongside. This is the empty one.',
+      meta: ['Anybody with the link can comment'],
+      cta: 'Open the template',
+      href: 'https://docs.google.com/spreadsheets/d/1Fa7j9acWJNLZylwYs4LkdpufU4yA1bv8YhKr55bvdLE/edit',
+    }),
+    linkCard({
+      accent: '#3E9E82', ghost: '\u2713',
+      eyebrow: 'For Dan \u00b7 Google Sheets',
+      title: 'The same thing, filled in',
+      body: 'Every category we read out of the wording of each question, so the shape is visible before anybody starts. Ours and provisional: his to confirm or overrule.',
+      meta: ['Anybody with the link can comment'],
+      cta: 'Open the example',
+      href: 'https://docs.google.com/spreadsheets/d/1SuEuo3_iK--XjVy0jzsvmwGhxOV5JqEeLzNIUMTY9xw/edit',
+    }),
+    linkCard({
       accent: '#4E90C8', ghost: '\u00a7',
       eyebrow: 'The build team',
       title: 'Requirements',
@@ -1479,12 +1497,13 @@ function paneBuild(pane: HTMLElement) {
   ]);
 
   /**
-   * The first card is for everybody. The other two name colleagues and the state of internal
-   * decisions, so they are offered to an admin and to a build with no project, which is
-   * somebody working on the tool itself.
+   * The first three are for anybody: the explanation, and the two spreadsheets, which are
+   * shared for comment and hold nothing but Dan's own question set. The last two name
+   * colleagues and the state of internal decisions, so they are offered to an admin and to a
+   * build with no project, which is somebody working on the tool itself.
    */
   if (firebaseConfigured() && knownRole() !== 'admin') {
-    cards.querySelectorAll('.hub-card').forEach((c, i) => { if (i > 0) c.remove(); });
+    cards.querySelectorAll('.hub-card').forEach((c, i) => { if (i > 2) c.remove(); });
   }
   pane.appendChild(el('h2', { class: 'set-sub' }, ['Pages that explain this']));
   pane.appendChild(cards);

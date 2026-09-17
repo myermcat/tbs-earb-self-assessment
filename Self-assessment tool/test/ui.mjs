@@ -124,9 +124,10 @@ ok('the destructive pane is marked as dangerous in the rail itself',
    * somebody finds the one they want without reading anything.
    */
   const cards = [...qa('.hub-cards .hub-card')];
-  ok('the pages that explain this are cards', cards.length === 3, String(cards.length));
-  ok('each one has a rail colour of its own',
-     new Set(cards.map((c) => c.getAttribute('style'))).size === 3);
+  ok('the pages that explain this are cards', cards.length === 5, String(cards.length));
+  ok('the two spreadsheets are among them',
+     cards.filter((c) => /docs\.google\.com\/spreadsheets/.test(c.getAttribute('href') ?? '')).length === 2,
+     cards.map((c) => c.getAttribute('href')).join(' | '));
   ok('and an eyebrow, a title and a call to action',
      cards.every((c) => c.querySelector('.hub-eyebrow') && c.querySelector('h3') && c.querySelector('.hub-go')));
   ok('the explanation is one of them, and needs no sign-in',

@@ -3,23 +3,32 @@
 `node tools/make-category-workbook.mjs` writes two files into `../Deliverables`: the template
 with the Categories column empty, and the same thing filled with our provisional readings.
 
-## The one manual step
+## The one manual step, and the thing that blocks it
 
 **Turn on multiple selections, once per domain tab, after converting to Google Sheets.**
 
 `Allow multiple selections` is a Google Sheets setting on a dropdown rule. The xlsx format has
-no equivalent, so `openpyxl` cannot write it and the conversion cannot invent it. The file
-arrives with a single-select dropdown carrying the right five values, and this is the switch
-that makes it behave the way it is meant to.
+no equivalent, so `openpyxl` cannot write it and the conversion cannot invent it.
+
+**The checkbox arrives greyed out, and the reason is not the one you will guess.** It is not the
+range, and it is not the criteria: it is **Display style**. An imported rule comes across as
+`Arrow`, which is the old dropdown look, and a cell drawn that way holds one value by
+definition. Multi-select needs **Chip**. Choose Chip and the checkbox enables immediately.
 
 On each of the four domain tabs:
 
-1. Select the whole Categories column, from row 4 down.
-2. **Data → Data validation**, click the rule for that column.
-3. Criteria **Dropdown**, and tick **Allow multiple selections**.
-4. Done.
+1. Click into the Categories column, then **Data → Data validation**.
+2. Click the rule whose range starts with `D`.
+3. Open **Advanced options**.
+4. Under *Display style*, choose **Chip**.
+5. **Allow multiple selections** is now enabled. Tick it.
+6. **Done**.
 
-Then check one cell: `Business Architecture!D58` should offer the five with tick boxes.
+*If the data is invalid* should read **Reject the input**; the generator now writes that, so it
+comes across on its own.
+
+When it has worked, the cells show rounded chips with a dropdown arrow rather than a bare
+arrow at the right edge of the cell.
 
 ## The two shapes this went through, so nobody tries them again
 
