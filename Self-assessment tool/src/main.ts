@@ -662,7 +662,15 @@ function header(bare = false): HTMLElement {
             tab(t('Fill it in', 'Remplir'), 'submit'), chev(),
             tab(t('My results', 'Mes résultats'), 'results'),
           ]),
-      side === 'assess'
+      /**
+       * The way back, which exists only where there is somewhere to go back to.
+       *
+       * A published assessor page has no submitter side at its address, so this offered an
+       * assessor a door out of the product they came for and into a questionnaire. It is the
+       * crossover on the home page in reverse and it goes for the same reason. On a build that
+       * carries both sides it stays, because that is how somebody testing gets between them.
+       */
+      side === 'assess' && opensOn() !== 'assess'
         ? el('button', { class: 'linkish small', onclick: () => setSide('submit') }, [
             t('Leave assessor view', 'Quitter la vue de l\u2019évaluateur'),
           ])
