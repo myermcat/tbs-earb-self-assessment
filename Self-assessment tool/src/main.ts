@@ -483,11 +483,16 @@ function offerOnlineSave(): void {
     onCommit: () => {
       const signer = who.value();
       const first = !savedOnline(assessment);
+      // The name can change on a save, when the one it had could not be read to anybody. A new
+      // code nobody is shown is a record somebody cannot reach, which is the defect this whole
+      // window exists to prevent.
+      const before = assessment.id;
       rememberSigner(signer);
       void saveOnlineNow(assessment, signer).then((res) => {
         if (!res.ok) { alert(res.problem); paint(); return; }
         paint();
-        if (first && assessment.id) showNewCode(assessment);
+        const renamed = !!before && assessment.id !== before;
+        if ((first || renamed) && assessment.id) showNewCode(assessment, () => {}, renamed);
       });
     },
   });

@@ -489,8 +489,12 @@ function submitBlock(rubric: Rubric, a: Assessment, r: Result, blocked: boolean)
           autosave(a);
           const signer = who.value();
           rememberSigner(signer);
+          // A save can rename a record whose old name could not be read to anybody, and a code
+          // nobody is shown is a record nobody can reach.
+          const before = a.id;
           void saveOnlineNow(a, signer).then((res) => {
-            if (res.ok && first && a.id) showNewCode(a);
+            const renamed = !!before && a.id !== before;
+            if (res.ok && (first || renamed) && a.id) showNewCode(a, () => {}, renamed);
             if (!res.ok) {
               // The mark comes back off, because it never reached the store, and an assessor
               // would never have seen it.

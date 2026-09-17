@@ -12,7 +12,7 @@
  */
 import { listRecords, putRecord, deleteRecord, endpointHost, isHosted, onlineIsCurrent,
   saveOnlineNow } from '../src/store';
-import { changedPaths, currentUser, roleOf, toFields } from '../src/firebase';
+import { changedPaths, currentUser, formatCode, needsANewCode, roleOf, toFields } from '../src/firebase';
 import { autosave, saveStatus } from '../src/storage';
 import { mode } from '../src/who';
 import type { Assessment } from '../src/types';
@@ -471,6 +471,44 @@ await wait(0);
   const second = [...new URL(both[1].url).searchParams.getAll('updateMask.fieldPaths')];
   ok('and still masks the write', second.includes('answers.q2'), second.join(' | '));
   ok('and that is one read and one write, and nothing else', both.length === 2, String(asked));
+}
+
+/* -------------------------------------------------------------------------------------------
+   A record made before codes were readable.
+
+   Ids were twenty characters over a 62-symbol alphabet until 14 September, when they became
+   the thing a person reads down a phone. A record made before that is in the store under a
+   name nobody can type, and the screen was showing that name put through the formatter:
+   uppercased, stripped of every character the alphabet no longer has, cut to twelve. The
+   submitter copied a code that opened nothing, in good faith, from their own results page.
+   ------------------------------------------------------------------------------------------- */
+{
+  ok('a long mixed-case id is not dressed up as a code',
+     formatCode('lJOjWP7sEbgbR9CGfd23') === 'lJOjWP7sEbgbR9CGfd23', formatCode('lJOjWP7sEbgbR9CGfd23'));
+  ok('and a real code still reads in three groups',
+     formatCode('KFRM92TXBQ7H') === 'KFRM-92TX-BQ7H', formatCode('KFRM92TXBQ7H'));
+  ok('the old name is the one that needs replacing', needsANewCode('lJOjWP7sEbgbR9CGfd23'));
+  ok('and a current one does not', !needsANewCode('KFRM92TXBQ7H'));
+  ok('and a record with no name at all is not a case of this', !needsANewCode(undefined));
+
+  const old: Assessment = JSON.parse(JSON.stringify(a));
+  old.id = 'lJOjWP7sEbgbR9CGfd23';
+  old.meta.savedOnlineAt = '2026-09-10T00:00:00.000Z';
+  sent.length = 0;
+  globalThis.fetch = ((url: string, init: RequestInit = {}) => {
+    sent.push({ url: String(url), init });
+    return Promise.resolve({ status: 200, ok: true, text: () => Promise.resolve('{}') } as Response);
+  }) as typeof fetch;
+  await putRecord(old);
+  ok('saving it gives it a code somebody can be told', typeof old.id === 'string'
+     && /^[ABCDEFGHJKLMNPQRSTUVWXYZ23456789]{12}$/.test(old.id), String(old.id));
+  ok('the name it had is kept, so the copy left behind can be matched to it',
+     old.meta.previousId === 'lJOjWP7sEbgbR9CGfd23', String(old.meta.previousId));
+  const wrote = sent.filter((x) => x.init.method === 'PATCH');
+  ok('and it is written under the new name', wrote.length === 1 && wrote[0].url.endsWith(`/assessments/${old.id}`),
+     wrote.map((x) => x.url).join(' | '));
+  ok('with no mask, because nothing is there to leave alone',
+     !wrote[0].url.includes('updateMask'), wrote[0].url);
 }
 
 console.log(fails === 0 ? '\nall wiring checks passed' : `\n${fails} FAILED`);
