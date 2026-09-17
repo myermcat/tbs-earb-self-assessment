@@ -197,7 +197,7 @@
     }
   ],
   "answerTypesNote": "PROVISIONAL. Dan named this defect: several questions are yes or no wearing a 0 to 10 scale. The ones marked yesno here are the ones whose wording is unambiguously binary. He owns the real list. A no on a yes/no question raises a red flag: it colours the section and the person carries on. Nothing in this tool stops an assessment.",
-  "topicsNote": "A second axis. The four domains still produce the overall score and a question counts once there. A question also counts at full weight inside every topic it carries, which is where the weights genuinely differ. Dan named nine on 8 September: Business, Data, Application, Technology, Security, Privacy, Accessibility, Official Languages and Financial. The four domain topics are mechanical. Security, privacy and financial were derived from the question wording and are PROVISIONAL: Dan owns the real assignments. Accessibility and Official Languages are declared and empty, because no question in the instrument asks about either: a sweep of all 176 found official languages in two and accessibility in three, always in another sense. They stay on the list so the gap is visible. What fills them is one Topics column in each domain sheet, comma separated, filled only on the rows that need more than their own domain.",
+  "topicsNote": "A second axis. The four domains still produce the overall score and a question counts once there. A question also counts at full weight inside every category it carries, which is where the weights genuinely differ. Dan named nine on 8 September: Business, Data, Application, Technology, Security, Privacy, Accessibility, Official Languages and Financial. The four domain categories are mechanical. The other five are read from the wording of each question and are PROVISIONAL: Dan owns the real assignments, and the Categories column in his workbook is where they come from. Accessibility and Official Languages are thin rather than absent, at three questions and two, which is worth knowing before anybody reads a score for either.",
   "lifecycleStages": [
     {
       "id": "discovery",
@@ -418,7 +418,9 @@
               "answerType": "scale",
               "topics": [
                 "business",
-                "privacy"
+                "privacy",
+                "accessibility",
+                "official-languages"
               ]
             }
           ],
@@ -898,7 +900,9 @@
               "weight": 1,
               "answerType": "scale",
               "topics": [
-                "business"
+                "business",
+                "accessibility",
+                "official-languages"
               ]
             },
             {
@@ -1665,7 +1669,8 @@
               "weight": 1,
               "answerType": "yesno",
               "topics": [
-                "application"
+                "application",
+                "accessibility"
               ]
             },
             {

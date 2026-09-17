@@ -461,6 +461,7 @@ function stable(x: unknown): string {
 
   const all = rubric.domains.flatMap((d) => d.sections.flatMap((s2) => s2.questions));
   const carrying = (id: string) => all.filter((q) => (q.topics ?? []).includes(id)).length;
+  const byId = (id: string) => all.find((q) => q.id === id);
   ok('a question can carry more than one category',
      all.filter((q) => (q.topics ?? []).length > 1).length > 30,
      String(all.filter((q) => (q.topics ?? []).length > 1).length));
@@ -469,20 +470,37 @@ function stable(x: unknown): string {
   ok('financial is derived and not empty', carrying('financial') > 5, String(carrying('financial')));
 
   /**
-   * These two are declared and empty, and that is the finding.
+   * These two are thin, and that is the finding. They were reported as empty, and that was
+   * wrong.
    *
-   * A sweep of all 176 questions found official languages in two and accessibility in three,
-   * always in another sense: the FAIR principles' "Accessible", and programming languages.
-   * Three hits is a gap in the instrument. Deriving a category from keywords that loose would
-   * hide the gap behind a number, so they stay empty until Dan tags the rows.
+   * The first sweep used a loose pattern and drew its conclusion from the number of hits
+   * rather than from reading them: six questions mention something "accessible" and three of
+   * them are about accessibility; two mention official languages and both are genuine. The
+   * distinction is grammatical. "Accessibility" the noun and WCAG are always the policy sense.
+   * "Accessible" the adjective is the one that also means findable data, in the FAIR
+   * principles and in data reaching other departments.
+   *
+   * Three questions and two questions is thin enough to be worth saying out loud, which the
+   * results page does. It is not nothing, which is what the tool said for a week.
    */
-  ok('accessibility is declared and empty', carrying('accessibility') === 0, String(carrying('accessibility')));
-  ok('official languages is declared and empty', carrying('official-languages') === 0,
+  ok('accessibility is asked about, and thinly', carrying('accessibility') === 3,
+     String(carrying('accessibility')));
+  ok('official languages too', carrying('official-languages') === 2,
      String(carrying('official-languages')));
+  ok('and the one question that names both carries both',
+     ['accessibility', 'official-languages'].every((t) => (byId('B-Q14')?.topics ?? []).includes(t)),
+     (byId('B-Q14')?.topics ?? []).join(','));
+  ok('while the FAIR principles\' Accessible is not counted as accessibility',
+     !(byId('D-Q31')?.topics ?? []).includes('accessibility'), (byId('D-Q31')?.topics ?? []).join(','));
+  ok('and neither is data being accessible to other departments',
+     !(byId('D-Q33')?.topics ?? []).includes('accessibility'), (byId('D-Q33')?.topics ?? []).join(','));
+
   ok('and the note says who owns the real assignments',
      /Dan owns the real assignments/.test(rubric.topicsNote ?? ''));
-  ok('and names what would fill the empty two',
-     /Topics column/.test(rubric.topicsNote ?? ''));
+  ok('and names where the real assignments come from',
+     /Categories column/.test(rubric.topicsNote ?? ''));
+  ok('and says the two thin ones are thin and not absent',
+     /thin rather than absent/.test(rubric.topicsNote ?? ''));
 
   /**
    * A topic nobody declared is the one error in a question set that cannot be seen afterwards.

@@ -175,18 +175,30 @@ export function renderResults(root: HTMLElement, rubric: Rubric, a: Assessment, 
       ]));
     }
     /**
-     * A category with no questions in it is the most useful thing on this block.
+     * A category held up by two or three questions is the most useful thing on this block.
      *
-     * Dan named nine categories on 8 September. Two of them, Accessibility and Official
-     * Languages, match no question in the instrument: a sweep of all 176 found official
-     * languages in two and accessibility in three, always in another sense. Hiding an empty
-     * category makes the instrument look complete. Naming it is what gets it filled.
+     * An earlier version said Accessibility and Official Languages were empty, which was wrong:
+     * three questions ask about accessibility and two about official languages. The sweep that
+     * said otherwise counted hits without reading them, and "accessible" in the FAIR principles
+     * is not the same word as "accessibility" in policy.
+     *
+     * Thin is still worth saying. A score built on two questions moves a long way on one answer,
+     * and somebody reading it as though it were built on forty will draw the wrong conclusion.
      */
     const empty = r.topics.filter((x) => x.total === 0);
+    const thin = r.topics.filter((x) => x.total > 0 && x.total <= 3);
     if (empty.length) {
       tbox.appendChild(el('p', { class: 'muted small' }, [
         el('b', {}, [`Nothing in this question set asks about ${empty.map((x) => x.topic.label).join(' or ')}. `]),
         'The category is here because TBS named it. It scores nothing until a question is tagged with it.',
+      ]));
+    }
+    if (thin.length) {
+      tbox.appendChild(el('p', { class: 'muted small' }, [
+        el('b', {}, [
+          `${thin.map((x) => `${x.topic.label} rests on ${x.total} question${x.total === 1 ? '' : 's'}`).join(', and ')}. `,
+        ]),
+        'A score that thin moves a long way on one answer. Read it as a flag to go and ask, not as a measurement.',
       ]));
     }
     if (rubric.topicsNote) {

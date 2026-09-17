@@ -76,8 +76,8 @@ four numbers that each look fine.
 
 **The arithmetic.** A question counts **once** in the overall score, through its domain. It
 counts at **full weight** inside **every** topic it carries. The two do not reconcile and the
-results page says so. Today: 176 questions, 222 topic memberships; 132 carry only their own
-domain, 42 carry two, 2 carry three.
+results page says so. Today: 176 questions, 227 topic memberships; 130 carry only their own
+domain, 42 carry two, 4 carry three or more.
 
 **How Dan fills them in.** His workbook has one tab per domain. A question stays on its one
 tab, and a `Topics` column on that row lists the subjects **beyond** its own domain:
@@ -88,7 +88,13 @@ tab, and a `Topics` column on that row lists the subjects **beyond** its own dom
 | Data & Info | Q28 | Are data quality rules defined and measured... | |
 
 The column is found by its header, so it can sit anywhere in the sheet. Comma or semicolon
-separated, case and spacing ignored. A blank cell is the normal case. **A question is never
+separated, case and spacing ignored. A blank cell is the normal case, true of 130 of the 176.
+
+**Two categories rest on very little.** Accessibility is asked about by three questions and
+Official Languages by two. A score built on two questions moves a long way on one answer, so
+the results page says so beside the bar. An earlier version of this file said both were empty,
+which was wrong: the sweep counted hits without reading them, and "accessibility" the noun is
+not the same word as "accessible" in the FAIR principles. **A question is never
 duplicated into a second tab** — that would count it twice in the overall score and move the
 department's number for no reason but how we filed it. A name that is not one of the nine
 refuses the whole import and says which question and which name.
