@@ -370,6 +370,15 @@ export const risks = {
       accepted: 'Mariia, 14 September 2026',
     },
     {
+      id: 'RK9',
+      what: 'Somebody holding a code empties an assessment, and every answer is gone.',
+      because: 'The published rules grant update to whoever can name the document, and the name is the code. A rule cannot tell a legitimate save from somebody clearing 176 answers: it sees one write of one document by somebody entitled to write it. putAssessment sends the whole document with no field mask, so the ordinary save already replaces everything, and an emptied assessment is a save like any other. Two people typing at once is the same mechanism without the malice, and the later save wins over the whole record.',
+      likelihood: 'Low',
+      cost: 'An assessment is back to blank, in the store, where the assessor reads it. The browser that did the emptying has the blank version too, so reopening it recovers nothing. Anybody else who still has the work on their own machine can save it back; if nobody does, it is a rebuild from the file somebody last saved, and if nobody saved a file it is 176 questions answered again.',
+      doing: 'Carrying it, because the people holding codes are three testers and the rule that grants the write is what makes the tool work without accounts. It is the first thing to answer before a code goes to anybody outside that group, and there are two halves to the answer. A field mask on the write, which Firestore supports, stops a save touching what it did not change, so two co-authors stop overwriting each other and an accident is no longer possible. A rule that refuses a write emptying a question stops the deliberate version, and it is a rule that can be written. The mask is the smaller of the two and fixes the common case. The save trail shows the drop afterwards, because it records how many questions each save left answered, and it holds nothing that could put them back.',
+      accepted: 'Mariia, 17 September 2026',
+    },
+    {
       id: 'RK5',
       what: 'Somebody holding a code changes an assessment in a way its owner never sees.',
       because: 'The code grants a write, which is what sharing means here, and the tool cannot tell a co-author from a stranger who was forwarded the message.',
