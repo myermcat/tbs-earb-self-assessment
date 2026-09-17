@@ -1086,8 +1086,11 @@ code.mark-subject { display: block; margin: .25rem 0; }
 .triage td { overflow-wrap: anywhere; }
 /* A qualifier under a column heading, for a word that would otherwise read as the tool's own
    finding: State is what the department said about itself. */
+/* Paler than the heading it qualifies, which is also --ink-3: identical colour made the two
+   read as one heading. Asked for by name: "make self-marked by submitter paler". */
 .triage th .th-sub { display: block; font-weight: 500; text-transform: none; letter-spacing: 0;
-  font-size: .66rem; line-height: 1.15; color: var(--ink-3); margin-bottom: .12rem; }
+  font-size: .66rem; line-height: 1.15; margin-bottom: .12rem;
+  color: color-mix(in srgb, var(--ink-3) 72%, var(--surface)); }
 /* A heading may wrap onto two lines. A button in a cell may not: "Open" broke in half. */
 .triage th { white-space: normal; line-height: 1.15; vertical-align: bottom; }
 .triage .row-acts { display: flex; gap: .3rem; align-items: center; justify-content: flex-end; }
@@ -1404,16 +1407,31 @@ td.t0, td.t1, td.t2, td.t3, td.t4, td.t5, td.t6, td.t7, td.t8, td.t9, td.t10 { f
 
 /* ---------- flags ----------------------------------------------------------------------- */
 
-.flag { border-left: 3px solid var(--line-2); background: var(--surface-2);
+/**
+ * Severity is the rail and the dot. It is never a fill.
+ *
+ * "look like mishmash of colour. really hard to see anything." Measured on one Audit these
+ * screen: four tinted grounds and five rail colours at once, and two of the tints collided
+ * with the thing they sat inside. A medium finding was painted the same amber as the row
+ * holding it, and a low finding the same grey as the quotation beside it, so the finding read
+ * as part of its own container. One quiet ground for every severity fixes both: the panel says
+ * "a finding", the rail and the dot say which kind.
+ *
+ * --sev is declared once and spent twice, because the previous shape set border-color only.
+ * .sev-dot took currentColor, which is the text ink, so the one element whose entire job is to
+ * carry severity showed the same grey on all four.
+ */
+.flag { --sev: var(--line-2);
+  border-left: 3px solid var(--sev); background: var(--surface-2);
   padding: .5rem .7rem; margin-bottom: .45rem; border-radius: 0 var(--radius-sm) var(--radius-sm) 0; }
-.flag.sev-high   { border-color: var(--bad);  background: var(--bad-bg); }
-.flag.sev-medium { border-color: var(--warn); background: var(--warn-bg); }
-.flag.sev-low    { border-color: var(--ink-3); }
-.flag.sev-info   { border-color: var(--accent); background: var(--accent-soft); }
+.flag.sev-high   { --sev: var(--bad); }
+.flag.sev-medium { --sev: var(--warn); }
+.flag.sev-low    { --sev: var(--ink-3); }
+.flag.sev-info   { --sev: var(--accent); }
 .flag-title { display: flex; align-items: baseline; gap: .4rem; flex-wrap: wrap; }
 .challenge { font-style: italic; margin-top: .25rem; padding-left: .5rem;
   border-left: 2px solid color-mix(in srgb, currentColor 35%, transparent); }
-.sev-dot { width: .5rem; height: .5rem; border-radius: 999px; flex: 0 0 auto; background: currentColor; }
+.sev-dot { width: .5rem; height: .5rem; border-radius: 999px; flex: 0 0 auto; background: var(--sev); }
 
 /* ---------- tables ---------------------------------------------------------------------- */
 
@@ -1444,15 +1462,20 @@ td.num { text-align: right; font-family: var(--mono); font-variant-numeric: tabu
 .dropzone { border: 1.5px dashed var(--line-2); }
 .dropzone.over { border-color: var(--accent); background: var(--accent-soft); }
 .two-col { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.15rem; }
+/**
+ * A tint that every row carries is not a signal.
+ *
+ * Every row inside Audit these is flagged, so the amber ground marked 166 rows out of 166 and
+ * told the assessor nothing. Worse, it was the same amber as a medium finding, which meant the
+ * findings sank into the rows holding them. A row separates with its rule and its space now.
+ * Changed keeps a rail, because that one is rare and it is the assessor's own work.
+ */
 .audit-row { border-top: 1px solid var(--line); padding: .6rem 0; }
 .audit-row + .audit-row { margin-top: .85rem; }
-.audit-row.flagged, .audit-row.changed { border-top: 0; }
-.audit-row.flagged { background: var(--warn-bg); border-radius: var(--radius-sm);
-  padding: .6rem .6rem; box-shadow: inset 3px 0 0 var(--warn); }
-.audit-row.changed { box-shadow: inset 3px 0 0 var(--accent); background: var(--accent-soft);
+.audit-row.changed { border-top: 0; box-shadow: inset 3px 0 0 var(--accent);
   border-radius: var(--radius-sm); padding: .6rem; }
-.said { background: var(--surface-2); border-left: 2px solid var(--line-2);
-  padding: .3rem .55rem; border-radius: 0 var(--radius-sm) var(--radius-sm) 0; }
+/* A quotation, not a box. It held a grey fill that a low-severity finding also held. */
+.said { border-left: 2px solid var(--line-2); padding: .15rem .6rem; color: var(--ink-2); }
 .audit-controls { display: flex; gap: .45rem; align-items: center; flex-wrap: wrap; margin-top: .45rem; }
 .audit-controls label { font-size: .83rem; color: var(--ink-2); display: flex; align-items: center; gap: .3rem; }
 .audit-controls select, .audit-controls input[type=text] { width: auto; flex: 1 1 8rem; }
