@@ -119,22 +119,14 @@ def read_me():
          'categories, and the Categories column is where they go.')
     line()
     line('How to fill it in', 14, True)
-    line('1.  Click a cell under "Also about". A dropdown appears with the five categories.')
-    line('2.  Pick one. If the question is about a second thing, use the next column, and the '
-         'one after that for a third. Four questions out of 176 need all three.')
-    line('3.  Leave them empty when the question is only about its own domain. That is the '
-         'normal case: 130 of the 176.')
+    line('1.  Click a cell in the Categories column. A dropdown appears with the five.')
+    line('2.  Tick as many as apply. Most questions need none; 130 of the 176 stay empty, which '
+         'means "this one is only about its own domain".')
     line()
-    line('Three columns and not one because neither Google Sheets nor Excel has a dropdown you '
-         'can pick more than one thing from. Putting the combinations into a single list does '
-         'not work either: a dropdown list is itself comma separated, so "Security, Privacy" '
-         'splits into two entries. Three columns sharing one list is the shape that works with '
-         'nothing typed, and nothing typed means nothing mistyped.')
-    line()
-    line('If you do type into these cells, the tool checks every name when it reads this file '
-         'and refuses the whole import if one is not recognised, naming the question it was in. '
-         'A category nobody recognises would otherwise score nothing, on every screen, and never '
-         'be noticed.')
+    line('If you do type into these cells instead, the tool checks every name when it reads this '
+         'file and refuses the whole import if one is not recognised, naming the question it was '
+         'in. A category nobody recognises would otherwise score nothing, on every screen, and '
+         'never be noticed.')
     line()
     line('The nine categories', 14, True)
     line('Four are the domains themselves, filled in by the tab a question is on: Business, Data, '
@@ -174,7 +166,7 @@ def domain_sheet(d):
     ws = wb.create_sheet(d['label'][:31])
     ws.sheet_view.showGridLines = False
 
-    for i, w in enumerate([5, 6, 58] + [17] * len(CAT_HEADERS) + [13, 11, 15, 30], start=1):
+    for i, w in enumerate([5, 6, 58] + [30] * len(CAT_HEADERS) + [13, 11, 15, 30], start=1):
         ws.column_dimensions[get_column_letter(i)].width = w
     last = len(HEADERS)
 
@@ -256,8 +248,8 @@ def domain_sheet(d):
     for n in range(len(CAT_HEADERS)):
         col = get_column_letter(CAT_COL + n)
         picker(PICKS, [f'{col}4:{col}{r - 1}'],
-               'One subject this question is also about, beyond its own domain. Use the next '
-               'column for a second. Leave them empty when there are none.',
+               'The subjects this question is also about, beyond its own domain. Tick as many '
+               'as apply. Leave it empty when there are none.',
                'What else is it about?')
 
     tcol = get_column_letter(TYPE_COL)

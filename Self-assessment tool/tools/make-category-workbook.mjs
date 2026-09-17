@@ -57,23 +57,25 @@ const DOMAINS = [
 const ASKED = ['Security', 'Privacy', 'Financial', 'Accessibility', 'Official Languages'];
 
 /**
- * What every category dropdown offers, and why there are three of them.
+ * The five categories that have to be answered, as one dropdown on one column.
  *
- * A single cell holding several categories does not work in a spreadsheet, and the way it fails
- * is worth recording. The first attempt put the combinations into one dropdown as whole
- * entries: "Security, Privacy" as one choice. A validation list is itself comma separated, so
- * the list split those entries on their own commas and Google Sheets showed five choices
- * instead of eleven. Neither Sheets nor Excel has a multi-select dropdown.
+ * Two wrong turns got here, both recorded because the next person will be tempted by the first.
  *
- * So: one picker, three columns. The first is "Also about" and the next two are "and". A
- * question that is about one more thing uses one cell, one that is about three uses three, and
- * four questions out of 176 need the third. Nothing is typed, nothing can be mistyped, and
- * there is no combination explosion to maintain.
+ * The combinations as whole entries in one list: "Security, Privacy" as a single choice. A
+ * validation list is itself comma separated, so the list split those entries on their own
+ * commas and Sheets showed five choices instead of eleven.
+ *
+ * Three columns sharing one list, headed "Also about", "and", "and". It worked and it read
+ * terribly, and it was built on my own claim that a spreadsheet has no multi-select dropdown.
+ * Google Sheets does: a dropdown rule has an "Allow multiple selections" option, which is what
+ * this column uses. That option is a Sheets setting with no equivalent in the xlsx format, so
+ * it is switched on in the Sheet after conversion, and that step is written down in
+ * NOTES/HANDOFF-category-workbook.md rather than left as folklore.
  */
 const PICKS = ['Security', 'Privacy', 'Financial', 'Accessibility', 'Official Languages'];
 
-/** The headers of the three, in order. The importer finds them by these names. */
-const CAT_HEADERS = ['Also about', 'and', 'and '];
+/** One column. The importer finds it by this name, and still accepts the older spellings. */
+const CAT_HEADERS = ['Categories'];
 
 /* The CSVs are Windows-1252, which is what Excel writes on a Canadian English install. */
 const CP1252_HIGH = [
@@ -177,7 +179,9 @@ async function build(filled) {
         const named = ASKED.filter((a) => picked.includes(a.toLowerCase().replace(/ /g, '-')));
         out.push({
           kind: 'question', num: first, q: qNum, text: qText,
-          categories: [named[0] ?? '', named[1] ?? '', named[2] ?? ''],
+          // One cell holding every category, comma separated, which is what a multi-select
+          // dropdown puts in a cell and what the importer reads back out of it.
+          categories: [named.join(', ')],
           // Ours, and provisional, the same as the categories. Dan named this defect and gave
           // one example; the sheet shows our reading so he can confirm or overrule it.
           answerType: answerTypeOf.get(`${domainIdOf(d.label)}:${qNum}`) === 'yesno' ? 'Yes / No' : 'Scale 0-10',
