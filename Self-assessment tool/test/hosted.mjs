@@ -455,7 +455,12 @@ console.log('\nThe published build, signed in\n');
     listAnswer: { documents: [draft, ready].map(asDoc) },
   });
   const heads = [...doc.querySelectorAll('.triage thead th')].map((h) => h.textContent.trim());
-  ok('the pool has a column for whether it is finished', heads.includes('State'), heads.join(' | '));
+  ok('the pool has a column for whether it is finished',
+     heads.some((h) => h.startsWith('State')), heads.join(' | '));
+  // A column reading "Ready to review" with nothing saying who decided it invites somebody to
+  // read it as a status the tool worked out.
+  ok('and says the department decided it, not the tool',
+     heads.some((h) => /self-marked/i.test(h)), heads.join(' | '));
 
   const rows = [...doc.querySelectorAll('.triage tbody tr')];
   const cell = (tr) => tr.children[1]?.textContent?.trim();

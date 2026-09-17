@@ -5,7 +5,7 @@ import { codeField } from './code-field';
 import { guardDraft } from './guard';
 import { validate } from './rubric';
 import { completion } from './scoring';
-import { goToFirstGap, overviewFieldProgress, renderSubmit, resetOverviewToFirstGap, setRepaint,
+import { goToFirstGap, goToQuestion, overviewFieldProgress, renderSubmit, resetOverviewToFirstGap, setRepaint,
   setSaveOnline, setStopKey, showMarkingStep, takeSubmitTabs, currentStopKey } from './views-submit';
 import { handOff, renderResults } from './views-results';
 import { forgetPool, openedThisSession, renderReview, setAuditor } from './views-review';
@@ -533,7 +533,16 @@ function paint() {
 
   if (mode === 'home') renderHome(body);
   else if (mode === 'submit') renderSubmit(body, rubric, assessment, () => go('results'));
-  else if (mode === 'results') renderResults(body, rubric, assessment, () => go('submit'));
+  else if (mode === 'results') {
+    /**
+     * Opening a question from the category list. The questionnaire owns which stop it lives on
+     * and where the eye should land, so it is told which question and the shell just goes
+     * there.
+     */
+    renderResults(body, rubric, assessment, () => go('submit'), (qid) => {
+      if (goToQuestion(rubric, qid)) go('submit');
+    });
+  }
   else if (mode === 'settings') renderSettings(body);
   else if (gate) renderSignIn(body, () => paint());
   else if (access !== 'ok') renderNoAccess(body, access);
@@ -1491,8 +1500,8 @@ function paneBuild(pane: HTMLElement) {
     const c = coverage();
     pane.appendChild(setRow(
       t('Languages', 'Langues'),
-      t(`English is complete. French is partly written: the home page, the header, the questionnaire, the results and the dialogs carry it, and ${c.seen} strings have been asked for on the screens visited so far. The settings, the assessor screens and the admin screens are still English. The 176 questions and the scale are data from TBS, and their French is Dan's to write.`,
-        `L'anglais est complet. Le français est partiellement rédigé : la page d'accueil, l'en-tête, le questionnaire, les résultats et les fenêtres de confirmation en disposent, et ${c.seen} chaînes ont été demandées sur les écrans visités jusqu'ici. Les paramètres, les écrans de l'évaluateur et ceux de l'administration sont encore en anglais. Les 176 questions et l'échelle sont des données du SCT, et leur français revient à Dan.`),
+      t(`English is complete. French is partly written: the home page, the header, the questionnaire, the results and the dialogs carry it, and ${c.seen} strings have been asked for on the screens visited so far. The settings, the assessor screens and the admin screens are still English. The 176 questions and the scale are data from TBS, and their French belongs to TBS.`,
+        `L'anglais est complet. Le français est partiellement rédigé : la page d'accueil, l'en-tête, le questionnaire, les résultats et les fenêtres de confirmation en disposent, et ${c.seen} chaînes ont été demandées sur les écrans visités jusqu'ici. Les paramètres, les écrans de l'évaluateur et ceux de l'administration sont encore en anglais. Les 176 questions et l'échelle sont des données du SCT, et leur français revient au SCT.`),
       null,
       { tier: 'caution', badge: t('French incomplete', 'Français incomplet') },
     ));
@@ -1584,7 +1593,7 @@ function paneDocs(pane: HTMLElement) {
     }),
     linkCard({
       accent: '#7C5CB8', ghost: '\u2261',
-      eyebrow: 'For Dan \u00b7 Google Sheets',
+      eyebrow: 'For the question set \u00b7 Google Sheets',
       title: 'The question set, as a spreadsheet',
       body: 'His own four domain sheets with a Categories column to fill in, his Assessment Scale, and a Summary Dashboard that calculates. The same arithmetic as the tool, in a form he can check.',
       meta: ['Anybody with the link can comment'],
