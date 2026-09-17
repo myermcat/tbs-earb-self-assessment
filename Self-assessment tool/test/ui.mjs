@@ -105,7 +105,7 @@ q('.icon-btn[aria-label="Settings"]').click();
 ok('settings is a rail and a pane, not a stack of cards',
    !!q('.set-layout') && !!q('.set-nav') && !!q('.set-pane'));
 ok('five panes, named', qa('.set-navrow').map((b) => b.textContent).join('|') ===
-   'Question set|Your answers|Pages|This build|Start again',
+   'Question set|Your answers|Documentation|This build|Start again',
    qa('.set-navrow').map((b) => b.textContent).join('|'));
 ok('the gear opens the harmless one', q('.set-navrow.on').textContent === 'Question set',
    q('.set-navrow.on').textContent);
@@ -122,19 +122,23 @@ ok('the destructive pane is marked as dangerous in the rail itself',
   pane('Question set');
 }
 
-// The pages that are not this tool have their own pane. Under "This build" somebody looking for
-// the explanation had to read about version numbers first.
+/**
+ * Documentation is about the assessment; This build is about this copy of the tool. The
+ * explanation and the spreadsheet are the first kind, the requirements and the backlog the
+ * second, and one pane holding all four made somebody looking for the explanation read about
+ * version numbers first.
+ */
 {
-  pane('Pages');
+  pane('Documentation');
   /**
    * The pages that are not this tool are cards and not rows. A setting is a sentence with a
    * control beside it; these are destinations, and the shape is the course-hub card so that
    * somebody finds the one they want without reading anything.
    */
   const cards = [...qa('.hub-cards .hub-card')];
-  ok('the pages that explain this are cards', cards.length === 5, String(cards.length));
-  ok('the two spreadsheets are among them',
-     cards.filter((c) => /docs\.google\.com\/spreadsheets/.test(c.getAttribute('href') ?? '')).length === 2,
+  ok('documentation holds the explanation and the spreadsheet', cards.length === 2, String(cards.length));
+  ok('one of them is the spreadsheet, which is where the categories are decided',
+     cards.filter((c) => /docs\.google\.com\/spreadsheets/.test(c.getAttribute('href') ?? '')).length === 1,
      cards.map((c) => c.getAttribute('href')).join(' | '));
   ok('and an eyebrow, a title and a call to action',
      cards.every((c) => c.querySelector('.hub-eyebrow') && c.querySelector('h3') && c.querySelector('.hub-go')));
@@ -142,9 +146,8 @@ ok('the destructive pane is marked as dangerous in the rail itself',
      cards.some((c) => /domains-and-categories\.html$/.test(c.getAttribute('href') ?? '')
        && /no sign-in/i.test(c.querySelector('.hub-eyebrow')?.textContent ?? '')),
      cards.map((c) => c.getAttribute('href')).join(' | '));
-  ok('and the backlog opens from here',
-     cards.some((c) => (c.getAttribute('href') ?? '').endsWith('/backlog.html')),
-     cards.map((c) => c.getAttribute('href')).join(' | '));
+  ok('and the backlog is not here, because it is a fact about the build, not about the assessment',
+     !cards.some((c) => (c.getAttribute('href') ?? '').endsWith('/backlog.html')));
   ok('every one of them opens in a new tab and cannot reach back',
      cards.every((c) => c.getAttribute('target') === '_blank' && /noopener/.test(c.getAttribute('rel') ?? '')));
   pane('Question set');
