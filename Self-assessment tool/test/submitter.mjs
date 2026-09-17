@@ -122,6 +122,8 @@ console.log('\nThe submitter, with no account\n');
   const said = page.window.document.querySelector('#app').textContent;
   ok('the assessor page opens on the assessor side', /Sign in/.test(said), said.slice(0, 90));
   ok('and not on the questionnaire', !/Start an assessment|What to expect/.test(said), said.slice(0, 90));
+  ok('and offers no way out of it, because there is nothing at this address to go to',
+     !/Leave assessor view/.test(said), said.slice(0, 120));
 }
 
 /* --------------------------------------------------------------------------------------- */
