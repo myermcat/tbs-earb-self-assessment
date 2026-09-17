@@ -2,6 +2,7 @@ import { el, clear } from './dom';
 import { onSaveStateChange, saveStatus } from './storage';
 import { t } from './i18n';
 import { isHosted } from './store';
+import { hasAccounts } from './who';
 
 /**
  * Where the work is, on every screen.
@@ -25,10 +26,18 @@ export function saveBadge(openDetail: () => void): HTMLElement {
   // see this yet.
   const TITLE: Record<string, string> = {
     idle: t('Nothing written yet', 'Rien n\u2019a encore été enregistré'),
-    local: isHosted()
+    // Three answers, because the thing standing between this work and the store is different
+    // in each. On the accounts build it is a sign-in. On the code build it is one press, and
+    // telling somebody to sign in there names a thing this tool does not have.
+    local: isHosted() && hasAccounts()
       ? t(
           'Saved on this computer only. Sign in to save it online as well. Click for the detail.',
           'Enregistré sur cet ordinateur seulement. Connectez-vous pour l\u2019enregistrer aussi en ligne. Cliquez pour le détail.',
+        )
+      : isHosted()
+      ? t(
+          'Saved on this computer only. Press Save online to put a copy in the shared store. Click for the detail.',
+          'Enregistré sur cet ordinateur seulement. Appuyez sur Enregistrer en ligne pour en placer une copie dans le dépôt partagé. Cliquez pour le détail.',
         )
       : t(
           'Saved on this computer only. This copy of the tool has nowhere online to save to. Click for the detail.',
