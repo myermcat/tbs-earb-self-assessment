@@ -28,7 +28,7 @@
   --accent-soft: #eaf0fb;
   --accent-line: #b9caea;
 
-  /* Dan's eleven score colours, as an even ramp */
+  /* The question set's eleven score colours, as an even ramp */
   --s0:  #1b1d21;  --s1:  #7f1d1d;  --s2:  #c0392b;  --s3:  #d97528;
   --s4:  #d9a520;  --s5:  #c9b528;  --s6:  #8faa23;  --s7:  #3f8f4a;
   --s8:  #1f6b3c;  --s9:  #2a6fbd;  --s10: #6c4bb0;
@@ -886,7 +886,7 @@ details[open] > .section-summary::before { transform: rotate(90deg); }
 tr.red-flag td { background: var(--bad-bg); }
 tr.red-flag td:first-child { box-shadow: inset 2px 0 0 var(--bad); }
 
-/* the 0-10 selector, in Dan's colours */
+/* the 0-10 selector, in the question set's own colours */
 .score-line { display: flex; gap: .5rem; flex-wrap: wrap; align-items: center; margin: .5rem 0 .35rem; }
 .score-row { display: flex; gap: .2rem; flex-wrap: wrap; align-items: center; }
 .score-btn[aria-disabled='true'] { opacity: .3; }
@@ -1084,6 +1084,13 @@ code.mark-subject { display: block; margin: .25rem 0; }
 /* A badge that cannot wrap is a column that cannot shrink. */
 .triage .badge { white-space: normal; margin-left: 0; }
 .triage td { overflow-wrap: anywhere; }
+/* A qualifier under a column heading, for a word that would otherwise read as the tool's own
+   finding: State is what the department said about itself. */
+/* Paler than the heading it qualifies, which is also --ink-3: identical colour made the two
+   read as one heading. Asked for by name: "make self-marked by submitter paler". */
+.triage th .th-sub { display: block; font-weight: 500; text-transform: none; letter-spacing: 0;
+  font-size: .66rem; line-height: 1.15; margin-bottom: .12rem;
+  color: color-mix(in srgb, var(--ink-3) 72%, var(--surface)); }
 /* A heading may wrap onto two lines. A button in a cell may not: "Open" broke in half. */
 .triage th { white-space: normal; line-height: 1.15; vertical-align: bottom; }
 .triage .row-acts { display: flex; gap: .3rem; align-items: center; justify-content: flex-end; }
@@ -1400,16 +1407,31 @@ td.t0, td.t1, td.t2, td.t3, td.t4, td.t5, td.t6, td.t7, td.t8, td.t9, td.t10 { f
 
 /* ---------- flags ----------------------------------------------------------------------- */
 
-.flag { border-left: 3px solid var(--line-2); background: var(--surface-2);
+/**
+ * Severity is the rail and the dot. It is never a fill.
+ *
+ * "look like mishmash of colour. really hard to see anything." Measured on one Audit these
+ * screen: four tinted grounds and five rail colours at once, and two of the tints collided
+ * with the thing they sat inside. A medium finding was painted the same amber as the row
+ * holding it, and a low finding the same grey as the quotation beside it, so the finding read
+ * as part of its own container. One quiet ground for every severity fixes both: the panel says
+ * "a finding", the rail and the dot say which kind.
+ *
+ * --sev is declared once and spent twice, because the previous shape set border-color only.
+ * .sev-dot took currentColor, which is the text ink, so the one element whose entire job is to
+ * carry severity showed the same grey on all four.
+ */
+.flag { --sev: var(--line-2);
+  border-left: 3px solid var(--sev); background: var(--surface-2);
   padding: .5rem .7rem; margin-bottom: .45rem; border-radius: 0 var(--radius-sm) var(--radius-sm) 0; }
-.flag.sev-high   { border-color: var(--bad);  background: var(--bad-bg); }
-.flag.sev-medium { border-color: var(--warn); background: var(--warn-bg); }
-.flag.sev-low    { border-color: var(--ink-3); }
-.flag.sev-info   { border-color: var(--accent); background: var(--accent-soft); }
+.flag.sev-high   { --sev: var(--bad); }
+.flag.sev-medium { --sev: var(--warn); }
+.flag.sev-low    { --sev: var(--ink-3); }
+.flag.sev-info   { --sev: var(--accent); }
 .flag-title { display: flex; align-items: baseline; gap: .4rem; flex-wrap: wrap; }
 .challenge { font-style: italic; margin-top: .25rem; padding-left: .5rem;
   border-left: 2px solid color-mix(in srgb, currentColor 35%, transparent); }
-.sev-dot { width: .5rem; height: .5rem; border-radius: 999px; flex: 0 0 auto; background: currentColor; }
+.sev-dot { width: .5rem; height: .5rem; border-radius: 999px; flex: 0 0 auto; background: var(--sev); }
 
 /* ---------- tables ---------------------------------------------------------------------- */
 
@@ -1440,15 +1462,20 @@ td.num { text-align: right; font-family: var(--mono); font-variant-numeric: tabu
 .dropzone { border: 1.5px dashed var(--line-2); }
 .dropzone.over { border-color: var(--accent); background: var(--accent-soft); }
 .two-col { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.15rem; }
+/**
+ * A tint that every row carries is not a signal.
+ *
+ * Every row inside Audit these is flagged, so the amber ground marked 166 rows out of 166 and
+ * told the assessor nothing. Worse, it was the same amber as a medium finding, which meant the
+ * findings sank into the rows holding them. A row separates with its rule and its space now.
+ * Changed keeps a rail, because that one is rare and it is the assessor's own work.
+ */
 .audit-row { border-top: 1px solid var(--line); padding: .6rem 0; }
 .audit-row + .audit-row { margin-top: .85rem; }
-.audit-row.flagged, .audit-row.changed { border-top: 0; }
-.audit-row.flagged { background: var(--warn-bg); border-radius: var(--radius-sm);
-  padding: .6rem .6rem; box-shadow: inset 3px 0 0 var(--warn); }
-.audit-row.changed { box-shadow: inset 3px 0 0 var(--accent); background: var(--accent-soft);
+.audit-row.changed { border-top: 0; box-shadow: inset 3px 0 0 var(--accent);
   border-radius: var(--radius-sm); padding: .6rem; }
-.said { background: var(--surface-2); border-left: 2px solid var(--line-2);
-  padding: .3rem .55rem; border-radius: 0 var(--radius-sm) var(--radius-sm) 0; }
+/* A quotation, not a box. It held a grey fill that a low-severity finding also held. */
+.said { border-left: 2px solid var(--line-2); padding: .15rem .6rem; color: var(--ink-2); }
 .audit-controls { display: flex; gap: .45rem; align-items: center; flex-wrap: wrap; margin-top: .45rem; }
 .audit-controls label { font-size: .83rem; color: var(--ink-2); display: flex; align-items: center; gap: .3rem; }
 .audit-controls select, .audit-controls input[type=text] { width: auto; flex: 1 1 8rem; }
@@ -1699,3 +1726,101 @@ dialog.confirm.shake { animation: cf-shake .34s cubic-bezier(.36, .07, .19, .97)
   .hub-card:hover { transform: none; }
 }
 @media (max-width: 520px) { .hub-card { padding: 1.3rem 1.2rem 1.15rem; } .hub-ghost { font-size: 4rem; } }
+
+/* ---------- a category, opened -------------------------------------------------------------
+   The bar is the summary and the questions behind it are the detail. A number with nothing
+   behind it is a number somebody has to take on trust, and the first thing anybody does with a
+   low category score is ask which questions made it low. */
+.cat-open { border-bottom: 1px solid var(--line); }
+.cat-open:last-of-type { border-bottom: none; }
+/* A fourth track for the chevron. It was floated instead, which in a three-column grid makes
+   it a fourth grid item: it sat on an implicit row under the bar and jumped when the row
+   reflowed on open. A float has no business inside a grid. */
+.cat-open > summary.bar-row {
+  /* Said outright. A <summary> is display:list-item by default, and relying on .bar-row to
+     turn it into a grid leaves the outcome to rule order. */
+  display: grid;
+  cursor: pointer; list-style: none; border-radius: 6px;
+  grid-template-columns: minmax(9rem, 14rem) 1fr 3.2rem 1.1rem;
+  align-items: center;
+}
+.cat-open > summary::-webkit-details-marker { display: none; }
+.cat-open > summary::after {
+  content: "\203A";
+  color: var(--ink-3); font-size: 1.05rem; line-height: 1;
+  justify-self: end; align-self: center;
+  transition: transform .18s;
+}
+.cat-open[open] > summary::after { transform: rotate(90deg); }
+.cat-open > summary:hover .bar-label { color: var(--accent); }
+.cat-open > summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.cat-list { display: flex; flex-direction: column; gap: .2rem; margin: .5rem 0 1rem; }
+.cat-q {
+  display: grid; grid-template-columns: 2.3rem 1fr 1rem; gap: .7rem; align-items: baseline;
+  width: 100%; text-align: left; padding: .5rem .6rem;
+  background: none; border: none; border-radius: 7px;
+  font: inherit; font-size: .88rem; color: var(--ink-2); cursor: pointer;
+}
+.cat-q:hover { background: var(--surface-2); color: var(--ink); }
+.cat-q:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.cat-q-score {
+  font-family: var(--mono); font-variant-numeric: tabular-nums; font-weight: 600;
+  font-size: .82rem; text-align: right;
+}
+.cat-q-score.dim { color: var(--ink-3); font-weight: 400; font-size: .72rem; }
+.cat-q-text { min-width: 0; }
+.cat-q-where { display: block; font-size: .74rem; color: var(--ink-3); margin-top: .1rem; }
+.cat-q-go { color: var(--ink-3); transition: transform .16s; }
+.cat-q:hover .cat-q-go { transform: translateX(3px); color: var(--accent); }
+
+/* Where the eye should land after a jump. Twenty near-identical question cards do not tell
+   anybody which one they were brought to, and they clicked a specific question by name. */
+.q-block.brought-here, [data-qid].brought-here {
+  animation: brought-here 2.4s ease-out both;
+  border-radius: 10px;
+}
+@keyframes brought-here {
+  0%, 55% { box-shadow: 0 0 0 3px var(--accent-line), 0 0 0 8px var(--accent-soft); }
+  100% { box-shadow: 0 0 0 3px transparent, 0 0 0 8px transparent; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .cat-open > summary::after, .cat-q-go { transition: none; }
+  .q-block.brought-here, [data-qid].brought-here { animation: none; box-shadow: 0 0 0 3px var(--accent-line); }
+}
+
+/* ---------- where the score comes from, as one block ---------------------------------------
+   Two panels inside one frame: the domains that build the number, and the same answers cut by
+   category. They were two loose subsections under a heading and read as two unrelated lists. */
+.cuts {
+  border: 1px solid var(--line); border-radius: 12px;
+  background: var(--surface); overflow: hidden;
+}
+.cuts > .cut { padding: 1.15rem 1.25rem 1.3rem; margin: 0; }
+.cuts > .cut + .cut { border-top: 1px solid var(--line); }
+.cuts > .cut > h3 { margin-top: 0; }
+@media (max-width: 520px) { .cuts > .cut { padding: 1rem .9rem 1.1rem; } }
+
+/* ---------- the verdict card ---------------------------------------------------------------
+   It is the summary of everything and it was reading as the first paragraph of one long block
+   of text. So the card carries its own ground and a little more air, and the code sits on its
+   own line with a word saying what it is: inline it pressed against the department name with
+   nothing between them but a space. */
+.verdict { background: var(--surface-2); padding-top: 1.5rem; padding-bottom: 1.4rem; }
+.verdict-where { margin-bottom: 0; }
+.verdict-code {
+  display: flex; align-items: center; gap: .6rem; flex-wrap: wrap;
+  margin-top: .85rem; padding-top: .8rem;
+  border-top: 1px solid var(--line);
+}
+.verdict-code-key {
+  font-size: .72rem; letter-spacing: .06em; text-transform: uppercase;
+  color: var(--ink-3); font-weight: 650;
+}
+/* Room around it, so it reads as a control and not as a run of characters in a sentence. */
+.verdict-code .code-chip-btn { padding: .3rem .6rem; }
+
+/* The assessor's copy of the category list is read-only: an opinion about a question belongs in
+   the audit, which is its own screen with its own reasons attached. */
+.cat-q-flat { cursor: default; grid-template-columns: 2.3rem 1fr; }
+.cat-q-flat:hover { background: none; color: var(--ink-2); }

@@ -331,7 +331,7 @@ const rubric = {
   status: 'draft',
   title: 'GC Enterprise Architecture self-assessment',
   provenance:
-    'Imported by tools/import-rubric.mjs from Dan\'s GC_EA_Assessment_Tool workbook (6 sheets) in "EARB target state knowledge base". Questions, section names, section weights, domain weights and the 0-10 ladder are all his. Added by us and marked as such: lifecycle stages, the stage rule on "Defining the Current State" sections, and the routing bands.',
+    'Imported by tools/import-rubric.mjs from the TBS GC_EA_Assessment_Tool workbook (6 sheets). Questions, section names, section weights, domain weights and the 0-10 ladder all come from it unchanged. Added by us and marked as such: lifecycle stages, the stage rule on "Defining the Current State" sections, and the routing bands.',
   dlgBaseUrl: 'https://myermcat.github.io/digital-lifecycle-guide',
   dlgBaseUrlNote: 'The guide, on GitHub Pages for now. Each stage points at its own page there.',
   importWarnings: warnings,
@@ -345,7 +345,7 @@ const rubric = {
     { min: 3, label: 'Developing',       detail: 'Foundational elements exist but architecture is immature and at risk under stress.' },
     { min: 0, label: 'Critical Risk',    detail: 'Immediate intervention required. Core capabilities absent or severely compromised.' },
   ],
-  maturityBandsNote: "Dan's own reference guide, from the Summary Dashboard sheet.",
+  maturityBandsNote: "The question set's own reference guide, from its Summary Dashboard sheet.",
 
   bands: [
     { id: 'showcase', min: 8.5, label: 'Showcase',             routing: 'No board slot needed. TBS may ask to showcase this work.', tone: 'good' },
@@ -354,7 +354,7 @@ const rubric = {
     { id: 'attend',   min: 0.0, label: 'Bring it to the board', routing: 'Suggested: attend GC EARB. Come and tell us why, and what the plan is.', tone: 'bad' },
   ],
   bandsNote:
-    'ROUTING, not maturity, and provisional. Dan named three numbers out loud on 2026-08-26: above ' +
+    'ROUTING, not maturity, and provisional. TBS named three numbers on 2026-08-26: above ' +
     'roughly 60% is an automatic hall pass, around 8.5 is worth showcasing, and around 2 out of 10 means ' +
     'come and explain. He also said the 4, 5, 6 middle is not worth board time. The 3.0 line between ' +
     '"come and explain" and "no board time" is OURS, interpolated to bridge the 2 he named and the 4 he ' +
@@ -362,33 +362,33 @@ const rubric = {
 
   stageMultipliers: { 'low-ok': 0.25, expected: 1, critical: 1.5 },
   stageMultipliersNote:
-    'Our addition. Lifecycle stage is not captured in the current process at all - Dan named it as the key missing field. Only "Defining the Current State" sections carry a rule so far.',
+    'Our addition. Lifecycle stage is not captured in the current process at all - TBS named it as the key missing field. Only "Defining the Current State" sections carry a rule so far.',
 
   topics: [
     { id: 'business',    label: 'Business',    note: 'Strategy, process, value and cost.' },
     { id: 'data',        label: 'Data',        note: 'Models, quality, lineage and stewardship.' },
     { id: 'application', label: 'Application', note: 'What the software does and depends on.' },
     { id: 'technology',  label: 'Technology',  note: 'Where it runs, and whether it stays up.' },
-    { id: 'security',    label: 'Security',    note: 'Cuts across all four. Dan asked for this one by name.' },
+    { id: 'security',    label: 'Security',    note: 'Cuts across all four. Asked for by name by TBS.' },
     { id: 'privacy',     label: 'Privacy',     note: 'Personal information specifically, and not data in general.' },
-    { id: 'financial',   label: 'Financial',   note: 'Cost, funding and value for money. Dan asked for this one by name.' },
+    { id: 'financial',   label: 'Financial',   note: 'Cost, funding and value for money. Asked for by name by TBS.' },
     { id: 'accessibility', label: 'Accessibility',
-      note: 'Dan asked for this one by name. No question in the instrument asks about it yet, so it is empty until he tags the rows.' },
+      note: 'Asked for by name by TBS. No question in the instrument asks about it yet, so it is empty until he tags the rows.' },
     { id: 'official-languages', label: 'Official Languages',
-      note: 'Dan asked for this one by name. No question in the instrument asks about it yet, so it is empty until he tags the rows.' },
+      note: 'Asked for by name by TBS. No question in the instrument asks about it yet, so it is empty until he tags the rows.' },
   ],
   answerTypesNote:
-    'PROVISIONAL. Dan named this defect: several questions are yes or no wearing a 0 to 10 scale. ' +
+    'PROVISIONAL. Named by TBS as a defect: several questions are yes or no wearing a 0 to 10 scale. ' +
     'The ones marked yesno here are the ones whose wording is unambiguously binary. He owns the real ' +
     'list. A no on a yes/no question raises a red flag: it colours the section and the person carries ' +
     'on. Nothing in this tool stops an assessment.',
   topicsNote:
     'A second axis. The four domains still produce the overall score and a question counts once '
     + 'there. A question also counts at full weight inside every category it carries, which is '
-    + 'where the weights genuinely differ. Dan named nine on 8 September: Business, Data, '
+    + 'where the weights genuinely differ. TBS named nine on 8 September: Business, Data, '
     + 'Application, Technology, Security, Privacy, Accessibility, Official Languages and '
     + 'Financial. The four domain categories are mechanical. The other five are read from the '
-    + 'wording of each question and are PROVISIONAL: Dan owns the real assignments, and the '
+    + 'wording of each question and are PROVISIONAL: TBS owns the real assignments, and the '
     + 'Categories column in his workbook is where they come from. Accessibility and Official '
     + 'Languages are thin rather than absent, at three questions and two, which is worth knowing '
     + 'before anybody reads a score for either.',

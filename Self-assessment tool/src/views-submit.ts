@@ -102,6 +102,31 @@ export function goToFirstGap(rubric: Rubric, a: Assessment): boolean {
 }
 
 /**
+ * Take the reader to one particular question, wherever it lives.
+ *
+ * The category block on the results page lists questions by subject, and a list of questions
+ * you cannot act on is a list that sends somebody hunting through twenty pages. The stop and
+ * the scroll target are the same two pieces of state the "next gap" control already sets, so
+ * this is the existing seam with a different way in.
+ *
+ * Editing in place on the results page was the alternative and was rejected: a score needs its
+ * 0-to-10 anchors, its stage expectation, its help text, its evidence rows and its
+ * justification box, which is most of a question card. Two places to maintain the hardest UI
+ * in the tool is two places for them to drift.
+ */
+export function goToQuestion(rubric: Rubric, questionId: string): boolean {
+  for (const d of rubric.domains) {
+    for (const sec of d.sections) {
+      if (!sec.questions.some((q) => q.id === questionId)) continue;
+      page = `${d.id}/${sec.id}`;
+      scrollToQuestion = questionId;
+      return true;
+    }
+  }
+  return false;
+}
+
+/**
  * Repainting only this view leaves the shell stale - most visibly the classification banner,
  * which the shell draws. The shell hands us its own paint so a marking change is reflected
  * everywhere at once.
@@ -218,8 +243,21 @@ export function renderSubmit(
   if (scrollToQuestion) {
     const target = sheet.querySelector(`[data-qid="${cssId(scrollToQuestion)}"]`);
     scrollToQuestion = null;
-    if (target && typeof (target as HTMLElement).scrollIntoView === 'function') {
-      (target as HTMLElement).scrollIntoView({ block: 'center' });
+    if (target) {
+      const node = target as HTMLElement;
+      /**
+       * Say which one, for a moment. Scrolling a question into the middle of a screen of
+       * near-identical question cards does not tell anybody which one they were brought to, and
+       * somebody arriving from the category list clicked a specific question by name.
+       *
+       * The mark is outside the scroll guard on purpose. It used to be inside it, and a browser
+       * with no scrollIntoView got neither, which is also every test.
+       */
+      node.classList.add('brought-here');
+      if (typeof window !== 'undefined' && typeof window.setTimeout === 'function') {
+        window.setTimeout(() => node.classList.remove('brought-here'), 2600);
+      }
+      if (typeof node.scrollIntoView === 'function') node.scrollIntoView({ block: 'center' });
     }
   }
 }

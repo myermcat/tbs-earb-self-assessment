@@ -1,7 +1,7 @@
 import type { Assessment, Rubric } from './types';
 import { el, clear, tone, bar } from './dom';
 import { codeChip } from './code-chip';
-import { nextAnchor, score, strongest, weakest, type Result } from './scoring';
+import { allQuestionScores, nextAnchor, score, strongest, weakest, type Result } from './scoring';
 import { flags } from './flags';
 import { autosave } from './storage';
 import { markingProblems } from './marking';
@@ -17,7 +17,13 @@ import { confirmStep } from './confirm';
  * What the submitter sees. Deliberately ordered: the number, then the routing,
  * then where they are weak and what to do about it. Detail is available but folded away.
  */
-export function renderResults(root: HTMLElement, rubric: Rubric, a: Assessment, onBack: () => void): void {
+export function renderResults(
+  root: HTMLElement,
+  rubric: Rubric,
+  a: Assessment,
+  onBack: () => void,
+  onOpenQuestion: (questionId: string) => void = () => {},
+): void {
   clear(root);
   addSnapHint(root);
   const r = score(rubric, a);
@@ -38,7 +44,7 @@ export function renderResults(root: HTMLElement, rubric: Rubric, a: Assessment, 
     el('i', { class: 'verdict-edge', 'aria-hidden': true }),
     el('div', { class: 'headline-text' }, [
       el('h1', {}, [a.initiative.name || t('Untitled initiative', 'Initiative sans titre')]),
-      el('p', { class: 'muted' }, [
+      el('p', { class: 'muted verdict-where' }, [
         [a.initiative.department, rubric.lifecycleStages.find((s) => s.id === a.initiative.lifecycleStage)?.label]
           .filter(Boolean).join(' - ') || t('No department or stage set', 'Aucun ministère ni étape indiqué'),
         /**
@@ -54,8 +60,13 @@ export function renderResults(root: HTMLElement, rubric: Rubric, a: Assessment, 
          * code beside it, from the same alphabet, with nothing on screen saying which was
          * which. There is one now.
          */
-        a.id ? codeChip(a.id) : null,
       ]),
+      a.id
+        ? el('div', { class: 'verdict-code' }, [
+            el('span', { class: 'verdict-code-key' }, [t('Reference code', 'Code de référence')]),
+            codeChip(a.id),
+          ])
+        : null,
       r.maturity
         ? el('div', { class: 'maturity' }, [
             el('strong', {}, [r.maturity.label]),
@@ -132,7 +143,15 @@ export function renderResults(root: HTMLElement, rubric: Rubric, a: Assessment, 
   ]);
   root.appendChild(r1);
 
-  const bars = el('div', { class: 'res-sub' }, [el('h3', {}, ['By architecture domain'])]);
+  /**
+   * One block called "Where the score comes from", holding two panels: the domains that build
+   * the number, and the categories that cut the same answers a second way. They were two loose
+   * subsections under a heading and read as two unrelated lists.
+   */
+  const cuts = el('div', { class: 'cuts' });
+  r1.appendChild(cuts);
+
+  const bars = el('div', { class: 'res-sub cut' }, [el('h3', {}, ['By architecture domain'])]);
   for (const d of r.domains) {
     bars.appendChild(el('div', { class: 'bar-row' }, [
       el('div', { class: 'bar-label' }, [d.domain.label, el('span', { class: 'muted small' }, [` ${d.weight}% of the total`])]),
@@ -142,7 +161,7 @@ export function renderResults(root: HTMLElement, rubric: Rubric, a: Assessment, 
       el('div', { class: `bar-num ${tone(d.score)}` }, [d.score === null ? '--' : d.score.toFixed(1)]),
     ]));
   }
-  r1.appendChild(bars);
+  cuts.appendChild(bars);
 
   // The same answers cut a second way. Security questions sit in all four domains, so a
   // department that is weak on security cannot see it in the domain bars: the weakness is
@@ -161,60 +180,74 @@ export function renderResults(root: HTMLElement, rubric: Rubric, a: Assessment, 
   const domainIds = new Set(rubric.domains.map((d) => d.id));
   const withTopics = r.topics.filter((t) => t.total > 0 && !domainIds.has(t.topic.id));
   if (withTopics.length) {
-    const tbox = el('div', { class: 'res-sub' }, [
-      el('h3', {}, ['Across the domains']),
+    const tbox = el('div', { class: 'res-sub cut' }, [
+      el('h3', {}, ['By category']),
+      /**
+       * Plainly, and without the badge.
+       *
+       * "The same answers, cut by subject" said nothing anybody could act on, and "provisional
+       * grouping" is a note between us and TBS about who owns the assignments. A department
+       * filling this in has no use for either.
+       */
       el('p', { class: 'muted small' }, [
-        'The same answers, cut by subject. A question can be about two ',
-        'things at once, so these do not add up to the overall.',
-        rubric.topicsNote ? el('span', { class: 'badge badge-warn' }, ['provisional grouping']) : null,
+        'The same questions again, grouped by what they are about. One question can be in ',
+        'several categories at once, so these do not add up to the overall.',
       ]),
     ]);
-    for (const t of withTopics) {
-      tbox.appendChild(el('div', { class: 'bar-row' }, [
-        el('div', { class: 'bar-label' }, [
-          t.topic.label,
-          el('span', { class: 'muted small' }, [` ${t.answered} of ${t.total} answered`]),
-          t.redFlags.length
-            ? el('span', { class: 'badge badge-bad' }, [`${t.redFlags.length} answered no`])
-            : null,
-        ]),
-        el('div', { class: 'bar-track' }, [
-          el('div', { class: `bar-fill ${bar(t.score)}`, style: `width:${((t.score ?? 0) / 10) * 100}%` }),
-        ]),
-        el('div', { class: `bar-num ${tone(t.score)}` }, [t.score === null ? '--' : t.score.toFixed(1)]),
-      ]));
-    }
     /**
-     * A category held up by two or three questions is the most useful thing on this block.
+     * Each bar opens onto its own questions.
      *
-     * An earlier version said Accessibility and Official Languages were empty, which was wrong:
-     * three questions ask about accessibility and two about official languages. The sweep that
-     * said otherwise counted hits without reading them, and "accessible" in the FAIR principles
-     * is not the same word as "accessibility" in policy.
-     *
-     * Thin is still worth saying. A score built on two questions moves a long way on one answer,
-     * and somebody reading it as though it were built on forty will draw the wrong conclusion.
+     * A number with nothing behind it is a number somebody has to take on trust, and the first
+     * thing anybody does with a low category score is ask which questions made it low. Before
+     * this they had to hunt through twenty pages for them. It opens in place, so nobody loses
+     * the page they were reading, and each question is a control that takes you to it.
      */
-    const empty = r.topics.filter((x) => x.total === 0 && !domainIds.has(x.topic.id));
-    const thin = r.topics.filter((x) => x.total > 0 && x.total <= 3 && !domainIds.has(x.topic.id));
-    if (empty.length) {
-      tbox.appendChild(el('p', { class: 'muted small' }, [
-        el('b', {}, [`Nothing in this question set asks about ${empty.map((x) => x.topic.label).join(' or ')}. `]),
-        'The category is here because TBS named it. It scores nothing until a question is tagged with it.',
-      ]));
+    const domainOf = new Map<string, string>();
+    for (const d of rubric.domains) {
+      for (const sec of d.sections) for (const q of sec.questions) domainOf.set(q.id, d.label);
     }
-    if (thin.length) {
-      tbox.appendChild(el('p', { class: 'muted small' }, [
-        el('b', {}, [
-          `${thin.map((x) => `${x.topic.label} rests on ${x.total} question${x.total === 1 ? '' : 's'}`).join(', and ')}. `,
+
+    for (const cat of withTopics) {
+      const mine = allQuestionScores(r)
+        .filter((qs) => (qs.question.topics ?? []).includes(cat.topic.id))
+        .sort((x, y) => (x.answered ? (x.raw as number) : 99) - (y.answered ? (y.raw as number) : 99));
+
+      const rows = el('div', { class: 'cat-list' }, mine.map((qs) => {
+        const ans = a.answers[qs.question.id];
+        const said = qs.answered ? (qs.raw as number).toFixed(0)
+          : ans?.na ? t('n/a', 's.o.') : t('not yet', 'pas encore');
+        return el('button', {
+          class: 'cat-q',
+          onclick: () => onOpenQuestion(qs.question.id),
+        }, [
+          el('span', { class: `cat-q-score ${qs.answered ? tone(qs.raw as number) : 'dim'}` }, [said]),
+          el('span', { class: 'cat-q-text' }, [
+            qs.question.text,
+            el('span', { class: 'cat-q-where' }, [domainOf.get(qs.question.id) ?? '']),
+          ]),
+          el('span', { class: 'cat-q-go', 'aria-hidden': true }, ['\u2192']),
+        ]);
+      }));
+
+      const open = el('details', { class: 'cat-open' }, [
+        el('summary', { class: 'bar-row' }, [
+          el('div', { class: 'bar-label' }, [
+            cat.topic.label,
+            el('span', { class: 'muted small' }, [` ${cat.answered} of ${cat.total} answered`]),
+            cat.redFlags.length
+              ? el('span', { class: 'badge badge-bad' }, [`${cat.redFlags.length} answered no`])
+              : null,
+          ]),
+          el('div', { class: 'bar-track' }, [
+            el('div', { class: `bar-fill ${bar(cat.score)}`, style: `width:${((cat.score ?? 0) / 10) * 100}%` }),
+          ]),
+          el('div', { class: `bar-num ${tone(cat.score)}` }, [cat.score === null ? '--' : cat.score.toFixed(1)]),
         ]),
-        'A score that thin moves a long way on one answer. Read it as a flag to go and ask, not as a measurement.',
-      ]));
+        rows,
+      ]);
+      tbox.appendChild(open);
     }
-    if (rubric.topicsNote) {
-      tbox.appendChild(el('p', { class: 'tiny dim' }, [rubric.topicsNote]));
-    }
-    r1.appendChild(tbox);
+    cuts.appendChild(tbox);
   }
 
   // The backlog. This is the teach-me-to-fish half of the tool, and it is one region with the

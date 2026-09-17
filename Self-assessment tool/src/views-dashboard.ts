@@ -244,10 +244,10 @@ function paint(
         el('b', {}, ['Question sets. ']),
         'Built. Settings holds every set this browser knows, marks the active one, and takes a new one. Adding a set keeps the old ones, and deleting one asks twice.',
       ]),
-      el('li', {}, [el('b', {}, ['Clear out test submissions. ']), 'Dan raised it and parked it.']),
+      el('li', {}, [el('b', {}, ['Clear out test submissions. ']), 'Raised at TBS and parked.']),
     ]),
     el('p', { class: 'small muted' }, [
-      'Open question for Dan: is this a separate role, or an assessor with more buttons?',
+      'Open question for TBS: is this a separate role, or an assessor with more buttons?',
     ]),
   ]));
 
