@@ -89,20 +89,33 @@ padding:.5rem .7rem;background:var(--surface);border:1px solid var(--line);borde
 .legend .muted{font-size:.8rem}
 .nav-kpi b{margin-right:.15rem}
 /* The risk register. Amber and not red: these are risks somebody has looked at and decided to
-   carry, and red is the colour of something nobody has dealt with. */
-.risks{padding:0}
-.risk{padding:.9rem 1.1rem;border-top:1px solid var(--line)}
+   carry, and red is the colour of something nobody has dealt with.
+   It is the loudest thing on the page on purpose. A reader who skims one section should skim
+   this one, and the register used to be the quietest block here: a bold line in a flex row at
+   the same weight as everything around it, under headings smaller than the body text of the
+   section above. Somebody reading to decide whether this tool can be given to a department is
+   reading for exactly these. */
+.risk-zone{border:2px solid var(--warn);border-left-width:.5rem;border-radius:12px;
+  background:var(--warn-bg);padding:.4rem .2rem;margin:0 0 2rem}
+.risks{padding:0;background:transparent;border:0;box-shadow:none;margin:0}
+.risk{padding:1.3rem 1.2rem;border-top:2px solid var(--warn)}
 .risk:first-child{border-top:0}
-.risk-head{display:flex;align-items:baseline;gap:.5rem;flex-wrap:wrap;margin-bottom:.5rem}
-.risk-id{font-family:var(--mono);font-size:.78rem;color:var(--ink-3)}
+/* The sentence naming the risk is the heading, so the list reads as a list of the things that
+   can go wrong and not as a table somebody has to parse. */
+.risk-what{font-size:1.32rem;line-height:1.25;font-weight:700;color:var(--ink);
+  margin:.15rem 0 .7rem;max-width:44rem}
+.risk-head{display:flex;align-items:center;gap:.5rem;flex-wrap:wrap}
+.risk-id{font-family:var(--mono);font-size:.82rem;font-weight:700;color:var(--warn);
+  background:var(--surface);border:1px solid var(--warn);border-radius:999px;padding:.05rem .5rem}
 .risk-odds{margin-left:auto;font-size:.72rem;font-weight:700;letter-spacing:.04em;
   text-transform:uppercase;padding:.1rem .45rem;border-radius:999px;
-  background:var(--warn-bg);color:var(--warn);border:1px solid var(--warn)}
+  background:var(--surface);color:var(--warn);border:1px solid var(--warn)}
 .odds-low{background:var(--surface-2);color:var(--ink-3);border-color:var(--line-2)}
 .odds-certain{background:var(--bad-bg);color:var(--bad);border-color:var(--bad)}
-.risk-line{margin:.2rem 0;font-size:.86rem;color:var(--ink-2)}
+.risk-line{margin:.35rem 0;font-size:.9rem;line-height:1.5;color:var(--ink-2)}
 .risk-key{display:inline-block;min-width:7.5rem;font-size:.72rem;text-transform:uppercase;
-  letter-spacing:.06em;color:var(--ink-3);font-weight:700}
+  letter-spacing:.06em;color:var(--warn);font-weight:700}
+h2.h2-risks{font-size:1.9rem;color:var(--warn);margin-top:3rem}
 footer a{color:var(--accent)}
 /* The pinned bar is the navigation. The counts are links, the layers are links, and it stays
    put so no section has to be hunted for. */
@@ -959,13 +972,13 @@ background:var(--surface);border:1px solid var(--line);border-radius:10px;list-s
 <span class="req-note">His text, so his translation. It belongs in the rubric file beside the English, which the tool already reads as data.</span>
 </div>
 </div>
-<h2 id="risks">Risks we have accepted</h2>
+<h2 id="risks" class="h2-risks">Risks we have accepted</h2>
 <p class="hint">What could go wrong that we are choosing to carry, why it is bearable at this stage, and who said so. A risk leaves this list when it is mitigated or when it stops being possible.</p>
-<div class="card risks">
+<div class="risk-zone"><div class="card risks">
 <div class="risk">
 <div class="risk-head"><span class="risk-id">RK1</span>
-<b>Somebody scripts requests against the store and takes the tool offline.</b>
 <span class="risk-odds odds-low">Low</span></div>
+<h3 class="risk-what">Somebody scripts requests against the store and takes the tool offline.</h3>
 <p class="risk-line"><span class="risk-key">Because</span>The rule that makes an access code work grants a read on the document’s name, so an unauthenticated request reaches the store. Nothing in Firestore rate-limits by address, security rules cannot count, and the free plan has no spend cap and no alert unless the project is upgraded to pay-as-you-go, which is a decision for TBS and not for us.</p>
 <p class="risk-line"><span class="risk-key">If it happens</span>Two different failures. The daily read allowance is 50,000 and resets overnight, so the tool stops answering until midnight Pacific. The monthly one is 10 GiB of outbound traffic, which at 41 KB an assessment is about 256,000 reads, and exceeding it turns Firestore off for the rest of the calendar month with no remedy but upgrading mid-incident. Nothing is lost and nothing is exposed either way.</p>
 <p class="risk-line"><span class="risk-key">What we do</span>Accepting it, and the reasoning changed on 14 September when the numbers were checked. Listing is what makes this cheap for an attacker, and listing still needs an account: without it a script has to name a document, which is twelve characters from a 32-symbol alphabet, and 2^60 guesses is not a route to anything. App Check was the conventional answer and was examined and rejected: it cannot be expressed in a security rule, it needs a third-party script from Google on a page whose whole policy is default-src none, it draws a badge that lands in the accessibility audit of a Government of Canada service, its free tier is 10,000 assessments a month for the whole organisation and it spends them on a refresh timer rather than per visit, and Google documents the header it rides on only for backends you own and never for the Firestore REST API, so there is no published evidence it would apply to this page at all. Anonymous sign-in was examined and rejected too: it costs an attacker one extra request and adds a second endpoint that can be flooded, whose only kill switch is the feature itself.</p>
@@ -973,8 +986,8 @@ background:var(--surface);border:1px solid var(--line);border-radius:10px;list-s
 </div>
 <div class="risk">
 <div class="risk-head"><span class="risk-id">RK2</span>
-<b>An access code reaches somebody it was never meant to reach, and cannot be taken back.</b>
 <span class="risk-odds odds-medium">Medium</span></div>
+<h3 class="risk-what">An access code reaches somebody it was never meant to reach, and cannot be taken back.</h3>
 <p class="risk-line"><span class="risk-key">Because</span>A code is a bearer token: whoever holds it opens that assessment and can change it. Forwarded once it is permanent, there is no list of who holds it, and there is no way to mint a new one for the same record.</p>
 <p class="risk-line"><span class="risk-key">If it happens</span>One assessment is readable and writable by one more person than intended. The assessment itself is Unclassified, and what it holds is typed reasoning and the titles and locations of evidence, which can name artefacts marked above Unclassified even though no such artefact is kept in the tool. Treat a leaked code as a disclosure of the assessment.</p>
 <p class="risk-line"><span class="risk-key">What we do</span>Saying so plainly, in those words, on the sharing window and in settings, so nobody learns it from an incident. A revocation switch was designed and rejected on 14 September: the page sends the whole document on every save, so any save from a copy that predates the switch would have deleted it and turned the code back on with nothing on screen saying so. A control that reports success without firing is worse than none. The real answer is code rotation, which means a new document and a new code, and it is the next thing to build here.</p>
@@ -982,8 +995,8 @@ background:var(--surface);border:1px solid var(--line);border-radius:10px;list-s
 </div>
 <div class="risk">
 <div class="risk-head"><span class="risk-id">RK7</span>
-<b>Somebody scripts the creation of assessments and fills the free storage.</b>
 <span class="risk-odds odds-low">Low</span></div>
+<h3 class="risk-what">Somebody scripts the creation of assessments and fills the free storage.</h3>
 <p class="risk-line"><span class="risk-key">Because</span>An assessment has its code before it has ever been online, so the first save is a create by somebody who may have no account. Requiring one would put the account back on the submitter, which is the thing this design removes.</p>
 <p class="risk-line"><span class="risk-key">If it happens</span>Documents nobody wants, against 20,000 writes a day and 1 GiB. An admin deletes them.</p>
 <p class="risk-line"><span class="risk-key">What we do</span>The store asks for two things on a create, and neither is a security control: the document name has to be a code this tool would mint, and the body has to carry the five parts of an assessment. They stop the collection being used as free storage for something else. Nothing in Firestore rate-limits by address and security rules cannot count, so there is no version of this that is closed rather than expensive.</p>
@@ -991,17 +1004,26 @@ background:var(--surface);border:1px solid var(--line);border-radius:10px;list-s
 </div>
 <div class="risk">
 <div class="risk-head"><span class="risk-id">RK8</span>
-<b>The trail says who saved a version and not what changed in it.</b>
 <span class="risk-odds odds-certain">Certain</span></div>
+<h3 class="risk-what">The trail says who saved a version and not what changed in it.</h3>
 <p class="risk-line"><span class="risk-key">Because</span>A save replaces the document. Keeping whole versions would mean 41 KB each inside a record that has to stay one document.</p>
 <p class="risk-line"><span class="risk-key">If it happens</span>An assessor can see that a score moved between two saves and cannot see which answer moved it without asking.</p>
 <p class="risk-line"><span class="risk-key">What we do</span>The trail keeps who, when, what it scored and how many questions were answered, which is enough to see a number move and to go and ask the person who moved it. Twenty saves, and when it fills, the ordinary ones go first: the save where the assessment first reached TBS and every time it was marked ready or unmarked are kept, because those are the ones somebody asks about. Answer-level history needs a subcollection and is its own piece of work.</p>
 <p class="risk-line"><span class="risk-key">Accepted by</span>Mariia, 14 September 2026</p>
 </div>
 <div class="risk">
-<div class="risk-head"><span class="risk-id">RK5</span>
-<b>Somebody holding a code changes an assessment in a way its owner never sees.</b>
+<div class="risk-head"><span class="risk-id">RK9</span>
 <span class="risk-odds odds-low">Low</span></div>
+<h3 class="risk-what">Somebody holding a code empties an assessment, and every answer is gone.</h3>
+<p class="risk-line"><span class="risk-key">Because</span>The published rules grant update to whoever can name the document, and the name is the code. A rule cannot tell a legitimate save from somebody clearing 176 answers: it sees one write of one document by somebody entitled to write it. putAssessment sends the whole document with no field mask, so the ordinary save already replaces everything, and an emptied assessment is a save like any other. Two people typing at once is the same mechanism without the malice, and the later save wins over the whole record.</p>
+<p class="risk-line"><span class="risk-key">If it happens</span>An assessment is back to blank, in the store, where the assessor reads it. The browser that did the emptying has the blank version too, so reopening it recovers nothing. Anybody else who still has the work on their own machine can save it back; if nobody does, it is a rebuild from the file somebody last saved, and if nobody saved a file it is 176 questions answered again.</p>
+<p class="risk-line"><span class="risk-key">What we do</span>Carrying it, because the people holding codes are three testers and the rule that grants the write is what makes the tool work without accounts. It is the first thing to answer before a code goes to anybody outside that group, and there are two halves to the answer. A field mask on the write, which Firestore supports, stops a save touching what it did not change, so two co-authors stop overwriting each other and an accident is no longer possible. A rule that refuses a write emptying a question stops the deliberate version, and it is a rule that can be written. The mask is the smaller of the two and fixes the common case. The save trail shows the drop afterwards, because it records how many questions each save left answered, and it holds nothing that could put them back.</p>
+<p class="risk-line"><span class="risk-key">Accepted by</span>Mariia, 17 September 2026</p>
+</div>
+<div class="risk">
+<div class="risk-head"><span class="risk-id">RK5</span>
+<span class="risk-odds odds-low">Low</span></div>
+<h3 class="risk-what">Somebody holding a code changes an assessment in a way its owner never sees.</h3>
 <p class="risk-line"><span class="risk-key">Because</span>The code grants a write, which is what sharing means here, and the tool cannot tell a co-author from a stranger who was forwarded the message.</p>
 <p class="risk-line"><span class="risk-key">If it happens</span>An answer, a justification or a piece of evidence is different from what the owner left, with nothing on screen saying who changed it.</p>
 <p class="risk-line"><span class="risk-key">What we do</span>Four fields are frozen against anybody who is not the owner, and Google enforces it rather than the page hoping: the owner’s address, so a record cannot change hands; what kind of document it is, so it cannot be hidden from the assessor’s list; the assessor’s verdict; and the withdrawal. The five structural parts of the document must all be present, so a one-field write cannot reduce it to a stub. What is deliberately not frozen is the ready mark, because a co-author holding the code is somebody working on the assessment. There is no per-field history, and adding one is the version-history work that is already on the list.</p>
@@ -1009,8 +1031,8 @@ background:var(--surface);border:1px solid var(--line);border-radius:10px;list-s
 </div>
 <div class="risk">
 <div class="risk-head"><span class="risk-id">RK6</span>
-<b>The assessment in the store is older than the one on the submitter’s screen when an assessor reads it.</b>
 <span class="risk-odds odds-certain">Certain</span></div>
+<h3 class="risk-what">The assessment in the store is older than the one on the submitter’s screen when an assessor reads it.</h3>
 <p class="risk-line"><span class="risk-key">Because</span>Saving online is one deliberate act each time, on purpose. Anything typed after the last save is on one computer until somebody presses the button again.</p>
 <p class="risk-line"><span class="risk-key">If it happens</span>An assessor scores a version that has moved on, or a laptop failure loses the work since the last save.</p>
 <p class="risk-line"><span class="risk-key">What we do</span>The badge in the header says the copy online is out of date, in words, on every screen, for as long as it is true. The results page offers Save online again whenever the store is behind. Marking an assessment ready saves it as part of doing so, so the version an assessor is told to read is the version they get. The assessor’s own list already flags a row whose stored version is newer than the one they opened.</p>
@@ -1018,8 +1040,8 @@ background:var(--surface);border:1px solid var(--line);border-radius:10px;list-s
 </div>
 <div class="risk">
 <div class="risk-head"><span class="risk-id">RK3</span>
-<b>A name on an audit entry is not the person who wrote it.</b>
 <span class="risk-odds odds-low">Low</span></div>
+<h3 class="risk-what">A name on an audit entry is not the person who wrote it.</h3>
 <p class="risk-line"><span class="risk-key">Because</span>On the code route a name is typed and checked by nobody.</p>
 <p class="risk-line"><span class="risk-key">If it happens</span>The record says who scored a question and cannot prove it.</p>
 <p class="risk-line"><span class="risk-key">What we do</span>Every name the tool has not checked is stamped unverified, in the file and on screen, so nothing can later be mistaken for a checked one. Nothing in this process depends on the name being true.</p>
@@ -1027,14 +1049,14 @@ background:var(--surface);border:1px solid var(--line);border-radius:10px;list-s
 </div>
 <div class="risk">
 <div class="risk-head"><span class="risk-id">RK4</span>
-<b>The prototype store has no owner of record inside TBS.</b>
 <span class="risk-odds odds-certain,">Certain, until somebody takes it</span></div>
+<h3 class="risk-what">The prototype store has no owner of record inside TBS.</h3>
 <p class="risk-line"><span class="risk-key">Because</span>It is a personal Firebase project on a free plan, made so the tool could be tried at all.</p>
 <p class="risk-line"><span class="risk-key">If it happens</span>A reviewer asks who owns the data and there is no departmental answer.</p>
 <p class="risk-line"><span class="risk-key">What we do</span>Owner of record written down, a deletion date at the end of the work term, and the whole store exports from the portfolio view in an afternoon. H5 carries the text.</p>
 <p class="risk-line"><span class="risk-key">Accepted by</span>Mariia, 3 September 2026</p>
 </div>
-</div>
+</div></div>
 <h2 id="verify">How each requirement gets checked</h2>
 <p class="hint">Four gates run on every change, and a requirement is not built until the gate that covers it passes. A fifth runs against the live store when the rules change.</p>
 <div class="card">
