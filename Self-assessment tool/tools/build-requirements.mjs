@@ -87,20 +87,33 @@ padding:.5rem .7rem;background:var(--surface);border:1px solid var(--line);borde
 .legend .muted{font-size:.8rem}
 .nav-kpi b{margin-right:.15rem}
 /* The risk register. Amber and not red: these are risks somebody has looked at and decided to
-   carry, and red is the colour of something nobody has dealt with. */
-.risks{padding:0}
-.risk{padding:.9rem 1.1rem;border-top:1px solid var(--line)}
+   carry, and red is the colour of something nobody has dealt with.
+   It is the loudest thing on the page on purpose. A reader who skims one section should skim
+   this one, and the register used to be the quietest block here: a bold line in a flex row at
+   the same weight as everything around it, under headings smaller than the body text of the
+   section above. Somebody reading to decide whether this tool can be given to a department is
+   reading for exactly these. */
+.risk-zone{border:2px solid var(--warn);border-left-width:.5rem;border-radius:12px;
+  background:var(--warn-bg);padding:.4rem .2rem;margin:0 0 2rem}
+.risks{padding:0;background:transparent;border:0;box-shadow:none;margin:0}
+.risk{padding:1.3rem 1.2rem;border-top:2px solid var(--warn)}
 .risk:first-child{border-top:0}
-.risk-head{display:flex;align-items:baseline;gap:.5rem;flex-wrap:wrap;margin-bottom:.5rem}
-.risk-id{font-family:var(--mono);font-size:.78rem;color:var(--ink-3)}
+/* The sentence naming the risk is the heading, so the list reads as a list of the things that
+   can go wrong and not as a table somebody has to parse. */
+.risk-what{font-size:1.32rem;line-height:1.25;font-weight:700;color:var(--ink);
+  margin:.15rem 0 .7rem;max-width:44rem}
+.risk-head{display:flex;align-items:center;gap:.5rem;flex-wrap:wrap}
+.risk-id{font-family:var(--mono);font-size:.82rem;font-weight:700;color:var(--warn);
+  background:var(--surface);border:1px solid var(--warn);border-radius:999px;padding:.05rem .5rem}
 .risk-odds{margin-left:auto;font-size:.72rem;font-weight:700;letter-spacing:.04em;
   text-transform:uppercase;padding:.1rem .45rem;border-radius:999px;
-  background:var(--warn-bg);color:var(--warn);border:1px solid var(--warn)}
+  background:var(--surface);color:var(--warn);border:1px solid var(--warn)}
 .odds-low{background:var(--surface-2);color:var(--ink-3);border-color:var(--line-2)}
 .odds-certain{background:var(--bad-bg);color:var(--bad);border-color:var(--bad)}
-.risk-line{margin:.2rem 0;font-size:.86rem;color:var(--ink-2)}
+.risk-line{margin:.35rem 0;font-size:.9rem;line-height:1.5;color:var(--ink-2)}
 .risk-key{display:inline-block;min-width:7.5rem;font-size:.72rem;text-transform:uppercase;
-  letter-spacing:.06em;color:var(--ink-3);font-weight:700}
+  letter-spacing:.06em;color:var(--warn);font-weight:700}
+h2.h2-risks{font-size:1.9rem;color:var(--warn);margin-top:3rem}
 footer a{color:var(--accent)}
 /* The pinned bar is the navigation. The counts are links, the layers are links, and it stays
    put so no section has to be hunted for. */
@@ -233,21 +246,21 @@ const html = [
     '</div>',
   ].join('\n')),
 
-  `<h2 id="risks">${esc(risks.title)}</h2>`,
+  `<h2 id="risks" class="h2-risks">${esc(risks.title)}</h2>`,
   `<p class="hint">${esc(risks.lead)}</p>`,
-  '<div class="card risks">',
+  '<div class="risk-zone"><div class="card risks">',
   risks.rows.map((r) => [
     '<div class="risk">',
     `<div class="risk-head"><span class="risk-id">${esc(r.id)}</span>`,
-    `<b>${esc(r.what)}</b>`,
     `<span class="risk-odds odds-${r.likelihood.toLowerCase().split(' ')[0]}">${esc(r.likelihood)}</span></div>`,
+    `<h3 class="risk-what">${esc(r.what)}</h3>`,
     `<p class="risk-line"><span class="risk-key">Because</span>${esc(r.because)}</p>`,
     `<p class="risk-line"><span class="risk-key">If it happens</span>${esc(r.cost)}</p>`,
     `<p class="risk-line"><span class="risk-key">What we do</span>${esc(r.doing)}</p>`,
     `<p class="risk-line"><span class="risk-key">Accepted by</span>${esc(r.accepted)}</p>`,
     '</div>',
   ].join('\n')).join('\n'),
-  '</div>',
+  '</div></div>',
 
   `<h2 id="verify">${esc(verification.title)}</h2>`,
   `<p class="hint">${esc(verification.lead)}</p>`,
