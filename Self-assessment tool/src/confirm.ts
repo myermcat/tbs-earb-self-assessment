@@ -150,8 +150,20 @@ export function confirmStep(o: ConfirmStep): void {
         o.alt!.run();
       } }, [o.alt.label]));
     }
+    /**
+     * The loudest control is the one that keeps the work, and never the one that loses it.
+     *
+     * This window used to draw the destroying answer as a solid red button, which made it the
+     * brightest thing on screen: somebody who is not going to read four lines of prose clicks
+     * the brightest thing, and the brightest thing was "Go ahead". So on any window with
+     * something at stake the destroying answer is outlined and the way out is solid, and the
+     * rule holds for every window that goes through here.
+     *
+     * On a 'plain' window nothing is being lost and the commit is what the person came to do,
+     * so it stays the bright one.
+     */
     const commit = el('button', {
-      class: `${o.tier === 'danger' ? 'danger-solid' : o.tier === 'plain' ? 'primary' : 'danger'} cf-wide`,
+      class: `${o.tier === 'plain' ? 'primary' : 'danger'} cf-wide`,
       onclick: () => {
         const problem = agreed && !agreed.checked
           ? t('Tick the box first.', 'Cochez d\u2019abord la case.')
@@ -186,8 +198,9 @@ export function confirmStep(o: ConfirmStep): void {
      * the only sensible answer is that you have read it. Drawing a nameless second button there
      * asks a question the window did not pose.
      */
+    const keepsIt = o.tier !== 'plain' && !o.offer && !o.alt;
     const cancel = o.cancelLabel
-      ? el('button', { class: 'cf-wide', onclick: close }, [o.cancelLabel])
+      ? el('button', { class: `${keepsIt ? 'primary ' : ''}cf-wide`, onclick: close }, [o.cancelLabel])
       : null;
     if (cancel) actions.appendChild(cancel);
     /**
@@ -206,6 +219,13 @@ export function confirmStep(o: ConfirmStep): void {
   };
   paint(false);
 
+  /**
+   * The title is the sentence somebody has to read, so it is the biggest type in the window.
+   *
+   * It was 1.1rem, a shade above the body, under which sat four lines of prose and a bright
+   * button. What the window is FOR has to arrive before anybody decides they are not reading
+   * this one, which means the title carries the whole of it: "Keep this code", not "Saved".
+   */
   dlg.appendChild(el('div', { class: 'cf-head' }, [el('h2', { class: 'cf-title' }, [o.title])]));
   dlg.appendChild(body);
   dlg.appendChild(actions);
@@ -256,6 +276,13 @@ export function confirmTyped(o: ConfirmTyped): void {
   }) as HTMLInputElement;
   go.onclick = () => { if (!go.disabled) { close(); o.onCommit(); } };
 
+  /**
+   * The title is the sentence somebody has to read, so it is the biggest type in the window.
+   *
+   * It was 1.1rem, a shade above the body, under which sat four lines of prose and a bright
+   * button. What the window is FOR has to arrive before anybody decides they are not reading
+   * this one, which means the title carries the whole of it: "Keep this code", not "Saved".
+   */
   dlg.appendChild(el('div', { class: 'cf-head' }, [el('h2', { class: 'cf-title' }, [o.title])]));
   dlg.appendChild(el('div', { class: 'cf-body' }, [
     el('p', {}, [t('This cannot be undone. It removes:', 'Cette action est irréversible. Elle supprime :')]),
