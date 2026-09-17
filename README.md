@@ -5,9 +5,9 @@
 The tool is two products and two published pages. Neither links to the other, because neither
 screen may describe the other, so both live here.
 
-| | |
-| **The submitter's tool** | **https://myermcat.github.io/tbs-earb-self-assessment-preview/** |
-| **The assessor's tool** | **https://myermcat.github.io/tbs-earb-self-assessment-preview/assessor/** |
+**The submitter's tool** — https://myermcat.github.io/tbs-earb-self-assessment-preview/
+
+**The assessor's tool** — https://myermcat.github.io/tbs-earb-self-assessment-preview/assessor/
 
 A submitter needs no account at all: an assessment carries a twelve-character access code, the
 code is the record's own name in the store, and whoever holds it can open that one assessment
