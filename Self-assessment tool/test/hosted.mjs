@@ -120,7 +120,19 @@ console.log('\nThe published build, signed in\n');
   const app = doc.querySelector('#app');
   ok('a signed-in assessor gets a page at all', app.children.length > 0, `children=${app.children.length}`);
   ok('and it is not the sign-in screen', !/Continue with Google/.test(body(doc)));
-  ok('the header carries the address', body(doc).includes(ME));
+  /**
+   * The address is in the account chip and nowhere else on the bar. It used to be in both the
+   * chip and the badge beside the title, which is one fact printed twice at opposite ends of
+   * one header, charging the width for it.
+   */
+  ok('the account chip holds the address', doc.querySelector('.account-menu')?.textContent?.includes(ME),
+     doc.querySelector('.account-menu')?.textContent);
+  ok('and the badge beside the title says which side you are on, not who you are',
+     doc.querySelector('.side-badge')?.textContent?.trim() === 'Assessor',
+     doc.querySelector('.side-badge')?.textContent);
+  ok('so the address appears once in the header',
+     (doc.querySelector('.topbar')?.textContent?.split(ME).length ?? 0) === 2,
+     doc.querySelector('.topbar')?.textContent);
   ok('and does not call a checked account unverified', !/unverified/i.test(body(doc)));
   dom.window.close();
 }
@@ -576,7 +588,7 @@ console.log('\nThe published build, signed in\n');
     const rail = [...doc.querySelectorAll('.set-navrow')].map((b) => b.textContent.trim());
     ok('an assessor is not offered the submitter\u2019s own answers', !rail.includes('Your answers'), rail.join(' | '));
     ok('nor a control that erases them', !rail.includes('Start again'), rail.join(' | '));
-    ok('and what is left is the question set and the build', rail.length === 2, rail.join(' | '));
+    ok('and what is left belongs to both sides', rail.length === 3, rail.join(' | '));
     ok('and nothing on screen offers to discard anything',
        !/Discard this assessment/i.test(doc.querySelector('.set-pane')?.textContent ?? ''));
   dom.window.close();

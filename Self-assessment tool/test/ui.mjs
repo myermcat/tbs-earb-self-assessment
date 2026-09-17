@@ -104,13 +104,14 @@ ok('the question count is stated up front', view().includes(String(TOTAL)));
 q('.icon-btn[aria-label="Settings"]').click();
 ok('settings is a rail and a pane, not a stack of cards',
    !!q('.set-layout') && !!q('.set-nav') && !!q('.set-pane'));
-ok('four panes, named', qa('.set-navrow').map((b) => b.textContent).join('|') ===
-   'Question set|Your answers|This build|Start again',
+ok('five panes, named', qa('.set-navrow').map((b) => b.textContent).join('|') ===
+   'Question set|Your answers|Pages|This build|Start again',
    qa('.set-navrow').map((b) => b.textContent).join('|'));
 ok('the gear opens the harmless one', q('.set-navrow.on').textContent === 'Question set',
    q('.set-navrow.on').textContent);
 ok('the destructive pane is marked as dangerous in the rail itself',
-   qa('.set-navrow')[3].classList.contains('danger'));
+   qa('.set-navrow')[4].classList.contains('danger'),
+   qa('.set-navrow')[4]?.textContent);
 {
   // The backlog is in Settings, which is where somebody goes looking for it.
   pane('This build');
@@ -118,6 +119,13 @@ ok('the destructive pane is marked as dangerous in the rail itself',
      view().includes('Question set') && view().includes('v0.1.0'));
   ok('and says whether there is a store to write to',
      view().includes('cannot send anything') || view().includes('Writing to'));
+  pane('Question set');
+}
+
+// The pages that are not this tool have their own pane. Under "This build" somebody looking for
+// the explanation had to read about version numbers first.
+{
+  pane('Pages');
   /**
    * The pages that are not this tool are cards and not rows. A setting is a sentence with a
    * control beside it; these are destinations, and the shape is the course-hub card so that

@@ -292,6 +292,45 @@
   }
   .ours { font-size: .78rem; color: var(--muted); }
 
+
+  /* ---- the two lists, told apart from the example ----
+     They read as three tables in a row before this: two definitions and one worked example, all
+     the same shape, so scrolling past showed the same thing three times. The two definitions
+     now sit inside one labelled block, each with a big count and a line saying what it is; the
+     example carries a tag and a rule of its own. */
+  .defs {
+    border: 1px solid var(--line-2);
+    border-radius: 14px;
+    padding: 1.5rem 1.4rem;
+    background: var(--surface);
+    display: flex; flex-direction: column; gap: 1.9rem;
+  }
+  .defs-kicker {
+    margin: 0; font-family: var(--mono); font-size: .68rem;
+    letter-spacing: .14em; text-transform: uppercase; color: var(--muted);
+  }
+  .def { display: flex; flex-direction: column; gap: .85rem; }
+  .def + .def { border-top: 1px solid var(--line); padding-top: 1.7rem; }
+  .def-head { display: flex; gap: 1rem; align-items: flex-start; }
+  .def-n {
+    flex: 0 0 auto; width: 2.6rem; height: 2.6rem; border-radius: 10px;
+    display: grid; place-items: center;
+    font-family: var(--mono); font-size: 1.25rem; font-weight: 600;
+    background: var(--band); color: var(--ink-2); border: 1px solid var(--line-2);
+  }
+  .def-head h2 { margin: 0 0 .15rem; font-size: 1.35rem; }
+  .def-say { margin: 0; font-size: .92rem; color: var(--ink-2); max-width: 44ch; }
+  .cat-ico { display: inline-block; width: 1.4rem; font-size: .95rem; }
+
+  .evidence { border-left: 3px solid var(--line-2); padding-left: .9rem; }
+  .ev-tag {
+    display: inline-block; margin-right: .55rem;
+    font-family: var(--mono); font-size: .62rem; letter-spacing: .12em; text-transform: uppercase;
+    color: var(--ink-2); background: var(--band);
+    border: 1px solid var(--line-2); border-radius: 999px; padding: .1rem .5rem;
+  }
+  @media (max-width: 560px) { .defs { padding: 1.2rem 1rem; } }
+
   /* ---- the arithmetic ---- */
   .sums { display: grid; grid-template-columns: 1fr 1fr; gap: .8rem; }
   .sum {
@@ -437,44 +476,52 @@
 
   <hr>
 
-  <section>
-    <h2>The four domains</h2>
-    <p>These are the GC EA Framework&rsquo;s own themes, named in the January 2026 draft. They carry the weight and they produce the score.</p>
-    <div class="scroll">
-      <table>
-        <thead>
-          <tr>
-            <th>Domain</th><th class="n">Weight</th><th class="n">Sections</th><th class="n">Questions</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr><td><span class="swatch" style="background:var(--business)"></span>Business Architecture</td><td class="n">25%</td><td class="n">6</td><td class="n">61</td></tr>
-          <tr><td><span class="swatch" style="background:var(--data)"></span>Data &amp; Information Architecture</td><td class="n">25%</td><td class="n">5</td><td class="n">39</td></tr>
-          <tr><td><span class="swatch" style="background:var(--application)"></span>Application &amp; Virtual Architecture</td><td class="n">25%</td><td class="n">4</td><td class="n">37</td></tr>
-          <tr><td><span class="swatch" style="background:var(--technology)"></span>Technology &amp; Physical Architecture</td><td class="n">25%</td><td class="n">5</td><td class="n">39</td></tr>
-        </tbody>
-      </table>
-    </div>
-  </section>
+  <section class="defs">
+    <p class="defs-kicker">The two lists</p>
 
-  <section>
-    <h2>The five categories</h2>
-    <p>These are what somebody has to answer for each question, and they are the reason categories exist at all. A question carries as many as apply, and most carry none.</p>
-    <div class="scroll">
-      <table>
-        <thead>
-          <tr><th>Category</th><th class="n">Questions</th><th>Where the assignment comes from</th></tr>
-        </thead>
-        <tbody>
-          <tr><td><strong>Security</strong></td><td class="n">25</td><td class="ours">a keyword pass, ours, provisional</td></tr>
-          <tr><td><strong>Privacy</strong></td><td class="n">8</td><td class="ours">a keyword pass, ours, provisional</td></tr>
-          <tr><td><strong>Financial</strong></td><td class="n">13</td><td class="ours">a keyword pass, ours, provisional</td></tr>
-          <tr><td><strong>Accessibility</strong></td><td class="n zero">3</td><td class="ours">a keyword pass, ours, and thin</td></tr>
-          <tr><td><strong>Official Languages</strong></td><td class="n zero">2</td><td class="ours">a keyword pass, ours, and thin</td></tr>
-        </tbody>
-      </table>
+    <div class="def">
+      <div class="def-head">
+        <span class="def-n">4</span>
+        <div>
+          <h2>Domains</h2>
+          <p class="def-say">Where a question lives. Every question is in exactly one, and these are what produce the score.</p>
+        </div>
+      </div>
+      <div class="scroll">
+        <table>
+          <thead><tr><th>Domain</th><th class="n">Weight</th><th class="n">Sections</th><th class="n">Questions</th></tr></thead>
+          <tbody>
+            <tr><td><span class="swatch" style="background:var(--business)"></span>Business Architecture</td><td class="n">25%</td><td class="n">6</td><td class="n">61</td></tr>
+            <tr><td><span class="swatch" style="background:var(--data)"></span>Data &amp; Information Architecture</td><td class="n">25%</td><td class="n">5</td><td class="n">39</td></tr>
+            <tr><td><span class="swatch" style="background:var(--application)"></span>Application &amp; Virtual Architecture</td><td class="n">25%</td><td class="n">4</td><td class="n">37</td></tr>
+            <tr><td><span class="swatch" style="background:var(--technology)"></span>Technology &amp; Physical Architecture</td><td class="n">25%</td><td class="n">5</td><td class="n">39</td></tr>
+          </tbody>
+        </table>
+      </div>
     </div>
-    <p class="aside-note"><strong>A footnote about the other four.</strong> Inside the tool each question also carries its own domain as a label, so that the same machinery can cut the answers by Business, Data, Application or Technology without a second code path. Nobody fills those in, they are not a choice anybody makes, and the results page does not draw them beside these five, because the domain bars directly above are those exact numbers. If you ever see &ldquo;nine categories&rdquo; written down, that is where the other four come from.</p>
+
+    <div class="def">
+      <div class="def-head">
+        <span class="def-n">5</span>
+        <div>
+          <h2>Categories</h2>
+          <p class="def-say">What a question is about. It carries as many as apply, and most carry none. These are what somebody has to answer.</p>
+        </div>
+      </div>
+      <div class="scroll">
+        <table>
+          <thead><tr><th>Category</th><th class="n">Questions</th><th>Where the assignment comes from</th></tr></thead>
+          <tbody>
+            <tr><td><span class="cat-ico" aria-hidden="true">&#128274;</span>Security</td><td class="n">25</td><td class="ours">a keyword pass, ours, provisional</td></tr>
+            <tr><td><span class="cat-ico" aria-hidden="true">&#128065;</span>Privacy</td><td class="n">8</td><td class="ours">a keyword pass, ours, provisional</td></tr>
+            <tr><td><span class="cat-ico" aria-hidden="true">&#128176;</span>Financial</td><td class="n">13</td><td class="ours">a keyword pass, ours, provisional</td></tr>
+            <tr><td><span class="cat-ico" aria-hidden="true">&#9855;</span>Accessibility</td><td class="n zero">3</td><td class="ours">a keyword pass, ours, and thin</td></tr>
+            <tr><td><span class="cat-ico" aria-hidden="true">&#127760;</span>Official Languages</td><td class="n zero">2</td><td class="ours">a keyword pass, ours, and thin</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="aside-note"><strong>If you have seen &ldquo;nine categories&rdquo; written down</strong>, the other four are the domain names over again. Inside the tool each question also carries its own domain as a label, so the same machinery can cut the answers by Business, Data, Application or Technology without a second code path. Nobody fills those in, and the results page does not draw them beside these five.</p>
+    </div>
   </section>
 
   <hr>
@@ -482,9 +529,9 @@
   <section>
     <h2>Why both exist</h2>
     <p><strong>Because the score cannot answer &ldquo;how are we doing on security?&rdquo;</strong> The 25 security questions are spread across all four domains, so no single domain is more than a quarter security. A department that is weak on it sees four domain bars that each look acceptable, because the weakness has been divided by four.</p>
-    <div class="scroll">
+    <div class="scroll evidence">
       <table>
-        <caption>Where the 25 security questions actually sit</caption>
+        <caption><span class="ev-tag">Worked example</span>Where the 25 security questions actually sit</caption>
         <thead><tr><th>Domain</th><th class="n">Security questions</th><th class="n">Of that domain</th></tr></thead>
         <tbody>
           <tr><td><span class="swatch" style="background:var(--data)"></span>Data &amp; Information</td><td class="n">10</td><td class="n">26%</td></tr>
