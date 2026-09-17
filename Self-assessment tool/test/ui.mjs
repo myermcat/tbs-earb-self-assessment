@@ -105,7 +105,7 @@ q('.icon-btn[aria-label="Settings"]').click();
 ok('settings is a rail and a pane, not a stack of cards',
    !!q('.set-layout') && !!q('.set-nav') && !!q('.set-pane'));
 ok('five panes, named', qa('.set-navrow').map((b) => b.textContent).join('|') ===
-   'Question set|Your answers|Pages|This build|Start again',
+   'Question set|Your answers|Documentation|This build|Start again',
    qa('.set-navrow').map((b) => b.textContent).join('|'));
 ok('the gear opens the harmless one', q('.set-navrow.on').textContent === 'Question set',
    q('.set-navrow.on').textContent);
