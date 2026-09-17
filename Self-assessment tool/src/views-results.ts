@@ -164,7 +164,7 @@ export function renderResults(root: HTMLElement, rubric: Rubric, a: Assessment, 
     const tbox = el('div', { class: 'res-sub' }, [
       el('h3', {}, ['Across the domains']),
       el('p', { class: 'muted small' }, [
-        'The same answers, cut by subject rather than by domain. A question can be about two ',
+        'The same answers, cut by subject. A question can be about two ',
         'things at once, so these do not add up to the overall.',
         rubric.topicsNote ? el('span', { class: 'badge badge-warn' }, ['provisional grouping']) : null,
       ]),
