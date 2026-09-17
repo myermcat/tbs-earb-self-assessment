@@ -571,6 +571,25 @@ console.log('\nThe published build, signed in\n');
   ok('and the questions are read-only, because a score belongs in the audit',
      [...(catBox?.querySelectorAll('.cat-q') ?? [])].every((n) => n.tagName !== 'BUTTON'),
      [...(catBox?.querySelectorAll('.cat-q') ?? [])].map((n) => n.tagName).join(','));
+
+  /**
+   * And the assessor's own name is not called unchecked on a build that checked it.
+   *
+   * The sign-off card printed an "unverified" badge beside the auditor unconditionally. On a
+   * build with a provider that name is the address the provider gave, and the rules will not
+   * list the pool to an address that is not verified, so the card was not being cautious, it
+   * was stating something false. The header already read the same fact correctly, and this
+   * screen was never asserted on, which is how the two disagreed in one product.
+   */
+  {
+    const signOff = [...doc.querySelectorAll('.card')]
+      .find((c) => /Auditing as/.test(c.textContent));
+    ok('the sign-off card names who is auditing', !!signOff, signOff?.textContent?.slice(0, 60));
+    ok('and does not call a checked account unverified',
+       !/unverified|not checked/i.test(signOff?.textContent ?? ''), signOff?.textContent?.slice(0, 120));
+    ok('and says an account is behind it',
+       /signed in/i.test(signOff?.textContent ?? ''), signOff?.textContent?.slice(0, 120));
+  }
   dom.window.close();
 }
 
@@ -667,6 +686,42 @@ console.log('\nThe published build, signed in\n');
   ok('and this browser remembers it for next time',
      JSON.parse(dom.window.localStorage.getItem('gc-arch-assessment:signer') ?? '{}').name
        === 'Mariia Yermolenko');
+
+  /**
+   * And remembering it does not sign the next save on its own.
+   *
+   * The remembered pair was offered as placeholder text and ALSO returned by the field reader
+   * when a box was left empty, and the same reader feeds the gate, so two empty boxes passed
+   * every check and the version went into the store under whoever used this browser last. On a
+   * shared departmental machine that is somebody else's name on somebody else's submission.
+   * Tab fills both boxes visibly and that is still the one-key path.
+   */
+  {
+    const ready = [...doc.querySelectorAll('button')]
+      .find((b) => /Mark it ready to review/.test(b.textContent.trim()));
+    ok('there is a second place that asks who is acting', !!ready);
+    ready.click();
+    await new Promise((r) => setTimeout(r, 60));
+    const w2 = [...doc.querySelectorAll('dialog.confirm')].find((x) => x.querySelector('.signer'));
+    const b2 = [...(w2?.querySelectorAll('input.signer-box') ?? [])];
+    ok('the remembered pair is offered rather than filled in',
+       b2.length === 2 && b2[0].value === '' && b2[1].value === '',
+       b2.map((b) => JSON.stringify(b.value)).join(' / '));
+    const acts = [...w2.querySelectorAll('.cf-actions button')];
+    const commit2 = acts.find((b) => /Mark it ready/i.test(b.textContent));
+    commit2.click();
+    await new Promise((r) => setTimeout(r, 40));
+    ok('and acting with both boxes empty is refused, not signed with the remembered name',
+       doc.body.contains(w2) && /Put your name in/i.test(w2.textContent),
+       w2.textContent.slice(-140));
+    const tab = new dom.window.KeyboardEvent('keydown', { key: 'Tab', bubbles: true, cancelable: true });
+    b2[0].dispatchEvent(tab);
+    ok('while Tab fills both boxes where the person can read them',
+       b2[0].value === 'Mariia Yermolenko' && b2[1].value === 'someone@sen.parl.gc.ca',
+       `${b2[0].value} / ${b2[1].value}`);
+    acts.find((b) => /Not yet/i.test(b.textContent))?.click();
+    await new Promise((r) => setTimeout(r, 30));
+  }
 
   const wrote = () => seen.filter((r) => r.method === 'PATCH' || r.method === 'POST');
   const before = wrote().length;
