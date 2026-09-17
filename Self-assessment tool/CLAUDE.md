@@ -4,6 +4,9 @@ The GC Enterprise Architecture self-assessment tool, for the Treasury Board Secr
 It replaces the GC EARB architecture PowerPoint template and the score deck built by hand
 after it. Dan Weekes-Hall owns the rubric; the instrument is ours.
 
+**If another session may be working in this repository, read `NOTES/OWNERS.md` first.** It
+carries the branching and pulling rules, and they exist because they were broken.
+
 Read `NOTES/requirements.html` before proposing anything. It is the record of what has been
 decided and by whom, and it is kept current the day a decision is made.
 
