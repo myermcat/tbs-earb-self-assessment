@@ -11,3 +11,7 @@ EARB target state knowledge base/*.pdf
 # Firebase console, Project settings, the web app, SDK setup and configuration. Copy apiKey and
 # projectId into deploy/firebase-config.json.
 deploy/firebase-config.json
+
+# Worktrees. A second session works this repository in its own checkout under here, so the
+# directory is machine-local and shows up as untracked noise in both sessions otherwise.
+.claude/worktrees/
