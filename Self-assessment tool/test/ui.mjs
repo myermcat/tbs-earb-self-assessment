@@ -12,6 +12,8 @@ const ok = (name, cond, extra = '') => {
 
 const html = await readFile('dist/index.html', 'utf8');
 const rubric = JSON.parse(await readFile('rubric/rubric.v1-dan.json', 'utf8'));
+/** Filled on the submitter's results page; read again on the portfolio, which must agree. */
+let categoryOnResults = new Map();
 const TOTAL = rubric.domains.reduce((n, d) => n + d.sections.reduce((m, s) => m + s.questions.length, 0), 0);
 
 const dom = new JSDOM(html, { runScripts: 'dangerously', url: 'http://localhost/', pretendToBeVisual: true });
@@ -993,6 +995,17 @@ ok('routing is stated as a suggestion', view().includes('does not decide it'));
   ok('the topic block says the numbers do not add up to the overall',
      topicPart.textContent.includes('do not add up to the overall'));
 
+/**
+ * What this screen shows per category, kept for the portfolio check further down. The portfolio
+ * averages across records, and with one record an average is that record, so the two screens
+ * have to agree. They read the same scorer, so a disagreement means one of them is reading the
+ * scores by position into a list that is a different length.
+ */
+categoryOnResults = new Map([...topicPart.querySelectorAll('.bar-row')].map((r) => [
+  r.querySelector('.bar-label').firstChild.textContent.trim(),
+  r.querySelector('.bar-num').textContent.trim(),
+]));
+
   /**
    * Every category opens onto its own questions, and every question is a control.
    *
@@ -1491,8 +1504,50 @@ ok('audited file keeps the self-score alongside the audited one',
   ok('and says exactly what it can see', view().includes('Showing:'));
   ok('and says the submission opened this session is what it is reading',
      view().includes('opened this session'));
-  ok('with a roll-up per domain and per topic',
-     view().includes('Average by domain') && view().includes('Average across the domains'));
+  /**
+   * Two groupings, named as two groupings.
+   *
+   * The headings were "Average by domain" and "Average across the domains", and the second was
+   * the category block. Reported in those words: do not shove one into the other. This assertion
+   * used to pin both of those strings, which is why nobody caught it.
+   */
+  ok('the two roll-ups are named as two different groupings, not two cuts of one',
+     view().includes('Average by architecture domain') && view().includes('Average by category')
+     && !view().includes('Average across the domains'));
+  {
+    const cards = qa('main .card').filter((c) => c.querySelector('h2'));
+    const domainCard = cards.find((c) => c.querySelector('h2').textContent === 'Average by architecture domain');
+    const catCard = cards.find((c) => c.querySelector('h2').textContent === 'Average by category');
+    const labels = (card) => [...card.querySelectorAll('.bar-row .bar-label')]
+      .map((n) => n.firstChild.textContent.trim());
+    const nums = (card) => [...card.querySelectorAll('.bar-row .bar-num')].map((n) => n.textContent.trim());
+    const domainNames = rubric.domains.map((d) => d.label);
+    ok('the domain block lists every domain', !!domainCard
+       && domainNames.every((n) => labels(domainCard).includes(n)), labels(domainCard ?? catCard).join(' | '));
+    /**
+     * A question set declares its categories and four of them are the four domains repeated.
+     * The results page and the submission detail already drop those; this screen did not, so it
+     * drew nine bars and the four domains appeared twice on one page with different numbers.
+     */
+    const catNames = labels(catCard);
+    ok('the category block carries no domain among the categories',
+       !!catCard && !catNames.some((n) => domainNames.includes(n)), catNames.join(' | '));
+    ok('and shows the categories that are not domains',
+       catNames.includes('Security') && catNames.includes('Privacy')
+       && catNames.includes('Official Languages'), catNames.join(' | '));
+    /**
+     * The number under a name is that category's number.
+     *
+     * Dropping the four from the label list alone is the trap: the scores array stays as long as
+     * the set declares, so indexing into it by position puts Business's number under Security's
+     * name, which is a wrong number that looks right. Read from the record the page was given.
+     */
+    const shown = new Map(catNames.map((n, i) => [n, nums(catCard)[i]]));
+    const disagree = [...shown].filter(([n, v]) => categoryOnResults.has(n) && categoryOnResults.get(n) !== v);
+    ok('and every category shows its own number, not the one sitting at its position',
+       catNames.length > 0 && disagree.length === 0,
+       disagree.map(([n, v]) => `${n}: portfolio ${v}, results ${categoryOnResults.get(n)}`).join(' | '));
+  }
   ok('the records are listed weakest first, in one table',
      view().includes('Every record, weakest first') && qa('table.detail tbody tr').length > 0,
      String(qa('table.detail tbody tr').length));

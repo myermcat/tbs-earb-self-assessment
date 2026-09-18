@@ -13,6 +13,7 @@ import { ICON_DOWN } from './icons';
 import { formatCode } from './firebase';
 import { isHosted, poolRecords, type PoolAnswer } from './store';
 import { repaint } from './views-submit';
+import { nameIsChecked } from './who';
 import BUILTIN from '../rubric/rubric.v1-dan.json';
 
 /**
@@ -573,10 +574,11 @@ function openDetail(rubric: Rubric, root: HTMLElement, l: Loaded) {
       by
         ? el('p', {}, [
             el('b', {}, [by.name]), ' ', el('span', { class: 'mono small' }, [by.email]),
-            el('span', { class: 'badge badge-warn tiny tag' }, ['unverified']),
+            el('span', { class: 'badge badge-warn tiny tag' }, ['not checked']),
             el('div', { class: 'muted small' }, [
-              `${new Date(by.at).toLocaleString()}. Typed by whoever pressed save, and checked by nobody. `,
-              'It tells you who to ask.',
+              `${new Date(by.at).toLocaleString()}. On save the tool asks the submitter for a name and a `,
+              'work email address, and refuses an address that does not end in gc.ca or canada.ca. ',
+              'That is all the checking there is. Nobody confirms the person behind it.',
             ]),
           ])
         : el('p', { class: 'muted' }, [
@@ -851,7 +853,17 @@ function openDetail(rubric: Rubric, root: HTMLElement, l: Loaded) {
   root.appendChild(el('section', { class: 'card' }, [
     el('p', { class: 'small' }, [
       'Auditing as ', el('b', {}, [auditor || 'unnamed']), ' ',
-      el('span', { class: 'badge badge-warn' }, ['unverified']),
+      /**
+       * Not a warning when there is an account behind the name.
+       *
+       * On a build with a provider this is the address the provider gave, and the store will
+       * not even list the pool to an address it has not checked (deploy/firestore.rules,
+       * email_verified). The card printed "unverified" against it unconditionally, which was
+       * not a cautious statement but a false one. The header already got this right.
+       */
+      nameIsChecked()
+        ? el('span', { class: 'badge' }, ['signed in'])
+        : el('span', { class: 'badge badge-warn' }, ['not checked']),
       el('span', { class: 'muted' }, [' Recorded against every score you change.']),
     ]),
     el('label', { class: 'field' }, [
@@ -991,7 +1003,9 @@ function auditRow(
             el('li', {}, [
               el('b', {}, [`${m.score ?? '--'} `]),
               `by ${m.by} `,
-              el('span', { class: 'badge badge-warn tiny' }, ['unverified']),
+              m.unverified === false
+                ? el('span', { class: 'badge tiny' }, ['signed in'])
+                : el('span', { class: 'badge badge-warn tiny' }, ['not checked']),
               m.note ? el('div', { class: 'muted' }, [m.note]) : el('div', { class: 'warn-text' }, ['No reason given.']),
             ]),
           )),
@@ -1011,7 +1025,8 @@ function auditRow(
             entry.by = auditor || 'unnamed';
             entry.at = new Date().toISOString();
             (entry.history ??= []).push({
-              by: entry.by, at: entry.at, score: next, note: entry.note ?? '', unverified: true,
+              by: entry.by, at: entry.at, score: next, note: entry.note ?? '',
+              unverified: !nameIsChecked(),
             });
           }
           keepSession();

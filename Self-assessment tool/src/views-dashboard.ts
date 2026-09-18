@@ -102,17 +102,24 @@ function paint(
     return;
   }
 
-  // Where the portfolio is weak, by domain and then across the domains. The second cut is the
-  // one a single assessment cannot show: security spread thin across four domains looks fine
-  // in every one of them.
+  /**
+   * Where the portfolio is weak, twice: by architecture domain, then by category.
+   *
+   * These are two different groupings of the same answers, not two cuts of one. A question sits
+   * in exactly one domain and the domains carry weights that add up to the overall. A question
+   * carries any number of categories and they add up to nothing. The headings used to read
+   * "Average by domain" and "Average across the domains", which put them side by side as one
+   * thing measured two ways, and the second was the category block. Reported in those words:
+   * do not shove one into the other.
+   */
   const avgOf = (pick: (row: Row) => number | null) => {
     const vals = rows.map(pick).filter((v): v is number => v !== null);
     return vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : null;
   };
 
   const byDomain = el('section', { class: 'card' }, [
-    el('h2', {}, ['Average by domain']),
-    el('p', { class: 'muted small' }, [`Across ${rows.length} record${rows.length === 1 ? '' : 's'}.`]),
+    el('h2', {}, ['Average by architecture domain']),
+    el('p', { class: 'muted small' }, [`Across ${rows.length} record${rows.length === 1 ? '' : 's'}. These carry weights and they add up to the overall.`]),
   ]);
   rubric.domains.forEach((d, i) => {
     const v = avgOf((row) => row.r.domains[i]?.score ?? null);
@@ -120,18 +127,32 @@ function paint(
   });
   root.appendChild(byDomain);
 
-  const topics = (rubric.topics ?? []);
-  if (topics.length) {
-    const byTopic = el('section', { class: 'card' }, [
-      el('h2', {}, ['Average across the domains']),
-      el('p', { class: 'muted small' }, ['The same answers grouped by subject. These do not add up to the overall.']),
+  /**
+   * The category block, matched by id and never by position.
+   *
+   * A question set declares its categories and four of them are the four domains repeated, so
+   * this list has to drop them the way the results page and the submission detail already do.
+   * The trap is that r.topics stays as long as the set declares: filter the labels alone and
+   * index i into the scores, and the screen draws five bars with the domains' numbers under the
+   * categories' names, which is a wrong number that looks right. Look each one up by its id.
+   */
+  const domainIds = new Set(rubric.domains.map((d) => d.id));
+  const categories = (rubric.topics ?? []).filter((t) => !domainIds.has(t.id));
+  const scoreOf = (row: Row, id: string) => row.r.topics.find((x) => x.topic.id === id) ?? null;
+  const shown = categories.filter((t) => rows.some((row) => (scoreOf(row, t.id)?.total ?? 0) > 0));
+  if (shown.length) {
+    const byCategory = el('section', { class: 'card' }, [
+      el('h2', {}, ['Average by category']),
+      el('p', { class: 'muted small' }, [
+        'The same questions grouped by what they are about. One question can be in several categories at once, so these do not add up to the overall.',
+      ]),
     ]);
-    topics.forEach((t, i) => {
-      const v = avgOf((row) => row.r.topics[i]?.score ?? null);
-      const flagged = rows.reduce((n, row) => n + (row.r.topics[i]?.redFlags.length ?? 0), 0);
-      byTopic.appendChild(barRow(t.label, flagged ? `${flagged} answered no` : '', v));
-    });
-    root.appendChild(byTopic);
+    for (const t of shown) {
+      const v = avgOf((row) => scoreOf(row, t.id)?.score ?? null);
+      const flagged = rows.reduce((n, row) => n + (scoreOf(row, t.id)?.redFlags.length ?? 0), 0);
+      byCategory.appendChild(barRow(t.label, flagged ? `${flagged} answered no` : '', v));
+    }
+    root.appendChild(byCategory);
   }
 
   // The records themselves, weakest first: the list is a worklist, not an alphabet.
