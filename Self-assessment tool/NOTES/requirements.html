@@ -350,16 +350,17 @@ background:var(--surface);border:1px solid var(--line);border-radius:10px;list-s
 <span class="req-note">The published page carries the key, which is how Firebase is meant to work: it names the project and authorises nothing by itself. GitHub secret scanning flags it anyway, because the same shape of key can carry billable access on other Google APIs. A command-line call reached the project with no site attached, so the key today carries no restriction. The restriction to write is websites myermcat.github.io and localhost, APIs Identity Toolkit, Token Service and Cloud Firestore. What guards the data is the sign-in and the published rules, so this is about somebody else spending the project’s free quota.</span>
 </div>
 <div class="req">
-<span class="req-id mono">S4</span>
-<span class="req-t">Until sign-in exists, the assessor side opens on a screen shaped like a sign-in that says it is a mockup, and everything it produces is labelled unverified.</span>
-<span class="st st-done">Built</span>
-</div>
-<div class="req">
 <span class="req-id mono">S28</span>
 <span class="req-t">A control that removes something says which thing it removes, and asks before it does.</span>
 <span class="st st-done">Built</span>
 <span class="req-owner">Mariia owes this</span>
 <span class="req-note">Reported on 17 September, in the words that matter: she went to the assessor side to delete a test record, pressed the red Close this one, the row went, no window appeared, and the record was still in the store. Two faults in one control. The label named nothing it did: it takes a row off this browser’s list of open submissions, and nothing on that page can remove anything from the store. And with no audit typed against the row it dropped it silently, so the only evidence of what had happened was the row going, which is exactly what deleting would have looked like. It is called Take it off this list now, it is not drawn in the destroying colour, and it always asks. The window says the record stays in the shared store and that removing it for everybody is in the portfolio view. That one is unchanged and already asks for the code to be typed out: the code and not the initiative name, because two departments can share a name, a name can be read off the row above by mistake, and it is the field most likely to be blank.</span>
+</div>
+<div class="req">
+<span class="req-id mono">S4</span>
+<span class="req-t">A build with a provider signs the assessor in and says so. A build without one opens on a screen shaped like a sign-in that says it is a mockup, and everything it produces says nobody checked it.</span>
+<span class="st st-done">Built</span>
+<span class="req-note">Corrected 17 September, after the question was asked directly: how can it ever be verified? Two different answers, and the tool was giving the wrong one in both directions. The assessor’s own name is checked on a build with a provider, twice over: the address comes from the provider, and the rules will not list the pool to an address the provider has not verified. The sign-off card printed “unverified” beside it unconditionally, which was not caution but a false statement, while the header two screens away had it right. The submitter’s name cannot be checked at all on the code route, by design, so a badge implying a verified state it can never reach was the wrong word: it now says the name was not checked, and the sentence beside it says what does happen, which is that the tool asks for a name and a work address and refuses an address outside gc.ca and canada.ca. The flag on the record stops being the literal true and records what was actually true: checked only where the address typed is the address somebody is signed in as, because an account existing does not make a typed address that person’s.</span>
 </div>
 <div class="req">
 <span class="req-id mono">S27</span>
@@ -763,8 +764,9 @@ background:var(--surface);border:1px solid var(--line);border-radius:10px;list-s
 <div class="card reqs">
 <div class="req">
 <span class="req-id mono">D1</span>
-<span class="req-t">One page over every record: averages by domain and by topic, and every record listed weakest first.</span>
+<span class="req-t">One page over every record: averages by architecture domain, averages by category, and every record listed weakest first.</span>
 <span class="st st-done">Built</span>
+<span class="req-note">Corrected 17 September. The two blocks read “Average by domain” and “Average across the domains”, which named two groupings as though they were one thing measured twice, and the second was the category block. It also drew nine bars where the other two screens draw five, because a question set declares its categories and four of them are the four domains repeated: the results page and the submission detail drop those and this page did not, so the four domains appeared twice on one screen with different numbers. The numbers differ because a domain rolls up through section weights and a category is a flat weighted mean over questions. Dropping the four from the label list alone is a worse defect than the one it fixes, since the scores stay as long as the set declares and indexing by position puts one grouping’s number under the other’s name; the page looks each one up by its id.</span>
 </div>
 <div class="req">
 <span class="req-id mono">D2</span>

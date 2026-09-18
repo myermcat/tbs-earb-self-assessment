@@ -429,8 +429,9 @@ function submitBlock(rubric: Rubric, a: Assessment, r: Result, blocked: boolean)
     const by = a.meta.savedBy;
     if (by) {
       box.appendChild(el('p', { class: 'muted small' }, [
-        t(`Last saved online by ${by.name} (${by.email}). `, `Dernier enregistrement en ligne par ${by.name} (${by.email}). `),
-        el('span', { class: 'badge badge-warn tiny' }, [t('unverified', 'non vérifié')]),
+        t(`Last saved online by ${by.name} (${by.email}), as typed on that save. `,
+          `Dernier enregistrement en ligne par ${by.name} (${by.email}), tel que saisi lors de cet enregistrement. `),
+        el('span', { class: 'badge badge-warn tiny' }, [t('not checked', 'non vérifié')]),
       ]));
     }
     /**
