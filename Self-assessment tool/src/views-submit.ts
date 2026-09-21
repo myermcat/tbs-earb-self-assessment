@@ -498,9 +498,10 @@ function lensStrip(rubric: Rubric, repaintApp: () => void): HTMLElement | null {
     onclick: () => { lens = lens === id ? null : id; repaintApp(); },
   }, [label, n === null ? null : el('span', { class: 'lens-n' }, [String(n)])]);
 
+  // No label. "About" in small capitals was a third thing to read before the first chip, and the
+  // leading chip already says what the row does.
   return el('div', { class: 'lens-strip' }, [
-    el('span', { class: 'lens-label' }, [t('About', 'Au sujet de')]),
-    chip(t('Everything', 'Tout'), null, null),
+    chip(t('All questions', 'Toutes les questions'), null, null),
     ...cats.map((x) => chip(x.c.label, x.c.id, x.n)),
   ]);
 }
