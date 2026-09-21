@@ -10,9 +10,13 @@
  *    somebody as well as shown in place, because that list is the one to chase.
  *  - `why` is the one line that explains why the item exists. Write it for a reader who was
  *    not in the meeting.
+ *  - tier: 'level2' marks something deliberately after the prototype. An item with no tier is
+ *    in the prototype, because most of this file is and tagging every one of them is a habit
+ *    the next editor drops. Only write 'level2' where somebody decided it, and say in `why`
+ *    who decided it and when.
  */
 
-export const updated = '2026-09-01';
+export const updated = '2026-09-21';
 
 export const quick = {
   title: 'Quick actions',
@@ -26,8 +30,8 @@ export const quick = {
       why: 'The one thing left on the store that only you can do. Google Cloud console, Credentials, the browser key Firebase made: websites myermcat.github.io and localhost, APIs Identity Toolkit, Token Service and Cloud Firestore. Then dismiss the secret-scanning alert as will not fix.' },
     { t: 'Sign in, and a store with rules', status: 'next',
       why: 'deploy/firestore.rules is written: a Canadian region, nothing publicly readable, roles an admin grants, admin-only delete. Six one-time steps in a browser. Only you can do them, because the account is yours. Two limits found before building it: sign-in has to be a Google or Microsoft account, because the free plan sends five emailed links a day for the whole project, and attachments cannot go in the store at all.' },
-    { t: 'What counts as a finished assessment', status: 'next',
-      why: 'You spotted this yourself: there is no obvious finishing line. Filling every score is one answer, but evidence is not mandatory and neither is the reasoning, so the tool cannot say when somebody is done without being told. What the rubric says: nothing. All 176 questions carry weight 1, none is marked required, and no question asks for evidence. So the finishing line is the instrument\u2019s decision, and these are the choices. Complete means every question in the set has a score or is marked not applicable. Whether the six overview fields count: they are not scored, but the lifecycle stage changes every score through the stage multipliers and the marking gates saving at all, so the working answer is that they count. Whether a floor is needed, since with none an assessment marked not applicable throughout is complete and unscored. Whether saying it is finished freezes the answers, or whether the submitter keeps editing and the assessor is warned. Whether an assessor may do anything with an unfinished one beyond reading it. Whether the portfolio averages should exclude unfinished ones.' },
+    { t: 'What counts as a finished assessment', status: 'next', tier: 'level2',
+      why: 'Answered on 21 September, and the answer is to leave it alone: Dan and Mariia agreed it stays the submitter\u2019s judgement until real submissions exist, because answering every question is not the same as attaching every piece of evidence and a submitter may come back to a question after adding one. The choices below are what a later answer has to pick from. You spotted this yourself: there is no obvious finishing line. Filling every score is one answer, but evidence is not mandatory and neither is the reasoning, so the tool cannot say when somebody is done without being told. What the rubric says: nothing. All 176 questions carry weight 1, none is marked required, and no question asks for evidence. So the finishing line is the instrument\u2019s decision, and these are the choices. Complete means every question in the set has a score or is marked not applicable. Whether the six overview fields count: they are not scored, but the lifecycle stage changes every score through the stage multipliers and the marking gates saving at all, so the working answer is that they count. Whether a floor is needed, since with none an assessment marked not applicable throughout is complete and unscored. Whether saying it is finished freezes the answers, or whether the submitter keeps editing and the assessor is warned. Whether an assessor may do anything with an unfinished one beyond reading it. Whether the portfolio averages should exclude unfinished ones.' },
     { t: 'The completion flow, and the notification that does not exist yet', status: 'next',
       why: 'Designed and ready to build. Saving an unfinished assessment online already asks first and says what an assessor will and will not do with it. What is left: the window that appears when the last question is filled, offering to mark it complete and tell an assessor; the mockup screen that follows, which has to say plainly that no notification is sent; the assessor screen split, with finished submissions and the statistics at the top and unfinished ones below; and the rule that an assessor can read an unfinished submission and cannot change anything in it.' },
     { t: 'Teammates and assessors on an assessment', status: 'done',
@@ -179,6 +183,8 @@ export const layers = [
   {
     title: 'Question set', owner: 'Dan',
     groups: [
+      { t: 'Whether a department says how many decisions are already made', status: 'wait', owes: 'Dan', tier: 'level2',
+        why: 'Dan floated this on 21 September as a way to tell whether an assessment can still change anything. A department that has chosen the product and signed the contract answers the same 176 questions as one still deciding, and the two are worth different amounts to a board. It would be one overview field and nothing scored.' },
       { t: 'Answer types and criticality', status: 'wait',
         why: 'The shape of the questions, which Dan called the biggest remaining piece. Our reading is in the tool and labelled provisional.',
         subs: [
@@ -204,6 +210,10 @@ export const layers = [
   {
     title: 'Engine', owner: 'ours',
     groups: [
+      { t: 'The routing thresholds are approximations, and Dan said so', status: 'wait', owes: 'Dan', tier: 'level2',
+        why: 'Confirmed on 21 September: the numbers the tool routes on are the ones he named in the first conversation and are not accurate. He added a case the tool cannot express. A department scoring itself around three does not need to come to the board at all, because everybody already agrees the work is weak, and what matters is what they plan to do about it. So the band is not one line with a score on each side of it.' },
+      { t: 'Recording the rework loop', status: 'later', tier: 'level2',
+        why: 'Dan called the back and forth before a board date the real value GC EARB adds, and said on 21 September that he cannot prove that value because nothing captures it. It is also why the endorsement rate is 100 per cent: an initiative that would fail is reworked or abandoned before it ever reaches the board. Recording each round would make it visible. What a round looks like as data is the open question, and nobody has answered it.' },
       { t: 'Question mechanics', status: 'done',
         why: 'What the instrument can carry.',
         subs: [
@@ -239,6 +249,8 @@ export const layers = [
   {
     title: 'Interface: the submitter', owner: 'ours',
     groups: [
+      { t: 'The questionnaire on a phone', status: 'next',
+        why: 'Measured at 375 by 812. The page no longer runs off the side, which was the first half and has landed. The vertical budget is the rest: 322px of fixed header and 191px of fixed footer against an 812px screen, so the question itself gets 299px, which is 37 per cent of the phone. Every label in the section rail collapses to zero width, so that rail renders as a row of bare counts with no names. Three buttons in the footer each wrap onto two lines. Nobody has said they are filling this in on a phone, and nobody has said they are not.' },
       { t: 'Evidence', status: 'done',
         why: 'The change that follows from unclassified-only.',
         subs: [
@@ -363,6 +375,8 @@ export const layers = [
   {
     title: 'Data and hosting', owner: 'ours and TBS',
     groups: [
+      { t: 'What corporate credentials cost', status: 'wait', owes: 'Dan', tier: 'level2',
+        why: 'Dan wants departmental accounts eventually and does not know what linking them costs. He put it in October, after the prototype stage. What is already known: registering an application in Azure AD costs nothing, and Firebase carries the Microsoft provider to 50,000 monthly users on the free tier, so price is not the obstacle. The obstacle is that IMTD has to register the application, and Nick reads the chance of them agreeing as low.' },
       { t: 'Get into canada-ca', status: 'next',
         why: 'Access is done. Publishing is a commit away in a repo you can already push to. A repo of our own is a separate, slower question.',
         subs: [
