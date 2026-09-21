@@ -1925,3 +1925,10 @@ dialog.confirm.shake { animation: cf-shake .34s cubic-bezier(.36, .07, .19, .97)
 .lens-from { font-size: .72rem; text-transform: uppercase; letter-spacing: .05em;
   color: var(--ink-3); margin: 1.1rem 0 .3rem; }
 .lens-from:first-of-type { margin-top: .2rem; }
+
+/* A demonstration build says so above everything, in the one colour nothing else on the page
+   uses, because a room shown a department name and a score will quote both afterwards. */
+.demo-banner { background: #5b2d8e; color: #fff; font-size: .82rem; line-height: 1.35;
+  padding: .4rem 1.15rem; border-bottom: 1px solid #3f1f66; }
+.demo-banner strong { margin-right: .4rem; text-transform: uppercase; letter-spacing: .06em;
+  font-size: .74rem; }

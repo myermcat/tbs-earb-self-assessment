@@ -1063,5 +1063,35 @@ console.log('\nThe published build, signed in\n');
      declares ? `the build carries ${declares}. Remove the admins key from deploy/firebase-config.json: a grant that lives in the build cannot be revoked in the store.` : '');
 }
 
+/* --------------------------------------------------------------------------------------- */
+{
+  /**
+   * The published pages are never a demonstration build.
+   *
+   * The demonstration build asks nobody to sign in. That is safe only because it reads an
+   * invented pool and never reaches the store; the same flag on the real assessor page would
+   * open every department's submission to anybody holding the address. It is published at its
+   * own address, and this refuses the flag anywhere near the two real ones.
+   */
+  /**
+   * Asserted on what the page renders, not on what its text contains. The stylesheet is inlined
+   * into every build, so the class name is in all of them and grepping for it fails the pages it
+   * is meant to protect.
+   */
+  const assessor = await readFile('dist/assessor.html', 'utf8').catch(() => '');
+  for (const [name, page] of [['the submitter page', html], ['the assessor page', assessor]]) {
+    if (!page) continue;
+    const j = new JSDOM(page, { runScripts: 'dangerously', url: 'https://example.gc.ca/',
+      beforeParse(w) { w.scrollTo = () => {}; w.alert = () => {}; w.print = () => {};
+        w.fetch = async () => ({ ok: false, status: 403, headers: { get: () => 'application/json' },
+          json: async () => ({}), text: async () => '{}' }); } });
+    await new Promise((r) => setTimeout(r, 120));
+    ok(`${name} does not render as a demonstration`,
+       !j.window.document.querySelector('.demo-banner'),
+       'the demonstration flag is compiled into a page that reads the real store');
+    j.window.close();
+  }
+}
+
 console.log(fails ? `\n${fails} hosted check(s) failed\n` : '\nall hosted checks passed\n');
 process.exit(fails ? 1 : 0);

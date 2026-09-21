@@ -51,12 +51,19 @@ echo "Building the submitter's page..."
 ( cd "$HERE/Self-assessment tool" && EARB_ACCESS=code npm run --silent build )
 echo "Building the assessor's page..."
 ( cd "$HERE/Self-assessment tool" && EARB_ACCESS=accounts EARB_SIDE=assess EARB_OUT=dist/assessor.html npm run --silent build )
+# The page for showing the tool to a room. Its own address, its own invented pool, and it never
+# reaches the store. It asks nobody to sign in, which is safe only because of that.
+echo "Building the demonstration page..."
+# Built with NO store address at all. isDemo() already short-circuits the two reads, but a page
+# that cannot name the store is a stronger promise than a page that chooses not to ask it: with
+# no config there is no endpoint compiled in, so no path through this page reaches real work.
+( cd "$HERE/Self-assessment tool" && EARB_FIREBASE= EARB_DEMO=1 EARB_ACCESS=accounts EARB_SIDE=assess EARB_OUT=dist/demo.html npm run --silent build )
 # Nobody's address goes onto the open internet.
 #
 # npm test cannot catch this. Its hosted suite builds with a stand-in Firebase config, so it
 # never sees the real one, and the gate there passed happily while a real address sat in the
 # published page. This is the only place the true config and the true build meet.
-for page in dist/index.html dist/assessor.html; do
+for page in dist/index.html dist/assessor.html dist/demo.html; do
   found="$(grep -oiE '[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}' "$HERE/Self-assessment tool/$page" \
     | sort -u \
     | grep -viE '^(someone|you|vous|name|nom|test|first\.last)@' \
@@ -74,6 +81,22 @@ for page in dist/index.html dist/assessor.html; do
   fi
 done
 
+# The two real pages are never the demonstration build.
+#
+# The demonstration asks nobody to sign in, which is safe only because it reads an invented pool
+# and carries no store address. The same flag on a page that does reach the store would open
+# every department's submission to anybody holding the address. npm test cannot catch this: CI
+# builds one page, so the check there skips the other two silently.
+for page in dist/index.html dist/assessor.html; do
+  if grep -q 'demo-banner"' "$HERE/Self-assessment tool/$page" 2>/dev/null \
+     && grep -q 'EARB_DEMO' "$HERE/Self-assessment tool/$page" 2>/dev/null; then
+    echo >&2
+    echo "REFUSING TO PUBLISH. $page looks like a demonstration build." >&2
+    echo "A page that reaches the real store must ask who somebody is." >&2
+    exit 1
+  fi
+done
+
 ( cd "$HERE/Self-assessment tool" && node tools/build-backlog.mjs >/dev/null )
 ( cd "$HERE/Self-assessment tool" && node tools/build-requirements.mjs >/dev/null )
 
@@ -83,6 +106,8 @@ git clone --quiet --depth 1 "https://github.com/$REPO.git" "$WORK/site"
 cp "$HERE/Self-assessment tool/dist/index.html" "$WORK/site/docs/index.html"
 mkdir -p "$WORK/site/docs/assessor"
 cp "$HERE/Self-assessment tool/dist/assessor.html" "$WORK/site/docs/assessor/index.html"
+mkdir -p "$WORK/site/docs/demo"
+cp "$HERE/Self-assessment tool/dist/demo.html" "$WORK/site/docs/demo/index.html"
 
 # The backlog travels with the build, so it can be opened from a link rather than a file path.
 # It names colleagues and the state of internal decisions. Nothing in it is protected, and
