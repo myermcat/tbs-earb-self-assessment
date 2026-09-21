@@ -104,6 +104,9 @@ background:var(--surface);border:1px solid var(--line);border-radius:10px;list-s
 .done-summary::before{content:'\\25B8';color:var(--ink-3);font-size:.8rem}
 .done-fold[open] .done-summary::before{content:'\\25BE'}
 .done-summary:hover{border-color:var(--accent-line)}
+.tier{font-weight:600;font-size:.62rem;letter-spacing:.07em;text-transform:uppercase;
+margin-left:.45rem;padding:.02rem .3rem;border-radius:4px;vertical-align:.08em;
+color:var(--ink-3);background:var(--surface-2);border:1px solid var(--line-2)}
 .section-title{font-weight:650}
 .h3sub{font-size:.98rem;margin:1.2rem 0 .5rem;color:var(--ink-2)}
 .kpi a{color:inherit;text-decoration:none}
@@ -112,11 +115,19 @@ background:var(--surface);border:1px solid var(--line);border-radius:10px;list-s
 const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 const LABEL = { next: 'Next', wait: 'Waiting', later: 'Later', done: 'Done' };
 
+/**
+ * Marks the items that are after the prototype.
+ *
+ * Only 'level2' draws anything. An item with no tier is in the prototype, and a page that
+ * stamped every one of those with a badge saying so would be a page of badges.
+ */
+const tier = (item) => (item.tier === 'level2' ? '<span class="tier">Level 2</span>' : '');
+
 /** A leaf row. `solo` when it is not inside a group. */
 function leaf(item, solo = false) {
   return [
     `<div class="leaf${solo ? ' solo' : ''}">`,
-    `<span class="t">${esc(item.t)}</span><span class="st st-${item.status}">${LABEL[item.status]}</span>`,
+    `<span class="t">${esc(item.t)}${tier(item)}</span><span class="st st-${item.status}">${LABEL[item.status]}</span>`,
     item.why ? `<span class="w">${esc(item.why)}</span>` : '',
     '</div>',
   ].join('\n');
@@ -134,7 +145,7 @@ function group(g) {
     : subs.some((s) => s.status === 'wait') ? 'wait' : 'later';
   return [
     '<details class="grp" open><summary class="row">',
-    `<span class="t">${esc(g.t)}</span><span class="st st-${status}">${LABEL[status]}</span>`,
+    `<span class="t">${esc(g.t)}${tier(g)}</span><span class="st st-${status}">${LABEL[status]}</span>`,
     g.why ? `<span class="w">${esc(g.why)}</span>` : '',
     '</summary><div class="subs">',
     subs.map((s) => leaf(s)).join('\n'),
@@ -192,16 +203,44 @@ const doneRow = ({ item }) => [
   `<span class="w">${esc(item.why ?? '')}</span>`,
   '</div>',
 ].join('\n');
+/**
+ * A tier the renderer does not know draws nothing at all.
+ *
+ * `tier: 'level-2'` or `tier: 'Level2'` would put an item nowhere: no marker on its row, no row
+ * in the After the prototype table, and a page that looks finished. So an unknown value stops
+ * the build, which stops a publish, because publish-preview.sh builds this page.
+ */
+{
+  const known = new Set([undefined, 'mvp', 'level2']);
+  const every = [...quick.items, ...layers.flatMap((l) => l.groups.flatMap((g) => (g.subs ? [g, ...g.subs] : [g])))];
+  const wrong = every.filter((i) => !known.has(i.tier));
+  if (wrong.length) {
+    console.error(`Unknown tier on ${wrong.length} item(s): ` +
+      wrong.map((i) => `${i.t} -> ${JSON.stringify(i.tier)}`).join(' | '));
+    process.exit(1);
+  }
+}
+
 const openQuick = quick.items.filter((i) => i.status !== 'done');
 
 const waiting = [];
+/**
+ * What was deliberately put after the prototype, gathered in one place.
+ *
+ * Gathered for the same reason the waiting list is: the question somebody asks about a backlog
+ * is not what is on it, it is what is missing and whether that was a decision. Each of these is
+ * also in its layer below, marked there.
+ */
+const later2 = [];
 for (const l of layers) {
   for (const g of l.groups) {
     const items = g.subs ? g.subs : [g];
     // Who owes the reply, which is not always whoever owns the layer.
     for (const it of items) if (it.status === 'wait') waiting.push({ layer: l.title, owner: it.owes ?? l.owner, item: it });
+    for (const it of items) if (it.tier === 'level2' && it.status !== 'done') later2.push({ layer: l.title, item: it });
   }
 }
+for (const it of quick.items) if (it.tier === 'level2' && it.status !== 'done') later2.push({ layer: quick.title, item: it });
 
 
 const html = [
@@ -225,6 +264,7 @@ const html = [
   [
     ['#quick', String(count('next')), 'next'],
     ['#waiting', String(waiting.length), 'waiting on somebody'],
+    ['#level2', String(later2.length), 'after the prototype'],
     ['#done', String(done.length), 'done'],
     ['#questions', String(questions.length), 'open questions'],
   ].map(([href, n, label]) => `<a class="nav-kpi" href="${href}"><b>${n}</b><span>${esc(label)}</span></a>`).join('\n'),
@@ -245,6 +285,13 @@ const html = [
     '<h2 id="waiting">Waiting on somebody</h2><p class="hint">Chased, and not ours to finish. Each of these is also in its layer below.</p>',
     '<div class="tw"><table><thead><tr><th>Item</th><th>Who</th><th>Layer</th><th>Meanwhile</th></tr></thead><tbody>',
     waiting.map((w) => `<tr><td>${esc(w.item.t)}</td><td>${esc(w.owner)}</td><td>${esc(w.layer)}</td><td>${esc(w.item.why ?? '')}</td></tr>`).join('\n'),
+    '</tbody></table></div>',
+  ].join('\n') : '',
+
+  later2.length ? [
+    '<h2 id="level2">After the prototype</h2><p class="hint">Decided, and decided to wait. Each of these is also in its layer below, marked Level 2 there.</p>',
+    '<div class="tw"><table><thead><tr><th>Item</th><th>Layer</th><th>Why it waits</th></tr></thead><tbody>',
+    later2.map((x) => `<tr><td>${esc(x.item.t)}</td><td>${esc(x.layer)}</td><td>${esc(x.item.why ?? '')}</td></tr>`).join('\n'),
     '</tbody></table></div>',
   ].join('\n') : '',
 

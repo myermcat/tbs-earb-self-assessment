@@ -88,15 +88,19 @@ background:var(--surface);border:1px solid var(--line);border-radius:10px;list-s
 .done-summary::before{content:'\25B8';color:var(--ink-3);font-size:.8rem}
 .done-fold[open] .done-summary::before{content:'\25BE'}
 .done-summary:hover{border-color:var(--accent-line)}
+.tier{font-weight:600;font-size:.62rem;letter-spacing:.07em;text-transform:uppercase;
+margin-left:.45rem;padding:.02rem .3rem;border-radius:4px;vertical-align:.08em;
+color:var(--ink-3);background:var(--surface-2);border:1px solid var(--line-2)}
 .section-title{font-weight:650}
 .h3sub{font-size:.98rem;margin:1.2rem 0 .5rem;color:var(--ink-2)}
 .kpi a{color:inherit;text-decoration:none}
 </style>
 <div class="head"><div class="head-in"><h1>EARB self-assessment: backlog</h1>
-<p class="sub">Updated 2026-09-01.</p></div></div>
+<p class="sub">Updated 2026-09-21.</p></div></div>
 <nav class="topnav"><div class="topnav-in">
-<a class="nav-kpi" href="#quick"><b>35</b><span>next</span></a>
-<a class="nav-kpi" href="#waiting"><b>9</b><span>waiting on somebody</span></a>
+<a class="nav-kpi" href="#quick"><b>36</b><span>next</span></a>
+<a class="nav-kpi" href="#waiting"><b>12</b><span>waiting on somebody</span></a>
+<a class="nav-kpi" href="#level2"><b>5</b><span>after the prototype</span></a>
 <a class="nav-kpi" href="#done"><b>82</b><span>done</span></a>
 <a class="nav-kpi" href="#questions"><b>12</b><span>open questions</span></a>
 <span class="nav-sep"></span>
@@ -132,8 +136,8 @@ background:var(--surface);border:1px solid var(--line);border-radius:10px;list-s
 <span class="w">deploy/firestore.rules is written: a Canadian region, nothing publicly readable, roles an admin grants, admin-only delete. Six one-time steps in a browser. Only you can do them, because the account is yours. Two limits found before building it: sign-in has to be a Google or Microsoft account, because the free plan sends five emailed links a day for the whole project, and attachments cannot go in the store at all.</span>
 </div>
 <div class="leaf solo">
-<span class="t">What counts as a finished assessment</span><span class="st st-next">Next</span>
-<span class="w">You spotted this yourself: there is no obvious finishing line. Filling every score is one answer, but evidence is not mandatory and neither is the reasoning, so the tool cannot say when somebody is done without being told. What the rubric says: nothing. All 176 questions carry weight 1, none is marked required, and no question asks for evidence. So the finishing line is the instrument’s decision, and these are the choices. Complete means every question in the set has a score or is marked not applicable. Whether the six overview fields count: they are not scored, but the lifecycle stage changes every score through the stage multipliers and the marking gates saving at all, so the working answer is that they count. Whether a floor is needed, since with none an assessment marked not applicable throughout is complete and unscored. Whether saying it is finished freezes the answers, or whether the submitter keeps editing and the assessor is warned. Whether an assessor may do anything with an unfinished one beyond reading it. Whether the portfolio averages should exclude unfinished ones.</span>
+<span class="t">What counts as a finished assessment<span class="tier">Level 2</span></span><span class="st st-next">Next</span>
+<span class="w">Answered on 21 September, and the answer is to leave it alone: Dan and Mariia agreed it stays the submitter’s judgement until real submissions exist, because answering every question is not the same as attaching every piece of evidence and a submitter may come back to a question after adding one. The choices below are what a later answer has to pick from. You spotted this yourself: there is no obvious finishing line. Filling every score is one answer, but evidence is not mandatory and neither is the reasoning, so the tool cannot say when somebody is done without being told. What the rubric says: nothing. All 176 questions carry weight 1, none is marked required, and no question asks for evidence. So the finishing line is the instrument’s decision, and these are the choices. Complete means every question in the set has a score or is marked not applicable. Whether the six overview fields count: they are not scored, but the lifecycle stage changes every score through the stage multipliers and the marking gates saving at all, so the working answer is that they count. Whether a floor is needed, since with none an assessment marked not applicable throughout is complete and unscored. Whether saying it is finished freezes the answers, or whether the submitter keeps editing and the assessor is warned. Whether an assessor may do anything with an unfinished one beyond reading it. Whether the portfolio averages should exclude unfinished ones.</span>
 </div>
 <div class="leaf solo">
 <span class="t">The completion flow, and the notification that does not exist yet</span><span class="st st-next">Next</span>
@@ -155,14 +159,25 @@ background:var(--surface);border:1px solid var(--line);border-radius:10px;list-s
 <h2 id="waiting">Waiting on somebody</h2><p class="hint">Chased, and not ours to finish. Each of these is also in its layer below.</p>
 <div class="tw"><table><thead><tr><th>Item</th><th>Who</th><th>Layer</th><th>Meanwhile</th></tr></thead><tbody>
 <tr><td>A submitter cannot remove their own record</td><td>Build team</td><td>Known problems</td><td>Yours to decide, and parked until you do. Discarding a draft leaves the copy at TBS untouched, because delete is admin-only. The screens say so. The alternative is one line in the rules letting an owner delete a record nobody has been asked to review yet.</td></tr>
+<tr><td>Whether a department says how many decisions are already made</td><td>Dan</td><td>Question set</td><td>Dan floated this on 21 September as a way to tell whether an assessment can still change anything. A department that has chosen the product and signed the contract answers the same 176 questions as one still deciding, and the two are worth different amounts to a board. It would be one overview field and nothing scored.</td></tr>
 <tr><td>Confirm the answer type for every question</td><td>Dan</td><td>Question set</td><td>Ten are yes/no on our reading of the wording. The other 166 are scored 0 to 10.</td></tr>
 <tr><td>Confirm which no answers matter most</td><td>Dan</td><td>Question set</td><td>Every no colours its section red today. If some should not, that is his call.</td></tr>
 <tr><td>Set per-question criticality</td><td>Dan</td><td>Question set</td><td>Separate from section weight, and nothing in his workbook carries it.</td></tr>
 <tr><td>Fix the section weights that total 80</td><td>Dan</td><td>Question set</td><td>His error, confirmed in his own words. The tool shares the missing 20 proportionally and shows the normalised share.</td></tr>
 <tr><td>Bring in the dropdown answers</td><td>Dan</td><td>Question set</td><td>No picklists exist. Needs the 700 or more past assessments, which only he can hand over.</td></tr>
+<tr><td>The routing thresholds are approximations, and Dan said so</td><td>Dan</td><td>Engine</td><td>Confirmed on 21 September: the numbers the tool routes on are the ones he named in the first conversation and are not accurate. He added a case the tool cannot express. A department scoring itself around three does not need to come to the board at all, because everybody already agrees the work is weak, and what matters is what they plan to do about it. So the band is not one line with a score on each side of it.</td></tr>
 <tr><td>Real sign-in</td><td>Dan</td><td>Interface: the assessor</td><td>Blocked on how identity gets checked at all, which is his answer to give.</td></tr>
+<tr><td>What corporate credentials cost</td><td>Dan</td><td>Data and hosting</td><td>Dan wants departmental accounts eventually and does not know what linking them costs. He put it in October, after the prototype stage. What is already known: registering an application in Azure AD costs nothing, and Firebase carries the Microsoft provider to 50,000 monthly users on the free tier, so price is not the obstacle. The obstacle is that IMTD has to register the application, and Nick reads the chance of them agreeing as low.</td></tr>
 <tr><td>Nick’s answer on who performs the transfer</td><td>Nick</td><td>Data and hosting</td><td>Open an issue on canada-ca/welcome is the route he named. Whether he moves it or you do is the part still unanswered.</td></tr>
 <tr><td>Decide the triggers</td><td>Dan</td><td>Data and hosting</td><td>Submission, assignment, a changed score and a reminder are four different decisions.</td></tr>
+</tbody></table></div>
+<h2 id="level2">After the prototype</h2><p class="hint">Decided, and decided to wait. Each of these is also in its layer below, marked Level 2 there.</p>
+<div class="tw"><table><thead><tr><th>Item</th><th>Layer</th><th>Why it waits</th></tr></thead><tbody>
+<tr><td>Whether a department says how many decisions are already made</td><td>Question set</td><td>Dan floated this on 21 September as a way to tell whether an assessment can still change anything. A department that has chosen the product and signed the contract answers the same 176 questions as one still deciding, and the two are worth different amounts to a board. It would be one overview field and nothing scored.</td></tr>
+<tr><td>The routing thresholds are approximations, and Dan said so</td><td>Engine</td><td>Confirmed on 21 September: the numbers the tool routes on are the ones he named in the first conversation and are not accurate. He added a case the tool cannot express. A department scoring itself around three does not need to come to the board at all, because everybody already agrees the work is weak, and what matters is what they plan to do about it. So the band is not one line with a score on each side of it.</td></tr>
+<tr><td>Recording the rework loop</td><td>Engine</td><td>Dan called the back and forth before a board date the real value GC EARB adds, and said on 21 September that he cannot prove that value because nothing captures it. It is also why the endorsement rate is 100 per cent: an initiative that would fail is reworked or abandoned before it ever reaches the board. Recording each round would make it visible. What a round looks like as data is the open question, and nobody has answered it.</td></tr>
+<tr><td>What corporate credentials cost</td><td>Data and hosting</td><td>Dan wants departmental accounts eventually and does not know what linking them costs. He put it in October, after the prototype stage. What is already known: registering an application in Azure AD costs nothing, and Firebase carries the Microsoft provider to 50,000 monthly users on the free tier, so price is not the obstacle. The obstacle is that IMTD has to register the application, and Nick reads the chance of them agreeing as low.</td></tr>
+<tr><td>What counts as a finished assessment</td><td>Quick actions</td><td>Answered on 21 September, and the answer is to leave it alone: Dan and Mariia agreed it stays the submitter’s judgement until real submissions exist, because answering every question is not the same as attaching every piece of evidence and a submitter may come back to a question after adding one. The choices below are what a later answer has to pick from. You spotted this yourself: there is no obvious finishing line. Filling every score is one answer, but evidence is not mandatory and neither is the reasoning, so the tool cannot say when somebody is done without being told. What the rubric says: nothing. All 176 questions carry weight 1, none is marked required, and no question asks for evidence. So the finishing line is the instrument’s decision, and these are the choices. Complete means every question in the set has a score or is marked not applicable. Whether the six overview fields count: they are not scored, but the lifecycle stage changes every score through the stage multipliers and the marking gates saving at all, so the working answer is that they count. Whether a floor is needed, since with none an assessment marked not applicable throughout is complete and unscored. Whether saying it is finished freezes the answers, or whether the submitter keeps editing and the assessor is warned. Whether an assessor may do anything with an unfinished one beyond reading it. Whether the portfolio averages should exclude unfinished ones.</td></tr>
 </tbody></table></div>
 <h2 id="layer-0">Known problems <span class="owner">Build team</span></h2>
 <div class="card">
@@ -230,6 +245,10 @@ background:var(--surface);border:1px solid var(--line);border-radius:10px;list-s
 </div>
 <h2 id="layer-2">Question set <span class="owner">Dan</span></h2>
 <div class="card">
+<div class="leaf solo">
+<span class="t">Whether a department says how many decisions are already made<span class="tier">Level 2</span></span><span class="st st-wait">Waiting</span>
+<span class="w">Dan floated this on 21 September as a way to tell whether an assessment can still change anything. A department that has chosen the product and signed the contract answers the same 176 questions as one still deciding, and the two are worth different amounts to a board. It would be one overview field and nothing scored.</span>
+</div>
 <details class="grp" open><summary class="row">
 <span class="t">Answer types and criticality</span><span class="st st-wait">Waiting</span>
 <span class="w">The shape of the questions, which Dan called the biggest remaining piece. Our reading is in the tool and labelled provisional.</span>
@@ -267,6 +286,14 @@ background:var(--surface);border:1px solid var(--line);border-radius:10px;list-s
 </div>
 <h2 id="layer-3">Engine <span class="owner">ours</span></h2>
 <div class="card">
+<div class="leaf solo">
+<span class="t">The routing thresholds are approximations, and Dan said so<span class="tier">Level 2</span></span><span class="st st-wait">Waiting</span>
+<span class="w">Confirmed on 21 September: the numbers the tool routes on are the ones he named in the first conversation and are not accurate. He added a case the tool cannot express. A department scoring itself around three does not need to come to the board at all, because everybody already agrees the work is weak, and what matters is what they plan to do about it. So the band is not one line with a score on each side of it.</span>
+</div>
+<div class="leaf solo">
+<span class="t">Recording the rework loop<span class="tier">Level 2</span></span><span class="st st-later">Later</span>
+<span class="w">Dan called the back and forth before a board date the real value GC EARB adds, and said on 21 September that he cannot prove that value because nothing captures it. It is also why the endorsement rate is 100 per cent: an initiative that would fail is reworked or abandoned before it ever reaches the board. Recording each round would make it visible. What a round looks like as data is the open question, and nobody has answered it.</span>
+</div>
 <details class="grp" open><summary class="row">
 <span class="t">Storage and concurrency</span><span class="st st-next">Next</span>
 <span class="w">Everything is unclassified, so it can all live online. The seam is written; the store is not.</span>
@@ -291,6 +318,10 @@ background:var(--surface);border:1px solid var(--line);border-radius:10px;list-s
 </div>
 <h2 id="layer-4">Interface: the submitter <span class="owner">ours</span></h2>
 <div class="card">
+<div class="leaf solo">
+<span class="t">The questionnaire on a phone</span><span class="st st-next">Next</span>
+<span class="w">Measured at 375 by 812. The page no longer runs off the side, which was the first half and has landed. The vertical budget is the rest: 322px of fixed header and 191px of fixed footer against an 812px screen, so the question itself gets 299px, which is 37 per cent of the phone. Every label in the section rail collapses to zero width, so that rail renders as a row of bare counts with no names. Three buttons in the footer each wrap onto two lines. Nobody has said they are filling this in on a phone, and nobody has said they are not.</span>
+</div>
 <details class="grp" open><summary class="row">
 <span class="t">Marking</span><span class="st st-next">Next</span>
 <span class="w">Somebody still has to state the marking of what they point at.</span>
@@ -364,6 +395,10 @@ background:var(--surface);border:1px solid var(--line);border-radius:10px;list-s
 </div>
 <h2 id="layer-8">Data and hosting <span class="owner">ours and TBS</span></h2>
 <div class="card">
+<div class="leaf solo">
+<span class="t">What corporate credentials cost<span class="tier">Level 2</span></span><span class="st st-wait">Waiting</span>
+<span class="w">Dan wants departmental accounts eventually and does not know what linking them costs. He put it in October, after the prototype stage. What is already known: registering an application in Azure AD costs nothing, and Firebase carries the Microsoft provider to 50,000 monthly users on the free tier, so price is not the obstacle. The obstacle is that IMTD has to register the application, and Nick reads the chance of them agreeing as low.</span>
+</div>
 <details class="grp" open><summary class="row">
 <span class="t">Get into canada-ca</span><span class="st st-next">Next</span>
 <span class="w">Access is done. Publishing is a commit away in a repo you can already push to. A repo of our own is a separate, slower question.</span>
@@ -810,4 +845,4 @@ background:var(--surface);border:1px solid var(--line);border-radius:10px;list-s
 <tr><td>Who performs the canada-ca transfer</td><td>Nick</td><td>The repo move</td><td>Asked. An issue on canada-ca/welcome is the route he named</td></tr>
 <tr><td>What the production intake should be</td><td>TBS</td><td>Production only</td><td>The prototype answer is an Azure Function plus one CSP line</td></tr>
 </tbody></table></div>
-<footer>63 open, 82 done. Generated from NOTES/backlog.data.mjs by tools/build-backlog.mjs.</footer></div>
+<footer>68 open, 82 done. Generated from NOTES/backlog.data.mjs by tools/build-backlog.mjs.</footer></div>
