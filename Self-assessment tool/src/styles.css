@@ -520,6 +520,10 @@ code.mono { background: var(--surface-2); border: 1px solid var(--line);
 .toc-row.on { background: var(--accent-soft); color: var(--ink); font-weight: 600;
   box-shadow: inset 2px 0 0 var(--accent); }
 .toc-row.done .toc-count { color: var(--good); }
+/* A section holding none of the category the lens is on. Greyed and left where it is: taking
+   the row away makes the rail change length every time somebody tries a category, and the row
+   is still the answer to whether any of it is in here, which is no. */
+.toc-row.lens-empty-row { opacity: .45; }
 .toc-row.done .toc-bar i { background: var(--good); }
 
 .section-head-card .eyebrow { margin-bottom: .3rem; }

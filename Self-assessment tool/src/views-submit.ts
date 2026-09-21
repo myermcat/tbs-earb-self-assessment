@@ -108,6 +108,24 @@ let scrollToQuestion: string | null = null;
  * one row of height and works the same on a phone, so there is one design and not two.
  */
 let lens: string | null = null;
+
+/**
+ * How much of a set of questions is answered, counted inside whatever lens is on.
+ *
+ * Reported as: with Security on, the rail still says 0 of 9 for a section showing 2 questions.
+ * Three places counted the same questions and only the domain tabs knew about the lens, so the
+ * numbers on screen disagreed with each other and with what was on the page. One function now,
+ * and every readout calls it.
+ */
+function countedInLens(questions: { raw: number | null; na: boolean; question: { topics?: string[] } }[]): [number, number] {
+  const seen = lens ? questions.filter((qs) => (qs.question.topics ?? []).includes(lens as string)) : questions;
+  return [seen.filter((qs) => qs.raw !== null || qs.na).length, seen.length];
+}
+
+/** What the strip calls the category that is on, for a readout that has to name it. */
+function lensLabel(rubric: Rubric): string {
+  return (rubric.topics ?? []).find((c) => c.id === lens)?.label ?? (lens ?? '');
+}
 export function goToFirstGap(rubric: Rubric, a: Assessment): boolean {
   const gap = firstGap(rubric, a);
   if (!gap) return false;
@@ -438,7 +456,8 @@ function sectionRail(
           const c = el('span', { class: 'toc-count' });
           register((rr) => {
             const ds = rr.domains.find((x) => x.domain.id === d.id);
-            c.textContent = `${ds?.answered ?? 0}/${ds?.total ?? 0}`;
+            const [done, total] = countedInLens((ds?.sections ?? []).flatMap((sec) => sec.questions));
+            c.textContent = `${done}/${total}`;
           }, r);
           return c;
         })(),
@@ -461,12 +480,18 @@ function sectionRail(
               const cur = rr.domains
                 .find((x) => x.domain.id === d.id)?.sections
                 .find((x) => x.section.id === sec.id);
-              const done = cur?.answered ?? 0;
-              const total = cur?.total ?? 0;
+              const [done, total] = countedInLens(cur?.questions ?? []);
               count.textContent = `${done}/${total}`;
               fill.style.width = total > 0 ? `${Math.round((done / total) * 100)}%` : '0%';
               row.classList.toggle('done', total > 0 && done === total);
-              row.classList.toggle('red-flag', !!cur && sectionRedFlags(cur).length > 0);
+              /**
+               * A section holding none of the category the lens is on is greyed rather than
+               * hidden. Taking the row away would make the rail change length every time
+               * somebody tried a category, and the row is still the answer to "is any of our
+               * security in here", which is no.
+               */
+              row.classList.toggle('lens-empty-row', !!lens && total === 0);
+              row.classList.toggle('red-flag', !!cur && !lens && sectionRedFlags(cur).length > 0);
             }, r);
             return row;
           })
@@ -561,10 +586,7 @@ function stepper(
     ...rubric.domains.map((d) =>
       step(shortLabel(d.label), firstStopIn(list, d.id), (st) => st.domainId === d.id, (rr) => {
         const ds = rr.domains.find((x) => x.domain.id === d.id);
-        if (!lens) return [ds?.answered ?? 0, ds?.total ?? 0];
-        const inLens = (ds?.sections ?? []).flatMap((sec) => sec.questions)
-          .filter((qs) => (qs.question.topics ?? []).includes(lens as string));
-        return [inLens.filter((qs) => qs.raw !== null || qs.na).length, inLens.length];
+        return countedInLens((ds?.sections ?? []).flatMap((sec) => sec.questions));
       }, undefined, (rr) => {
         const ds = rr.domains.find((x) => x.domain.id === d.id);
         return !!ds && domainRedFlags(ds).length > 0;
@@ -738,16 +760,15 @@ function footerBar(
   const secLabel = el('span', { class: 'pbar-label' });
   const allBar = el('i');
   /**
-   * The count is its own element because the wording in front of it has two lengths and the
-   * phone hides one of them. Writing the whole caption as one string would mean the narrow
-   * form could only exist by rebuilding the element on every answer.
+   * Three elements rather than one string, for two reasons. The wording in front of the count
+   * has two lengths and a phone hides one of them, and both wordings change when a category
+   * lens is on, so writing the caption as one string would mean rebuilding the element on
+   * every answer.
    */
   const allCount = el('span', { class: 'pbar-count' });
-  const allLabel = el('span', { class: 'pbar-label' }, [
-    el('span', { class: 'fb-long' }, [t('Whole assessment ', 'Évaluation entière ')]),
-    el('span', { class: 'fb-short' }, [t('All ', 'Tout ')]),
-    allCount,
-  ]);
+  const allLong = el('span', { class: 'fb-long' });
+  const allShort = el('span', { class: 'fb-short' });
+  const allLabel = el('span', { class: 'pbar-label' }, [allLong, allShort, allCount]);
   let sectionWasComplete = false;
 
   const apply = (rr: Result) => {
@@ -785,19 +806,46 @@ function footerBar(
       ? problems.map((p) => p.message).join('\n')
       : t('Save a copy you can reopen later', 'Enregistrer une copie que vous pourrez rouvrir');
 
-    const cur = here.domainId
-      ? rr.domains.find((x) => x.domain.id === here.domainId)?.sections.find((x) => x.section.id === here.sectionId)
+    /**
+     * Both bars count what is on the screen, and with a lens on that is not the section.
+     *
+     * Reported as: with Security on, the rail still shows 0 of 9 for a section showing 2
+     * questions. The same was true here. A lens takes the sections out of the page and shows
+     * the whole domain filtered, so the first bar counts that domain inside the category and
+     * says which domain, matching the tab the reader is on. The second counts the category
+     * across the whole assessment and says which category. With no lens on, neither changes.
+     */
+    const dsHere = here.domainId
+      ? rr.domains.find((x) => x.domain.id === here.domainId)
       : undefined;
+    const cur = dsHere?.sections.find((x) => x.section.id === here.sectionId);
     const [ovDone, ovTotal] = overviewFieldProgress(a);
-    const done = cur ? cur.answered : ovDone;
-    const total = cur ? cur.total : ovTotal;
-    secLabel.textContent = cur
-      ? `${t('This section', 'Cette section')} ${done} ${t('of', 'sur')} ${total}`
-      : `${t('Overview', 'Aperçu')} ${done} ${t('of', 'sur')} ${total}`;
+    let done = cur ? cur.answered : ovDone;
+    let total = cur ? cur.total : ovTotal;
+    if (lens && dsHere) {
+      [done, total] = countedInLens(dsHere.sections.flatMap((x) => x.questions));
+      secLabel.textContent = `${shortLabel(dsHere.domain.label)} ${done} ${t('of', 'sur')} ${total}`;
+    } else {
+      secLabel.textContent = cur
+        ? `${t('This section', 'Cette section')} ${done} ${t('of', 'sur')} ${total}`
+        : `${t('Overview', 'Aperçu')} ${done} ${t('of', 'sur')} ${total}`;
+    }
     secBar.style.width = total > 0 ? `${Math.round((done / total) * 100)}%` : '0%';
 
-    allCount.textContent = `${rr.answered} ${t('of', 'sur')} ${rr.scoreable}`;
-    allBar.style.width = rr.scoreable > 0 ? `${Math.round((rr.answered / rr.scoreable) * 100)}%` : '0%';
+    if (lens) {
+      const label = lensLabel(rubric);
+      allLong.textContent = `${label} `;
+      allShort.textContent = `${label} `;
+      const [lDone, lTotal] = countedInLens(
+        rr.domains.flatMap((x) => x.sections.flatMap((sec) => sec.questions)));
+      allCount.textContent = `${lDone} ${t('of', 'sur')} ${lTotal}`;
+      allBar.style.width = lTotal > 0 ? `${Math.round((lDone / lTotal) * 100)}%` : '0%';
+    } else {
+      allLong.textContent = t('Whole assessment ', 'Évaluation entière ');
+      allShort.textContent = t('All ', 'Tout ');
+      allCount.textContent = `${rr.answered} ${t('of', 'sur')} ${rr.scoreable}`;
+      allBar.style.width = rr.scoreable > 0 ? `${Math.round((rr.answered / rr.scoreable) * 100)}%` : '0%';
+    }
 
     // The reward for finishing a section, on an element that is pinned, so it is seen however
     // far down the page the reader is.
