@@ -67,11 +67,19 @@ declaration that a later rule may be cancelling.
 
     bash ../deploy/publish-preview.sh
 
-Two repositories on purpose. The preview repository is public and holds only the built HTML.
-This one is private, and the reason is not the one written here until 21 September 2026: the
-source PDFs were never committed, because `.gitignore` has always excluded them. What is in the
-history is a recorded meeting with a named colleague, tracked until that date. Untracking the
-file did not take it out of the history, so this repository cannot be made public as it stands.
+Two repositories on purpose. The preview repository holds only the built HTML and is what
+GitHub Pages serves. This one holds the source.
+
+Both have been public since 21 September 2026. This one was private until then because a
+recorded meeting with a named colleague was in its history; the history was rewritten that day
+and a fresh clone was searched to confirm it is gone. The source PDFs were never committed at
+all, because `.gitignore` has always excluded them.
+
+A commit here therefore publishes. `publish-preview.sh` carries the two gates that keep the
+preview site clean: it refuses to publish any page with a real address compiled into it, and it
+names the address it found, and it refuses to publish a demonstration build to either of the
+two real pages. Both gates exist because a real address was compiled into the published HTML
+once.
 
 ## Commits
 

@@ -140,4 +140,10 @@ fi
 
 git commit --quiet -m "Preview build $(date -u '+%Y-%m-%d %H:%M UTC')"
 git push --quiet
-echo "Published. GitHub Pages takes a minute or two to pick it up."
+echo "Published. Waiting for GitHub Pages to serve it..."
+
+# Everything above this line checked a local file. What people open is the served page, and the
+# two are not the same thing while Pages is still serving the previous build. This waits until
+# the served bytes are the bytes just built, then boots each page and asks what it renders.
+cd "$HERE/Self-assessment tool"
+npm run --silent check:published
