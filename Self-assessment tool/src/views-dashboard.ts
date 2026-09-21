@@ -1,9 +1,9 @@
 import type { Assessment, Rubric } from './types';
-import { formatCode } from './firebase';
+import { formatCode, setWithdrawn } from './firebase';
 import { el, clear, tone, bar } from './dom';
 import { score, isRedFlag, allQuestionScores, type Result } from './scoring';
 import { csvHeader, csvRow, toCsv } from './csv';
-import { confirmTyped } from './confirm';
+import { confirmStep, confirmTyped } from './confirm';
 import { flags } from './flags';
 import { download } from './storage';
 import { deleteRecord, isHosted, listRecords, sourceLine, type StoredRecord } from './store';
@@ -37,8 +37,15 @@ function paint(
 ): void {
   clear(root);
 
-  // Withdrawn records stay in the list and out of every statistic.
+  /**
+   * Withdrawn records stay in the list and out of every statistic.
+   *
+   * The comment above this said exactly that while the code filtered them out of the list too,
+   * so a record pulled out of the portfolio could never be put back by anybody looking at the
+   * portfolio. Withdrawing is the reversible move and it is only reversible if it stays visible.
+   */
   const live = records.filter((rec) => rec.status !== 'withdrawn');
+  const withdrawn = records.filter((rec) => rec.status === 'withdrawn');
   const rows: Row[] = live.map((rec) => {
     const r = score(rubric, rec.assessment);
     const redFlags = allQuestionScores(r).filter(isRedFlag).length;
@@ -164,13 +171,22 @@ function paint(
     ])]),
   ]);
   const body = el('tbody', {});
-  const ordered = [...rows].sort((a, b) => (a.r.overall ?? 99) - (b.r.overall ?? 99));
+  // Weakest first, then the withdrawn ones at the foot: the list is a worklist, and a record
+  // nobody is counting is not work. It is there so it can be put back.
+  const ordered = [
+    ...[...rows].sort((a, b) => (a.r.overall ?? 99) - (b.r.overall ?? 99)),
+    ...withdrawn.map((rec) => {
+      const r = score(rubric, rec.assessment);
+      return { rec, r, redFlags: allQuestionScores(r).filter(isRedFlag).length };
+    }),
+  ];
   for (const row of ordered) {
     const a = row.rec.assessment;
     // Records come from a store, and a store holds whatever was written to it. One document
     // saved by an older version, or half-written, must not take the whole portfolio down.
     const about = a.initiative ?? {};
-    body.appendChild(el('tr', { class: row.redFlags ? 'red-flag' : '' }, [
+    const isOut = row.rec.status === 'withdrawn';
+    body.appendChild(el('tr', { class: `${row.redFlags && !isOut ? 'red-flag' : ''} ${isOut ? 'withdrawn-row' : ''}` }, [
       el('td', {}, [about.name || el('span', { class: 'muted' }, ['(unnamed)'])]),
       el('td', {}, [about.department || '--']),
       el('td', {}, [about.lifecycleStage || '--']),
@@ -190,6 +206,46 @@ function paint(
         el('details', { class: 'set-menu row-menu' }, [
           el('summary', { class: 'set-menu-btn', title: 'More', 'aria-label': 'More actions' }, ['\u22EF']),
           el('div', { class: 'set-menu-pop' }, [
+        /**
+         * Withdrawing, which is the move somebody actually wants when a test submission is
+         * cluttering the portfolio.
+         *
+         * It takes the record out of every statistic and leaves it whole: nobody's answers,
+         * evidence or audited scores are touched, and any assessor can put it back. That is
+         * what keeps it out of the danger zone and beside the record it is about. Deleting is
+         * below it, behind the separator, and cannot be undone by anybody.
+         */
+        el('button', {
+          class: 'menu-item',
+          onclick: () => {
+            const id = a.id;
+            if (!isHosted() || !id) {
+              alert('This record is not in a shared store, so the portfolio is not counting it anyway.');
+              return;
+            }
+            const out = row.rec.status === 'withdrawn';
+            confirmStep({
+              tier: out ? 'plain' : 'caution',
+              title: out
+                ? `Count ${a.initiative?.name || 'this assessment'} again?`
+                : `Stop counting ${a.initiative?.name || 'this assessment'}?`,
+              body: out
+                ? 'It goes back into every average and every ranked list, exactly as it was.'
+                : 'It comes out of every average and every ranked list, and stays at the foot of this table so it can be put back. Nothing in it is changed or removed, and its access code keeps working.',
+              note: out ? undefined
+                : 'This is the one to use for a test submission. Deleting is further down this menu and cannot be undone.',
+              commitLabel: out ? 'Count it again' : 'Stop counting it',
+              cancelLabel: 'Cancel',
+              onCommit: () => {
+                void setWithdrawn(id, !out).then(
+                  () => renderDashboard(root, rubric, sessionFiles),
+                  (e: Error) => alert(e.message),
+                );
+              },
+            });
+          },
+        }, [row.rec.status === 'withdrawn' ? 'Count it again' : 'Stop counting it']),
+        el('div', { class: 'menu-sep' }),
         el('button', {
           class: 'menu-item menu-danger',
           /**

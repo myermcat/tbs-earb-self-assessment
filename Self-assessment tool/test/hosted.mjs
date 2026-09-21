@@ -947,5 +947,49 @@ console.log('\nThe published build, signed in\n');
 }
 
 
+/* --------------------------------------------------------------------------------------- */
+{
+  /**
+   * Withdrawing a record, which is what somebody wants when a test submission is cluttering the
+   * portfolio and deleting is more than they meant.
+   *
+   * The rule that permits it allows exactly one field to differ, so this test also proves the
+   * request the tool actually sends is masked to that one field. An assessor who could rewrite a
+   * department's answers while tidying the portfolio is the failure it exists to prevent.
+   */
+  const rows = [submission('AB12', 'Real Work'), submission('CD34', 'Test Submission')];
+  const { doc, dom, seen } = await boot({
+    session: live, side: 'assess', role: 'assessor', hash: '#assessor/admin',
+    listAnswer: { documents: rows.map(asDoc) },
+  });
+  const menu = doc.querySelector('table.detail .row-menu');
+  ok('the portfolio row carries a menu', !!menu, doc.querySelector('main')?.textContent?.slice(0, 120));
+  menu.open = true;
+  const items = [...menu.querySelectorAll('.menu-item')].map((b) => b.textContent.trim());
+  ok('and offers to stop counting the record before it offers to delete it',
+     items.indexOf('Stop counting it') === 0, items.join(' | '));
+
+  [...menu.querySelectorAll('.menu-item')].find((b) => /Stop counting it/.test(b.textContent)).click();
+  await new Promise((r) => setTimeout(r, 40));
+  const w = doc.querySelector('dialog.confirm');
+  ok('it asks first', !!w);
+  ok('and says the record itself is untouched',
+     /Nothing in it is changed or removed/.test(w?.textContent ?? ''), w?.textContent?.slice(0, 220));
+  ok('and says the access code keeps working, because withdrawing is not deleting',
+     /access code keeps working/.test(w?.textContent ?? ''), w?.textContent?.slice(0, 260));
+
+  [...w.querySelectorAll('.cf-actions button')].find((b) => /Stop counting it/.test(b.textContent)).click();
+  await new Promise((r) => setTimeout(r, 120));
+  /**
+   * The request, which is the half a rule cannot check from inside the browser.
+   */
+  const patch = seen.filter((x) => x.method === 'PATCH').pop();
+  ok('the write is a masked patch, so it cannot carry anything but the one field',
+     !!patch && /updateMask\.fieldPaths=withdrawnAt/.test(patch.href), patch?.href ?? 'no PATCH sent');
+  ok('and it is sent against the record that was chosen',
+     !!patch && /assessments\/doc-AB12\?/.test(patch.href), patch?.href ?? '');
+  dom.window.close();
+}
+
 console.log(fails ? `\n${fails} hosted check(s) failed\n` : '\nall hosted checks passed\n');
 process.exit(fails ? 1 : 0);

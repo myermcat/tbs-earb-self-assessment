@@ -1554,10 +1554,32 @@ ok('audited file keeps the self-score alongside the audited one',
   ok('nothing about the roll-up is stored, so it cannot go stale',
      !view().includes('last calculated'));
   {
-    // An admin deletes a record by typing the initiative name, the way GitHub deletes a
-    // repository. The button is dead until the typing matches.
-    // Delete is behind a menu, because nothing that cannot be undone sits in a row.
+    /**
+     * The reversible move comes first in the menu, and the one that cannot be undone is behind
+     * a separator below it.
+     *
+     * Asked for as: I should be able to remove garbage or testing ones so they do not mess up
+     * the portfolio. Withdrawing is that, and it is not deletion: the record keeps every answer,
+     * every piece of evidence and every audited score, its access code keeps working, and any
+     * assessor can put it back. That is why it sits beside the record rather than in the danger
+     * zone, which is for the things that cannot be undone.
+     */
     q('table.detail .row-menu').open = true;
+    {
+      const items = qa('.row-menu .set-menu-pop .menu-item').map((b) => b.textContent.trim());
+      ok('the row offers to stop counting a record before it offers to delete it',
+         items.indexOf('Stop counting it') >= 0
+         && items.indexOf('Stop counting it') < items.findIndex((x) => /Delete/.test(x)),
+         items.join(' | '));
+      ok('and only the deletion is drawn as destroying',
+         !qa('.row-menu .set-menu-pop .menu-item').some((b) =>
+           /Stop counting it/.test(b.textContent) && b.classList.contains('menu-danger')));
+      /**
+       * What the window says is asserted in test/hosted.mjs, because with no store there is
+       * nothing to withdraw from and the control says so rather than opening.
+       */
+    }
+
     byText('.row-menu .menu-item', 'Delete this assessment').click();
     const dlg = q('dialog.confirm.typed');
     ok('deleting a record asks for the name to be typed', !!dlg);
