@@ -220,9 +220,17 @@ console.log('\nThe published build, signed in\n');
      /overflow:\s*visible/.test(lastWord), lastWord);
   ok('and the menu is painted above the rows it opens over',
      /\.row-menu \.set-menu-pop\s*\{[^}]*z-index:\s*\d/.test(html));
+  /**
+   * The decision this asserts is unchanged: the assessor's column is wider than the reading
+   * column because it holds a twelve-column table. What changed is how the cap is written. It
+   * is `min(1200px, 100%)` now, because a bare 1200px on a 375px phone is a cap the screen
+   * cannot honour and the page scrolled sideways. parseFloat of a min() is NaN, so the pixel
+   * term is read out of the expression.
+   */
+  const reviewCap = w.getComputedStyle(doc.querySelector('.body-review')).maxWidth;
   ok('the assessor column is wider than the reading column, because it holds a table',
-     parseFloat(w.getComputedStyle(doc.querySelector('.body-review')).maxWidth) >= 1200,
-     w.getComputedStyle(doc.querySelector('.body-review')).maxWidth);
+     parseFloat((reviewCap.match(/(\d+(?:\.\d+)?)px/) ?? [])[1]) >= 1200, reviewCap);
+  ok('and its cap is one a phone can honour', /%/.test(reviewCap), reviewCap);
   ok('and nothing in the table refuses to wrap',
      w.getComputedStyle(doc.querySelector('.triage td')).overflowWrap === 'anywhere');
 

@@ -1594,5 +1594,58 @@ ok('audited file keeps the self-score alongside the audited one',
      && view().includes('Question sets'));
 }
 
+// ---- the page fits a phone sideways ------------------------------------------------------
+/**
+ * Reported as: bro we need to fix it.
+ *
+ * At a 375px viewport the questionnaire was 601px wide and every question card was cut off at
+ * the right edge. Two separate causes, and each gets its own assertion here because either one
+ * alone reproduces it.
+ *
+ * jsdom does not lay the page out, so these read the stylesheet. They are written as invariants
+ * over every matching rule rather than as a grep for the one selector that was wrong, because a
+ * gate that names one selector passes the day somebody adds a second.
+ */
+{
+  const sheet = html.slice(html.indexOf('<style'), html.indexOf('</style>'));
+
+  /**
+   * `.body` clamps itself with `min(940px, 100%)`. Every screen that widened the column dropped
+   * the clamp and kept the pixels, so at 375px each of those screens was as wide as its cap.
+   * The assertion is over all of them: any `.body-*` rule that sets a `max-width` states a
+   * limit the screen can actually honour.
+   */
+  const widths = [...sheet.matchAll(/(\.body-[a-z-]+(?:\s*,\s*\.body-[a-z-]+)*)\s*\{([^}]*)\}/g)]
+    .map(([, sel, decls]) => ({ sel, value: (decls.match(/max-width:\s*([^;]+)/) ?? [])[1] }))
+    .filter((r) => r.value);
+  const unclamped = widths.filter((r) => !/%/.test(r.value));
+  ok('every page-width cap is one a phone can honour', unclamped.length === 0,
+     unclamped.map((r) => `${r.sel} -> ${r.value}`).join(' | '));
+  ok('and there are page-width caps to check', widths.length >= 3, `${widths.length} found`);
+
+  /**
+   * The narrow layout collapses the questionnaire to one column. That column was `1fr`, which
+   * is `minmax(auto, 1fr)`, and `auto` there is the widest thing inside it: a table of contents
+   * whose rows are told never to wrap. So the column sized itself to the contents and the page
+   * went with it.
+   *
+   * Read as the last rule with anything to say about the property, because an earlier rule sets
+   * the two-column desktop track and a grep would find that one first.
+   */
+  const track = [...sheet.matchAll(/\.form-layout\s*\{([^}]*)\}/g)]
+    .map((m) => (m[1].match(/grid-template-columns:\s*([^;]+)/) ?? [])[1])
+    .filter(Boolean).pop() ?? '';
+  ok('the one-column questionnaire has a column that can be narrower than its contents',
+     /minmax\(\s*0/.test(track), track);
+
+  /**
+   * And the grid item the scroller sits in needs the same zero minimum, for the same reason.
+   * Without it the item reports its contents as its minimum size and the track obeys.
+   */
+  const rail = [...sheet.matchAll(/\.rail\s*\{([^}]*)\}/g)].map((m) => m[1]).join(' ');
+  ok('and the rail may be narrower than the rail of tabs inside it',
+     /min-width:\s*0/.test(rail), rail.trim().slice(0, 160));
+}
+
 console.log(fails === 0 ? '\nall UI checks passed' : `\n${fails} FAILED`);
 process.exit(fails === 0 ? 0 : 1);
