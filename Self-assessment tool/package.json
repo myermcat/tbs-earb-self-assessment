@@ -20,7 +20,8 @@
     "test:routes": "EARB_FIREBASE= node build.mjs && node test/routes.mjs",
     "test:share": "EARB_FIREBASE= node build.mjs && node test/share.mjs",
     "test:submitter": "EARB_ACCESS=code EARB_FIREBASE='{\"apiKey\":\"test-key\",\"projectId\":\"test-project\"}' node build.mjs && node test/submitter.mjs",
-    "test:code": "EARB_FIREBASE='{\"apiKey\":\"test-key\",\"projectId\":\"test-project\"}' node build.mjs && node test/code.mjs"
+    "test:code": "EARB_FIREBASE='{\"apiKey\":\"test-key\",\"projectId\":\"test-project\"}' node build.mjs && node test/code.mjs",
+    "check:published": "node test/published.mjs"
   },
   "devDependencies": {
     "@types/jsdom": "^30.0.0",
