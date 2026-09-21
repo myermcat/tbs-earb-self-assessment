@@ -89,5 +89,5 @@ click `Business Architecture!H58`, which is B-Q50.
 
 `node tools/import-rubric.mjs` finds the category column by its header, so it can sit anywhere
 in the sheet, and it accepts `Categories`, `Topics`, `Category`, and the older `Also about` /
-`and` spellings. A name that is not one of the nine refuses the whole import and says which
+`and` spellings. A name that is not one of the five refuses the whole import and says which
 question it was in.

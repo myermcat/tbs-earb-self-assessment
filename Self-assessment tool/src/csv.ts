@@ -29,10 +29,17 @@ export function csvHeader(rubric: Rubric): string[] {
   ];
   for (const d of rubric.domains) cols.push(`domain_${d.id}`);
   for (const d of rubric.domains) for (const s of d.sections) cols.push(`section_${d.id}_${s.id}`);
-  // Cross-cutting views of the same questions: security spans all four domains, so it gets a
-  // column of its own. These do not add up to the overall - a question sits in one domain but
-  // can sit in several topics.
-  for (const t of rubric.topics ?? []) cols.push(`topic_${t.id}`);
+  /**
+   * Cross-cutting views of the same questions: security spans all four domains, so it gets a
+   * column of its own. These do not add up to the overall, because a question sits in one domain
+   * and can sit in several categories.
+   *
+   * The prefix was topic_, and the four domains were declared as categories too, so this file
+   * carried topic_business beside domain_business: the same questions, two columns, and two
+   * different numbers, because a domain rolls up through section weights and a category is a
+   * flat mean. The four are gone with them.
+   */
+  for (const t of rubric.topics ?? []) cols.push(`category_${t.id}`);
   for (const d of rubric.domains) {
     for (const s of d.sections) {
       for (const q of s.questions) {
