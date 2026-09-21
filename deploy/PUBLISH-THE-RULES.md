@@ -1,10 +1,33 @@
 # Publishing the Firestore rules
 
-The access code does nothing until this is done. The tool mints it, shows it, lets somebody
-type it, and Google refuses the request, because the published rules still say an assessment
-can only be read by its owner or an assessor.
+    bash deploy/publish-rules.sh
 
-This takes about two minutes and it is all in a web page. Nothing has to be installed.
+That is the whole of it. It sends `deploy/firestore.rules` to Google straight from the file and
+then checks the published result from outside with no sign-in.
+
+**Once, on a machine that has never done this:**
+
+    npm install -g firebase-tools
+    firebase login
+
+The login opens a browser and is Mariia's to do. Nothing in the script asks for a password.
+
+## Do not paste the rules into the console
+
+The console route is below, and it is the fallback, not the way. It crosses the machine's
+clipboard, which every window and every Claude session shares.
+
+On 21 September 2026 a paste put a single line of unrelated text into the rules editor: the
+clipboard had been overwritten between the copy and the paste by something else running on the
+machine. It was caught because the editor showed one line where two hundred and sixty were
+expected, and Discard was pressed rather than Publish. Publishing it would have replaced every
+access rule in the store with one broken line.
+
+If the console is the only way available, check two things before pressing Publish: that the
+editor holds hundreds of lines and not one, and that the first line reads
+`// The store, with sign-in, for the prototype.`
+
+## The console, as a fallback
 
 ## Where the button is
 

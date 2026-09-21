@@ -25,3 +25,6 @@ Colleague meeting transcripts/
 Concept case/
 Deliverables/
 EARB target state knowledge base/
+
+# The Firebase CLI keeps a login token here. It is a credential and it never goes to GitHub.
+deploy/.firebase/
