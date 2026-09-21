@@ -23,7 +23,7 @@ deploy/firebase-config.json
 # history and removing the file does not remove it from there.
 Colleague meeting transcripts/
 Concept case/
-Deliverables/
+Categories spreadsheet/
 EARB target state knowledge base/
 
 # The Firebase CLI keeps a login token here. It is a credential and it never goes to GitHub.

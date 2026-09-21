@@ -31,7 +31,7 @@ the programme lead was already in the repository, and it wrote a document withou
 | `Concept case/` | The concept case PDF and a README. Everything else, including the source text, the builder, the presenter deck and the working notes, is in `Concept case/Claude working files/`. **The README carries a list of claims that were corrected on 21 September 2026. Read it before editing the document.** |
 | `Colleague meeting transcripts/` | Recorded reviews with the programme lead. **Primary evidence for anything anybody said.** Quote from these. A remembered version of a quote has been wrong several times. |
 | `EARB target state knowledge base/` | Dan's source material, plus read-once notes on the PDFs. |
-| `Deliverables/` | Files that go to somebody outside, such as the category workbook. |
+| `Categories spreadsheet/` | The workbook where it is decided what each question is about. Has its own README. The live copy is on Google Sheets at one address that never changes. |
 | `deploy/` | Firestore rules, the publish script, and the GitHub Pages workflow. |
 
 ## How a folder is arranged
