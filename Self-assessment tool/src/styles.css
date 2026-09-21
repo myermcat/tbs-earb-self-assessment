@@ -1861,3 +1861,7 @@ dialog.confirm.shake { animation: cf-shake .34s cubic-bezier(.36, .07, .19, .97)
 .note-yellow { font-size: .8rem; line-height: 1.35; margin: .1rem 0 .6rem;
   background: var(--warn-bg); border-left: 3px solid var(--warn);
   padding: .45rem .6rem; border-radius: 0 var(--radius-sm) var(--radius-sm) 0; color: var(--ink-2); }
+
+/* A record nobody is counting. Still readable, and plainly not part of the worklist above it. */
+.withdrawn-row td { opacity: .62; }
+.withdrawn-row td:first-child { font-style: italic; }
