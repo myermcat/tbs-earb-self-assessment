@@ -242,7 +242,9 @@ summary:focus-visible, .filelabel:focus-within {
 
 .field { display: block; margin-bottom: .75rem; }
 .field > span { display: block; font-size: .82rem; font-weight: 550; color: var(--ink-2); margin-bottom: .25rem; }
-input[type=text], input[type=number], textarea, select {
+/* An email field is a text field with a keyboard hint. Leaving it out of this list gave the
+   access form one styled box beside one 22px browser default, measured side by side. */
+input[type=text], input[type=email], input[type=number], textarea, select {
   font: inherit; font-size: .9rem; width: 100%; padding: .45rem .6rem;
   border: 1px solid var(--line-2); border-radius: 8px;
   background: var(--surface); color: var(--ink);
@@ -1824,3 +1826,19 @@ dialog.confirm.shake { animation: cf-shake .34s cubic-bezier(.36, .07, .19, .97)
    the audit, which is its own screen with its own reasons attached. */
 .cat-q-flat { cursor: default; grid-template-columns: 2.3rem 1fr; }
 .cat-q-flat:hover { background: none; color: var(--ink-2); }
+
+/* ---------- who has access -------------------------------------------------------------- */
+/* The form sits above the list it changes, so it is bounded and the list is not. Two fields
+   side by side above phone width: a name and an address are one act, not two. */
+.people-add { background: var(--surface-2); border: 1px solid var(--line);
+  border-radius: var(--radius-sm); padding: .8rem .9rem; margin-bottom: 1.4rem; }
+.people-add .field { margin-bottom: .6rem; }
+.people-add input { width: 100%; }
+.people-add .signer-advice { margin-bottom: .5rem; }
+@media (min-width: 620px) {
+  .people-add { display: grid; grid-template-columns: 1fr 1fr; gap: 0 .9rem; align-items: end; }
+  .people-add .signer-advice, .people-add button { grid-column: 1 / -1; }
+  .people-add button { justify-self: start; }
+}
+/* A row whose access is gone is history rather than a worklist, so it sits back. */
+.set-row .badge-warn + *, .people-gone { opacity: .85; }

@@ -964,7 +964,31 @@ export async function deleteAssessment(id: string): Promise<void> {
   if (reply.status !== 200) throw new Error(problemFrom(reply));
 }
 
-export type Role = 'submitter' | 'assessor' | 'admin';
+/**
+ * What somebody may do.
+ *
+ * Two that matter: a submitter needs no account, an assessor needs one and can do everything
+ * the assessor side offers. 'admin' survives because the first grant was typed into the console
+ * by hand and says admin, and dropping it would lock out the one person who could fix it.
+ * 'removed' is what a role becomes when access is taken away, because the record stays.
+ */
+export type Role = 'submitter' | 'assessor' | 'admin' | 'removed';
+
+/** Whether a role grants the assessor side. The one place that decides it. */
+export function grantsAccess(role: Role | null): boolean {
+  return role === 'assessor' || role === 'admin';
+}
+
+/** One row of the access list. */
+export interface Person {
+  email: string;
+  name: string;
+  role: Role;
+  addedBy?: string;
+  addedAt?: string;
+  removedBy?: string;
+  removedAt?: string;
+}
 
 /**
  * What this person may do, from roles/{email}.
@@ -977,7 +1001,7 @@ export type Role = 'submitter' | 'assessor' | 'admin';
 function defaultRole(email: string): Role {
   const list = CONFIG?.admins ?? [];
   return list.some((a) => a.trim().toLowerCase() === email.trim().toLowerCase())
-    ? 'admin'
+    ? 'assessor'
     : 'submitter';
 }
 
@@ -986,7 +1010,102 @@ export async function roleOf(email: string): Promise<Role> {
   if (reply.status === 404) return defaultRole(email);
   if (reply.status !== 200) throw new Error(problemFrom(reply));
   const role = fromFields(isRecord(reply.body) ? reply.body.fields : null).role;
+  // A document saying removed is an answer, and not a missing one. Falling through to the
+  // build's own list here would hand access straight back to somebody it was just taken from.
+  if (role === 'removed') return 'removed';
   return role === 'assessor' || role === 'admin' ? role : defaultRole(email);
+}
+
+/**
+ * Where the signed-in person's access actually comes from.
+ *
+ * The build carries a list of addresses it treats as assessors when the store has no document
+ * for them, which exists so a wiped project is recoverable. It is not a grant the store agrees
+ * with: the rules read the roles collection and nothing else, so a page can offer every control
+ * while every one of them is refused. The screen that lists people says which of the two this
+ * is, because the difference is invisible and it is the difference between access and a facade.
+ */
+export type GrantSource = 'store' | 'build' | 'none';
+let myGrantSource: GrantSource = 'none';
+export function grantSource(): GrantSource { return myGrantSource; }
+
+/** Everybody the store knows, including the ones whose access was taken away. */
+export async function listPeople(): Promise<Person[]> {
+  const out: Person[] = [];
+  let token = '';
+  for (let page = 0; page < PAGE_CAP; page++) {
+    const query = `pageSize=${PAGE_SIZE}${token ? `&pageToken=${encodeURIComponent(token)}` : ''}`;
+    const reply = await authorized(`${docsRoot()}/roles?${query}`);
+    if (reply.status !== 200 || !isRecord(reply.body)) throw new Error(problemFrom(reply));
+    const docs = Array.isArray(reply.body.documents) ? reply.body.documents : [];
+    for (const doc of docs) {
+      if (!isRecord(doc)) continue;
+      // The document's name IS the address, which is what lets a rule answer "is this you".
+      const email = decodeURIComponent(String(doc.name ?? '').split('/').pop() ?? '');
+      if (!email) continue;
+      const f = fromFields(doc.fields);
+      const role = String(f.role ?? '');
+      out.push({
+        email,
+        name: text(f.name) || email,
+        role: role === 'assessor' || role === 'admin' || role === 'removed' ? role : 'submitter',
+        addedBy: text(f.addedBy), addedAt: text(f.addedAt),
+        removedBy: text(f.removedBy), removedAt: text(f.removedAt),
+      });
+    }
+    token = text(reply.body.nextPageToken);
+    if (!token) break;
+  }
+  return out;
+}
+
+/**
+ * Give somebody the assessor side.
+ *
+ * The address is the document's name, so this is a create and Firestore refuses a create over
+ * something that exists. That is what stops one assessor overwriting another's record, and it
+ * is why a person who was removed cannot be quietly re-added: their document is still there.
+ */
+export async function addPerson(email: string, name: string): Promise<void> {
+  const me = currentUser();
+  if (!me) throw new Error('Sign in before changing who has access.');
+  const body = JSON.stringify({
+    fields: toFields({
+      role: 'assessor', name: name.trim(), addedBy: me.email, addedAt: new Date().toISOString(),
+    }),
+  });
+  const reply = await authorized(
+    `${docsRoot()}/roles?documentId=${encodeURIComponent(email)}`,
+    { method: 'POST', body },
+  );
+  if (reply.status === 409) {
+    throw new Error('That address is already on the list. If it was removed, put its access back instead.');
+  }
+  if (reply.status !== 200) throw new Error(problemFrom(reply));
+}
+
+/**
+ * Take access away, or give it back.
+ *
+ * A whole-document write, because a masked patch over a document another assessor may have just
+ * changed writes a field from a copy that is already old. Everything the record says about how
+ * the person got here is carried through unchanged, which the rules also insist on.
+ */
+export async function setPersonAccess(person: Person, allowed: boolean): Promise<void> {
+  const me = currentUser();
+  if (!me) throw new Error('Sign in before changing who has access.');
+  const data: Record<string, unknown> = {
+    role: allowed ? 'assessor' : 'removed',
+    name: person.name,
+    addedBy: person.addedBy ?? '',
+    addedAt: person.addedAt ?? '',
+  };
+  if (!allowed) { data.removedBy = me.email; data.removedAt = new Date().toISOString(); }
+  const reply = await authorized(
+    `${docsRoot()}/roles/${encodeURIComponent(person.email)}`,
+    { method: 'PATCH', body: JSON.stringify({ fields: toFields(data) }) },
+  );
+  if (reply.status !== 200) throw new Error(problemFrom(reply));
 }
 
 /**
@@ -1000,7 +1119,7 @@ let myRoleValue: Role | null = null;
 let roleAsked = false;
 
 export function knownRole(): Role | null { return myRoleValue; }
-export function forgetRole(): void { myRoleValue = null; roleAsked = false; }
+export function forgetRole(): void { myRoleValue = null; roleAsked = false; myGrantSource = 'none'; }
 
 export async function loadRole(): Promise<Role | null> {
   const me = currentUser();
@@ -1008,11 +1127,24 @@ export async function loadRole(): Promise<Role | null> {
   if (roleAsked) return myRoleValue;
   roleAsked = true;
   try {
-    myRoleValue = await roleOf(me.email);
+    const reply = await authorized(`${docsRoot()}/roles/${encodeURIComponent(me.email)}`);
+    if (reply.status === 200) {
+      const role = fromFields(isRecord(reply.body) ? reply.body.fields : null).role;
+      myRoleValue = role === 'removed' ? 'removed'
+        : role === 'assessor' || role === 'admin' ? role
+        : defaultRole(me.email);
+      myGrantSource = grantsAccess(myRoleValue) ? 'store' : 'none';
+    } else if (reply.status === 404) {
+      myRoleValue = defaultRole(me.email);
+      myGrantSource = grantsAccess(myRoleValue) ? 'build' : 'none';
+    } else {
+      throw new Error(problemFrom(reply));
+    }
   } catch {
     // A refused read means the rules do not know this address, which is what a submitter is.
     // The build's own list still applies, so an owner is not locked out of a wiped project.
     myRoleValue = defaultRole(me.email);
+    myGrantSource = grantsAccess(myRoleValue) ? 'build' : 'none';
   }
   return myRoleValue;
 }
