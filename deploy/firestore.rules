@@ -50,8 +50,17 @@
 //   document's name, so holding it and being able to name the document are the same fact.
 //   They may not list anything, create anything, delete anything, read the assessor's audit
 //   subcollection, move the record to another account, or touch the audit or the withdrawal.
-//   An assessor may read every submitted assessment and write the audit on it, and may never
-//   touch anybody's answers or evidence.
+//   An assessor may read every submitted assessment, and may never touch anybody's answers or
+//   evidence.
+//
+//   THIS FILE USED TO SAY the assessor "may write the audit on it". No rule below permits that
+//   and no code attempts it. What an assessor types stays in their own browser and leaves as a
+//   file they download: src/views-review.ts imports only poolRecords and has no write path at
+//   all. Both rules that let anybody change an assessment refuse it anyway, because
+//   codeWriteIsClean() freezes `audit` and withdrawalOnly() permits `withdrawnAt` and nothing
+//   else. Making it true is a decision before it is a patch, and it is on the backlog as the
+//   biggest open item: the audit is described in these rules as a document beside the
+//   assessment and is held in the code as a field inside it, and one of the two has to move.
 //   An assessor may also add another assessor, take an assessor's access away, withdraw a record
 //   from the statistics without changing anything in it, and delete a record. There is no rung
 //   above assessor.
