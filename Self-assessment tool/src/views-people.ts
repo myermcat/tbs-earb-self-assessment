@@ -14,11 +14,12 @@
  */
 import { el, clear } from './dom';
 import { t } from './i18n';
-import { confirmStep, confirmTyped } from './confirm';
+import { confirmStep } from './confirm';
 import {
-  addPerson, currentUser, grantsAccess, grantSource, listPeople, setPersonAccess,
+  addPerson, currentUser, grantsAccess, grantSource, listPeople, renamePerson, setPersonAccess,
   type Person,
 } from './firebase';
+import { sameText } from './danger-people';
 
 /** A shape test, not a check on anybody. The only address that works is a Google account's. */
 const LOOKS_LIKE_EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
@@ -40,13 +41,15 @@ function when(iso?: string): string {
 function ownGrant(): HTMLElement | null {
   const me = currentUser();
   if (!me) return null;
+  /**
+   * Nothing is said when the access is real.
+   *
+   * There was a line here reading "you are signed in as X, and the store has you on this list".
+   * It named an internal word for the database, and it told somebody looking at a list with
+   * their own name on it a thing they could already see. The warning below is the whole reason
+   * this function exists.
+   */
   const src = grantSource();
-  if (src === 'store') {
-    return el('p', { class: 'set-lead' }, [
-      t(`You are signed in as ${me.email}, and the store has you on this list.`,
-        `Vous êtes connecté comme ${me.email}, et le dépôt vous a sur cette liste.`),
-    ]);
-  }
   if (src === 'build') {
     return el('div', { class: 'flag sev-medium' }, [
       el('div', { class: 'flag-title' }, [
@@ -81,6 +84,14 @@ function personRow(p: Person, mine: boolean, after: () => void): HTMLElement {
       : t('Added before the tool recorded who was adding.',
           'Ajouté avant que l’outil n’enregistre qui ajoutait.');
 
+  /**
+   * No control on this row takes anything away.
+   *
+   * Asked for in these words: it should not be a big and easily clicked button. Removal is one
+   * button in the danger zone that does not know who it is about until somebody types both the
+   * name and the address. Putting access back is not destructive, so it stays here where the
+   * person who needs it is looking.
+   */
   const act = gone
     ? el('button', {
         class: 'ghost',
@@ -88,8 +99,8 @@ function personRow(p: Person, mine: boolean, after: () => void): HTMLElement {
           void setPersonAccess(p, true).then(after, (e: Error) => alert(e.message));
         },
       }, [t('Put their access back', 'Rétablir son accès')])
-    : el('button', { class: 'danger', onclick: () => removeFlow(p, mine, after) },
-        [t('Take their access away', 'Retirer son accès')]);
+    : el('button', { class: 'ghost small', onclick: () => editName(p, after) },
+        [t('Edit the name', 'Modifier le nom')]);
 
   return el('div', { class: 'set-row' }, [
     el('div', {}, [
@@ -102,45 +113,33 @@ function personRow(p: Person, mine: boolean, after: () => void): HTMLElement {
 }
 
 /**
- * Two windows and their full name typed out.
+ * Correcting a name, which is what keeps type-to-remove workable.
  *
- * The first says what removal does and, just as usefully, what it does not: an assessor's audit
- * lives inside each assessment and nothing here touches it. The second is the typing, and what
- * has to be typed is the person's full name, because that is the field somebody has to read off
- * the row they actually meant.
+ * Removal asks somebody to type the stored name exactly. A name mistyped when the person was
+ * added would then have to be mistyped the same way forever, by somebody with no way to know
+ * what the typo was. This changes the name and nothing else: never the address, never the role,
+ * so it grants nothing, takes nothing away, and stays out of the danger zone.
  */
-function removeFlow(p: Person, mine: boolean, after: () => void): void {
+function editName(p: Person, after: () => void): void {
+  const box = el('input', {
+    type: 'text', autocomplete: 'off', spellcheck: false, value: p.name,
+    'aria-label': 'Their full name',
+  }) as HTMLInputElement;
   confirmStep({
-    tier: 'danger',
-    title: t(`Take ${p.name}'s access away?`, `Retirer l’accès de ${p.name} ?`),
-    body: t(`${p.email} will not be able to open the assessor side again. They will see a screen saying the address was taken off the list.`,
-      `${p.email} ne pourra plus ouvrir la vue de l’évaluateur. Un écran indiquera que l’adresse a été retirée de la liste.`),
-    note: t('Everything they audited stays exactly where it is. Their name stays on every score they changed and every reason they gave, because an audit that can be erased by removing somebody is not an audit.',
-      'Tout ce qu’ils ont évalué reste tel quel. Leur nom demeure sur chaque note qu’ils ont modifiée et chaque raison donnée, car un audit effaçable en retirant quelqu’un n’est pas un audit.'),
-    stake: mine
-      ? t('This is your own account. You will be signed out of this side and you will need another assessor to put it back.',
-          'Il s’agit de votre propre compte. Vous perdrez l’accès à cette vue et un autre évaluateur devra le rétablir.')
-      : t('Any assessor can put it back afterwards, and the list will show that it was taken away.',
-          'N’importe quel évaluateur peut le rétablir ensuite, et la liste indiquera qu’il a été retiré.'),
-    commitLabel: t('Continue', 'Continuer'),
-    cancelLabel: t('Keep their access', 'Conserver son accès'),
-    onCommit: () => confirmTyped({
-      title: t(`Type ${p.name}'s name to remove them`, `Saisissez le nom de ${p.name} pour le retirer`),
-      lead: t('Their audit stays where it is. This takes away:',
-        'Leur audit reste en place. Ceci retire :'),
-      consequences: [
-        t(`Their sign-in to the assessor side, for ${p.email}.`,
-          `Sa connexion à la vue de l’évaluateur, pour ${p.email}.`),
-        t('Their view of every department’s submission.', 'Sa vue de toutes les soumissions.'),
-        t('Their ability to write or change an audit.', 'Sa capacité d’écrire ou de modifier un audit.'),
-      ],
-      phrase: p.name,
-      phraseLabel: t('their full name', 'son nom complet'),
-      commitLabel: t('Take their access away', 'Retirer son accès'),
-      onCommit: () => {
-        void setPersonAccess(p, false).then(after, (e: Error) => alert(e.message));
-      },
-    }),
+    tier: 'plain',
+    title: t(`Correct the name for ${p.email}`, `Corriger le nom pour ${p.email}`),
+    body: t('This changes the name on the list and nothing else. It is the name somebody has to type to take this access away, so a typo here is worth fixing.',
+      'Ceci modifie le nom dans la liste et rien d\u2019autre. C\u2019est le nom qu\u2019il faudra saisir pour retirer cet accès, donc une faute de frappe vaut la peine d\u2019être corrigée.'),
+    extra: el('div', { class: 'people-add' }, [
+      el('label', { class: 'field' }, [el('span', {}, [t('Their full name', 'Son nom complet')]), box]),
+    ]),
+    focusFirst: () => box.focus(),
+    gate: () => (box.value.trim() ? null : t('Put a name in.', 'Indiquez un nom.')),
+    commitLabel: t('Save the name', 'Enregistrer le nom'),
+    cancelLabel: t('Cancel', 'Annuler'),
+    onCommit: () => {
+      void renamePerson(p, box.value.trim()).then(after, (e: Error) => alert(e.message));
+    },
   });
 }
 
@@ -184,6 +183,15 @@ function addForm(people: Person[], after: () => void): HTMLElement {
         'Cette adresse figure déjà dans la liste ci-dessous.');
       return;
     }
+    /**
+     * Two people with one name cannot both be removed by typing it, so the second is refused
+     * here rather than found later by somebody trying to take an access away and failing.
+     */
+    if (people.some((x) => grantsAccess(x.role) && sameText(x.name, n))) {
+      say.textContent = t('Somebody with access is already called that. Taking an access away asks for a name, so two people cannot share one. Add a middle name or an initial.',
+        'Une personne ayant accès porte déjà ce nom. Le retrait d’un accès demande un nom, deux personnes ne peuvent donc pas en partager un. Ajoutez un second prénom ou une initiale.');
+      return;
+    }
     void addPerson(e, n).then(() => { name.value = ''; email.value = ''; after(); },
       (err: Error) => { say.textContent = err.message; });
   } }, [t('Add this assessor', 'Ajouter cet évaluateur')]);
@@ -192,6 +200,15 @@ function addForm(people: Person[], after: () => void): HTMLElement {
     el('label', { class: 'field' }, [el('span', {}, [t('Their full name', 'Son nom complet')]), name]),
     el('label', { class: 'field' }, [
       el('span', {}, [t('The address they sign in with', 'L’adresse de connexion')]), email,
+    ]),
+    /**
+     * The one way to grant nothing without being told: an address the person does not sign in
+     * with. Google is the only provider wired today, so this is their Google account's address
+     * and not whichever address they read departmental mail at.
+     */
+    el('p', { class: 'note-yellow' }, [
+      t('Signing in is by Google account only today, so this has to be the address of the Google account they will use. Another address grants nothing, and they will be told they have no access with nothing on screen explaining why.',
+        'La connexion se fait uniquement par compte Google : il doit donc s’agir de l’adresse du compte Google qu’ils utiliseront. Une autre adresse n’accorde rien, et la personne se verra refuser l’accès sans explication à l’écran.'),
     ]),
     say,
     go,
@@ -205,7 +222,7 @@ function addForm(people: Person[], after: () => void): HTMLElement {
 export function panePeople(pane: HTMLElement): void {
   const draw = () => {
     clear(pane);
-    pane.appendChild(el('h1', { tabindex: -1 }, [t('Who has access', 'Qui a accès')]));
+    pane.appendChild(el('h1', { tabindex: -1 }, [t('People', 'Personnes')]));
     pane.appendChild(el('p', { class: 'set-lead' }, [
       t('Everybody who can open the assessor side. Any assessor can add another, and anybody added can do everything you can.',
         'Toute personne pouvant ouvrir la vue de l’évaluateur. Tout évaluateur peut en ajouter un autre, et la personne ajoutée peut tout faire comme vous.'),

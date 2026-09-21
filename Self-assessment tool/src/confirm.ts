@@ -253,6 +253,17 @@ export interface ConfirmTyped {
    * deleted assessment and false of access that any assessor can give back.
    */
   lead?: string;
+  /**
+   * Whether the window prints the string it is asking for.
+   *
+   * Printing it turns the typing into a copy exercise and the guard becomes decoration. GitHub
+   * renders its confirming string so it cannot be selected, on purpose, and the complaints
+   * about that are the feature working. Anything in the danger zone passes false: the person
+   * has to get the string from the screen that owns it, which is the act that proves they meant
+   * this one. Defaults true, because the older callers name a thing already on screen in front
+   * of the reader.
+   */
+  showPhrase?: boolean;
   phrase: string;
   /** What to call the phrase in the instruction: "the initiative name", "the reference". */
   phraseLabel: string;
@@ -292,10 +303,15 @@ export function confirmTyped(o: ConfirmTyped): void {
   dlg.appendChild(el('div', { class: 'cf-body' }, [
     el('p', {}, [o.lead ?? t('This cannot be undone. It removes:', 'Cette action est irréversible. Elle supprime :')]),
     el('ul', { class: 'typed-list' }, o.consequences.map((c) => el('li', {}, [c]))),
-    el('p', { class: 'typed-ask' }, [
-      t(`To confirm, type ${o.phraseLabel}: `, `Pour confirmer, saisissez ${o.phraseLabel} : `),
-      el('code', { class: 'mono' }, [o.phrase]),
-    ]),
+    o.showPhrase === false
+      ? el('p', { class: 'typed-ask' }, [
+          t(`To confirm, type ${o.phraseLabel}. It is not printed here, so that typing it is an act and not a copy.`,
+            `Pour confirmer, saisissez ${o.phraseLabel}. Nous ne l\u2019affichons pas ici, afin que la saisie soit un acte et non une copie.`),
+        ])
+      : el('p', { class: 'typed-ask' }, [
+          t(`To confirm, type ${o.phraseLabel}: `, `Pour confirmer, saisissez ${o.phraseLabel} : `),
+          el('code', { class: 'mono' }, [o.phrase]),
+        ]),
     field,
   ]));
   dlg.appendChild(el('div', { class: 'cf-actions' }, [
