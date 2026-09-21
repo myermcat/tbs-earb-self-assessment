@@ -46,8 +46,9 @@
 //   subcollection, move the record to another account, or touch the audit or the withdrawal.
 //   An assessor may read every submitted assessment and write the audit on it, and may never
 //   touch anybody's answers or evidence.
-//   An assessor may also add another assessor, take an assessor's access away, and delete a
-//   record. There is no rung above assessor.
+//   An assessor may also add another assessor, take an assessor's access away, withdraw a record
+//   from the statistics without changing anything in it, and delete a record. There is no rung
+//   above assessor.
 //   A submitter may never delete anything, and Google enforces that.
 //
 // WHY AN ADMIN CAN DELETE
@@ -188,7 +189,8 @@ service cloud.firestore {
        * working on the assessment, and saying it is finished is part of that work.
        */
       allow update: if (isOwner() && request.resource.data.ownerEmail == resource.data.ownerEmail)
-                    || codeWriteIsClean();
+                    || codeWriteIsClean()
+                    || withdrawalOnly();
 
       // Admin only, and the tool makes them type the initiative name first. Somebody holding a
       // code can damage an assessment and can never remove it.
@@ -253,6 +255,24 @@ service cloud.firestore {
      * who could fix it. 'removed' is a role in the sense that the field holds it, and it grants
      * nothing, which is the point.
      */
+    /**
+     * An assessor pulling a record out of the statistics, and touching nothing else.
+     *
+     * A department's assessment belongs to the department. An assessor has never been able to
+     * change one and must not start now, so this permits exactly one field to differ and
+     * compares every other key against what is already stored. A test submission cluttering the
+     * portfolio is the case it exists for, and the opposite move puts the record back, which is
+     * why this is a field and not a delete.
+     *
+     * Delete is still the assessor's and still separate. The difference is that a withdrawal
+     * can be undone by anybody who can see it, and nobody has to be told it happened.
+     */
+    function withdrawalOnly() {
+      return isAssessor()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['withdrawnAt'])
+        && (request.resource.data.get('withdrawnAt', '') is string);
+    }
+
     function isAssessor() {
       return signedIn() && (roleOf() == 'assessor' || roleOf() == 'admin');
     }
