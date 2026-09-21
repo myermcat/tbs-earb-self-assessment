@@ -6,7 +6,7 @@
  * WHY THIS EXISTS
  *
  * Dan's own workbook has no category column. Its sheets are #, Q#, Assessment Question,
- * Score, Maturity Label, Notes / Evidence, and that is the whole of it. So the nine categories
+ * Score, Maturity Label, Notes / Evidence, and that is the whole of it. So the five categories
  * he named on 8 September have nowhere to come from, and the five that are not domains are
  * currently guessed by a keyword pass over the question wording, which is ours and not his.
  *
@@ -17,7 +17,7 @@
  *
  * WHAT THE TICK COLUMNS ARE
  *
- * Five, because four of the nine categories are the domains themselves and a question always
+ * Five, and they never include the four architecture domains, because a question always
  * carries its own domain: the sheet a question is on already says Business or Data, so asking
  * again would be asking Dan to type something the file already knows.
  *

@@ -449,24 +449,45 @@ function stable(x: unknown): string {
 
 
 /* -------------------------------------------------------------------------------------------
-   Dan's nine categories, and the two that are empty on purpose.
+   The five categories, and the two that are thin on purpose.
+
+   There were nine, and four of them were the four architecture domains repeated. That put the
+   same names on both axes, gave every screen a second number for Business that disagreed with
+   the first, and was reported twice before it came out. These assertions used to require the
+   nine, which is why it survived so long.
    ------------------------------------------------------------------------------------------- */
 {
   const ids = (rubric.topics ?? []).map((t) => t.id);
-  ok('all nine categories Dan named are declared', ids.length === 9, ids.join(','));
-  for (const want of ['business', 'data', 'application', 'technology', 'security', 'privacy',
-    'financial', 'accessibility', 'official-languages']) {
+  ok('the five categories TBS named are declared', ids.length === 5, ids.join(','));
+  for (const want of ['security', 'privacy', 'financial', 'accessibility', 'official-languages']) {
     ok(`  ${want} is one of them`, ids.includes(want));
   }
 
   const all = rubric.domains.flatMap((d) => d.sections.flatMap((s2) => s2.questions));
   const carrying = (id: string) => all.filter((q) => (q.topics ?? []).includes(id)).length;
   const byId = (id: string) => all.find((q) => q.id === id);
+
+  /**
+   * A domain is where a question lives. It is never one of the question's categories, and it is
+   * never declared as one. This is the assertion that would have caught the whole defect.
+   */
+  const domainIds = new Set(rubric.domains.map((d) => d.id));
+  ok('no architecture domain is declared as a category',
+     !ids.some((id) => domainIds.has(id)), ids.join(','));
+  ok('and no question carries its own domain as a category',
+     all.every((q) => !(q.topics ?? []).some((x) => domainIds.has(x))),
+     all.filter((q) => (q.topics ?? []).some((x) => domainIds.has(x))).map((q) => q.id).slice(0, 5).join(','));
+
   ok('a question can carry more than one category',
-     all.filter((q) => (q.topics ?? []).length > 1).length > 30,
+     all.filter((q) => (q.topics ?? []).length > 1).length > 0,
      String(all.filter((q) => (q.topics ?? []).length > 1).length));
-  ok('every question carries its own domain as a category',
-     rubric.domains.every((d) => d.sections.every((s2) => s2.questions.every((q) => (q.topics ?? []).includes(d.id)))));
+  /**
+   * And most carry none, which is the normal case and costs nobody any typing. Asserted so that
+   * a future import cannot quietly start seeding something into every question again.
+   */
+  ok('and most questions carry none, because most are only about their own domain',
+     all.filter((q) => !(q.topics ?? []).length).length > all.length / 2,
+     `${all.filter((q) => !(q.topics ?? []).length).length} of ${all.length}`);
   ok('financial is derived and not empty', carrying('financial') > 5, String(carrying('financial')));
 
   /**
@@ -540,16 +561,17 @@ function stable(x: unknown): string {
      inTopics.map((t) => `${t.topic.id}=${t.score}`).join(' '));
   /**
    * And the arithmetic that makes it a second cut rather than a second spine: every question
-   * sits in exactly one domain, and the topics between them hold more memberships than there
-   * are questions. That difference is the 44 questions carrying more than one.
+   * sits in exactly one domain and counts once there, while the categories between them hold
+   * far fewer memberships than there are questions, because most questions carry none.
    */
   const whole = score(rubric, fill(blank('beta'), 7));
   const inDomains = whole.domains.reduce((n, d) => n + d.total, 0);
-  const inTopicsTotal = whole.topics.reduce((n, t) => n + t.total, 0);
+  const inCategories = whole.topics.reduce((n, t) => n + t.total, 0);
   ok('every question counts once across the domains', inDomains === allQ.length,
      `${inDomains} of ${allQ.length}`);
-  ok('and more than once across the topics, which is why they do not add up to the overall',
-     inTopicsTotal > inDomains, `${inTopicsTotal} topic memberships for ${inDomains} questions`);
+  ok('and the categories cover a subset, which is why they do not add up to the overall',
+     inCategories > 0 && inCategories < inDomains,
+     `${inCategories} category memberships for ${inDomains} questions`);
 }
 
 

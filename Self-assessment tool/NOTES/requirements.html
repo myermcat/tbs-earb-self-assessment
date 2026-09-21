@@ -533,9 +533,9 @@ background:var(--surface);border:1px solid var(--line);border-radius:10px;list-s
 <div class="card reqs">
 <div class="req">
 <span class="req-id mono">Q6</span>
-<span class="req-t">A question belongs to its own domain and to any number of named categories. All nine categories TBS named are declared.</span>
+<span class="req-t">A question belongs to exactly one domain and to any number of named categories, or to none. All five categories TBS named are declared.</span>
 <span class="st st-done">Built</span>
-<span class="req-note">Business, Data, Application, Technology, Security, Privacy, Financial, Accessibility and Official Languages, asked for by Dan on 8 September. A question carries a topics array; it counts once in the overall score through its domain, and at full weight inside every topic it carries, which is what lets security weigh differently from business without inflating the total. 44 of 176 carry more than one today. The results page shows the second cut as its own set of bars and says in one line that they do not add up to the overall.</span>
+<span class="req-note">Security, Privacy, Financial, Accessibility and Official Languages, asked for by Dan on 8 September. A question counts once in the overall score through its domain, and at full weight inside every category it carries, which is what lets security weigh differently without inflating the total. 46 of 176 carry at least one category and 130 carry none, which is the normal case. Corrected on 21 September: the four architecture domains were declared as categories as well, so the same four names sat on both axes and every screen could show two different numbers for Business, 4.83 as a domain and 4.75 as a category, because a domain rolls up through section weights and a category is a flat mean. Reported twice before it came out. The results page shows the second cut as its own set of bars and says in one line that they do not add up to the overall.</span>
 </div>
 <div class="req">
 <span class="req-id mono">Q13</span>
@@ -557,16 +557,16 @@ background:var(--surface);border:1px solid var(--line);border-radius:10px;list-s
 </div>
 <div class="req">
 <span class="req-id mono">Q9</span>
-<span class="req-t">Dan gives his own category assignments in a Topics column in the workbook, and the importer reads it.</span>
+<span class="req-t">Dan gives his own category assignments in a Categories column in the workbook, and the importer reads it.</span>
 <span class="st st-done">Built</span>
-<span class="req-note">Added 14 September. One column per domain sheet, headed Topics, found by its header so it can sit anywhere; the cell holds the categories beyond the question’s own domain, comma or semicolon separated, matched without regard to case or spacing; a blank cell means the question is only about its own domain, which is the common case and costs nobody any typing. A name that is not one of the nine refuses the whole import and says which question and which name, because a mistyped category is the one error nobody can see afterwards: the question counts towards nothing and every screen still renders correctly. The rubric loader refuses the same thing when a file is opened. Until all four sheets carry the column the tool falls back to a keyword pass over the question wording and calls the grouping provisional on every screen that shows it; the badge goes when the column does all four.</span>
+<span class="req-note">Added 14 September. One column per domain sheet, headed Categories, found by its header so it can sit anywhere; the cell holds the categories beyond the question’s own domain, comma or semicolon separated, matched without regard to case or spacing; a blank cell means the question is only about its own domain, which is the common case and costs nobody any typing. A name that is not one of the five refuses the whole import and says which question and which name, and a domain name typed into that column is refused with a sentence saying to leave the cell blank, because a mistyped category is the one error nobody can see afterwards: the question counts towards nothing and every screen still renders correctly. The rubric loader refuses the same thing when a file is opened. Until all four sheets carry the column the tool falls back to a keyword pass over the question wording and calls the grouping provisional on every screen that shows it; the badge goes when the column does all four.</span>
 </div>
 <div class="req">
 <span class="req-id mono">Q10</span>
 <span class="req-t">The category assignments themselves.</span>
 <span class="st st-later">Open</span>
 <span class="req-owner">Dan owes this</span>
-<span class="req-note">The mechanism is finished and waiting. All five categories that are not domains are read from the wording of each question and are ours, not his: Security 25, Privacy 8, Financial 13, Accessibility 3, Official Languages 2. Accessibility and Official Languages were reported as empty on 14 September and that was wrong, corrected on 17 September: the sweep counted hits without reading them. Six questions mention something accessible and three are about accessibility; the other three are the FAIR principles’ Accessible and data reaching other departments. The pattern now matches the noun and WCAG and not the adjective. Both categories are thin rather than absent, which the results page says beside the bar, because a score built on two questions moves a long way on one answer.</span>
+<span class="req-note">The mechanism is finished and waiting. All five categories are read from the wording of each question and are ours, not his: Security 25, Privacy 8, Financial 13, Accessibility 3, Official Languages 2. Accessibility and Official Languages were reported as empty on 14 September and that was wrong, corrected on 17 September: the sweep counted hits without reading them. Six questions mention something accessible and three are about accessibility; the other three are the FAIR principles’ Accessible and data reaching other departments. The pattern now matches the noun and WCAG and not the adjective. Both categories are thin rather than absent, which the results page says beside the bar, because a score built on two questions moves a long way on one answer.</span>
 </div>
 <div class="req">
 <span class="req-id mono">Q11</span>
@@ -614,10 +614,10 @@ background:var(--surface);border:1px solid var(--line);border-radius:10px;list-s
 </div>
 <div class="req">
 <span class="req-id mono">Q8</span>
-<span class="req-t">Questions carry topics as well as a domain, so the same answers can be cut across the four domains.</span>
+<span class="req-t">A question belongs to one domain and carries any number of categories, so the same answers can be read a second way the domains cannot show.</span>
 <span class="st st-done">Built</span>
 <span class="req-owner">Dan owes this</span>
-<span class="req-note">Six topics, 31 questions in two of them. A question counts fully in each topic and once in the overall, so the topic scores do not add up to the overall.</span>
+<span class="req-note">Five categories, 46 of 176 questions carrying at least one. A question counts fully in each category and once in the overall through its domain, so the category scores do not add up to the overall.</span>
 </div>
 <div class="req">
 <span class="req-id mono">Q9</span>
