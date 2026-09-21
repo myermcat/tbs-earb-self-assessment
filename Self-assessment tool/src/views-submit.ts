@@ -704,7 +704,7 @@ function footerBar(
 ): HTMLElement {
   const gate = el('div', {});
   const pill = el('span', { class: 'pill', 'aria-hidden': true });
-  const readout = el('span', { class: 'muted small' });
+  const readout = el('span', { class: 'muted small footer-readout' });
 /**
  * The one control on this bar.
  *
@@ -722,7 +722,12 @@ function footerBar(
       if (isHosted()) { saveOnlineFn(); return; }
       saveFile(a);
     },
-  }, [isHosted() ? t('Save online', 'Enregistrer en ligne') : t('Save to a file', 'Enregistrer dans un fichier')]);
+  }, [
+    el('span', { class: 'fb-long' }, [
+      isHosted() ? t('Save online', 'Enregistrer en ligne') : t('Save to a file', 'Enregistrer dans un fichier'),
+    ]),
+    el('span', { class: 'fb-short' }, [t('Save', 'Enregistrer')]),
+  ]);
 
   /**
    * Two bars. One answer in 176 moves the whole-assessment bar by half a percent, which is
@@ -732,7 +737,17 @@ function footerBar(
   const secBar = el('i');
   const secLabel = el('span', { class: 'pbar-label' });
   const allBar = el('i');
-  const allLabel = el('span', { class: 'pbar-label' });
+  /**
+   * The count is its own element because the wording in front of it has two lengths and the
+   * phone hides one of them. Writing the whole caption as one string would mean the narrow
+   * form could only exist by rebuilding the element on every answer.
+   */
+  const allCount = el('span', { class: 'pbar-count' });
+  const allLabel = el('span', { class: 'pbar-label' }, [
+    el('span', { class: 'fb-long' }, [t('Whole assessment ', 'Évaluation entière ')]),
+    el('span', { class: 'fb-short' }, [t('All ', 'Tout ')]),
+    allCount,
+  ]);
   let sectionWasComplete = false;
 
   const apply = (rr: Result) => {
@@ -762,12 +777,13 @@ function footerBar(
     }
     pill.className = `pill ${tone(rr.overall)}`;
     pill.textContent = rr.overall === null ? '--' : rr.overall.toFixed(1);
-    readout.textContent =
-      `${rr.maturity ? rr.maturity.label : 'not scored yet'} - ${rr.answered} of ${rr.scoreable} answered`;
+    readout.textContent = rr.maturity
+      ? `${rr.maturity.label} - ${rr.answered} ${t('of', 'sur')} ${rr.scoreable} ${t('answered', 'remplies')}`
+      : `${t('not scored yet', 'pas encore noté')} - ${rr.answered} ${t('of', 'sur')} ${rr.scoreable} ${t('answered', 'remplies')}`;
     save.disabled = problems.length > 0;
     save.title = problems.length
       ? problems.map((p) => p.message).join('\n')
-      : 'Save a copy you can reopen later';
+      : t('Save a copy you can reopen later', 'Enregistrer une copie que vous pourrez rouvrir');
 
     const cur = here.domainId
       ? rr.domains.find((x) => x.domain.id === here.domainId)?.sections.find((x) => x.section.id === here.sectionId)
@@ -776,11 +792,11 @@ function footerBar(
     const done = cur ? cur.answered : ovDone;
     const total = cur ? cur.total : ovTotal;
     secLabel.textContent = cur
-      ? `This section ${done} of ${total}`
-      : `Overview ${done} of ${total}`;
+      ? `${t('This section', 'Cette section')} ${done} ${t('of', 'sur')} ${total}`
+      : `${t('Overview', 'Aperçu')} ${done} ${t('of', 'sur')} ${total}`;
     secBar.style.width = total > 0 ? `${Math.round((done / total) * 100)}%` : '0%';
 
-    allLabel.textContent = `Whole assessment ${rr.answered} of ${rr.scoreable}`;
+    allCount.textContent = `${rr.answered} ${t('of', 'sur')} ${rr.scoreable}`;
     allBar.style.width = rr.scoreable > 0 ? `${Math.round((rr.answered / rr.scoreable) * 100)}%` : '0%';
 
     // The reward for finishing a section, on an element that is pinned, so it is seen however
@@ -813,7 +829,10 @@ function footerBar(
         (() => {
           const jump = el('button', { class: 'ghost', onclick: () => {
             if (goToFirstGap(rubric, a)) repaintApp();
-          } }, ['Next unanswered']);
+          } }, [
+            el('span', { class: 'fb-long' }, [t('Next unanswered', 'Prochaine sans réponse')]),
+            el('span', { class: 'fb-short' }, [t('Next gap', 'À remplir')]),
+          ]);
           register((rr) => { jump.hidden = rr.answered >= rr.scoreable; }, r);
           return jump;
         })(),
@@ -823,7 +842,8 @@ function footerBar(
          * nothing to press: the save badge in the chrome already says where the work stands.
          */
         save,
-        el('button', { class: 'primary', onclick: onDone }, [t('See my results', 'Voir mes résultats')]),
+        el('button', { class: 'primary footer-results', onclick: onDone },
+           [t('See my results', 'Voir mes résultats')]),
       ]),
     ]),
   ]);
