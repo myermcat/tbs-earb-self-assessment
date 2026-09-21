@@ -14,10 +14,18 @@ two sessions working at once.
 files at the root. Everything else in this folder is working material that stays on this
 machine: it is in `.gitignore` and it is not pushed anywhere.
 
-That matters for one reason worth knowing before anybody proposes making the repository public.
-A recorded meeting with a named colleague was tracked until 21 September 2026. Untracking the
-file does not remove it from the history, so the repository cannot be made public as it stands,
-whatever is in the working tree today.
+**The repository is public.** It was private until 21 September 2026, because a recorded
+meeting with a named colleague had been tracked in it and untracking the file left the file in
+the history. The history was rewritten with `git filter-repo` that day and the repository was
+made public. A fresh clone was searched afterwards and no object in it carries the transcript's
+words.
+
+So a commit here publishes. Working material stays in `.gitignore` and on this machine, and
+adding a file to the repository is a decision to put it on the open internet.
+
+`git filter-repo` hard-resets the working tree. It deleted twenty untracked files from disk
+during that rewrite and they came back from a bundle. Take a bundle first, and check file
+counts inside every folder afterwards, because the folders themselves survive and look fine.
 
 ## Every folder, and what is in it
 
