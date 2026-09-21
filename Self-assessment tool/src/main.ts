@@ -19,7 +19,7 @@ import { closeMenusOnOutsideClick, closeOnOutsideClick, confirmStep, openDialog 
 import { saveBadge } from './save-badge';
 import { SAD_CAT } from './cat';
 import { openShareDialog } from './views-share';
-import { hasAccounts, mode as accessMode, opensOn } from './who';
+import { hasAccounts, isDemo, mode as accessMode, opensOn } from './who';
 import { rememberSigner, signerFields, signerProblem } from './signer';
 import { showNewCode } from './views-share';
 import { bootLang, coverage, lang, type Lang, setLang } from './i18n';
@@ -535,7 +535,9 @@ function paint() {
   clear(app);
   adoptSignedIn();
   // The sign-in gate is its own shell: one screen, nothing to scroll, like any sign-in.
-  const gate = (mode === 'admin' || mode === 'review') && !assessorName.trim();
+  // A demonstration build asks nobody who they are, because there is nothing behind it to
+  // protect: the pool it shows is invented and the store is never reached.
+  const gate = !isDemo() && (mode === 'admin' || mode === 'review') && !assessorName.trim();
   const access = gate ? 'ok' : accessState();
   app.className = mode === 'home' ? 'app-home'
     : mode === 'results' ? 'app-results'
@@ -576,6 +578,20 @@ function paint() {
   // Header, marking and the domain tabs travel as one sticky block. Separately pinned strips
   // leave a seam that page content shows through.
   const chrome = el('div', { class: 'chrome' }, [header(gate || access !== 'ok')]);
+  /**
+   * A demonstration says so, on every screen, above everything else.
+   *
+   * A room shown a department name and a score will quote both afterwards. Every department in
+   * this build is invented and every answer with it, and the sentence has to be somewhere nobody
+   * can be looking away from.
+   */
+  if (isDemo()) {
+    chrome.appendChild(el('div', { class: 'demo-banner' }, [
+      el('strong', {}, ['Demonstration']),
+      ' Every department, submission and score here is made up. Nothing on this page comes from '
+      + 'the real store, and nothing typed into it is kept.',
+    ]));
+  }
   if (mode === 'submit' || mode === 'results') chrome.appendChild(banner());
   const tabs = takeSubmitTabs();
   if (mode === 'submit' && tabs) chrome.appendChild(tabs);

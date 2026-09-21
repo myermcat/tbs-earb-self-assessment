@@ -1,4 +1,4 @@
-import type { Assessment, SavedBy } from './types';
+import type { Assessment, Rubric, SavedBy } from './types';
 import type { Signer } from './signer';
 
 /**
@@ -47,7 +47,8 @@ import { validate } from './rubric';
 import BUILTIN from '../rubric/rubric.v1-dan.json';
 import { currentUser, deleteAssessment, getAssessment, isConfigured, listAssessments,
   putAssessment, storeHost } from './firebase';
-import { hasAccounts, nameIsChecked } from './who';
+import { hasAccounts, isDemo, nameIsChecked } from './who';
+import { demoAssessments } from './demo-pool';
 
 /**
  * The store, and how to point at one.
@@ -90,7 +91,14 @@ export interface StoredRecord {
   assessment: Assessment;
 }
 
-export function isHosted(): boolean { return isConfigured() || ENDPOINT !== ''; }
+/**
+ * Whether there is a pool to read at all.
+ *
+ * A demonstration build has one, and it is invented. Every screen that asks this is asking
+ * "is there a list of submissions here", not "is there a database", so the demonstration
+ * answers yes and the pool comes from demo-pool.ts.
+ */
+export function isHosted(): boolean { return isDemo() || isConfigured() || ENDPOINT !== ''; }
 
 /** Where the records are, for a page that has to say so. */
 export function endpointHost(): string {
@@ -162,6 +170,14 @@ export type PoolAnswer =
   | { state: 'failed'; problem: string };
 
 export async function poolRecords(): Promise<PoolAnswer> {
+  // A demonstration build answers from its own invented pool and never reaches the store.
+  if (isDemo()) {
+    return {
+      state: 'ok',
+      records: demoAssessments(BUILTIN as unknown as Rubric)
+        .map((a, i) => recordOf(a, 'hosted', a.id ?? `demo-${i}`)),
+    };
+  }
   if (!isConfigured()) return { state: 'off' };
   if (!currentUser()) return { state: 'anonymous' };
   try {
@@ -182,6 +198,10 @@ export async function poolRecords(): Promise<PoolAnswer> {
  * sources become a fallback for working offline.
  */
 export async function listRecords(sessionFiles: Assessment[] = []): Promise<StoredRecord[]> {
+  if (isDemo()) {
+    return demoAssessments(BUILTIN as unknown as Rubric)
+      .map((a, i) => recordOf(a, 'hosted', a.id ?? `demo-${i}`));
+  }
   const out: StoredRecord[] = [];
   if (isConfigured()) {
     const rows = await firestoreRecords();

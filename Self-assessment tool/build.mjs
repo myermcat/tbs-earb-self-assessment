@@ -69,6 +69,21 @@ if (FIREBASE) {
  * Both paths stay compiled, typechecked and tested. Commented-out code stops being either, and
  * code that is not typechecked is abandoned and not kept.
  */
+/**
+ * A build for showing the tool to a room, with invented submissions and no sign-in.
+ *
+ * Microsoft sign-in is the answer to demonstrating this: a Google account is nobody's work
+ * account at TBS, so the audience cannot use the real door. Registering the application in the
+ * departmental directory goes through IMTD, and the read on 22 September was that it is
+ * unlikely and not before the demonstration either way.
+ *
+ * So a demonstration build carries its own made-up pool and asks nobody to sign in. It never
+ * reaches the store, which is the whole point: opening the real pool to anyone holding the
+ * address would put every department's work on the open internet, and that is the one thing
+ * worth refusing. It is published at its own address and the real page is untouched.
+ */
+const DEMO = (process.env.EARB_DEMO ?? '') === '1';
+
 const ACCESS = (process.env.EARB_ACCESS ?? 'accounts').trim() || 'accounts';
 if (ACCESS !== 'accounts' && ACCESS !== 'code') {
   console.error(`Build refused: EARB_ACCESS is "${ACCESS}". It takes accounts or code.`);
@@ -127,6 +142,7 @@ async function once() {
       __EARB_BUILT__: JSON.stringify(new Date().toISOString().slice(0, 16).replace('T', ' ')),
       __EARB_ACCESS__: JSON.stringify(ACCESS),
       __EARB_SIDE__: JSON.stringify(SIDE),
+      __EARB_DEMO__: JSON.stringify(DEMO),
     },
     logLevel: 'warning',
   });
@@ -148,7 +164,7 @@ async function once() {
   // The store is named on the line every build prints, because the way this goes wrong is a
   // build that was meant to have one and does not.
   const store = FIREBASE ? 'Firestore' : ORIGIN ? new URL(ORIGIN).host : 'none';
-  console.log(`${OUT_FILE}  ${kb} KB  (rubric ${rubric.version}, ${rubric.status}, store ${store}, access ${ACCESS}, opens on ${SIDE})`);
+  console.log(`${OUT_FILE}  ${kb} KB  (rubric ${rubric.version}, ${rubric.status}, store ${store}, access ${ACCESS}, opens on ${SIDE}${DEMO ? ', DEMONSTRATION, invented data' : ''})`);
 }
 
 await once();

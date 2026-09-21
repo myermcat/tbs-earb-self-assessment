@@ -24,6 +24,20 @@
 import { currentUser, isConfigured, knownRole, type Role } from './firebase';
 
 declare const __EARB_ACCESS__: string;
+declare const __EARB_DEMO__: boolean;
+
+/**
+ * Whether this build is for showing the tool to a room.
+ *
+ * It asks nobody to sign in and reads an invented pool, never the store. It exists because a
+ * Google account is nobody's work account at TBS, so the audience cannot use the real door, and
+ * registering the application in the departmental directory goes through IMTD.
+ *
+ * The one thing it must never be is the published assessor page. A test refuses that.
+ */
+export function isDemo(): boolean {
+  return typeof __EARB_DEMO__ === 'boolean' ? __EARB_DEMO__ : false;
+}
 declare const __EARB_SIDE__: string;
 
 export type AccessMode = 'accounts' | 'code';
