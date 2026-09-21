@@ -145,9 +145,9 @@ background:var(--surface);border:1px solid var(--line);border-radius:10px;list-s
 .kpi a{color:inherit;text-decoration:none}
 </style>
 <div class="head"><div class="head-in"><h1>GC EA self-assessment: requirements specification</h1>
-<p class="sub">Living document, updated 2026-09-17. 128 requirements, baselined at each release. Following ISO/IEC/IEEE 29148:2018, tailored.</p></div></div>
+<p class="sub">Living document, updated 2026-09-17. 130 requirements, baselined at each release. Following ISO/IEC/IEEE 29148:2018, tailored.</p></div></div>
 <nav class="topnav"><div class="topnav-in">
-<span class="nav-kpi"><b>74</b><span>built</span></span>
+<span class="nav-kpi"><b>76</b><span>built</span></span>
 <span class="nav-kpi"><b>30</b><span>agreed, not built</span></span>
 <span class="nav-kpi"><b>3</b><span>proposed</span></span>
 <span class="nav-kpi"><b>21</b><span>open</span></span>
@@ -355,6 +355,20 @@ background:var(--surface);border:1px solid var(--line);border-radius:10px;list-s
 <span class="st st-done">Built</span>
 <span class="req-owner">Mariia owes this</span>
 <span class="req-note">Reported on 17 September, in the words that matter: she went to the assessor side to delete a test record, pressed the red Close this one, the row went, no window appeared, and the record was still in the store. Two faults in one control. The label named nothing it did: it takes a row off this browser’s list of open submissions, and nothing on that page can remove anything from the store. And with no audit typed against the row it dropped it silently, so the only evidence of what had happened was the row going, which is exactly what deleting would have looked like. It is called Take it off this list now, it is not drawn in the destroying colour, and it always asks. The window says the record stays in the shared store and that removing it for everybody is in the portfolio view. That one is unchanged and already asks for the code to be typed out: the code and not the initiative name, because two departments can share a name, a name can be read off the row above by mistake, and it is the field most likely to be blank.</span>
+</div>
+<div class="req">
+<span class="req-id mono">S29</span>
+<span class="req-t">There are two kinds of person and no third: a submitter, who needs no account, and an assessor, who needs one and can do everything the assessor side offers.</span>
+<span class="st st-done">Built</span>
+<span class="req-owner">Mariia owes this</span>
+<span class="req-note">Decided 21 September, in these words: basically there are only two functionalities, submitter and assessor. There was an admin above the assessor, holding the portfolio view, record deletion and the granting of roles. It bought a separation nobody had asked for and it cost a lockout, because taking a grant back needed admin while any assessor could write a role document naming an admin’s own address, after which the admin had no way in. With one rung there is nothing to be knocked off. The build still carries a list of addresses it falls back to when the store has no document for them, so a wiped project is recoverable; that fallback now grants the assessor side rather than a rung above it, and the access screen says which of the two a person’s own access came from, because the store and the page disagreeing is invisible and is the difference between access and a facade.</span>
+</div>
+<div class="req">
+<span class="req-id mono">S30</span>
+<span class="req-t">Any assessor can add another assessor, from the tool. Taking access away is the same right, behind two windows and the person’s full name typed out.</span>
+<span class="st st-done">Built</span>
+<span class="req-owner">Mariia owes this</span>
+<span class="req-note">Asked for on 21 September: any assessor can add another one, but to delete, they need to go through hell. Adding asks for a name as well as an address, because removal asks for the name to be typed and nobody can invent one afterwards. The address has to be the one the person signs in to Google with, so an address outside gc.ca is warned about and not refused: the account that set this project up is a personal one, and a hard rule would lock out the person who fixes things. Any assessor granting access to any address is the whole of the trust model and it is deliberate, since no rule can tell a colleague from a stranger. What the store enforces instead is that the grant carries the address of whoever made it, taken from the signed-in token and not from anything the browser chose to send. Access is taken away by marking the record and never by deleting it, so that a person who was deliberately removed cannot be quietly added back by somebody who never knew, and so the list can say who removed them and when. Nothing about removal touches what the person audited: that lives inside each assessment, and an audit that can be erased by removing somebody is not an audit.</span>
 </div>
 <div class="req">
 <span class="req-id mono">S4</span>
