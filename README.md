@@ -1,19 +1,28 @@
 # GC Enterprise Architecture self-assessment
 
-## The two addresses
+## The addresses
 
 The tool is two products and two published pages. Neither links to the other, because neither
-screen may describe the other, so both live here.
+screen may describe the other, so both live here. A third address shows the tool to a room and
+is not a product.
 
 | Who it is for | Where it is |
 |---|---|
 | **The submitter**, who answers the questions | https://myermcat.github.io/tbs-earb-self-assessment-preview/ |
 | **The assessor**, who reads the pool | https://myermcat.github.io/tbs-earb-self-assessment-preview/assessor/ |
+| **A demonstration**, for showing the assessor screens to a room | https://myermcat.github.io/tbs-earb-self-assessment-preview/demo/ |
 
 A submitter needs no account at all: an assessment carries a twelve-character access code, the
 code is the record's own name in the store, and whoever holds it can open that one assessment
 and nothing else. An assessor signs in, because listing every submission is a right that can
 only be granted to an identity.
+
+**The demonstration page has no sign-in and no store.** It is built with no store address at
+all, so it cannot reach the real pool even by accident, and it answers from four invented
+submissions with invented department names. It says on its face that it is a demonstration.
+It exists because departmental accounts at TBS are Microsoft and the sign-in is Google, so
+anybody without a Google account can be shown the assessor screens and nothing else. Nothing
+typed into it is kept.
 
 A department scores its own architecture against the Government of Canada Enterprise
 Architecture framework, points to evidence it already holds, and produces a structured file.
