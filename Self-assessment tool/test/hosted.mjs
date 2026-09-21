@@ -1041,12 +1041,26 @@ console.log('\nThe published build, signed in\n');
    * address it was: I will leave the team at some point and they will need to remove my access,
    * can we have my credentials in the store only.
    */
+  /**
+   * A gate says which address, not that there was one.
+   *
+   * Asked directly: will it show why it failed the build. The first version printed a fixed
+   * sentence, which tells somebody a rule was broken and leaves them grepping 350KB of inlined
+   * bundle to find out by what.
+   */
+  const PLACEHOLDERS = /^(someone|you|vous|name|nom|test|a|b|first\.last)@/i;
+  const KNOWN_FIXTURES = /@(department\.gc\.ca|ministere\.gc\.ca|tbs-sct\.gc\.ca|tc\.gc\.ca|dfo-mpo\.gc\.ca|b\.gc\.ca|sen\.parl\.gc\.ca|example\.[a-z.]+)$/i;
+  const addresses = [...new Set(html.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-z]{2,}/g) ?? [])]
+    .filter((a) => !PLACEHOLDERS.test(a) && !KNOWN_FIXTURES.test(a));
   ok('the built page carries nobody\u2019s address',
-     !/[a-zA-Z0-9._%+-]+@(?!department\.gc\.ca|ministere\.gc\.ca|tbs-sct\.gc\.ca|tc\.gc\.ca|dfo-mpo\.gc\.ca|b\.gc\.ca|sen\.parl\.gc\.ca|example|gmail\.com)[a-zA-Z0-9.-]+\.[a-z]{2,}/.test(
-       html.replace(/someone@[a-zA-Z0-9.-]+/g, '').replace(/you@[a-zA-Z0-9.-]+/g, '')),
-     'an address is compiled into the page');
+     addresses.length === 0,
+     addresses.length
+       ? `compiled into dist/index.html: ${addresses.join(', ')}. An address in the build is public the moment the page is, and it is a grant nobody can take away. Take it out of deploy/firebase-config.json and out of the source; access comes from the roles collection.`
+       : '');
+  const declares = html.match(/"admins"\s*:\s*\[[^\]]*\]/)?.[0];
   ok('and the build declares no list of people it trusts',
-     !/"admins"|\badmins\b\s*[:?]/.test(html), 'the build still carries an admins list');
+     !declares,
+     declares ? `the build carries ${declares}. Remove the admins key from deploy/firebase-config.json: a grant that lives in the build cannot be revoked in the store.` : '');
 }
 
 console.log(fails ? `\n${fails} hosted check(s) failed\n` : '\nall hosted checks passed\n');

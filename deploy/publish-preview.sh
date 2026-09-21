@@ -51,6 +51,29 @@ echo "Building the submitter's page..."
 ( cd "$HERE/Self-assessment tool" && EARB_ACCESS=code npm run --silent build )
 echo "Building the assessor's page..."
 ( cd "$HERE/Self-assessment tool" && EARB_ACCESS=accounts EARB_SIDE=assess EARB_OUT=dist/assessor.html npm run --silent build )
+# Nobody's address goes onto the open internet.
+#
+# npm test cannot catch this. Its hosted suite builds with a stand-in Firebase config, so it
+# never sees the real one, and the gate there passed happily while a real address sat in the
+# published page. This is the only place the true config and the true build meet.
+for page in dist/index.html dist/assessor.html; do
+  found="$(grep -oiE '[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}' "$HERE/Self-assessment tool/$page" \
+    | sort -u \
+    | grep -viE '^(someone|you|vous|name|nom|test|first\.last)@' \
+    | grep -viE '@(department\.gc\.ca|ministere\.gc\.ca|tbs-sct\.gc\.ca|tc\.gc\.ca|dfo-mpo\.gc\.ca|b\.gc\.ca|sen\.parl\.gc\.ca|example\.)' || true)"
+  if [ -n "$found" ]; then
+    echo >&2
+    echo "REFUSING TO PUBLISH. $page carries somebody's address:" >&2
+    echo "$found" | sed 's/^/  /' >&2
+    echo >&2
+    echo "An address compiled into the page is public the moment the page is, and it is a grant" >&2
+    echo "nobody can take away: remove the person from the roles collection and the page still" >&2
+    echo "lets them in, because it carries its own answer. Take it out of" >&2
+    echo "deploy/firebase-config.json and out of src/, then publish again." >&2
+    exit 1
+  fi
+done
+
 ( cd "$HERE/Self-assessment tool" && node tools/build-backlog.mjs >/dev/null )
 ( cd "$HERE/Self-assessment tool" && node tools/build-requirements.mjs >/dev/null )
 

@@ -1870,3 +1870,37 @@ dialog.confirm.shake { animation: cf-shake .34s cubic-bezier(.36, .07, .19, .97)
 .note-yellow-head { display: block; font-size: .84rem; margin-bottom: .15rem; color: var(--ink); }
 /* Three fields now: first name, last name, address. Two columns above phone width. */
 @media (min-width: 620px) { .people-add { grid-template-columns: 1fr 1fr; } }
+
+/* ---------- the category lens ------------------------------------------------------------ */
+/* A domain is where you are; a category is what you are looking at. Drawing them alike is what
+   confuses, so the tabs stay tabs and these are chips: rounded, smaller, and on their own line.
+   A right-hand rail was the first idea and cost about a fifth of the reading column at every
+   width, which the question text needs more than this does. */
+.stepper-stack { display: flex; flex-direction: column; gap: .3rem; min-width: 0; }
+.lens-strip { display: flex; align-items: center; gap: .3rem; flex-wrap: wrap;
+  font-size: .78rem; padding: .1rem 0; }
+.lens-label { color: var(--ink-3); font-size: .72rem; text-transform: uppercase;
+  letter-spacing: .05em; margin-right: .1rem; }
+.lens-chip { font: inherit; padding: .1rem .5rem; border-radius: 999px; cursor: pointer;
+  border: 1px solid var(--line-2); background: var(--surface); color: var(--ink-2);
+  display: inline-flex; align-items: baseline; gap: .3rem; white-space: nowrap; }
+.lens-chip:hover { border-color: var(--accent-line); color: var(--ink); }
+.lens-chip.on { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.lens-n { font-family: var(--mono); font-size: .72rem; opacity: .75; }
+.lens-chip.on .lens-n { opacity: .9; }
+.lens-empty { font-size: .875rem; color: var(--ink-2); margin: .4rem 0 1rem; }
+
+/* What a question is about, beside the toggle and clipped to the right. Grey enough to blend
+   into the card, because it is a fact about the question and never an instruction. */
+.ladder-row { display: flex; align-items: baseline; gap: .6rem; min-width: 0; }
+.ladder-row > .ladder-box { flex: 0 1 auto; min-width: 0; }
+.q-cats { margin-left: auto; display: flex; gap: .25rem; overflow: hidden;
+  white-space: nowrap; flex: 0 1 auto; justify-content: flex-end; }
+.q-cat { font-size: .68rem; color: var(--ink-3); border: 1px solid var(--line);
+  border-radius: 999px; padding: 0 .38rem; background: var(--surface-2); }
+.lens-head { margin: 0 0 1rem; }
+.lens-head h2 { font-size: 1.15rem; margin: 0 0 .15rem; }
+/* Which section a question came from, once the lens has stopped the sections dividing the page. */
+.lens-from { font-size: .72rem; text-transform: uppercase; letter-spacing: .05em;
+  color: var(--ink-3); margin: 1.1rem 0 .3rem; }
+.lens-from:first-of-type { margin-top: .2rem; }
