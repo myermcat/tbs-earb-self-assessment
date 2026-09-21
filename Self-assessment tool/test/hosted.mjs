@@ -230,44 +230,19 @@ console.log('\nThe published build, signed in\n');
   ok('the export is on a toolbar above the table', !!doc.querySelector('.res-toolbar .btn-icon'));
   ok('and it carries an icon', !!doc.querySelector('.res-toolbar .btn-icon svg'));
   /**
-   * And it says what it does, which is not deleting.
+   * And no control on a row removes anything at all.
    *
-   * It said "Close this one", in red, on a list of submissions read out of the shared pool.
-   * Somebody came here to remove an assessment, pressed it, watched the row go and had every
-   * reason to believe the assessment had gone with it. Nothing left the store, because nothing
-   * on this page can make it.
+   * This menu carried "Take it off this list", which dropped the row from this browser and left
+   * the record in the store. It was renamed once from "Close this one" because somebody pressed
+   * it meaning to remove an assessment and watched the row go. The rename did not fix it, and it
+   * was reported again as still ambiguous, so the control is gone. Reloading the pool brings the
+   * list back, and deleting lives in the danger zone.
    */
   const rowActs = [...doc.querySelectorAll('.row-acts .row-menu .menu-item')];
-  ok('taking one submission off the list is a per-row action',
-     rowActs.some((b) => /Take it off this list/.test(b.textContent)),
+  ok('no control on a submission row removes it from anything',
+     !rowActs.some((b) => /take it off|close this|remove|delete/i.test(b.textContent)),
      rowActs.map((b) => b.textContent).join(' | '));
-  ok('and it is not offered as a deletion',
-     !rowActs.some((b) => /^Close this one$/.test(b.textContent.trim())),
-     rowActs.map((b) => b.textContent).join(' | '));
-  ok('and it is not drawn as the destroying red one, because it destroys nothing in the store',
-     !rowActs.some((b) => /Take it off this list/.test(b.textContent) && b.classList.contains('menu-danger')));
 
-  /**
-   * It asks, even with nothing audited on the row.
-   *
-   * With no audit it used to drop the row and say nothing at all, which is how somebody came
-   * to believe an assessment had been deleted.
-   */
-  {
-    const before = doc.querySelectorAll('.triage tbody tr').length;
-    rowActs.find((b) => /Take it off this list/.test(b.textContent)).click();
-    await new Promise((r) => setTimeout(r, 40));
-    const dlg = doc.querySelector('dialog[open]');
-    ok('taking a row off the list asks first', !!dlg, String(before));
-    ok('and says the record stays in the shared store',
-       /stays in the shared store/.test(dlg?.textContent ?? ''), dlg?.textContent?.slice(0, 140));
-    ok('and says where removing it for everybody lives',
-       /portfolio view/.test(dlg?.textContent ?? ''), dlg?.textContent?.slice(0, 200));
-    ok('and the row is still there until it is answered',
-       doc.querySelectorAll('.triage tbody tr').length === before, String(before));
-    [...dlg.querySelectorAll('.cf-actions button')].find((b) => /Keep it open/.test(b.textContent))?.click();
-    await new Promise((r) => setTimeout(r, 20));
-  }
   /**
    * And nothing on this toolbar closes everything at once.
    *
@@ -779,13 +754,18 @@ console.log('\nThe published build, signed in\n');
     const rail = [...doc.querySelectorAll('.set-navrow')].map((b) => b.textContent.trim());
     ok('an assessor is not offered the submitter\u2019s own answers', !rail.includes('Your answers'), rail.join(' | '));
     ok('nor a control that erases them', !rail.includes('Start again'), rail.join(' | '));
-    ok('and what is left belongs to both sides, plus the access list',
-       rail.length === 4, rail.join(' | '));
+    ok('and what is left belongs to both sides, plus the access list and the danger zone',
+       rail.length === 5, rail.join(' | '));
     /**
-     * The access list is the assessor's screen. A submitter has no store identity to list, and
-     * the submitter rail is asserted whole in test/ui.mjs, which is where its absence is caught.
+     * People is the assessor's screen. A submitter has no store identity to list, and the
+     * submitter rail is asserted whole in test/ui.mjs, which is where its absence is caught.
      */
-    ok('and the assessor is offered the access list', rail.includes('Who has access'), rail.join(' | '));
+    ok('and the assessor is offered the access list', rail.includes('People'), rail.join(' | '));
+    /**
+     * Every destructive act is gathered in one pane on both sides, and it is the last row so
+     * that nothing ordinary is reached by passing through it.
+     */
+    ok('and the danger zone is last in the rail', rail[rail.length - 1] === 'Danger zone', rail.join(' | '));
     ok('and nothing on screen offers to discard anything',
        !/Discard this assessment/i.test(doc.querySelector('.set-pane')?.textContent ?? ''));
   dom.window.close();
@@ -813,7 +793,7 @@ console.log('\nThe published build, signed in\n');
   const gear = [...doc.querySelectorAll('button')].find((b) => /Settings/i.test(b.getAttribute('title') || ''));
   gear.click();
   await new Promise((r) => setTimeout(r, 60));
-  [...doc.querySelectorAll('.set-navrow')].find((b) => /Who has access/.test(b.textContent)).click();
+  [...doc.querySelectorAll('.set-navrow')].find((b) => /People/.test(b.textContent)).click();
   await new Promise((r) => setTimeout(r, 120));
   const pane = doc.querySelector('.set-pane');
   const text = pane?.textContent ?? '';
@@ -868,32 +848,104 @@ console.log('\nThe published build, signed in\n');
      pane.textContent.slice(-200));
 
   /**
-   * Removal: two windows, and the second will not commit until the full name is typed.
+   * Removal is not on the row, and it is not on this screen at all.
+   *
+   * Asked for in these words: it should not be a big and easily clicked button, you do not click
+   * a reviewer, you type the name yourself, and the deletion should go through hell.
    */
-  const remove = [...pane.querySelectorAll('.set-row-act button')].find((b) => /Take their access away/.test(b.textContent));
-  remove.click();
-  await new Promise((r) => setTimeout(r, 40));
-  const first = doc.querySelector('dialog.confirm');
-  ok('removal asks once before it asks for the typing', !!first, 'no window');
-  ok('and says the audit they wrote is untouched',
-     /stays on every score they changed/i.test(first.textContent), first.textContent.slice(0, 300));
-  [...first.querySelectorAll('.cf-actions button')].find((b) => /Continue/.test(b.textContent)).click();
-  await new Promise((r) => setTimeout(r, 40));
-  const typed = doc.querySelector('dialog.confirm.typed');
-  ok('and then asks for the full name to be typed out', !!typed, 'no typing window');
-  const commit = [...typed.querySelectorAll('.cf-actions button')][0];
-  ok('with the button dead until it matches', commit.disabled === true);
-  ok('and it does not claim the removal is permanent, because access can be given back',
-     !/cannot be undone/i.test(typed.textContent), typed.textContent.slice(0, 200));
-  const box = typed.querySelector('input.typed-field');
-  box.value = 'Jean';
-  box.dispatchEvent(new dom.window.Event('input', { bubbles: true }));
-  ok('half the name is not the name', commit.disabled === true);
-  box.value = 'Jean Tremblay';
-  box.dispatchEvent(new dom.window.Event('input', { bubbles: true }));
-  ok('and the whole name arms it', commit.disabled === false);
+  ok('no row offers to take anything away',
+     ![...pane.querySelectorAll('button')].some((b) => /take .*access away/i.test(b.textContent)),
+     [...pane.querySelectorAll('.set-row-act button')].map((b) => b.textContent).join(' | '));
+  ok('and a name can be corrected, so a typo is not typed forever',
+     [...pane.querySelectorAll('.set-row-act button')].some((b) => /Edit the name/.test(b.textContent)));
+  ok('and the address field says only Google accounts work today',
+     /Google account only/i.test(pane.textContent), pane.textContent.slice(0, 200));
+
+  /**
+   * A second person with one name cannot be added, because removal asks for a name and two
+   * people cannot answer to it.
+   */
+  {
+    const f = [...pane.querySelectorAll('.people-add input')];
+    f[0].value = 'Jean Tremblay';
+    f[1].value = 'different@tbs-sct.gc.ca';
+    [...pane.querySelectorAll('.people-add button')].find((b) => /Add this assessor/.test(b.textContent)).click();
+    await new Promise((r) => setTimeout(r, 30));
+    ok('a duplicate name is refused when it is added, not discovered at removal',
+       /already called that/i.test(pane.textContent), pane.textContent.slice(-220));
+  }
   dom.window.close();
 }
+
+/* --------------------------------------------------------------------------------------- */
+{
+  /**
+   * The danger zone, which is the only place anything is taken away.
+   *
+   * Every gate here exists because of one instruction: to avoid accidental deletion at all cost.
+   * Nothing narrows the search, the window never prints what it asks for, and an assessor cannot
+   * take their own access away.
+   */
+  const { doc, dom } = await boot({
+    session: live, side: 'assess', role: 'assessor',
+    people: [
+      { email: ME, name: 'Signed In Assessor', role: 'assessor', addedBy: 'first@tbs-sct.gc.ca', addedAt: '2026-09-01T10:00:00Z' },
+      { email: 'colleague@tbs-sct.gc.ca', name: 'Jean Tremblay', role: 'assessor', addedBy: ME, addedAt: '2026-09-10T10:00:00Z' },
+    ],
+  });
+  const gear = [...doc.querySelectorAll('button')].find((b) => /Settings/i.test(b.getAttribute('title') || ''));
+  gear.click();
+  await new Promise((r) => setTimeout(r, 60));
+  const rail = [...doc.querySelectorAll('.set-navrow')];
+  ok('the danger zone is the last row and is marked dangerous',
+     rail[rail.length - 1].textContent === 'Danger zone'
+     && rail[rail.length - 1].className.includes('danger'), rail.map((b) => b.textContent).join(' | '));
+  rail[rail.length - 1].click();
+  await new Promise((r) => setTimeout(r, 80));
+  const pane = doc.querySelector('.set-pane');
+  ok('it gathers the acts that remove something', !!pane.querySelector('.danger-box'));
+  ok('and says where a submission is deleted, which is not here',
+     /Delete a submission/.test(pane.textContent), pane.textContent.slice(0, 200));
+
+  [...pane.querySelectorAll('.danger-row-act button')].find((b) => /Take access away/.test(b.textContent)).click();
+  await new Promise((r) => setTimeout(r, 60));
+  const win = doc.querySelector('dialog.confirm');
+  const fields = [...win.querySelectorAll('.danger-find input')];
+  ok('the window asks for a name and an address, both typed', fields.length === 2);
+  /**
+   * The rule this whole design rests on: nothing here offers a person to pick.
+   */
+  ok('and offers nobody to choose from',
+     !win.querySelector('datalist') && !win.querySelector('select')
+     && fields.every((f) => f.getAttribute('list') === null),
+     win.innerHTML.slice(0, 120));
+  ok('and says so, so that nobody adds a picker later believing it a kindness',
+     /no list to choose from/i.test(win.textContent));
+
+  const find = [...win.querySelectorAll('.cf-actions button')].find((b) => /Find them/.test(b.textContent));
+  fields[0].value = 'Signed In Assessor';
+  fields[1].value = ME;
+  find.click();
+  await new Promise((r) => setTimeout(r, 40));
+  ok('your own account is refused, and the window stays open',
+     doc.body.contains(win) && /your own account/i.test(win.textContent), win.textContent.slice(-200));
+
+  fields[0].value = 'Nobody At All';
+  fields[1].value = 'nobody@tbs-sct.gc.ca';
+  find.click();
+  await new Promise((r) => setTimeout(r, 120));
+  {
+    const miss = [...doc.querySelectorAll('dialog.confirm')].pop();
+    ok('a wrong pair is refused without saying which half was wrong',
+       /No assessor matches both/i.test(miss.textContent), miss.textContent.slice(0, 160));
+    ok('and it suggests nothing, because a suggestion is a pick list with one item',
+       !/did you mean/i.test(miss.textContent) && !/\d+ (match|people)/i.test(miss.textContent));
+    [...miss.querySelectorAll('.cf-actions button')][0].click();
+    await new Promise((r) => setTimeout(r, 30));
+  }
+  dom.window.close();
+}
+
 
 console.log(fails ? `\n${fails} hosted check(s) failed\n` : '\nall hosted checks passed\n');
 process.exit(fails ? 1 : 0);

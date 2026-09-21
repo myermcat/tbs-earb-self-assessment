@@ -15,3 +15,13 @@ deploy/firebase-config.json
 # Worktrees. A second session works this repository in its own checkout under here, so the
 # directory is machine-local and shows up as untracked noise in both sessions otherwise.
 .claude/worktrees/
+
+# The repository holds the tool. Everything else in this folder is working material that stays
+# on this machine: recorded meetings with colleagues, Dan's source spreadsheets, the concept
+# case, and the files sent to people. They were tracked until 21 September 2026, which is why
+# the repository could not be made public: a recorded meeting with a named colleague is in the
+# history and removing the file does not remove it from there.
+Colleague meeting transcripts/
+Concept case/
+Deliverables/
+EARB target state knowledge base/

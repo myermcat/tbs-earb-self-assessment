@@ -1091,6 +1091,29 @@ export async function addPerson(email: string, name: string): Promise<void> {
  * changed writes a field from a copy that is already old. Everything the record says about how
  * the person got here is carried through unchanged, which the rules also insist on.
  */
+/**
+ * Correct a stored name, and change nothing else.
+ *
+ * The rules refuse an update that rewrites addedBy or addedAt, so the record of how somebody got
+ * here survives a correction. Role is carried through untouched, which is what keeps this out of
+ * the danger zone: it grants nothing and takes nothing away.
+ */
+export async function renamePerson(person: Person, name: string): Promise<void> {
+  if (!currentUser()) throw new Error('Sign in before changing who has access.');
+  if (!name.trim()) throw new Error('A person on this list needs a name.');
+  const data: Record<string, unknown> = {
+    role: person.role, name: name.trim(),
+    addedBy: person.addedBy ?? '', addedAt: person.addedAt ?? '',
+  };
+  if (person.removedBy) data.removedBy = person.removedBy;
+  if (person.removedAt) data.removedAt = person.removedAt;
+  const reply = await authorized(
+    `${docsRoot()}/roles/${encodeURIComponent(person.email)}`,
+    { method: 'PATCH', body: JSON.stringify({ fields: toFields(data) }) },
+  );
+  if (reply.status !== 200) throw new Error(problemFrom(reply));
+}
+
 export async function setPersonAccess(person: Person, allowed: boolean): Promise<void> {
   const me = currentUser();
   if (!me) throw new Error('Sign in before changing who has access.');
