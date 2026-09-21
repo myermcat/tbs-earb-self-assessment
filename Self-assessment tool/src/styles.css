@@ -1865,3 +1865,8 @@ dialog.confirm.shake { animation: cf-shake .34s cubic-bezier(.36, .07, .19, .97)
 /* A record nobody is counting. Still readable, and plainly not part of the worklist above it. */
 .withdrawn-row td { opacity: .62; }
 .withdrawn-row td:first-child { font-style: italic; }
+
+/* A note with a heading is read before the field under it; a note without one is skipped. */
+.note-yellow-head { display: block; font-size: .84rem; margin-bottom: .15rem; color: var(--ink); }
+/* Three fields now: first name, last name, address. Two columns above phone width. */
+@media (min-width: 620px) { .people-add { grid-template-columns: 1fr 1fr; } }

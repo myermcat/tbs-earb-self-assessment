@@ -1567,35 +1567,27 @@ ok('audited file keeps the self-score alongside the audited one',
     q('table.detail .row-menu').open = true;
     {
       const items = qa('.row-menu .set-menu-pop .menu-item').map((b) => b.textContent.trim());
-      ok('the row offers to stop counting a record before it offers to delete it',
-         items.indexOf('Stop counting it') >= 0
-         && items.indexOf('Stop counting it') < items.findIndex((x) => /Delete/.test(x)),
+      ok('the row offers to stop counting a record', items.includes('Stop counting it'),
          items.join(' | '));
-      ok('and only the deletion is drawn as destroying',
-         !qa('.row-menu .set-menu-pop .menu-item').some((b) =>
-           /Stop counting it/.test(b.textContent) && b.classList.contains('menu-danger')));
+      /**
+       * And no row deletes anything. Reported as: deletion should not be from a portfolio, but
+       * from the danger zone, that is the whole reason for having it.
+       */
+      ok('and no row deletes anything, because deleting is in the danger zone',
+         !items.some((x) => /delete/i.test(x)), items.join(' | '));
+      ok('and nothing in the row menu is drawn as destroying',
+         !qa('.row-menu .set-menu-pop .menu-item').some((b) => b.classList.contains('menu-danger')));
       /**
        * What the window says is asserted in test/hosted.mjs, because with no store there is
        * nothing to withdraw from and the control says so rather than opening.
        */
     }
 
-    byText('.row-menu .menu-item', 'Delete this assessment').click();
-    const dlg = q('dialog.confirm.typed');
-    ok('deleting a record asks for the name to be typed', !!dlg);
-    ok('and lists what goes', dlg.querySelectorAll('.typed-list li').length >= 3,
-       String(dlg.querySelectorAll('.typed-list li').length));
-    const go = byText('dialog.confirm.typed .cf-actions button', 'Delete this assessment');
-    ok('the delete is dead to begin with', go.disabled === true);
-    const field = dlg.querySelector('.typed-field');
-    field.value = 'not the name';
-    fire(field, 'input');
-    ok('and stays dead for the wrong name', go.disabled === true);
-    field.value = dlg.querySelector('.typed-ask code').textContent;
-    fire(field, 'input');
-    ok('and arms only on the exact name', go.disabled === false && go.classList.contains('armed'));
-    byText('dialog.confirm.typed button', 'Cancel').click();
-    ok('cancelling closes it and deletes nothing', !q('dialog.confirm.typed'));
+    /**
+     * Deleting used to be here, behind a typed initiative name. It is in the danger zone now,
+     * asks for the access code, and does not print the code it asks for. Driven in
+     * test/hosted.mjs, where there is a store with something in it to delete.
+     */
   }
   ok('the admin-only actions are listed, with what is built marked',
      view().includes('Admin actions') && view().includes('Mostly not built')
