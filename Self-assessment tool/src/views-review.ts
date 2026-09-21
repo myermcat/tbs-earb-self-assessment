@@ -450,19 +450,15 @@ function paintList(rubric: Rubric, root: HTMLElement) {
                     },
                   }, [`Copy the access code (${formatCode(l.a.id ?? '')})`])
                 : null,
-              el('div', { class: 'menu-sep' }),
               /**
-               * What this does, in its own label.
+               * There is no control here that removes anything.
                *
-               * It said "Close this one", which on a list of submissions from the shared pool
-               * reads as getting rid of the submission. It takes the row off this browser's
-               * list and leaves the record exactly where it is, so somebody who meant to
-               * remove an assessment watched it disappear and believed they had.
+               * "Take it off this list" dropped the row from this browser and left the record
+               * in the store, which is a distinction nobody reading a list of submissions can
+               * be expected to hold. It was renamed once from "Close this one" for the same
+               * reason and the rename did not fix it. Reported as: remove this button. Reload
+               * the pool to get the list back, and deleting lives in the danger zone.
                */
-              el('button', {
-                class: 'menu-item',
-                onclick: () => closeOne(root, rubric, l),
-              }, ['Take it off this list']),
             ]),
           ]),
         ]),
@@ -1086,62 +1082,15 @@ export function unexplainedChanges(a: Assessment): string[] {
  * ids, so mixing them either drops answers or invents columns. Submissions answered against
  * different sets are different sheets, named by version.
  */
-/**
- * Close one submission, and say what that costs when it costs something.
- *
- * An assessor finishing with a file wants it off the list. An assessor who has scored it wants
- * to be asked, because the scores exist in this browser and in a file they may not have saved.
- */
-/**
- * Take one submission off this browser's list.
- *
- * It used to go without a word when nothing had been audited on it: the row vanished, and
- * somebody who had come here to remove an assessment saw it gone and had every reason to think
- * it had been. Nothing left the store, because nothing here can make it. Deleting an
- * assessment for everybody is an admin's act and it lives in the portfolio view, behind a
- * window that makes you type the code out.
- */
-function closeOne(root: HTMLElement, active: Rubric, l: Loaded): void {
-  const name = l.a.initiative?.name?.trim() || l.file;
-  const scored = Object.keys(l.a.audit?.perQuestion ?? {}).length;
-  // A record that may have a copy in the shared store, which this act does not touch.
-  const hosted = isHosted() && !!l.a.id;
-  const drop = () => {
-    loaded = loaded.filter((x) => x !== l);
-    keepSession();
-    renderReview(root, active);
-  };
-  const stays = hosted
-    ? `${name} stays in the shared store. This takes the row off your list, and it comes back the next time this page reads the pool. Removing an assessment for everybody is in the portfolio view, and it makes you type its code out first.`
-    : `The file stays where it is on your machine. This takes the row off your list.`;
-  confirmStep({
-    tier: scored ? 'caution' : 'plain',
-    title: scored ? `Take ${name} off your list and erase the audit on it?` : `Take ${name} off your list?`,
-    body: scored
-      ? `${stays} The ${scored} score${scored === 1 ? '' : 's'}, verdict${scored === 1 ? '' : 's'} and reason${scored === 1 ? '' : 's'} typed against it go, from this page and from this browser.`
-      : stays,
-    stake: scored ? 'An audited file is the only copy that survives this.' : undefined,
-    offer: scored
-      ? {
-          label: 'Save the audited file first',
-          run: () => { saveAudited(l); return `Saving the file for ${name}. Check your downloads folder.`; },
-        }
-      : undefined,
-    commitLabel: scored ? 'Erase the audit and take it off' : 'Take it off my list',
-    cancelLabel: 'Keep it open',
-    onCommit: drop,
-  });
-}
 
-/** One audited submission, as a file. The only copy of an audit that survives the browser. */
-function saveAudited(l: Loaded): void {
-  const a = l.a;
-  const audit = (a.audit ??= { reviewer: '', reviewedAt: '', perQuestion: {}, overallNote: '' });
-  audit.reviewedAt = audit.reviewedAt || new Date().toISOString();
-  audit.reviewer = audit.reviewer || auditor;
-  const name = slug(a.initiative?.name || a.ref || 'submission');
-  download(`${name}-audited.json`, JSON.stringify(a, null, 2));
-}
+/**
+ * Downloading one audited submission as a file has gone with the control that offered it.
+ *
+ * saveAudited was reachable only from "Take it off this list", as the copy somebody was handed
+ * before the row went. With the row control gone it had no caller. The audit is in the store and
+ * the whole list exports as a sheet, so nothing is stranded; if a per-submission file is wanted
+ * again it belongs on the submission itself and not inside a control that removes something.
+ */
 
 
 /**

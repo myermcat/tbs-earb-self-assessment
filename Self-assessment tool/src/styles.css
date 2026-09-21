@@ -1842,3 +1842,22 @@ dialog.confirm.shake { animation: cf-shake .34s cubic-bezier(.36, .07, .19, .97)
 }
 /* A row whose access is gone is history rather than a worklist, so it sits back. */
 .set-row .badge-warn + *, .people-gone { opacity: .85; }
+
+/* ---------- danger zone ------------------------------------------------------------------ */
+/* Drawn the way GitHub draws its own: a red-bordered box, red separators between rows, and an
+   outline button on each row. The filled destructive colour is kept for the button inside the
+   window that actually commits, so nothing out here looks like the last step. */
+.danger-box { border: 1px solid var(--bad); border-radius: var(--radius); overflow: hidden; }
+.danger-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: .5rem 1.2rem;
+  align-items: start; padding: .9rem 1rem; }
+.danger-row + .danger-row { border-top: 1px solid var(--bad); }
+.danger-row-title { font-weight: 650; font-size: .95rem; }
+.danger-row p { font-size: .855rem; color: var(--ink-2); margin: .2rem 0 0; max-width: 62ch; }
+.danger-row-act { justify-self: end; align-self: center; }
+/* The two fields the removal window asks for, which it never offers a list for. */
+.danger-find .field { margin-bottom: .6rem; }
+.danger-find input { width: 100%; }
+/* A note that has to be read before somebody types into the field under it. */
+.note-yellow { font-size: .8rem; line-height: 1.35; margin: .1rem 0 .6rem;
+  background: var(--warn-bg); border-left: 3px solid var(--warn);
+  padding: .45rem .6rem; border-radius: 0 var(--radius-sm) var(--radius-sm) 0; color: var(--ink-2); }
