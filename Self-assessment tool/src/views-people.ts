@@ -145,8 +145,17 @@ function editName(p: Person, after: () => void): void {
 
 /** The form. Name and address, because removal asks for a name and nobody can invent one later. */
 function addForm(people: Person[], after: () => void): HTMLElement {
-  const name = el('input', { type: 'text', autocomplete: 'off', spellcheck: false,
-    placeholder: t('First and last name', 'Prénom et nom') }) as HTMLInputElement;
+  /**
+   * First and last, in two boxes.
+   *
+   * Asked for in these words: it should be separately first and last, since I do not know what
+   * order I need to input them. One box makes the order a guess, and the order matters later,
+   * because taking an access away asks for the name back exactly as it is stored.
+   */
+  const first = el('input', { type: 'text', autocomplete: 'off', spellcheck: false,
+    'aria-label': 'First name' }) as HTMLInputElement;
+  const last = el('input', { type: 'text', autocomplete: 'off', spellcheck: false,
+    'aria-label': 'Last name' }) as HTMLInputElement;
   const email = el('input', { type: 'email', autocomplete: 'off', spellcheck: false,
     inputmode: 'email', placeholder: t('name@department.gc.ca', 'nom@ministere.gc.ca') }) as HTMLInputElement;
   const say = el('p', { class: 'signer-advice' });
@@ -172,10 +181,13 @@ function addForm(people: Person[], after: () => void): HTMLElement {
   email.addEventListener('input', advise);
 
   const go = el('button', { class: 'primary', onclick: () => {
-    const n = name.value.trim();
+    const n = `${first.value.trim()} ${last.value.trim()}`.trim();
     const e = email.value.trim().toLowerCase();
-    if (!n) { say.textContent = t('Put their name in. It is what removal asks you to type.',
-      'Indiquez son nom. C’est ce que le retrait demande de saisir.'); return; }
+    if (!first.value.trim() || !last.value.trim()) {
+      say.textContent = t('Put both their first and last name in. It is what taking an access away asks you to type.',
+        'Indiquez son prénom et son nom. C’est ce que le retrait d’accès demande de saisir.');
+      return;
+    }
     if (!LOOKS_LIKE_EMAIL.test(e)) { say.textContent = t('That does not look like an email address.',
       'Cela ne ressemble pas à une adresse courriel.'); return; }
     if (people.some((p) => p.email.toLowerCase() === e)) {
@@ -192,12 +204,13 @@ function addForm(people: Person[], after: () => void): HTMLElement {
         'Une personne ayant accès porte déjà ce nom. Le retrait d’un accès demande un nom, deux personnes ne peuvent donc pas en partager un. Ajoutez un second prénom ou une initiale.');
       return;
     }
-    void addPerson(e, n).then(() => { name.value = ''; email.value = ''; after(); },
+    void addPerson(e, n).then(() => { first.value = ''; last.value = ''; email.value = ''; after(); },
       (err: Error) => { say.textContent = err.message; });
   } }, [t('Add this assessor', 'Ajouter cet évaluateur')]);
 
   return el('div', { class: 'people-add' }, [
-    el('label', { class: 'field' }, [el('span', {}, [t('Their full name', 'Son nom complet')]), name]),
+    el('label', { class: 'field' }, [el('span', {}, [t('First name', 'Prénom')]), first]),
+    el('label', { class: 'field' }, [el('span', {}, [t('Last name', 'Nom de famille')]), last]),
     el('label', { class: 'field' }, [
       el('span', {}, [t('The address they sign in with', 'L’adresse de connexion')]), email,
     ]),
@@ -206,7 +219,8 @@ function addForm(people: Person[], after: () => void): HTMLElement {
      * with. Google is the only provider wired today, so this is their Google account's address
      * and not whichever address they read departmental mail at.
      */
-    el('p', { class: 'note-yellow' }, [
+    el('div', { class: 'note-yellow' }, [
+      el('strong', { class: 'note-yellow-head' }, [t('Google account only', 'Compte Google uniquement')]),
       t('Signing in is by Google account only today, so this has to be the address of the Google account they will use. Another address grants nothing, and they will be told they have no access with nothing on screen explaining why.',
         'La connexion se fait uniquement par compte Google : il doit donc s’agir de l’adresse du compte Google qu’ils utiliseront. Une autre adresse n’accorde rien, et la personne se verra refuser l’accès sans explication à l’écran.'),
     ]),

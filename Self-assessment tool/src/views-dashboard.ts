@@ -1,12 +1,12 @@
 import type { Assessment, Rubric } from './types';
-import { formatCode, setWithdrawn } from './firebase';
+import { setWithdrawn } from './firebase';
 import { el, clear, tone, bar } from './dom';
 import { score, isRedFlag, allQuestionScores, type Result } from './scoring';
 import { csvHeader, csvRow, toCsv } from './csv';
-import { confirmStep, confirmTyped } from './confirm';
+import { confirmStep } from './confirm';
 import { flags } from './flags';
 import { download } from './storage';
-import { deleteRecord, isHosted, listRecords, sourceLine, type StoredRecord } from './store';
+import { isHosted, listRecords, sourceLine, type StoredRecord } from './store';
 
 /**
  * Dan's view. One page over every record, so nobody has to collect files to see how the
@@ -245,46 +245,13 @@ function paint(
             });
           },
         }, [row.rec.status === 'withdrawn' ? 'Count it again' : 'Stop counting it']),
-        el('div', { class: 'menu-sep' }),
-        el('button', {
-          class: 'menu-item menu-danger',
-          /**
-           * Typed out, and what has to be typed is the code.
-           *
-           * It used to be the initiative name, which two departments can share, which somebody
-           * can read off the row above by mistake, and which is the field most likely to be
-           * blank. The code belongs to one assessment and to no other, and copying it out of
-           * the row you meant is the act that proves you meant that row.
-           */
-          onclick: () => confirmTyped({
-            title: `Delete the ${a.initiative.name || 'unnamed'} assessment?`,
-            consequences: [
-              `Every answer in it: ${row.r.answered} of ${row.r.scoreable} questions.`,
-              'The reasoning and the evidence links on each answer.',
-              'Every audited score, verdict and reason written against it.',
-              'The record of who saved each version of it.',
-              a.id
-                ? `The code ${formatCode(a.id)} stops working, and anybody holding it loses the assessment.`
-                : 'Its code.',
-            ],
-            phrase: a.id ? formatCode(a.id) : (a.initiative.name || 'unnamed'),
-            phraseLabel: a.id ? 'this assessment\u2019s code' : 'the initiative name',
-            commitLabel: 'Delete this assessment',
-            onCommit: () => {
-              const id = a.id;
-              if (!isHosted() || !id) {
-                // A record that never went to a store cannot be removed from one. This is the
-                // draft in somebody's browser, and only they can discard that.
-                alert('This record is not in a shared store, so there is nothing to remove. A draft can only be discarded by the person who has it.');
-                return;
-              }
-              void deleteRecord(id).then((res) => {
-                if (!res.ok) { alert(res.problem); return; }
-                renderDashboard(root, rubric, sessionFiles);
-              });
-            },
-          }),
-        }, ['Delete this assessment']),
+        /**
+         * Deleting is not here any more.
+         *
+         * Reported as: deletion should not be from a portfolio, but from the danger zone, that
+         * is the whole reason for having it. Withdrawing stays, because it removes nothing and
+         * any assessor can undo it.
+         */
           ]),
         ]),
       ]),

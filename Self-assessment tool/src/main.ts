@@ -9,6 +9,7 @@ import { goToFirstGap, goToQuestion, overviewFieldProgress, renderSubmit, resetO
   setSaveOnline, setStopKey, showMarkingStep, takeSubmitTabs, currentStopKey } from './views-submit';
 import { panePeople } from './views-people';
 import { takeAccessAway } from './danger-people';
+import { deleteSubmission } from './danger-submission';
 import { handOff, renderResults } from './views-results';
 import { forgetPool, openedThisSession, renderReview, setAuditor } from './views-review';
 import { renderDashboard } from './views-dashboard';
@@ -63,17 +64,27 @@ const SIDE_OF: Record<Mode, Side | null> = {
  * The stop lives in the hash unprefixed, because that is the shape the questionnaire already
  * pushed and links to those exist.
  */
-interface Route { side: Side; mode: Mode; stop?: string }
+interface Route { side: Side; mode: Mode; stop?: string; pane?: SettingsPane }
+
+/**
+ * Settings carries its pane in the address.
+ *
+ * Reported as: why does a reload on Documentation send me to Question set. Because the pane was
+ * module state and the hash said only "settings", so a reload put the default back. A pane is a
+ * place, so it goes in the address like every other place, and a link to one can be sent.
+ */
+const PANES = new Set<string>(['questions', 'answers', 'people', 'docs', 'build', 'danger']);
 
 function routeToHash(r: Route): string {
+  const pane = r.mode === 'settings' && r.pane && r.pane !== 'questions' ? `/${r.pane}` : '';
   if (r.side === 'assess') {
     return r.mode === 'admin' ? '#assessor/admin'
-      : r.mode === 'settings' ? '#assessor/settings'
+      : r.mode === 'settings' ? `#assessor/settings${pane}`
       : '#assessor';
   }
   if (r.mode === 'home') return '';
   if (r.mode === 'submit') return r.stop ? `#${r.stop}` : '#submit';
-  return `#${r.mode}`;
+  return `#${r.mode}${pane}`;
 }
 
 function hashToRoute(hash: string): Route {
@@ -81,8 +92,15 @@ function hashToRoute(hash: string): Route {
   if (!h) return { side: 'submit', mode: 'home' };
   if (h === 'assessor') return { side: 'assess', mode: 'review' };
   if (h === 'assessor/admin') return { side: 'assess', mode: 'admin' };
-  if (h === 'assessor/settings') return { side: 'assess', mode: 'settings' };
-  if (h === 'results' || h === 'settings' || h === 'submit') return { side: 'submit', mode: h as Mode };
+  if (h === 'assessor/settings' || h.startsWith('assessor/settings/')) {
+    const pane = h.slice('assessor/settings/'.length);
+    return { side: 'assess', mode: 'settings', pane: PANES.has(pane) ? pane as SettingsPane : undefined };
+  }
+  if (h === 'settings' || h.startsWith('settings/')) {
+    const pane = h.slice('settings/'.length);
+    return { side: 'submit', mode: 'settings', pane: PANES.has(pane) ? pane as SettingsPane : undefined };
+  }
+  if (h === 'results' || h === 'submit') return { side: 'submit', mode: h as Mode };
   // Everything else is a questionnaire stop, which is what the hash held before there was a
   // router at all. An unknown one is harmless: the questionnaire opens at its first page.
   return { side: 'submit', mode: 'submit', stop: h };
@@ -114,7 +132,8 @@ let mode: Mode = booted.mode;
 if (booted.stop) setStopKey(booted.stop);
 
 type SettingsPane = 'questions' | 'answers' | 'people' | 'docs' | 'build' | 'danger';
-let settingsPane: SettingsPane = 'questions';
+// A reload on a pane comes back to that pane, because the pane is in the address. See routeToHash.
+let settingsPane: SettingsPane = booted.pane ?? 'questions';
 
 /**
  * The assessment a discard just threw away, held in this tab and nowhere else. Undo is offered
@@ -153,11 +172,12 @@ function questionCount(r: Rubric): number {
  */
 function pushRoute(): void {
   try {
-    const here: Route = { side, mode, stop: currentStopKey() };
+    const here: Route = { side, mode, stop: currentStopKey(), pane: settingsPane };
     const hash = routeToHash(here);
     const url = hash || `${window.location.pathname}${window.location.search}`;
     const was = window.history.state as Partial<Route> | null;
-    if (was?.mode === mode && was?.side === side && window.location.hash === hash) return;
+    if (was?.mode === mode && was?.side === side && was?.pane === settingsPane
+        && window.location.hash === hash) return;
     window.history.pushState(here, '', url);
   } catch {
     /* file:// without history support. Navigation is unaffected. */
@@ -1143,7 +1163,7 @@ function renderSettings(root: HTMLElement) {
     el('button', {
       class: `set-navrow ${danger ? 'danger' : ''} ${settingsPane === id ? 'on' : ''}`,
       'aria-current': settingsPane === id ? 'page' : 'false',
-      onclick: () => { settingsPane = id; paintPane(); },
+      onclick: () => { settingsPane = id; pushRoute(); paintPane(); },
     }, [label]);
 
   const nav = el('nav', { class: 'set-nav', 'aria-label': 'Settings' });
@@ -1654,13 +1674,13 @@ function paneDanger(pane: HTMLElement) {
         el('div', {}, [
           el('div', { class: 'danger-row-title' }, [t('Delete a submission', 'Supprimer une soumission')]),
           el('p', {}, [
-            t('This removes a department\u2019s assessment from the shared store for everybody, along with every answer, every piece of evidence and every audited score written against it. Its access code stops working. Deleting is on the portfolio, beside the record itself, so that nobody deletes by name the wrong one of two initiatives with similar names.',
-              'Ceci retire l\u2019évaluation d\u2019un ministère du dépôt partagé pour tout le monde, avec chaque réponse, chaque preuve et chaque note évaluée. Son code d\u2019accès cesse de fonctionner. La suppression se fait dans le portefeuille, à côté de l\u2019enregistrement, afin que personne ne supprime par erreur l\u2019une de deux initiatives aux noms voisins.'),
+            t('This removes a department\u2019s assessment from the shared store for everybody, along with every answer, every piece of evidence and every audited score written against it. Its access code stops working. You will be asked for that code, and this tool will not offer you a list to pick from.',
+              'Ceci retire l\u2019évaluation d\u2019un ministère du dépôt partagé pour tout le monde, avec chaque réponse, chaque preuve et chaque note évaluée. Son code d\u2019accès cesse de fonctionner. Ce code vous sera demandé, sans liste de sélection.'),
           ]),
         ]),
         el('div', { class: 'danger-row-act' }, [
-          el('button', { class: 'danger', onclick: () => go('admin') },
-            [t('Go to the portfolio', 'Aller au portefeuille')]),
+          el('button', { class: 'danger', onclick: () => deleteSubmission(() => go('admin')) },
+            [t('Delete a submission\u2026', 'Supprimer une soumission\u2026')]),
         ]),
       ]),
     ]));
