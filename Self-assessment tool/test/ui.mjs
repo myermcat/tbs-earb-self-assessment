@@ -106,8 +106,8 @@ ok('the question count is stated up front', view().includes(String(TOTAL)));
 q('.icon-btn[aria-label="Settings"]').click();
 ok('settings is a rail and a pane, not a stack of cards',
    !!q('.set-layout') && !!q('.set-nav') && !!q('.set-pane'));
-ok('five panes, named', qa('.set-navrow').map((b) => b.textContent).join('|') ===
-   'Question set|Your answers|Documentation|This build|Start again',
+ok('five panes, and the destructive one is last and named for what it is', qa('.set-navrow').map((b) => b.textContent).join('|') ===
+   'Question set|Your answers|Documentation|This build|Danger zone',
    qa('.set-navrow').map((b) => b.textContent).join('|'));
 ok('the gear opens the harmless one', q('.set-navrow.on').textContent === 'Question set',
    q('.set-navrow.on').textContent);
@@ -181,7 +181,7 @@ ok('the copy marks the unbuilt parts as unbuilt',
    view().includes('Nothing is sent anywhere in this copy') && view().includes('Planned, not built'),
    view().slice(0, 200));
 
-pane('Start again');
+pane('Danger zone');
 ok('the discard control lives here, not on the start page', !!q('.set-row.danger button.danger'));
 ok('it says it cannot be undone', view().includes('Cannot be undone'));
 ok('and it is disabled while there is nothing to lose',
@@ -579,7 +579,7 @@ ok('and one click opens the detail', q('.save-state').tagName === 'BUTTON');
   ok('and offers no way to destroy anything from there',
      !qa('.draft-note button').some((b) => /discard|erase|delete/i.test(b.textContent)));
   byText('.linkish', 'Settings').click();
-  ok('that pointer opens the pane it names', q('.set-navrow.on').textContent === 'Start again',
+  ok('that pointer opens the pane it names', q('.set-navrow.on').textContent === 'Danger zone',
      q('.set-navrow.on')?.textContent);
   ok('and now the discard is live, since there is something to lose',
      q('.set-row.danger button.danger').disabled === false);
@@ -1214,7 +1214,7 @@ ok('the favicon is inline, so the built file needs no second request', html.incl
   const before = Object.values(savedJson.answers)
     .filter((x) => typeof x.score === 'number' || x.na === true).length;
   q('.icon-btn[aria-label="Settings"]').click();
-  pane('Start again');
+  pane('Danger zone');
 
   ok('the danger pane names what is at stake', /Erases the \d+ answers/.test(view()), view().slice(0, 80));
 

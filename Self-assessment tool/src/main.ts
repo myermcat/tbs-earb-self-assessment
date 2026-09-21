@@ -8,6 +8,7 @@ import { completion } from './scoring';
 import { goToFirstGap, goToQuestion, overviewFieldProgress, renderSubmit, resetOverviewToFirstGap, setRepaint,
   setSaveOnline, setStopKey, showMarkingStep, takeSubmitTabs, currentStopKey } from './views-submit';
 import { panePeople } from './views-people';
+import { takeAccessAway } from './danger-people';
 import { handOff, renderResults } from './views-results';
 import { forgetPool, openedThisSession, renderReview, setAuditor } from './views-review';
 import { renderDashboard } from './views-dashboard';
@@ -852,7 +853,7 @@ function draftNote(draft: Assessment, total: number): HTMLElement {
     el('p', { class: 'tiny dim' }, [
       'Starting over is in ',
       el('button', { class: 'linkish', onclick: () => openSettings('danger') }, ['Settings']),
-      '.',
+      ', under Danger zone.',
     ]),
   ]);
 }
@@ -1169,7 +1170,7 @@ function renderSettings(root: HTMLElement) {
 
   function paintPane() {
     // Landing on a pane that is not offered on this side, by a stale value or a link.
-    if (!mine && (settingsPane === 'answers' || settingsPane === 'danger')) settingsPane = 'questions';
+    if (!mine && settingsPane === 'answers') settingsPane = 'questions';
   // And the mirror of it: the access list is the assessor's, and a submitter has no store
   // identity to list. Without this a submitter who was last on it lands on an empty pane.
   if (mine && settingsPane === 'people') settingsPane = 'questions';
@@ -1178,13 +1179,21 @@ function renderSettings(root: HTMLElement) {
     nav.appendChild(el('span', { class: 'set-navgroup' }, [t('Settings', 'Paramètres')]));
     nav.appendChild(navRow(t('Question set', 'Jeu de questions'), 'questions'));
     if (mine) nav.appendChild(navRow(t('Your answers', 'Vos réponses'), 'answers'));
-    if (!mine) nav.appendChild(navRow(t('Who has access', 'Qui a accès'), 'people'));
+    if (!mine) nav.appendChild(navRow(t('People', 'Personnes'), 'people'));
     nav.appendChild(navRow(t('Documentation', 'Documentation'), 'docs'));
     nav.appendChild(navRow(t('This build', 'Cette version'), 'build'));
-    if (mine) {
-      nav.appendChild(el('span', { class: 'set-navsep', 'aria-hidden': true }));
-      nav.appendChild(navRow(t('Start again', 'Recommencer'), 'danger', true));
-    }
+    /**
+     * The danger zone is the last thing in the rail on both sides, behind a rule, so everything
+     * ordinary is passed before it is reached. Copied from the way GitHub puts its own at the
+     * foot of Settings, and asked for in those words: all deletion functionality in one place.
+     *
+     * The submitter's pane was called "Start again", which is the kinder phrase for somebody
+     * whose only irreversible act is discarding their own draft. It is renamed anyway: a rule
+     * that says all destruction lives in the danger zone cannot have an exception on the day it
+     * is written. The kindness moves into the pane, where there is room for a sentence.
+     */
+    nav.appendChild(el('span', { class: 'set-navsep', 'aria-hidden': true }));
+    nav.appendChild(navRow(t('Danger zone', 'Zone de danger'), 'danger', true));
 
     clear(pane);
     if (settingsPane === 'questions') paneQuestions(pane);
@@ -1192,8 +1201,7 @@ function renderSettings(root: HTMLElement) {
     else if (settingsPane === 'people' && !mine) panePeople(pane);
     else if (settingsPane === 'docs') paneDocs(pane);
     else if (settingsPane === 'build') paneBuild(pane);
-    else if (mine) paneDanger(pane);
-    else paneQuestions(pane);
+    else paneDanger(pane);
 
     const h = pane.querySelector('h1') as HTMLElement | null;
     h?.focus?.();
@@ -1612,10 +1620,52 @@ function paneDocs(pane: HTMLElement) {
 }
 
 function paneDanger(pane: HTMLElement) {
-  pane.appendChild(el('h1', { tabindex: -1 }, [t('Start again', 'Recommencer')]));
+  const mine = side === 'submit';
+  pane.appendChild(el('h1', { tabindex: -1 }, [t('Danger zone', 'Zone de danger')]));
   pane.appendChild(el('p', { class: 'set-lead' }, [
-    'Nothing here can be taken back once this tab is closed.',
+    mine
+      ? t('One thing lives here, and it erases the answers in this browser. Nothing else in the tool can take anything away from you.',
+          'Une seule chose se trouve ici, et elle efface les réponses de ce navigateur. Rien d\u2019autre dans l\u2019outil ne peut vous retirer quoi que ce soit.')
+      : t('Everything that removes something is here and nowhere else, so no screen you work on every day carries a control that takes something away.',
+          'Tout ce qui supprime quelque chose se trouve ici et nulle part ailleurs, afin qu\u2019aucun écran de travail quotidien ne porte un contrôle destructeur.'),
   ]));
+
+  /**
+   * The assessor's half. Two rows, each one a title, a plain sentence of what it costs, and one
+   * outline button on the right. Drawn the way GitHub draws its own: the destructive colour is
+   * an outline out here and a filled button only inside the window that commits.
+   */
+  if (!mine) {
+    pane.appendChild(el('div', { class: 'danger-box' }, [
+      el('div', { class: 'danger-row' }, [
+        el('div', {}, [
+          el('div', { class: 'danger-row-title' }, [t('Take an assessor\u2019s access away', 'Retirer l\u2019accès d\u2019un évaluateur')]),
+          el('p', {}, [
+            t('They stop being able to open this side. Everything they audited stays where it is, with their name on it. You will be asked for their full name and the address they sign in with, and this tool will not offer you a list to pick from.',
+              'La personne ne peut plus ouvrir cette vue. Tout ce qu\u2019elle a évalué reste en place, à son nom. Son nom complet et son adresse de connexion vous seront demandés, sans liste de sélection.'),
+          ]),
+        ]),
+        el('div', { class: 'danger-row-act' }, [
+          el('button', { class: 'danger', onclick: () => takeAccessAway(() => go('settings')) },
+            [t('Take access away\u2026', 'Retirer un accès\u2026')]),
+        ]),
+      ]),
+      el('div', { class: 'danger-row' }, [
+        el('div', {}, [
+          el('div', { class: 'danger-row-title' }, [t('Delete a submission', 'Supprimer une soumission')]),
+          el('p', {}, [
+            t('This removes a department\u2019s assessment from the shared store for everybody, along with every answer, every piece of evidence and every audited score written against it. Its access code stops working. Deleting is on the portfolio, beside the record itself, so that nobody deletes by name the wrong one of two initiatives with similar names.',
+              'Ceci retire l\u2019évaluation d\u2019un ministère du dépôt partagé pour tout le monde, avec chaque réponse, chaque preuve et chaque note évaluée. Son code d\u2019accès cesse de fonctionner. La suppression se fait dans le portefeuille, à côté de l\u2019enregistrement, afin que personne ne supprime par erreur l\u2019une de deux initiatives aux noms voisins.'),
+          ]),
+        ]),
+        el('div', { class: 'danger-row-act' }, [
+          el('button', { class: 'danger', onclick: () => go('admin') },
+            [t('Go to the portfolio', 'Aller au portefeuille')]),
+        ]),
+      ]),
+    ]));
+    return;
+  }
 
   if (rescued) {
     const n = answeredCount(rescued);
