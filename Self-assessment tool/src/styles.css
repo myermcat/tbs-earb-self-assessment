@@ -1888,19 +1888,27 @@ dialog.confirm.shake { animation: cf-shake .34s cubic-bezier(.36, .07, .19, .97)
  */
 .stepper-stack { display: flex; flex-direction: column; min-width: 0;
   background: var(--chrome-bg); border-bottom: 1px solid var(--chrome-line); }
-.chrome .stepper-stack > .stepper { background: none; border-bottom: 0; padding-bottom: .15rem; }
+.chrome .stepper-stack > .stepper { background: none;
+  border-bottom: 1px solid color-mix(in srgb, var(--chrome-line) 55%, transparent);
+  padding-bottom: .35rem; }
 /* Aligned with the tabs above it, which means the same side padding they have. */
-.lens-strip { display: flex; align-items: center; gap: .3rem; flex-wrap: wrap;
-  font-size: .78rem; padding: 0 1.15rem .4rem; }
-.lens-label { color: var(--ink-3); font-size: .72rem; text-transform: uppercase;
-  letter-spacing: .05em; margin-right: .1rem; }
-.lens-chip { font: inherit; padding: .1rem .5rem; border-radius: 999px; cursor: pointer;
-  border: 1px solid var(--line-2); background: var(--surface); color: var(--ink-2);
+/**
+ * Quiet text, with one box on it.
+ *
+ * Reported as crowded, and too close to the domains. Every chip had a border and a fill, so six
+ * boxes sat directly under four boxes and the eye had ten things to sort out before reading a
+ * word. There is one box in this row now, and it is the one that is on. Everything else is text
+ * at the weight of a caption, which is what a filter that is doing nothing should look like.
+ */
+.lens-strip { display: flex; align-items: baseline; gap: .1rem; flex-wrap: wrap;
+  font-size: .78rem; padding: .45rem 1.15rem .5rem; }
+.lens-chip { font: inherit; padding: .12rem .5rem; border-radius: 999px; cursor: pointer;
+  border: 1px solid transparent; background: none; color: var(--ink-3);
   display: inline-flex; align-items: baseline; gap: .3rem; white-space: nowrap; }
-.lens-chip:hover { border-color: var(--accent-line); color: var(--ink); }
+.lens-chip:hover { color: var(--ink); background: var(--surface-2); }
 .lens-chip.on { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
-.lens-n { font-family: var(--mono); font-size: .72rem; opacity: .75; }
-.lens-chip.on .lens-n { opacity: .9; }
+.lens-n { font-family: var(--mono); font-size: .7rem; opacity: .6; }
+.lens-chip.on .lens-n { opacity: .85; }
 .lens-empty { font-size: .875rem; color: var(--ink-2); margin: .4rem 0 1rem; }
 
 /* What a question is about, beside the toggle and clipped to the right. Grey enough to blend
