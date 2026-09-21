@@ -108,5 +108,43 @@ console.log('\nAddresses and the back button\n');
   junk.dom.window.close();
 }
 
+{
+  /**
+   * A settings pane is a place, so it is in the address.
+   *
+   * Reported as: why does a reload on Documentation send me to Question set. Because the pane
+   * was module state while the address said only "settings", so a reload put the default back
+   * and a link to a pane could not be sent to anybody.
+   */
+  const d = await boot('#settings/docs');
+  const on = d.doc.querySelector('.set-navrow.on');
+  ok('an address naming a pane opens that pane', on?.textContent === 'Documentation',
+     on?.textContent ?? 'none');
+  d.dom.window.close();
+
+  const dz = await boot('#settings/danger');
+  ok('and so does the danger zone, which is the one worth linking to',
+     dz.doc.querySelector('.set-navrow.on')?.textContent === 'Danger zone',
+     dz.doc.querySelector('.set-navrow.on')?.textContent ?? 'none');
+  dz.dom.window.close();
+
+  /**
+   * Switching pane writes the address, which is what makes a reload come back to it. Asserted
+   * on the hash rather than on history, because a file:// page cannot push state at all.
+   */
+  const sw = await boot('#settings');
+  const row = [...sw.doc.querySelectorAll('.set-navrow')].find((b) => /Documentation/.test(b.textContent));
+  row.click();
+  await new Promise((r) => setTimeout(r, 20));
+  ok('and choosing a pane puts it in the address',
+     sw.dom.window.location.hash === '#settings/docs', sw.dom.window.location.hash);
+  sw.dom.window.close();
+
+  const junk2 = await boot('#settings/not-a-pane');
+  ok('a pane nobody recognises opens settings rather than nothing',
+     (junk2.doc.querySelector('.set-pane')?.children.length ?? 0) > 0);
+  junk2.dom.window.close();
+}
+
 console.log(fails ? `\n${fails} routing check(s) failed\n` : '\nall routing checks passed\n');
 process.exit(fails ? 1 : 0);
