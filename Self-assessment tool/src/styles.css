@@ -207,6 +207,78 @@ li { margin-bottom: .22rem; }
 .tab:hover { color: var(--ink); }
 .tab.on { background: var(--surface); color: var(--ink); box-shadow: var(--shadow); }
 
+/* ---------- the header on a phone -------------------------------------------------------- */
+/**
+ * Measured in a real engine at 375x812 on the Business domain: the header stood 161.9px tall,
+ * a fifth of the window gone before a question appeared, in three bands with 32px of pure row
+ * gap between them.
+ *
+ * Flex breaks a line on what an item asks for, and .brand asks for the whole 327px title, so
+ * the bar could not hold the brand and File on one line below 455px. Shrinking never entered
+ * into it: the line was already broken. 480 is the nearest width this file already names that
+ * sits above that measurement, so these rules are in force before the bar comes apart.
+ */
+@media (max-width: 480px) {
+  /**
+   * Two bands, closer together than the controls standing side by side on one band are.
+   *
+   * The 1rem gap is the distance between the brand and File beside each other, and a phone was
+   * charged it twice over for the space between rows. flex-start goes with it: space-between
+   * threw File to the far edge as soon as the cap below stopped the brand filling the row, and
+   * File belongs beside the name of the tool, where a document editor keeps it.
+   */
+  .topbar { row-gap: .5rem; justify-content: flex-start; }
+
+  /**
+   * A cap on the brand, so it and File share the first band.
+   *
+   * The 5.5rem is one 1rem gap plus the widest File button, which is the French "Fichier" at
+   * 56px, plus air. It is charged only to a header that draws that button. The submitter side
+   * draws it and the assessor side does not, and the assessor header spends the same room on a
+   * third item inside the brand, the badge naming which side you are on. At 375px the title
+   * shows 212px of its 327, against 300px while it had a band to itself.
+   */
+  .topbar:has(> .file-menu) .brand { max-width: calc(100% - 5.5rem); }
+
+  /**
+   * The row gives way downward before the breadcrumb gives way sideways.
+   *
+   * There is a fourth item in this group once anybody answers a question: the badge reporting
+   * whether the work is saved. It is 99.4px in English and 111.3 in French and its text never
+   * wraps, so it holds its width and the only thing left that can give is the breadcrumb beside
+   * it. Measured at 375 with one question answered and no wrap allowed: the path was cut from
+   * 215 to 149 and 61 of the 87px of "My results" sat off the edge of a scroller carrying no
+   * scrollbar. In French 106 of the 108px of "Mes resultats" was gone. Wrapping costs height
+   * only while the badge is on screen, which is once there is work to report.
+   *
+   * min-width: 0 as well, because without it this group takes the width of everything inside
+   * it, and on a 320px screen that put the settings button 6px past the edge of the bar.
+   */
+  .topbar-right { gap: .5rem; min-width: 0; flex-wrap: wrap;
+    justify-content: flex-end; row-gap: .35rem; }
+  /* First in the row, so what drops to a second line is the report on the work and every
+     destination stays whole. */
+  .topbar-right > .save-state { order: -1; flex: none; }
+
+  /**
+   * Start, Fill it in and My results each broke over two lines, which is what made this band
+   * 62px where it needs 40. The labels hold together now, and the strip scrolls sideways when
+   * the three of them outrun the bar, the way the domain tabs below it already do. French asks
+   * for 292px against English's 260, so this is the difference between fitting in one language
+   * and fitting in both.
+   */
+  .topbar nav.path { flex: 1 1 auto; min-width: 0; overflow-x: auto; scrollbar-width: none; }
+  .topbar nav.path::-webkit-scrollbar { display: none; }
+  .topbar .tab { white-space: nowrap; padding-left: .55rem; padding-right: .55rem; }
+  /* Decoration, and it costs 19px of the 335 this band has to work with. Every control it
+     separated is still here, in the order of the work. */
+  .topbar .chev { display: none; }
+
+  /* Both were being squeezed by the strip beside them: the settings button measured 31.7px
+     against the 33px square it is drawn as. */
+  .topbar-right > .lang-link, .topbar-right > .icon-btn { flex: none; }
+}
+
 .body { max-width: min(940px, 100%); margin: 1.15rem auto 6rem; padding: 0 1.15rem; flex: 1 0 auto; }
 .body-submit { padding-bottom: 9rem; }
 .sitefoot { text-align: center; color: var(--ink-3); font-size: .78rem; padding: .8rem 1rem 2.5rem;
@@ -467,7 +539,20 @@ code.mono { background: var(--surface-2); border: 1px solid var(--line);
   .toc { flex-direction: row; overflow-x: auto; gap: .3rem; padding-bottom: .3rem; }
   .toc-domain { display: contents; }
   .toc-sec .toc-bar { display: none; }
-  .toc-row { white-space: nowrap; }
+  /* The strip drew "0/61  0/14  0/13" and no names at all. Each chip is a flex item carrying
+     width: 100% from the column rail, so ten of them shared 338px by shrinking, and a shrinking
+     item is floored at the automatic minimum size of its content, which is zero for a
+     .toc-label that clips. The count kept its 27px track and every name went. A chip sized by
+     its own content cannot shrink, so the name has nothing left to give away. Measured at
+     375px: every label 0 wide in a 564px strip before, 60 to 366 wide after. */
+  .toc-row { white-space: nowrap; flex: 0 0 auto; width: auto; }
+  /* The four domain rows were the domain tabs a second time, one strip below the tabs
+     themselves: same short label, same count, same destination. The tabs are in the chrome for
+     the whole scroll, so every domain stays one tap away. What this strip answers on a phone is
+     which section of the open domain, and how much of each is left. */
+  .toc-dom { display: none; }
+  /* The indent said this section belongs to the domain row above me, and that row is gone. */
+  .toc-sec { padding-left: .5rem; }
   /* Nothing here the domain tabs above do not already show. */
   .toc.no-sections { display: none; }
   .toc .toc-overview { display: none; }
@@ -1313,6 +1398,10 @@ button.is-mockup, a.is-mockup { opacity: .62; cursor: not-allowed; }
   .lang-abbr { display: inline; }
 }
 .footer-actions { display: flex; gap: .45rem; }
+/* Both wordings live in the element and the phone query reveals the narrow one. This is how
+   .save-state and .lang-link already carry two lengths, so the bar joins a pattern the chrome
+   already has. */
+.fb-short { display: none; }
 .progress-row { display: grid; grid-template-columns: minmax(0, 14rem) minmax(0, 1fr);
   gap: .5rem 1rem; padding: .5rem 0 0; }
 .pbar { display: grid; gap: .2rem; }
@@ -1332,6 +1421,46 @@ button.is-mockup, a.is-mockup { opacity: .62; cursor: not-allowed; }
 @media (prefers-reduced-motion: reduce) {
   .progress-shell i { transition: none; }
   .progress-shell i.celebrate { animation: none; }
+}
+
+/* ---------- the bar at the bottom, on a phone -------------------------------------------- */
+/**
+ * The bar stood 191px tall on a 375px screen, which is 24 per cent of it, and the question was
+ * left 299px. Everything in it wrapped: the whole-assessment caption onto three lines in a 98px
+ * column, the score sentence onto a row of its own, and the three buttons onto a second row
+ * 60px tall.
+ *
+ * The English action row gives way at 731px of page, and 720 is already where the chrome swaps
+ * its long labels for short ones, so the bar joins that line and no new breakpoint appears.
+ */
+@media (max-width: 720px) {
+  .sticky-footer .fb-long { display: none; }
+  .sticky-footer .fb-short { display: inline; }
+  /**
+   * The count half of this sentence repeats the whole-assessment caption 40px above it, so a
+   * phone can spare the sight of it. It is clipped and not removed: the pill beside it carries
+   * aria-hidden, so display: none here would leave somebody using a screen reader on a phone
+   * with no score and no maturity band anywhere on the bar. Out of flow, so the height still
+   * comes off.
+   */
+  .footer-readout {
+    position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+    overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+  }
+}
+
+/* Phone portrait. 480 is this file's own phone width, and no tablet is this narrow. */
+@media (max-width: 480px) {
+  /* 14rem left the second caption 98px against the 158px it needs, so it set to three lines and
+     both bars stood 62px tall to carry a 5px bar. Equal tracks give each caption 161px, which
+     holds the longest French form on one line. */
+  .progress-row { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  /* This button calls the same route as the My results step in the breadcrumb, and that
+     breadcrumb is in the sticky chrome at the top of the same screen. Two ways to one place
+     cost the action row its single line in French. */
+  .footer-results { display: none; }
+  /* One line of label leaves a 38px button. A thumb is aimed at 44. */
+  .footer-actions button { padding-block: .63rem; }
 }
 
 .gate-band { background: var(--warn-bg);
@@ -1914,6 +2043,58 @@ dialog.confirm.shake { animation: cf-shake .34s cubic-bezier(.36, .07, .19, .97)
 .lens-n { font-family: var(--mono); font-size: .7rem; opacity: .6; }
 .lens-chip.on .lens-n { opacity: .85; }
 .lens-empty { font-size: .875rem; color: var(--ink-2); margin: .4rem 0 1rem; }
+
+/* ---------- the chrome at phone width ---------------------------------------------------- */
+/**
+ * 620px is the phone, and the number was already here.
+ *
+ * Seven narrow widths were in this file, 860, 760, 720, 700, 620, 520 and 480, and none of them
+ * was the agreed one, which is how a fix made at 480 leaves the defect showing at 520. This
+ * reuses 620 because the file already names it as the phone: the min-width 620 query on
+ * .people-add is commented "Two columns above phone width". No new breakpoint is introduced.
+ *
+ * Measured at 375x812 on the Business domain. The fixed chrome was 322px of an 812px screen and
+ * the footer 191px, so the question itself had 299px. 132px of that chrome was this stack: 64px
+ * of domain tabs over a 67px category strip.
+ */
+@media (max-width: 620px) {
+  /**
+   * The strip stops wrapping and takes the gesture the tab row above it already teaches.
+   *
+   * Six chips measure 587px against 338px of room at 375px, so the row broke after Privacy and
+   * spent a second line of 27px on the last three. The tabs above answer the same shortage by
+   * scrolling sideways, so a reader who has met that gesture once has met it for both rows.
+   *
+   * scrollbar-width repeats what .chrome .stepper carries, because a classic horizontal
+   * scrollbar is about 15px tall and would take back more than half of the line it saves.
+   */
+  .lens-strip { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none;
+    /* .45rem and .5rem come down to .35rem and stop there. The focus ring on a chip is a 2px
+       outline at a 2px offset, and a scroller clips at its padding box. */
+    padding-top: .35rem; padding-bottom: .35rem; }
+  .lens-strip::-webkit-scrollbar { display: none; }
+
+  /* The same 4px floor, for the ring on a domain tab. Both halves on the bare row as well,
+     because lensStrip returns null for a rubric carrying no categories and the shell is then
+     handed the tab row with no .stepper-stack around it, so the rule below never matches. */
+  .chrome .stepper { padding-top: .28rem; padding-bottom: .28rem; }
+  .chrome .stepper-stack > .stepper { padding-bottom: .28rem; }
+
+  /**
+   * A one-word tab label and a six-character count each pay the body's 1.55 line-height, which
+   * is written for paragraphs. That is 7.0px of leading on the label and 6.0px on the count.
+   * About 8px of it was doing real work as the space between the two lines, so the gap takes
+   * that work over at .22rem and 5.6px comes back. The tab is 46.2px afterwards, which keeps it
+   * inside a fingertip.
+   *
+   * Putting the label and the count on one row was measured and rejected. It cuts a whole line
+   * and takes the tab to 29.9px, and the tab row grows from 465px to 699px of scrolling width
+   * against a 375px window, so half the domains would be off screen at rest. These tabs were
+   * compared to the sheet tabs in Excel and are meant to be seen.
+   */
+  .chrome .step { gap: .22rem; }
+  .chrome .step-label, .chrome .step-count { line-height: 1.15; }
+}
 
 /* What a question is about, beside the toggle and clipped to the right. Grey enough to blend
    into the card, because it is a fact about the question and never an instruction. */

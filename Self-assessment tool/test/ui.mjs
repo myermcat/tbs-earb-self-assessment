@@ -515,12 +515,79 @@ ok('the rail shows every section of the current domain as done',
   const bars = qa('.progress-row .pbar');
   ok('two progress bars, one for the page and one for the whole', bars.length === 2, String(bars.length));
   ok('the section bar counts this page', bars[0].textContent.startsWith('This section'), bars[0].textContent);
+  /**
+   * Read in two parts, because the caption carries two wordings now and a phone reveals the
+   * short one. textContent ignores display, so the whole string reads "Whole assessment All
+   * 176 of 176" in every engine and a strict comparison against the long form went red the day
+   * the short form arrived. The fact being asserted has not changed: the count counts.
+   */
   ok('the whole-assessment bar counts everything',
-     bars[1].textContent === `Whole assessment ${TOTAL} of ${TOTAL}`, bars[1].textContent);
+     bars[1].querySelector('.fb-long').textContent.trim() === 'Whole assessment'
+       && bars[1].querySelector('.pbar-count').textContent === `${TOTAL} of ${TOTAL}`,
+     bars[1].textContent);
+  ok('and it says the same thing in fewer words where there is no room',
+     bars[1].querySelector('.fb-short').textContent.trim() === 'All',
+     bars[1].querySelector('.fb-short')?.textContent);
+  /**
+   * The sentence beside the score pill is clipped on a phone and must not be removed. The pill
+   * is aria-hidden, so it is the only place a screen reader can read a score or a maturity
+   * band, and display: none would take that away from exactly the reader who cannot see the
+   * pill anyway.
+   */
+  {
+    const ro = q('.footer-score .footer-readout');
+    ok('the score keeps a reading the pill cannot give',
+       !!ro && ro.textContent.trim().length > 0
+         && q('.footer-score .pill').getAttribute('aria-hidden') === 'true',
+       ro?.textContent);
+    const hide = [...html.matchAll(/\.footer-readout[^{}]*\{([^}]*)\}/g)]
+      .map((m) => m[1]).filter((d) => /display|position/.test(d)).pop() ?? '';
+    ok('and the phone rule clips it without taking it off the page',
+       /clip:\s*rect\(0 0 0 0\)/.test(hide) && !/display:\s*none/.test(hide), hide);
+  }
   ok('both bars are full once everything is answered',
      bars.every((b) => b.querySelector('.progress-shell i').style.width === '100%'),
      bars.map((b) => b.querySelector('.progress-shell i').style.width).join(' '));
   ok('a finished section is marked done on its bar', !!q('.progress-shell i.done'));
+}
+
+/**
+ * The bar at the bottom fits a phone, and the phone is not a different product.
+ *
+ * It stood 191px on a 375px screen, a quarter of it, because the second caption set to three
+ * lines in a 98px column, the score sentence took a row of its own, and all three buttons wrapped
+ * onto a second row. It is 96.7px, measured in a real engine, and every control it still draws
+ * carries its own short wording rather than a narrower font.
+ */
+{
+  const pairs = qa('.sticky-footer .fb-long').length;
+  ok('every wording that shortens has both lengths in the element',
+     pairs === 3 && qa('.sticky-footer .fb-short').length === 3,
+     `${pairs} long, ${qa('.sticky-footer .fb-short').length} short`);
+  /**
+   * The route this button takes is the one the breadcrumb at the top of the same screen already
+   * takes, which is why a phone can drop it. It must be the footer's copy and not the pager's,
+   * because the pager is the only way forward inside a section.
+   */
+  ok('the footer names the button whose route the breadcrumb repeats',
+     qa('.footer-actions .footer-results').length === 1, String(qa('.footer-actions .footer-results').length));
+  ok('and the pager keeps its own, unnamed and undropped',
+     qa('.pager .footer-results').length === 0 && qa('.pager button').length > 0);
+  /**
+   * These four captions were bare English inside a bilingual tool, so a French reader read
+   * "Whole assessment 176 of 176" under a French heading. Asserted by switching, because a
+   * t() call that was never reached proves nothing.
+   */
+  {
+    q('.lang-link').click();
+    const fr = qa('.progress-row .pbar-label').map((l) => l.textContent.replace(/\s+/g, ' ').trim());
+    ok('and both progress captions are French in French', fr.every((x) => / sur /.test(x)), fr.join(' | '));
+    ok('and the score sentence with them',
+       / sur .* remplies/.test(q('.footer-readout')?.textContent ?? ''), q('.footer-readout')?.textContent);
+    q('.lang-link').click();
+    const en = qa('.progress-row .pbar-label').map((l) => l.textContent.replace(/\s+/g, ' ').trim());
+    ok('and back to English on both', en.every((x) => / of /.test(x)), en.join(' | '));
+  }
 }
 // Every scale question got a 7 and every yes/no question got a Yes, which scores the top of
 // the scale, so the overall sits a little above 7.
@@ -1645,6 +1712,51 @@ ok('audited file keeps the self-score alongside the audited one',
   const rail = [...sheet.matchAll(/\.rail\s*\{([^}]*)\}/g)].map((m) => m[1]).join(' ');
   ok('and the rail may be narrower than the rail of tabs inside it',
      /min-width:\s*0/.test(rail), rail.trim().slice(0, 160));
+
+  /**
+   * Every phone rule stays inside its query.
+   *
+   * Read over what is left after the media blocks are removed, and not over the first match.
+   * A first-match read finds the desktop rule at the top of the file whatever has happened
+   * further down, so it passes on a build where a phone block has escaped its query, which is
+   * the one failure worth catching. Proved by lifting each block out and watching these go red.
+   */
+  const outsideAnyQuery = sheet.replace(/@media[^{]*\{(?:[^{}]*\{[^}]*\}\s*)*\}/g, '');
+  const outside = (sel, prop) =>
+    [...outsideAnyQuery.matchAll(new RegExp(`${sel}[^{}]*\\{([^}]*)\\}`, 'g'))]
+      .map((m) => (m[1].match(new RegExp(`(?:^|;)\\s*${prop}:\\s*([^;]+)`)) ?? [])[1])
+      .filter(Boolean).map((v) => v.trim());
+
+  // The strip that stops wrapping, the tab leading that tightens, the rail chips that size to
+  // their own content, the caption that shortens, and the sentence that is clipped away.
+  const escapes = [
+    ['the category strip still wraps on a desktop', outside('\\.lens-strip', 'flex-wrap'),
+      (v) => v.length > 0 && v.every((x) => x === 'wrap')],
+    ['no tab label carries phone leading outside the query',
+      outside('\\.chrome \\.step-label', 'line-height'), (v) => v.length === 0],
+    ['the rail chips still fill the column rail', outside('\\.toc-row', 'width'),
+      (v) => v.length > 0 && v.every((x) => x === '100%')],
+    ['the two progress columns are still uneven', outside('\\.progress-row', 'grid-template-columns'),
+      (v) => v.length > 0 && v.every((x) => x.includes('14rem'))],
+    ['the short wording is still hidden', outside('\\.fb-short', 'display'),
+      (v) => v.length > 0 && v.every((x) => x === 'none')],
+    ['and the score sentence is still in the flow', outside('\\.footer-readout', 'position'),
+      (v) => v.length === 0],
+  ];
+  for (const [name, values, holds] of escapes) ok(name, holds(values), values.join(' | ') || '(none)');
+
+  /**
+   * And no new breakpoint.
+   *
+   * Seven narrow widths were in this file before any of this, and none of them was the agreed
+   * one, which is how a fix made at 480 leaves the defect showing at 520. Every phone rule added
+   * here reuses a number the file already had. This refuses an eighth.
+   */
+  const breakpoints = [...new Set([...sheet.matchAll(/@media[^{]*?max-width:\s*(\d+)px/g)].map((m) => Number(m[1])))]
+    .sort((a, b) => b - a);
+  const agreed = [860, 760, 720, 700, 620, 520, 480];
+  ok('the stylesheet uses the breakpoints it already had and no others',
+     breakpoints.every((w) => agreed.includes(w)), breakpoints.join(', '));
 }
 
 console.log(fails === 0 ? '\nall UI checks passed' : `\n${fails} FAILED`);
