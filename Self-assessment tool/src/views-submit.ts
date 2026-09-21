@@ -93,6 +93,21 @@ export function setStopKey(key: string): void { page = key; }
 
 /** Set by the shell when the reader asks to be taken to the next gap. */
 let scrollToQuestion: string | null = null;
+
+/**
+ * The category being looked at, across every domain, or null for all of them.
+ *
+ * Dan's ask was that somebody looking at the tool can see security, because the first question
+ * from the room will be where their security is. A domain and a category are parallel axes, so
+ * drawing them the same way is what confuses: a question sits in exactly one domain and carries
+ * any number of categories. So the domains stay the tabs, which are where you are, and the
+ * categories are a lens over them, which is what you are looking at.
+ *
+ * A vertical bar on the right was the first suggestion and was rejected on width: it costs about
+ * a fifth of the reading column at every width, and the questions are long text. A strip costs
+ * one row of height and works the same on a phone, so there is one design and not two.
+ */
+let lens: string | null = null;
 export function goToFirstGap(rubric: Rubric, a: Assessment): boolean {
   const gap = firstGap(rubric, a);
   if (!gap) return false;
@@ -215,7 +230,12 @@ export function renderSubmit(
   const here = stopOf(list, page);
   page = here.key;
 
-  tabsNode = stepper(rubric, a, r, navigate, list);
+  {
+    const tabs = stepper(rubric, a, r, navigate, list);
+    const strip = lensStrip(rubric, repaintApp);
+    // The strip rides with the tabs so the shell places both, and so the two never separate.
+    tabsNode = strip ? el('div', { class: 'stepper-stack' }, [tabs, strip]) : tabs;
+  }
 
   const rail = el('aside', { class: 'rail' });
   const sheet = el('div', { class: 'sheet' });
@@ -229,9 +249,51 @@ export function renderSubmit(
     const ds = r.domains.find((d) => d.domain.id === here.domainId);
     const ss = ds?.sections.find((x) => x.section.id === here.sectionId);
     if (!ds || !ss) { page = 'about'; repaintApp(); return; }
-    sheet.appendChild(sectionHead(ds, ss, r, here));
-    for (const qs of ss.questions) {
-      sheet.appendChild(questionBlock(rubric, a, qs.question, refresh));
+    if (!lens) {
+      sheet.appendChild(sectionHead(ds, ss, r, here));
+      for (const qs of ss.questions) {
+        sheet.appendChild(questionBlock(rubric, a, qs.question, refresh));
+      }
+    } else {
+      /**
+       * With a lens on, the sections stop dividing the page.
+       *
+       * Filtering inside one section put somebody on an empty page: Business holds one security
+       * question across six sections, so five of them answered "where is my security" with
+       * nothing at all. A category runs through the sections the way it runs through the
+       * domains, so the lens shows the whole domain at once and names the section on each
+       * question instead. The tabs carry the rest of the answer, because they are counting the
+       * same category in the other three.
+       */
+      const label = (rubric.topics ?? []).find((c) => c.id === lens)?.label ?? lens;
+      const hits = ds.sections.flatMap((sec) =>
+        sec.questions
+          .filter((qs) => (qs.question.topics ?? []).includes(lens as string))
+          .map((qs) => ({ qs, sec })));
+
+      sheet.appendChild(el('div', { class: 'lens-head' }, [
+        el('h2', {}, [t(`${label} in ${ds.domain.label}`, `${label} dans ${ds.domain.label}`)]),
+        el('p', { class: 'muted small' }, [
+          hits.length
+            ? t(`${hits.length} question${hits.length === 1 ? '' : 's'} here. The tabs above count the same category in the other domains.`,
+                `${hits.length} question${hits.length === 1 ? '' : 's'} ici. Les onglets ci-dessus comptent la même catégorie dans les autres domaines.`)
+            : t('No question in this domain is about it. The tabs above show which domains are.',
+                'Aucune question de ce domaine ne la concerne. Les onglets ci-dessus indiquent lesquels le sont.'),
+          ' ',
+          el('button', { class: 'linkish', onclick: () => { lens = null; repaintApp(); } },
+            [t('Show every question again', 'Afficher de nouveau toutes les questions')]),
+        ]),
+      ]));
+      // The section is named when it changes, not on every card. Repeated above each question
+      // it reads as part of the question rather than as the heading of a run.
+      let lastSection = '';
+      for (const { qs, sec } of hits) {
+        if (sec.section.id !== lastSection) {
+          lastSection = sec.section.id;
+          sheet.appendChild(el('p', { class: 'lens-from' }, [sec.section.label]));
+        }
+        sheet.appendChild(questionBlock(rubric, a, qs.question, refresh));
+      }
     }
   }
 
@@ -414,6 +476,35 @@ function sectionRail(
   return nav;
 }
 
+/**
+ * One row of chips under the domain tabs: what the questions on screen are about.
+ *
+ * Counts are on the chips because the first thing anybody asks of a category is how much of it
+ * there is, and because a category with two questions behind it should say so before somebody
+ * reads a score built on two answers.
+ */
+function lensStrip(rubric: Rubric, repaintApp: () => void): HTMLElement | null {
+  const domainIds = new Set(rubric.domains.map((d) => d.id));
+  const all = rubric.domains.flatMap((d) => d.sections.flatMap((sec) => sec.questions));
+  const cats = (rubric.topics ?? [])
+    .filter((c) => !domainIds.has(c.id))
+    .map((c) => ({ c, n: all.filter((q) => (q.topics ?? []).includes(c.id)).length }))
+    .filter((x) => x.n > 0);
+  if (!cats.length) return null;
+
+  const chip = (label: string, id: string | null, n: number | null) => el('button', {
+    class: `lens-chip ${lens === id ? 'on' : ''}`,
+    'aria-pressed': lens === id ? 'true' : 'false',
+    onclick: () => { lens = lens === id ? null : id; repaintApp(); },
+  }, [label, n === null ? null : el('span', { class: 'lens-n' }, [String(n)])]);
+
+  return el('div', { class: 'lens-strip' }, [
+    el('span', { class: 'lens-label' }, [t('About', 'Au sujet de')]),
+    chip(t('Everything', 'Tout'), null, null),
+    ...cats.map((x) => chip(x.c.label, x.c.id, x.n)),
+  ]);
+}
+
 function stepper(
   rubric: Rubric,
   a: Assessment,
@@ -458,10 +549,21 @@ function stepper(
   return el('nav', { class: 'stepper', 'aria-label': 'Parts of the assessment' }, [
     step('Overview', 'about', (st) => st.domainId === null,
       () => overviewProgress(a), () => overviewFieldProgress(a)),
+    /**
+     * With a lens on, a domain tab counts what it holds OF that category.
+     *
+     * This is the line that makes the two axes click, and it costs no room at all. Choosing
+     * Security turns "Business 12 of 61" into "Business 3 of 8", so the same 25 questions are
+     * seen spread across all four domains at once. That is the answer to the question Dan
+     * expects from the room, which is where their security is: here, and in all four.
+     */
     ...rubric.domains.map((d) =>
       step(shortLabel(d.label), firstStopIn(list, d.id), (st) => st.domainId === d.id, (rr) => {
         const ds = rr.domains.find((x) => x.domain.id === d.id);
-        return [ds?.answered ?? 0, ds?.total ?? 0];
+        if (!lens) return [ds?.answered ?? 0, ds?.total ?? 0];
+        const inLens = (ds?.sections ?? []).flatMap((sec) => sec.questions)
+          .filter((qs) => (qs.question.topics ?? []).includes(lens as string));
+        return [inLens.filter((qs) => qs.raw !== null || qs.na).length, inLens.length];
       }, undefined, (rr) => {
         const ds = rr.domains.find((x) => x.domain.id === d.id);
         return !!ds && domainRedFlags(ds).length > 0;
@@ -1168,11 +1270,31 @@ function questionBlock(rubric: Rubric, a: Assessment, q: Question, refresh: () =
       ]),
     ]));
   }
+  /**
+   * What this question is about, beside the toggle rather than under the text.
+   *
+   * Asked for in those words: on the right of the What the numbers mean toggle, clipped to the
+   * right, grey and barely visible but still visible, blending into the card. A category is a
+   * fact about the question and not an instruction to the person answering it, so it sits at
+   * the weight of a label and never competes with the question.
+   */
+  const cats = (q.topics ?? [])
+    .map((id) => (rubric.topics ?? []).find((c) => c.id === id))
+    .filter((c): c is NonNullable<typeof c> => !!c);
+  const catChips = cats.length
+    ? el('span', { class: 'q-cats' }, cats.map((c) => el('span', { class: 'q-cat' }, [c.label])))
+    : null;
+
   if (q.answerType !== 'yesno') {
-    wrap.appendChild(el('details', { class: 'ladder-box' }, [
-      el('summary', {}, [t('What the numbers mean', 'Ce que les chiffres veulent dire')]),
-      ladderList,
+    wrap.appendChild(el('div', { class: 'ladder-row' }, [
+      el('details', { class: 'ladder-box' }, [
+        el('summary', {}, [t('What the numbers mean', 'Ce que les chiffres veulent dire')]),
+        ladderList,
+      ]),
+      catChips,
     ]));
+  } else if (catChips) {
+    wrap.appendChild(el('div', { class: 'ladder-row' }, [el('span', {}), catChips]));
   }
 
   /**
