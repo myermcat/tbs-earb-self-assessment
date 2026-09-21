@@ -972,6 +972,26 @@ export async function deleteAssessment(id: string): Promise<void> {
  * by hand and says admin, and dropping it would lock out the one person who could fix it.
  * 'removed' is what a role becomes when access is taken away, because the record stays.
  */
+/**
+ * Pull a record out of the statistics, or put it back.
+ *
+ * A masked write, so this request cannot carry anything but the one field even by accident. The
+ * whole-document PATCH used everywhere else would send a copy of the assessment that may already
+ * be out of date, and an assessor overwriting a department's answers while trying to tidy the
+ * portfolio is the exact failure this avoids. The published rule permits nothing else either.
+ */
+export async function setWithdrawn(id: string, withdrawn: boolean): Promise<void> {
+  if (!currentUser()) throw new Error('Sign in before changing what the portfolio counts.');
+  const reply = await authorized(
+    `${docsRoot()}/assessments/${encodeURIComponent(id)}?updateMask.fieldPaths=withdrawnAt`,
+    {
+      method: 'PATCH',
+      body: JSON.stringify({ fields: toFields({ withdrawnAt: withdrawn ? new Date().toISOString() : '' }) }),
+    },
+  );
+  if (reply.status !== 200) throw new Error(problemFrom(reply));
+}
+
 export type Role = 'submitter' | 'assessor' | 'admin' | 'removed';
 
 /** Whether a role grants the assessor side. The one place that decides it. */

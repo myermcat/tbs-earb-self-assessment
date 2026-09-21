@@ -67,8 +67,11 @@ declaration that a later rule may be cancelling.
 
     bash ../deploy/publish-preview.sh
 
-Two repositories on purpose: this one is private and its history holds Dan's draft framework
-and the GC data position paper; the preview repository is public and holds only the built HTML.
+Two repositories on purpose. The preview repository is public and holds only the built HTML.
+This one is private, and the reason is not the one written here until 21 September 2026: the
+source PDFs were never committed, because `.gitignore` has always excluded them. What is in the
+history is a recorded meeting with a named colleague, tracked until that date. Untracking the
+file did not take it out of the history, so this repository cannot be made public as it stands.
 
 ## Commits
 
