@@ -14,7 +14,7 @@
 //   is reachable only by naming it, and its name is a twelve-character code somebody was sent.
 //   See the comment on `allow get` for what that grants and what it costs.
 //
-//   Roles live in the database, so an admin grants them and the rules enforce them.
+//   Roles live in the database, so an assessor grants them and the rules enforce them.
 //
 // WHAT SOMEBODY HAS TO DO ONCE
 //
@@ -26,7 +26,8 @@
 //   4. Paste these rules into Firestore Database > Rules and publish.
 //   5. Project settings > General > Your apps > Web, register one, copy the config.
 //   6. Firestore Database > Data, create a document at roles/<your-email> with
-//      { "role": "admin" }. That is the first admin, and from then on an admin makes the rest.
+//      { "role": "assessor" }. That is the first one. From then on it is done in the tool, in
+//      Settings, and this console step is never needed again.
 //
 // WHAT EVERY RULE COSTS
 //
@@ -34,7 +35,7 @@
 // then denied. So the common path is written to need neither: isOwner() compares the signed-in
 // email against a field already in the document being read, and the || short-circuits, so a
 // submitter reading their own assessment triggers no lookup at all. Only the assessor and
-// admin paths call get() on the roles document.
+// assessor path calls get() on the roles document.
 //
 // THE RULES BELOW, IN WORDS
 //
@@ -45,13 +46,14 @@
 //   subcollection, move the record to another account, or touch the audit or the withdrawal.
 //   An assessor may read every submitted assessment and write the audit on it, and may never
 //   touch anybody's answers or evidence.
-//   An admin may do what an assessor may, plus grant roles, plus delete a record.
+//   An assessor may also add another assessor, take an assessor's access away, and delete a
+//   record. There is no rung above assessor.
 //   A submitter may never delete anything, and Google enforces that.
 //
 // WHY AN ADMIN CAN DELETE
 //
 // A prototype fills up with test submissions, and somebody has to be able to clear them. The
-// protection is not the rule, it is the way the tool asks: deleting a record makes the admin
+// protection is not the rule, it is the way the tool asks: deleting a record makes the person
 // type the initiative name out, copied from the way GitHub deletes a repository. A
 // confirmation somebody can agree to by reflex stops being a confirmation.
 
@@ -60,10 +62,51 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Who is who. Only an admin writes here, so a person cannot promote themselves.
+    /**
+     * Who is who.
+     *
+     * There are two kinds of person and no third: somebody filling an assessment in, who needs
+     * no account at all, and an assessor, who needs one and who can do everything the assessor
+     * side offers. There used to be an admin above the assessor. It bought a separation nobody
+     * wanted and it cost a lockout: an assessor could create a role document naming an admin's
+     * own address, the rules would stop falling back to the build's admin list, and the admin
+     * had no way back in because the way back needed admin. With one rung there is nothing to
+     * be knocked off.
+     *
+     * An assessor adds another assessor. That is deliberate and it is the whole of the trust
+     * model: any assessor can grant access to any address, so every grant records who made it
+     * and the tool shows it. No rule can tell a colleague from a stranger.
+     *
+     * Access is taken away by marking the document, never by deleting it. A deleted document
+     * leaves the address free, so the person could be added back by somebody who never knew
+     * they had been removed and why. The record stays, carrying who removed them and when.
+     */
     match /roles/{email} {
-      allow get: if request.auth != null && request.auth.token.email == email;
-      allow list, create, update: if isAdmin();
+      allow get: if signedIn() && email() == email;
+      allow list: if isAssessor();
+
+      // Adding somebody. Nobody can write a role this tool does not use, and addedBy is the
+      // signed-in address rather than anything the browser chose to send, so a grant cannot be
+      // attributed to somebody who did not make it.
+      allow create: if isAssessor()
+        && request.resource.data.keys().hasOnly(['role', 'name', 'addedBy', 'addedAt'])
+        && request.resource.data.role == 'assessor'
+        && request.resource.data.addedBy == email()
+        && request.resource.data.name is string
+        && request.resource.data.name.size() > 0
+        && request.resource.data.name.size() <= 120;
+
+      // Taking access away, or giving it back. The name and who added it never change, because
+      // they are the record of what happened, and an update that could rewrite them would let
+      // one assessor rewrite another's history.
+      allow update: if isAssessor()
+        && request.resource.data.keys().hasOnly(['role', 'name', 'addedBy', 'addedAt', 'removedBy', 'removedAt'])
+        && request.resource.data.role in ['assessor', 'removed']
+        && request.resource.data.name == resource.data.name
+        && request.resource.data.get('addedBy', '') == resource.data.get('addedBy', '')
+        && request.resource.data.get('addedAt', '') == resource.data.get('addedAt', '');
+
+      // Never. See above: the record is the point.
       allow delete: if false;
     }
 
@@ -149,7 +192,7 @@ service cloud.firestore {
 
       // Admin only, and the tool makes them type the initiative name first. Somebody holding a
       // code can damage an assessment and can never remove it.
-      allow delete: if isAdmin();
+      allow delete: if isAssessor();
 
       // The audit trail as a subcollection. Nothing in src/ writes here yet; the audit the tool
       // actually keeps is a field of the assessment, frozen against a code holder above. This
@@ -157,7 +200,7 @@ service cloud.firestore {
       match /audit/{entry} {
         allow get, list: if isOwner() || isAssessor();
         allow create, update: if isAssessor();
-        allow delete: if isAdmin();
+        allow delete: if isAssessor();
       }
     }
 
@@ -202,11 +245,16 @@ service cloud.firestore {
         ? get(/databases/$(database)/documents/roles/$(email())).data.role
         : 'submitter';
     }
+    /**
+     * An assessor. There is no rung above this one.
+     *
+     * 'admin' is still accepted because the first grant was written by hand in the console and
+     * says admin, and because a rule that stopped honouring it would lock out the only person
+     * who could fix it. 'removed' is a role in the sense that the field holds it, and it grants
+     * nothing, which is the point.
+     */
     function isAssessor() {
       return signedIn() && (roleOf() == 'assessor' || roleOf() == 'admin');
-    }
-    function isAdmin() {
-      return signedIn() && roleOf() == 'admin';
     }
   }
 }

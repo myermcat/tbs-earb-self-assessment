@@ -7,6 +7,7 @@ import { validate } from './rubric';
 import { completion } from './scoring';
 import { goToFirstGap, goToQuestion, overviewFieldProgress, renderSubmit, resetOverviewToFirstGap, setRepaint,
   setSaveOnline, setStopKey, showMarkingStep, takeSubmitTabs, currentStopKey } from './views-submit';
+import { panePeople } from './views-people';
 import { handOff, renderResults } from './views-results';
 import { forgetPool, openedThisSession, renderReview, setAuditor } from './views-review';
 import { renderDashboard } from './views-dashboard';
@@ -22,7 +23,7 @@ import { showNewCode } from './views-share';
 import { bootLang, coverage, lang, type Lang, setLang } from './i18n';
 import { endpointHost, goneFromStore, isHosted, listRecords, putRecord,
   saveOnlineNow, savedOnline, showWhereItStands } from './store';
-import { canSignIn, CODE_LENGTH, currentUser, formatCode, forgetRole, getAssessment, looksLikeCode, pageAddress, tidyCode, isConfigured as firebaseConfigured, knownRole, lastSignInProblem,
+import { canSignIn, CODE_LENGTH, currentUser, formatCode, forgetRole, getAssessment, grantsAccess, looksLikeCode, pageAddress, tidyCode, isConfigured as firebaseConfigured, knownRole, lastSignInProblem,
   loadRole, resumeSignIn, signInWithGoogle, signOut } from './firebase';
 import { t } from './i18n';
 import { answeredCount, APP_VERSION, autosave, blankAssessment, clearDraft, download, ensureRef,
@@ -111,7 +112,7 @@ let side: Side = booted.side;
 let mode: Mode = booted.mode;
 if (booted.stop) setStopKey(booted.stop);
 
-type SettingsPane = 'questions' | 'answers' | 'docs' | 'build' | 'danger';
+type SettingsPane = 'questions' | 'answers' | 'people' | 'docs' | 'build' | 'danger';
 let settingsPane: SettingsPane = 'questions';
 
 /**
@@ -243,52 +244,54 @@ function adoptSignedIn(): void {
  */
 type Access = 'ok' | 'checking' | 'denied';
 
+/**
+ * There is one kind of account now, and it reaches every screen on this side.
+ *
+ * The admin view used to be kept back from an assessor. It bought a separation nobody asked
+ * for and it cost a lockout, since only an admin could undo a grant and an assessor could take
+ * that away. Asked for in those words: basically there are only two functionalities, submitter
+ * and assessor.
+ */
 function accessState(): Access {
   if (mode !== 'review' && mode !== 'admin') return 'ok';
   if (!firebaseConfigured() || !currentUser()) return 'ok';
   const role = knownRole();
   if (role === null) return 'checking';
-  if (role === 'admin') return 'ok';
-  if (role === 'assessor') return mode === 'admin' ? 'denied' : 'ok';
-  return 'denied';
+  return grantsAccess(role) ? 'ok' : 'denied';
 }
 
 /**
  * The screen an account without access meets, and the one it meets while that is being decided.
  *
- * Two ways out, because there are two reasons to be here: the wrong account is signed in, or
- * the right one has not been added yet. Signing in again handles the first. For the second the
- * only useful thing a page can do is hand over the address to send to an admin.
+ * There used to be a third case here, an assessor who had reached the admin view. There is no
+ * admin view kept back from an assessor any more, so the only reasons to be on this screen are
+ * that this address was never added or that its access was taken away. Both are answered the
+ * same way: hand the address over, because any assessor can add it.
  */
 function renderNoAccess(root: HTMLElement, state: Access) {
   const me = currentUser();
-  const role = knownRole();
   const checking = state === 'checking';
-  const wrongScreen = role === 'assessor' && mode === 'admin';
+  const removed = knownRole() === 'removed';
 
   const title = checking
     ? t('Checking your access', 'Vérification de votre accès')
-    : wrongScreen
-      ? t('The admin view is for admins', 'La vue d\u2019administration est réservée aux administrateurs')
+    : removed
+      ? t('This account no longer has access', 'Ce compte n\u2019a plus accès')
       : t('This account does not have access', 'Ce compte n\u2019a pas accès');
 
   const detail = checking
     ? t('Asking the store what this account is allowed to see.',
         'Nous demandons au dépôt ce que ce compte a le droit de voir.')
-    : wrongScreen
-      ? t('You are signed in as an assessor. The admin view lists every submission and can delete them, so it is kept to admins.',
-          'Vous êtes connecté comme évaluateur. La vue d\u2019administration liste toutes les soumissions et peut les supprimer, elle est donc réservée aux administrateurs.')
-      : t('This address is not set up as an assessor, so there is nothing here for it to show. An admin adds assessors. Send them the address below and they can add it in a minute.',
-          'Cette adresse n\u2019est pas enregistrée comme évaluateur, il n\u2019y a donc rien à afficher ici. Ce sont les administrateurs qui ajoutent les évaluateurs. Envoyez-leur l\u2019adresse ci-dessous et ils pourront l\u2019ajouter en une minute.');
+    : removed
+      ? t('Somebody took this address off the list. Any assessor can put it back. Send them the address below.',
+          'Quelqu\u2019un a retiré cette adresse de la liste. N\u2019importe quel évaluateur peut la rétablir. Envoyez-leur l\u2019adresse ci-dessous.')
+      : t('This address is not set up as an assessor, so there is nothing here for it to show. Any assessor can add it. Send them the address below and they can add it in a minute.',
+          'Cette adresse n\u2019est pas enregistrée comme évaluateur, il n\u2019y a donc rien à afficher ici. N\u2019importe quel évaluateur peut l\u2019ajouter. Envoyez-leur l\u2019adresse ci-dessous et ils pourront l\u2019ajouter en une minute.');
 
   const actions: (HTMLElement | null)[] = checking ? [] : [
-    wrongScreen
-      ? el('button', { class: 'primary', onclick: () => go('review') }, [
-          t('Back to submissions', 'Retour aux soumissions'),
-        ])
-      : el('button', { class: 'primary', onclick: () => setSide('submit') }, [
-          t('Go to the home page', 'Aller à la page d\u2019accueil'),
-        ]),
+    el('button', { class: 'primary', onclick: () => setSide('submit') }, [
+      t('Go to the home page', 'Aller à la page d\u2019accueil'),
+    ]),
     el('button', {
       class: 'ghost',
       onclick: () => {
@@ -682,9 +685,9 @@ function header(bare = false): HTMLElement {
         ? el('nav', { class: 'path', 'aria-label': t('Where you are', 'Où vous êtes') }, [
             tab(t('Submissions', 'Soumissions'), 'review'),
             // No store means no roles, so the mockup keeps both tabs. With a store, the tab
-            // appears once the role has come back and says admin.
-            !firebaseConfigured() || knownRole() === 'admin' ? chev() : null,
-            !firebaseConfigured() || knownRole() === 'admin'
+            // appears once the role has come back and grants this side.
+            !firebaseConfigured() || grantsAccess(knownRole()) ? chev() : null,
+            !firebaseConfigured() || grantsAccess(knownRole())
               ? tab(t('Admin', 'Administration'), 'admin')
               : null,
           ])
@@ -1167,11 +1170,15 @@ function renderSettings(root: HTMLElement) {
   function paintPane() {
     // Landing on a pane that is not offered on this side, by a stale value or a link.
     if (!mine && (settingsPane === 'answers' || settingsPane === 'danger')) settingsPane = 'questions';
+  // And the mirror of it: the access list is the assessor's, and a submitter has no store
+  // identity to list. Without this a submitter who was last on it lands on an empty pane.
+  if (mine && settingsPane === 'people') settingsPane = 'questions';
 
     clear(nav);
     nav.appendChild(el('span', { class: 'set-navgroup' }, [t('Settings', 'Paramètres')]));
     nav.appendChild(navRow(t('Question set', 'Jeu de questions'), 'questions'));
     if (mine) nav.appendChild(navRow(t('Your answers', 'Vos réponses'), 'answers'));
+    if (!mine) nav.appendChild(navRow(t('Who has access', 'Qui a accès'), 'people'));
     nav.appendChild(navRow(t('Documentation', 'Documentation'), 'docs'));
     nav.appendChild(navRow(t('This build', 'Cette version'), 'build'));
     if (mine) {
@@ -1182,6 +1189,7 @@ function renderSettings(root: HTMLElement) {
     clear(pane);
     if (settingsPane === 'questions') paneQuestions(pane);
     else if (settingsPane === 'answers' && mine) paneAnswers(pane);
+    else if (settingsPane === 'people' && !mine) panePeople(pane);
     else if (settingsPane === 'docs') paneDocs(pane);
     else if (settingsPane === 'build') paneBuild(pane);
     else if (mine) paneDanger(pane);
@@ -1514,7 +1522,7 @@ function paneBuild(pane: HTMLElement) {
    * the tool itself. They belong here and not under Documentation: they are facts about this
    * build and about what is left to do to it.
    */
-  if (!firebaseConfigured() || knownRole() === 'admin') {
+  if (!firebaseConfigured() || grantsAccess(knownRole())) {
     pane.appendChild(el('h2', { class: 'set-sub' }, ['What is decided, and what is left']));
     pane.appendChild(el('div', { class: 'hub-cards' }, [
       linkCard({
