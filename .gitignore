@@ -18,9 +18,10 @@ deploy/firebase-config.json
 
 # The repository holds the tool. Everything else in this folder is working material that stays
 # on this machine: recorded meetings with colleagues, Dan's source spreadsheets, the concept
-# case, and the files sent to people. They were tracked until 21 September 2026, which is why
-# the repository could not be made public: a recorded meeting with a named colleague is in the
-# history and removing the file does not remove it from there.
+# case, and the files sent to people. They were tracked until 21 September 2026, and the
+# history was rewritten that day so the repository could be made public. It is public now, so
+# these lines are the only thing keeping this material off the internet. Adding a file to the
+# repository is a decision to publish it.
 Colleague meeting transcripts/
 Concept case/
 Categories spreadsheet/
