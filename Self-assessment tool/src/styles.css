@@ -1876,9 +1876,22 @@ dialog.confirm.shake { animation: cf-shake .34s cubic-bezier(.36, .07, .19, .97)
    confuses, so the tabs stay tabs and these are chips: rounded, smaller, and on their own line.
    A right-hand rail was the first idea and cost about a fifth of the reading column at every
    width, which the question text needs more than this does. */
-.stepper-stack { display: flex; flex-direction: column; gap: .3rem; min-width: 0; }
+/**
+ * The tabs and the strip are one sticky block, so neither can be scrolled through.
+ *
+ * The strip was put inside a bare wrapper, and the background, the bottom border and the
+ * 1.15rem of side padding all lived on .chrome .stepper. So the strip was transparent, page
+ * text scrolled up through it, and its label sat flush against the window edge while the tabs
+ * beside it were inset. Reported in those words: they overlap with text as you scroll.
+ *
+ * The block carries the ground now and the two rows inside it carry none.
+ */
+.stepper-stack { display: flex; flex-direction: column; min-width: 0;
+  background: var(--chrome-bg); border-bottom: 1px solid var(--chrome-line); }
+.chrome .stepper-stack > .stepper { background: none; border-bottom: 0; padding-bottom: .15rem; }
+/* Aligned with the tabs above it, which means the same side padding they have. */
 .lens-strip { display: flex; align-items: center; gap: .3rem; flex-wrap: wrap;
-  font-size: .78rem; padding: .1rem 0; }
+  font-size: .78rem; padding: 0 1.15rem .4rem; }
 .lens-label { color: var(--ink-3); font-size: .72rem; text-transform: uppercase;
   letter-spacing: .05em; margin-right: .1rem; }
 .lens-chip { font: inherit; padding: .1rem .5rem; border-radius: 999px; cursor: pointer;
