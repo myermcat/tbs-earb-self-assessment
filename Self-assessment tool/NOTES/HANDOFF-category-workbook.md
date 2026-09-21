@@ -1,6 +1,6 @@
 # The category workbook: building it, and the one step that is not in the file
 
-`node tools/make-category-workbook.mjs` writes two files into `../Deliverables`: the template
+`node tools/make-category-workbook.mjs` writes two files into `../Categories spreadsheet`: the template
 with the Categories column empty, and the same thing filled with our provisional readings.
 
 ## The URL never changes. Do not upload a second file.
@@ -16,7 +16,7 @@ written down.
 
 **To publish a change, replace the contents of that file rather than the file:**
 
-1. `node tools/make-category-workbook.mjs`, which writes `../Deliverables/GC EA assessment tool
+1. `node tools/make-category-workbook.mjs`, which writes `../Categories spreadsheet/GC EA assessment tool
    - categories.xlsx`.
 2. Open the spreadsheet at the link above.
 3. **File → Import → Upload**, choose that .xlsx, and pick **Replace spreadsheet**.

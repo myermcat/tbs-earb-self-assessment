@@ -33,7 +33,8 @@ import { promisify } from 'node:util';
 
 const run = promisify(execFile);
 const KB = '../EARB target state knowledge base';
-const OUT_DIR = '../Deliverables';
+// Named for what it holds. It was called Deliverables, which told nobody anything.
+const OUT_DIR = '../Categories spreadsheet';
 
 /**
  * Dan's four question sheets.

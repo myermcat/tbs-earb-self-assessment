@@ -929,6 +929,14 @@ console.log('\nThe published build, signed in\n');
     const d = doc.querySelector('dialog.confirm');
     ok('deleting a submission starts here and asks which one',
        !!d && /Type the access code/i.test(d.textContent), d?.textContent?.slice(0, 160));
+    /**
+     * And it asks for the code the way every other screen asks for one. Reported as: an access
+     * code should always be asked in the same way, same functionality always. One box per
+     * character, dashes drawn and never typed.
+     */
+    ok('and asks for the code in the boxes every other screen uses',
+       (d.querySelectorAll('.code-field input').length) === 12,
+       String(d.querySelectorAll('.code-field input').length));
     ok('and offers no list to choose from',
        !d.querySelector('datalist') && !d.querySelector('select'));
     ok('and names the reversible option so nobody deletes a test record by reflex',

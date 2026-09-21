@@ -14,15 +14,26 @@
 import { el } from './dom';
 import { t } from './i18n';
 import { confirmStep, confirmTyped } from './confirm';
-import { formatCode, tidyCode } from './firebase';
+import { CODE_LENGTH, formatCode, looksLikeCode, tidyCode } from './firebase';
+import { codeField } from './code-field';
 import { deleteRecord, isHosted, listRecords } from './store';
 
 /** The window that asks which one, and offers nobody a list. */
 export function deleteSubmission(after: () => void): void {
-  const box = el('input', {
-    type: 'text', autocomplete: 'off', spellcheck: false,
-    'aria-label': 'The access code of the assessment to delete',
-  }) as HTMLInputElement;
+  /**
+   * The same twelve boxes with dashes that every other screen asks a code in.
+   *
+   * This was a plain text box, which made one screen ask for a code in a way no other screen
+   * does. Reported as: an access code should always be asked in the same way, same functionality
+   * always. So it is the shared field, which brings paste with or without dashes, typing straight
+   * through, backspace out of an empty box into the one before, and a sentence about the four
+   * characters a code never contains.
+   */
+  const stray = el('p', { class: 'signer-advice' });
+  const field = codeField(() => {}, (chars) => {
+    stray.textContent = t(`A code never contains I, O, 0 or 1, so ${chars.join(', ')} was not taken.`,
+      `Un code ne contient jamais I, O, 0 ni 1 : ${chars.join(', ')} n’a donc pas été retenu.`);
+  });
 
   confirmStep({
     tier: 'danger',
@@ -32,13 +43,18 @@ export function deleteSubmission(after: () => void): void {
     note: t('If the assessment is a test one, stopping the count takes it out of every average and every ranked list and can be undone. That is on the portfolio, beside the record.',
       'S’il s’agit d’une évaluation d’essai, cesser de la compter la retire de toutes les moyennes et de tous les classements, et cela peut être annulé. Cette option est dans le portefeuille, à côté de l’enregistrement.'),
     extra: el('div', { class: 'danger-find' }, [
-      el('label', { class: 'field' }, [
-        el('span', {}, [t('Its access code', 'Son code d’accès')]), box,
-      ]),
+      el('span', { class: 'signer-label' }, [t('Its access code', 'Son code d’accès')]),
+      field.node,
+      stray,
     ]),
-    focusFirst: () => box.focus(),
+    focusFirst: () => field.focus(),
     gate: () => {
-      if (!tidyCode(box.value)) return t('Type the access code.', 'Saisissez le code d’accès.');
+      if (!looksLikeCode(field.value())) {
+        const short = CODE_LENGTH - field.value().length;
+        return short > 0
+          ? t(`${short} character${short === 1 ? '' : 's'} to go.`, `Il manque ${short} caractère${short === 1 ? '' : 's'}.`)
+          : t('That is not an access code.', 'Ce n’est pas un code d’accès.');
+      }
       if (!isHosted()) {
         return t('This copy of the tool has no shared store, so there is nothing here to delete.',
           'Cette copie de l’outil n’a pas de dépôt partagé, il n’y a donc rien à supprimer ici.');
@@ -48,7 +64,7 @@ export function deleteSubmission(after: () => void): void {
     commitLabel: t('Find it', 'La trouver'),
     cancelLabel: t('Cancel', 'Annuler'),
     onCommit: () => {
-      const code = tidyCode(box.value);
+      const code = tidyCode(field.value());
       // Read the pool now. A record deleted in another tab must not be deletable again here,
       // and the name shown in the next window has to be the one the store currently holds.
       void listRecords().then((records) => {
