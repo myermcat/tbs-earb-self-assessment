@@ -16,7 +16,7 @@ import { el, clear } from './dom';
 import { t } from './i18n';
 import { confirmStep } from './confirm';
 import {
-  addPerson, currentUser, grantsAccess, grantSource, listPeople, renamePerson, setPersonAccess,
+  addPerson, currentUser, grantsAccess, listPeople, renamePerson, setPersonAccess,
   type Person,
 } from './firebase';
 import { sameText } from './danger-people';
@@ -32,40 +32,13 @@ function when(iso?: string): string {
 }
 
 /**
- * Where this person's own access came from.
+ * There is nothing to say about where access came from, because there is only one place.
  *
- * The build carries a list of addresses it falls back to when the store has no document, so a
- * page can offer every control while the store refuses all of them. That gap is invisible and
- * it is the difference between having access and looking like it, so the screen says which.
+ * This warned when somebody's access came from the build's own list of addresses rather than
+ * from the store. That list is gone: it was compiled into the published page, putting a real
+ * address on the open internet, and it was a grant nobody could take away. Access is the store
+ * now, which is the thing this screen changes.
  */
-function ownGrant(): HTMLElement | null {
-  const me = currentUser();
-  if (!me) return null;
-  /**
-   * Nothing is said when the access is real.
-   *
-   * There was a line here reading "you are signed in as X, and the store has you on this list".
-   * It named an internal word for the database, and it told somebody looking at a list with
-   * their own name on it a thing they could already see. The warning below is the whole reason
-   * this function exists.
-   */
-  const src = grantSource();
-  if (src === 'build') {
-    return el('div', { class: 'flag sev-medium' }, [
-      el('div', { class: 'flag-title' }, [
-        el('span', { class: 'sev-dot' }),
-        el('strong', {}, [t('Your access comes from this build, not from the store',
-          'Votre accès provient de cette version, pas du dépôt')]),
-      ]),
-      el('div', { class: 'small' }, [
-        t(`Nothing in the store grants ${me.email} anything. This page works because this copy of the tool carries the address in its own configuration. Anything that writes to the store will be refused. Add yourself below to fix it.`,
-          `Rien dans le dépôt n’accorde quoi que ce soit à ${me.email}. Cette page fonctionne parce que cette copie de l’outil porte l’adresse dans sa propre configuration. Toute écriture dans le dépôt sera refusée. Ajoutez-vous ci-dessous pour corriger cela.`),
-      ]),
-    ]);
-  }
-  return null;
-}
-
 /** One row: who they are, how they got here, and the one control that applies to them. */
 function personRow(p: Person, mine: boolean, after: () => void): HTMLElement {
   const gone = !grantsAccess(p.role);
@@ -241,8 +214,6 @@ export function panePeople(pane: HTMLElement): void {
       t('Everybody who can open the assessor side. Any assessor can add another, and anybody added can do everything you can.',
         'Toute personne pouvant ouvrir la vue de l’évaluateur. Tout évaluateur peut en ajouter un autre, et la personne ajoutée peut tout faire comme vous.'),
     ]));
-    const own = ownGrant();
-    if (own) pane.appendChild(own);
 
     const body = el('div', {});
     pane.appendChild(body);

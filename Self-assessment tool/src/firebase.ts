@@ -40,7 +40,6 @@ export interface FirebaseConfig {
    *
    * It lives in deploy/firebase-config.json, which is not in git, because it names a person.
    */
-  admins?: string[];
 }
 
 function isRecord(v: unknown): v is Record<string, unknown> {
@@ -1017,12 +1016,22 @@ export interface Person {
  * the signed-in address and a 403 for any other one. No document means no grant has been made,
  * and everybody starts there.
  */
-/** What this build assumes about an address the store has no role document for. */
-function defaultRole(email: string): Role {
-  const list = CONFIG?.admins ?? [];
-  return list.some((a) => a.trim().toLowerCase() === email.trim().toLowerCase())
-    ? 'assessor'
-    : 'submitter';
+/**
+ * An address the store has no role document for has no access. There is no other source.
+ *
+ * The build used to carry a list of addresses it treated as assessors when the store had no
+ * document for them, so that a wiped project stayed recoverable. Two things were wrong with it.
+ * It was compiled into the published page, so that person's address was on the open internet.
+ * And it was a grant nobody could take away: remove them from the store and the page still let
+ * them in, because the page carried its own answer. Asked for in those words, by the person
+ * whose address it was: I will leave the team at some point and they will need to remove my
+ * access, can we have my credentials in the store only.
+ *
+ * Recovery does not need it. Creating the first role document by hand in the console is one
+ * step, and it is written down at the top of deploy/firestore.rules.
+ */
+function defaultRole(_email: string): Role {
+  return 'submitter';
 }
 
 export async function roleOf(email: string): Promise<Role> {
@@ -1045,7 +1054,7 @@ export async function roleOf(email: string): Promise<Role> {
  * while every one of them is refused. The screen that lists people says which of the two this
  * is, because the difference is invisible and it is the difference between access and a facade.
  */
-export type GrantSource = 'store' | 'build' | 'none';
+export type GrantSource = 'store' | 'none';
 let myGrantSource: GrantSource = 'none';
 export function grantSource(): GrantSource { return myGrantSource; }
 
@@ -1179,7 +1188,7 @@ export async function loadRole(): Promise<Role | null> {
       myGrantSource = grantsAccess(myRoleValue) ? 'store' : 'none';
     } else if (reply.status === 404) {
       myRoleValue = defaultRole(me.email);
-      myGrantSource = grantsAccess(myRoleValue) ? 'build' : 'none';
+      myGrantSource = 'none';
     } else {
       throw new Error(problemFrom(reply));
     }
@@ -1187,7 +1196,7 @@ export async function loadRole(): Promise<Role | null> {
     // A refused read means the rules do not know this address, which is what a submitter is.
     // The build's own list still applies, so an owner is not locked out of a wiped project.
     myRoleValue = defaultRole(me.email);
-    myGrantSource = grantsAccess(myRoleValue) ? 'build' : 'none';
+    myGrantSource = 'none';
   }
   return myRoleValue;
 }

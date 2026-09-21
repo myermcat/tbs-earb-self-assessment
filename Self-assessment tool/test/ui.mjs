@@ -308,7 +308,7 @@ ok('and says what the four characters in an email subject are for',
   const [name, dept, contact] = qa('.ov-block .grid-2 input');
   name.value = 'Nexus agentic AI infrastructure'; fire(name, 'input'); fire(name, 'change');
   dept.value = 'Transport Canada'; fire(dept, 'input'); fire(dept, 'change');
-  contact.value = 'nick@tc.gc.ca'; fire(contact, 'input'); fire(contact, 'change');
+  contact.value = 'someone@tc.gc.ca'; fire(contact, 'input'); fire(contact, 'change');
 }
 
 {

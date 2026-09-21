@@ -1029,5 +1029,25 @@ console.log('\nThe published build, signed in\n');
   dom.window.close();
 }
 
+/* --------------------------------------------------------------------------------------- */
+{
+  /**
+   * No person's address is compiled into the page, and no grant comes from anywhere but the store.
+   *
+   * The build carried a list of addresses it treated as assessors when the store had no document
+   * for them. It was inlined into the published HTML, so a real address sat on the open internet,
+   * and it was a grant nobody could take away: remove the person from the store and the page
+   * still let them in, because the page carried its own answer. Asked for by the person whose
+   * address it was: I will leave the team at some point and they will need to remove my access,
+   * can we have my credentials in the store only.
+   */
+  ok('the built page carries nobody\u2019s address',
+     !/[a-zA-Z0-9._%+-]+@(?!department\.gc\.ca|ministere\.gc\.ca|tbs-sct\.gc\.ca|tc\.gc\.ca|dfo-mpo\.gc\.ca|b\.gc\.ca|sen\.parl\.gc\.ca|example|gmail\.com)[a-zA-Z0-9.-]+\.[a-z]{2,}/.test(
+       html.replace(/someone@[a-zA-Z0-9.-]+/g, '').replace(/you@[a-zA-Z0-9.-]+/g, '')),
+     'an address is compiled into the page');
+  ok('and the build declares no list of people it trusts',
+     !/"admins"|\badmins\b\s*[:?]/.test(html), 'the build still carries an admins list');
+}
+
 console.log(fails ? `\n${fails} hosted check(s) failed\n` : '\nall hosted checks passed\n');
 process.exit(fails ? 1 : 0);

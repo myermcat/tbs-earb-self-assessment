@@ -29,6 +29,12 @@
 //      { "role": "assessor" }. That is the first one. From then on it is done in the tool, in
 //      Settings, and this console step is never needed again.
 //
+//      THIS STEP IS THE ONLY WAY IN, and that is deliberate. The build used to carry a list of
+//      addresses it treated as assessors when this collection had no document for them. It was
+//      compiled into the published page, so a real address sat on the open internet, and it was
+//      a grant nobody could take away: remove the person here and the page still let them in.
+//      If this collection is ever emptied, come back to this step.
+//
 // WHAT EVERY RULE COSTS
 //
 // An exists() or a get() inside a rule is a billable document read, even when the request is
