@@ -293,7 +293,7 @@ textarea { resize: vertical; }
   .app-home .body { justify-content: flex-start; padding: 1rem 1.15rem 3rem; }
 }
 
-.body-home { max-width: 900px; }
+.body-home { max-width: min(900px, 100%); }
 
 .hero {
   display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2rem; align-items: center;
@@ -410,7 +410,7 @@ code.mono { background: var(--surface-2); border: 1px solid var(--line);
 
 /* ---------- the questionnaire: rail beside the sheet ------------------------------------ */
 
-.body-submit { max-width: 1200px; }
+.body-submit { max-width: min(1200px, 100%); }
 .form-layout { display: grid; grid-template-columns: 14.5rem minmax(0, 1fr); gap: 1.1rem;
   align-items: start; }
 .sheet { min-width: 0; }
@@ -458,8 +458,12 @@ code.mono { background: var(--surface-2); border: 1px solid var(--line);
 .pager button { max-width: 22rem; }
 
 @media (max-width: 860px) {
-  .form-layout { grid-template-columns: 1fr; }
-  .rail { position: static; }
+  /* minmax(0, 1fr), never 1fr. A 1fr track is minmax(auto, 1fr), and auto there means the
+     widest thing inside, which is a row of table-of-contents rows that never wrap. The page
+     was 601px wide on a 375px phone and every question card was cut off at the right edge.
+     The same reason .rail needs min-width: 0: it is the grid item the scroller sits in. */
+  .form-layout { grid-template-columns: minmax(0, 1fr); }
+  .rail { position: static; min-width: 0; }
   .toc { flex-direction: row; overflow-x: auto; gap: .3rem; padding-bottom: .3rem; }
   .toc-domain { display: contents; }
   .toc-sec .toc-bar { display: none; }
@@ -652,7 +656,7 @@ a.faint-link:hover { color: var(--accent); }
  * which is what the assessor's audit rows already do here.
  * ------------------------------------------------------------------------------------------ */
 
-.body-settings { max-width: 1040px; }
+.body-settings { max-width: min(1040px, 100%); }
 .set-layout { display: grid; grid-template-columns: 13.5rem minmax(0, 1fr); gap: 1.6rem;
   align-items: start; }
 
@@ -1082,7 +1086,7 @@ code.mark-subject { display: block; margin: .25rem 0; }
  * new number, and the three declarations under it take the table's own floor from 1173px to
  * 413px so it fits here and on a 1024px laptop.
  */
-.body-review, .body-admin { padding-bottom: 3rem; max-width: 1200px; }
+.body-review, .body-admin { padding-bottom: 3rem; max-width: min(1200px, 100%); }
 /* A badge that cannot wrap is a column that cannot shrink. */
 .triage .badge { white-space: normal; margin-left: 0; }
 .triage td { overflow-wrap: anywhere; }
