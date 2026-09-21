@@ -151,26 +151,6 @@
   "stageMultipliersNote": "Our addition. Lifecycle stage is not captured in the current process at all - TBS named it as the key missing field. Only \"Defining the Current State\" sections carry a rule so far.",
   "topics": [
     {
-      "id": "business",
-      "label": "Business",
-      "note": "Strategy, process, value and cost."
-    },
-    {
-      "id": "data",
-      "label": "Data",
-      "note": "Models, quality, lineage and stewardship."
-    },
-    {
-      "id": "application",
-      "label": "Application",
-      "note": "What the software does and depends on."
-    },
-    {
-      "id": "technology",
-      "label": "Technology",
-      "note": "Where it runs, and whether it stays up."
-    },
-    {
       "id": "security",
       "label": "Security",
       "note": "Cuts across all four. Asked for by name by TBS."
@@ -197,7 +177,7 @@
     }
   ],
   "answerTypesNote": "PROVISIONAL. Named by TBS as a defect: several questions are yes or no wearing a 0 to 10 scale. The ones marked yesno here are the ones whose wording is unambiguously binary. He owns the real list. A no on a yes/no question raises a red flag: it colours the section and the person carries on. Nothing in this tool stops an assessment.",
-  "topicsNote": "A second axis. The four domains still produce the overall score and a question counts once there. A question also counts at full weight inside every category it carries, which is where the weights genuinely differ. TBS named nine on 8 September: Business, Data, Application, Technology, Security, Privacy, Accessibility, Official Languages and Financial. The four domain categories are mechanical. The other five are read from the wording of each question and are PROVISIONAL: TBS owns the real assignments, and the Categories column in his workbook is where they come from. Accessibility and Official Languages are thin rather than absent, at three questions and two, which is worth knowing before anybody reads a score for either.",
+  "topicsNote": "A second axis, and not a second spine. Every question sits in exactly one of the four architecture domains, and the domains carry the weights that produce the overall score. A question also counts at full weight inside every category it carries, and the categories add up to nothing. TBS named five on 8 September: Security, Privacy, Financial, Accessibility and Official Languages. A question’s domain is not one of them: it is where the question lives and it is never typed into the Categories column. These five are read from the wording of each question and are PROVISIONAL: TBS owns the real assignments, and the Categories column in the workbook is where they come from. Accessibility and Official Languages are thin rather than absent, at three questions and two, which is worth knowing before anybody reads a score for either.",
   "lifecycleStages": [
     {
       "id": "discovery",
@@ -284,9 +264,7 @@
               "text": "How thoroughly has the current state of this solution been documented, including all processes, data flows, and system dependencies?",
               "weight": 1,
               "answerType": "scale",
-              "topics": [
-                "business"
-              ]
+              "topics": []
             },
             {
               "id": "B-Q2",
@@ -294,9 +272,7 @@
               "text": "What entities (data objects, records, clients, files) are currently produced, managed, or maintained by this solution?",
               "weight": 1,
               "answerType": "scale",
-              "topics": [
-                "business"
-              ]
+              "topics": []
             },
             {
               "id": "B-Q3",
@@ -304,9 +280,7 @@
               "text": "Have all roles and responsibilities across stakeholders, operators, and service consumers been identified, documented, and formally accepted?",
               "weight": 1,
               "answerType": "scale",
-              "topics": [
-                "business"
-              ]
+              "topics": []
             },
             {
               "id": "B-Q4",
@@ -314,9 +288,7 @@
               "text": "How well understood is the criticality of this solution to Government of Canada program delivery and citizen outcomes?",
               "weight": 1,
               "answerType": "scale",
-              "topics": [
-                "business"
-              ]
+              "topics": []
             },
             {
               "id": "B-Q5",
@@ -324,9 +296,7 @@
               "text": "Are all sub-components of the current solution assessed for their individual criticality, availability, and risk exposure?",
               "weight": 1,
               "answerType": "scale",
-              "topics": [
-                "business"
-              ]
+              "topics": []
             },
             {
               "id": "B-Q6",
@@ -334,9 +304,7 @@
               "text": "What is the current level of utilization and demand for the solution (transaction volumes, active users, peak load)?",
               "weight": 1,
               "answerType": "scale",
-              "topics": [
-                "business"
-              ]
+              "topics": []
             },
             {
               "id": "B-Q7",
@@ -344,9 +312,7 @@
               "text": "What is the known availability, uptime, and service continuity record of the current solution?",
               "weight": 1,
               "answerType": "scale",
-              "topics": [
-                "business"
-              ]
+              "topics": []
             },
             {
               "id": "B-Q8",
@@ -355,7 +321,6 @@
               "weight": 1,
               "answerType": "scale",
               "topics": [
-                "business",
                 "financial"
               ]
             },
@@ -366,7 +331,6 @@
               "weight": 1,
               "answerType": "scale",
               "topics": [
-                "business",
                 "financial"
               ]
             },
@@ -376,9 +340,7 @@
               "text": "How mature and current are the performance indicators for this solution, and what trends do they reflect?",
               "weight": 1,
               "answerType": "scale",
-              "topics": [
-                "business"
-              ]
+              "topics": []
             },
             {
               "id": "B-Q11",
@@ -386,9 +348,7 @@
               "text": "Is the lifespan and full lifecycle of the solution mapped out, and is the current position within that lifecycle known?",
               "weight": 1,
               "answerType": "scale",
-              "topics": [
-                "business"
-              ]
+              "topics": []
             },
             {
               "id": "B-Q12",
@@ -396,9 +356,7 @@
               "text": "What major events (technology refresh, contract renewal, legislative changes) are on the horizon for this solution?",
               "weight": 1,
               "answerType": "scale",
-              "topics": [
-                "business"
-              ]
+              "topics": []
             },
             {
               "id": "B-Q13",
@@ -406,9 +364,7 @@
               "text": "How well understood are the specific skills, staffing levels, and capacity requirements to operate and evolve this solution?",
               "weight": 1,
               "answerType": "scale",
-              "topics": [
-                "business"
-              ]
+              "topics": []
             },
             {
               "id": "B-Q14",
@@ -417,7 +373,6 @@
               "weight": 1,
               "answerType": "scale",
               "topics": [
-                "business",
                 "privacy",
                 "accessibility",
                 "official-languages"
@@ -441,9 +396,7 @@
               "text": "How clearly and completely has the core business problem been defined and agreed upon by all stakeholders?",
               "weight": 1,
               "answerType": "scale",
-              "topics": [
-                "business"
-              ]
+              "topics": []
             },
             {
               "id": "B-Q16",
@@ -452,7 +405,6 @@
               "weight": 1,
               "answerType": "scale",
               "topics": [
-                "business",
                 "financial"
               ]
             },
@@ -462,9 +414,7 @@
               "text": "How well do the proposed solution capabilities map to the GC Business Capability Model and existing enterprise services?",
               "weight": 1,
               "answerType": "scale",
-              "topics": [
-                "business"
-              ]
+              "topics": []
             },
             {
               "id": "B-Q18",
@@ -472,9 +422,7 @@
               "text": "Have value streams been fully mapped, showing how business capabilities deliver outcomes to clients and citizens?",
               "weight": 1,
               "answerType": "scale",
-              "topics": [
-                "business"
-              ]
+              "topics": []
             },
             {
               "id": "B-Q19",
@@ -482,9 +430,7 @@
               "text": "Is the solution design driven by defined user personas, journeys, and evidence-based user research?",
               "weight": 1,
               "answerType": "scale",
-              "topics": [
-                "business"
-              ]
+              "topics": []
             },
             {
               "id": "B-Q20",
@@ -492,9 +438,7 @@
               "text": "How clearly are the target service levels, response times, and quality benchmarks defined for the proposed solution?",
               "weight": 1,
               "answerType": "scale",
-              "topics": [
-                "business"
-              ]
+              "topics": []
             },
             {
               "id": "B-Q21",
@@ -502,9 +446,7 @@
               "text": "Has the solution's criticality to GC program delivery been assessed, and does the architecture reflect that criticality?",
               "weight": 1,
               "answerType": "scale",
-              "topics": [
-                "business"
-              ]
+              "topics": []
             },
             {
               "id": "B-Q22",
@@ -513,7 +455,6 @@
               "weight": 1,
               "answerType": "scale",
               "topics": [
-                "business",
                 "financial"
               ]
             },
@@ -523,9 +464,7 @@
               "text": "How well is the talent strategy defined, including required skills, existing capacity, training pipeline, and long-term retention?",
               "weight": 1,
               "answerType": "scale",
-              "topics": [
-                "business"
-              ]
+              "topics": []
             },
             {
               "id": "B-Q24",
@@ -533,9 +472,7 @@
               "text": "Is a demand forecast available, and does the solution design account for projected growth and usage variability?",
               "weight": 1,
               "answerType": "scale",
-              "topics": [
-                "business"
-              ]
+              "topics": []
             },
             {
               "id": "B-Q25",
@@ -543,9 +480,7 @@
               "text": "How well is the solution integrated within the broader GC enterprise ecosystem and aligned with whole-of-government priorities?",
               "weight": 1,
               "answerType": "scale",
-              "topics": [
-                "business"
-              ]
+              "topics": []
             },
             {
               "id": "B-Q26",
@@ -553,9 +488,7 @@
               "text": "Is the solution designed to maximize reuse of existing GC shared services and platforms before building new capabilities?",
               "weight": 1,
               "answerType": "scale",
-              "topics": [
-                "business"
-              ]
+              "topics": []
             },
             {
               "id": "B-Q27",
@@ -563,9 +496,7 @@
               "text": "How transparent is the solution design — is it documented, accessible, and understandable to those who rely on it?",
               "weight": 1,
               "answerType": "scale",
-              "topics": [
-                "business"
-              ]
+              "topics": []
             }
           ],
           "shareOfDomain": 31.3
@@ -581,9 +512,7 @@
               "text": "Have user personas, stories, and journeys been mapped and validated through direct engagement with actual users and stakeholders?",
               "weight": 1,
               "answerType": "scale",
-              "topics": [
-                "business"
-              ]
+              "topics": []
             },
             {
               "id": "B-Q29",
@@ -591,9 +520,7 @@
               "text": "Are there formal, repeatable mechanisms to capture client, user, and stakeholder needs on a continuous basis?",
               "weight": 1,
               "answerType": "scale",
-              "topics": [
-                "business"
-              ]
+              "topics": []
             },
             {
               "id": "B-Q30",
@@ -601,9 +528,7 @@
               "text": "How mature are feedback loops between the delivery team and end users, including Communities of Practice and regular reviews?",
               "weight": 1,
               "answerType": "scale",
-              "topics": [
-                "business"
-              ]
+              "topics": []
             },
             {
               "id": "B-Q31",
@@ -611,9 +536,7 @@
               "text": "Are all roles, accountabilities, and decision rights across the solution ecosystem clearly documented in a RACI or equivalent model?",
               "weight": 1,
               "answerType": "scale",
-              "topics": [
-                "business"
-              ]
+              "topics": []
             },
             {
               "id": "B-Q32",
@@ -621,9 +544,7 @@
               "text": "Is solution documentation, interactive guidance, and self-service assistance available and actively maintained for all user types?",
               "weight": 1,
               "answerType": "scale",
-              "topics": [
-                "business"
-              ]
+              "topics": []
             },
             {
               "id": "B-Q33",
@@ -631,9 +552,7 @@
               "text": "How transparent is the operational status of the solution, including an offering roadmap and historical event schedule?",
               "weight": 1,
               "answerType": "scale",
-              "topics": [
-                "business"
-              ]
+              "topics": []
             },
             {
               "id": "B-Q34",
@@ -641,9 +560,7 @@
               "text": "Are performance metrics (NPS, CSAT, CES, usage rates, drop-off rates) defined, measured, and reported back to stakeholders?",
               "weight": 1,
               "answerType": "scale",
-              "topics": [
-                "business"
-              ]
+              "topics": []
             },
             {
               "id": "B-Q35",
@@ -651,9 +568,7 @@
               "text": "Does the solution support multi-channel delivery patterns (web, chat, phone, in-person) that reflect real user demand?",
               "weight": 1,
               "answerType": "scale",
-              "topics": [
-                "business"
-              ]
+              "topics": []
             },
             {
               "id": "B-Q36",
@@ -661,9 +576,7 @@
               "text": "How mature are personalization, predictive analytics, or AI-assisted capabilities within the solution offering?",
               "weight": 1,
               "answerType": "scale",
-              "topics": [
-                "business"
-              ]
+              "topics": []
             }
           ],
           "shareOfDomain": 12.5
@@ -679,9 +592,7 @@
               "text": "Are Service Level Objectives (SLOs) and Service Level Agreements (SLAs) formally defined, monitored, and reported?",
               "weight": 1,
               "answerType": "scale",
-              "topics": [
-                "business"
-              ]
+              "topics": []
             },
             {
               "id": "B-Q38",
@@ -689,9 +600,7 @@
               "text": "Is there end-to-end instrumentation of delivery processes, enabling real-time performance monitoring and visualization?",
               "weight": 1,
               "answerType": "scale",
-              "topics": [
-                "business"
-              ]
+              "topics": []
             },
             {
               "id": "B-Q39",
@@ -700,7 +609,6 @@
               "weight": 1,
               "answerType": "scale",
               "topics": [
-                "business",
                 "financial"
               ]
             },
@@ -710,9 +618,7 @@
               "text": "Are client satisfaction scores (CSAT, NPS, or equivalent) captured systematically and acted upon?",
               "weight": 1,
               "answerType": "scale",
-              "topics": [
-                "business"
-              ]
+              "topics": []
             },
             {
               "id": "B-Q41",
@@ -720,9 +626,7 @@
               "text": "How are quality and error rates measured, tracked, and used to drive continuous improvement?",
               "weight": 1,
               "answerType": "scale",
-              "topics": [
-                "business"
-              ]
+              "topics": []
             },
             {
               "id": "B-Q42",
@@ -730,9 +634,7 @@
               "text": "Are response times, total transaction times, and execution time variance measured and within defined thresholds?",
               "weight": 1,
               "answerType": "scale",
-              "topics": [
-                "business"
-              ]
+              "topics": []
             },
             {
               "id": "B-Q43",
@@ -740,9 +642,7 @@
               "text": "Is trend analysis performed regularly on key metrics to anticipate performance changes and drive proactive action?",
               "weight": 1,
               "answerType": "scale",
-              "topics": [
-                "business"
-              ]
+              "topics": []
             },
             {
               "id": "B-Q44",
@@ -751,7 +651,6 @@
               "weight": 1,
               "answerType": "scale",
               "topics": [
-                "business",
                 "financial"
               ]
             }
@@ -769,9 +668,7 @@
               "text": "How well-defined is the delivery pipeline, including deployment cadence, automation, rollback procedures, and success rates?",
               "weight": 1,
               "answerType": "scale",
-              "topics": [
-                "business"
-              ]
+              "topics": []
             },
             {
               "id": "B-Q46",
@@ -779,9 +676,7 @@
               "text": "Are skills requirements, staffing levels, and a training and improvement pipeline in place to sustain operations?",
               "weight": 1,
               "answerType": "scale",
-              "topics": [
-                "business"
-              ]
+              "topics": []
             },
             {
               "id": "B-Q47",
@@ -790,7 +685,6 @@
               "weight": 1,
               "answerType": "scale",
               "topics": [
-                "business",
                 "financial"
               ]
             },
@@ -800,9 +694,7 @@
               "text": "How mature and tested is the incident management, business continuity, and disaster recovery planning for this solution?",
               "weight": 1,
               "answerType": "scale",
-              "topics": [
-                "business"
-              ]
+              "topics": []
             },
             {
               "id": "B-Q49",
@@ -810,9 +702,7 @@
               "text": "Is the infrastructure and technology acquisition strategy defined, including procurement pathways and lead times?",
               "weight": 1,
               "answerType": "scale",
-              "topics": [
-                "business"
-              ]
+              "topics": []
             },
             {
               "id": "B-Q50",
@@ -821,7 +711,6 @@
               "weight": 1,
               "answerType": "yesno",
               "topics": [
-                "business",
                 "security"
               ]
             },
@@ -831,9 +720,7 @@
               "text": "How deep and well-prioritized is the feature and requirements backlog, and does it reflect validated stakeholder needs?",
               "weight": 1,
               "answerType": "scale",
-              "topics": [
-                "business"
-              ]
+              "topics": []
             },
             {
               "id": "B-Q52",
@@ -841,9 +728,7 @@
               "text": "Are there operational runbooks, monitoring dashboards, and on-call processes in place to support production operations?",
               "weight": 1,
               "answerType": "scale",
-              "topics": [
-                "business"
-              ]
+              "topics": []
             }
           ],
           "shareOfDomain": 12.5
@@ -859,9 +744,7 @@
               "text": "Is there a clearly defined governance model with accountable decision-makers for the solution's direction and performance?",
               "weight": 1,
               "answerType": "scale",
-              "topics": [
-                "business"
-              ]
+              "topics": []
             },
             {
               "id": "B-Q54",
@@ -869,9 +752,7 @@
               "text": "How well does the solution align with the GC Digital Operations Strategic Plan and departmental enterprise strategy?",
               "weight": 1,
               "answerType": "scale",
-              "topics": [
-                "business"
-              ]
+              "topics": []
             },
             {
               "id": "B-Q55",
@@ -879,9 +760,7 @@
               "text": "Is there a published roadmap with near, medium, and long-term milestones that is communicated to stakeholders?",
               "weight": 1,
               "answerType": "yesno",
-              "topics": [
-                "business"
-              ]
+              "topics": []
             },
             {
               "id": "B-Q56",
@@ -889,9 +768,7 @@
               "text": "How mature is the change management process, including impact assessment, approval workflows, and communication plans?",
               "weight": 1,
               "answerType": "scale",
-              "topics": [
-                "business"
-              ]
+              "topics": []
             },
             {
               "id": "B-Q57",
@@ -900,7 +777,6 @@
               "weight": 1,
               "answerType": "scale",
               "topics": [
-                "business",
                 "accessibility",
                 "official-languages"
               ]
@@ -911,9 +787,7 @@
               "text": "Is there a formal risk register maintained for the solution, with assigned owners and documented mitigation strategies?",
               "weight": 1,
               "answerType": "yesno",
-              "topics": [
-                "business"
-              ]
+              "topics": []
             },
             {
               "id": "B-Q59",
@@ -921,9 +795,7 @@
               "text": "How well is vendor and third-party relationship governance defined, including performance monitoring and exit strategies?",
               "weight": 1,
               "answerType": "scale",
-              "topics": [
-                "business"
-              ]
+              "topics": []
             },
             {
               "id": "B-Q60",
@@ -932,7 +804,6 @@
               "weight": 1,
               "answerType": "scale",
               "topics": [
-                "business",
                 "privacy"
               ]
             },
@@ -942,9 +813,7 @@
               "text": "How well does the solution contribute to GC-wide shared service consolidation and enterprise architecture objectives?",
               "weight": 1,
               "answerType": "scale",
-              "topics": [
-                "business"
-              ]
+              "topics": []
             }
           ],
           "shareOfDomain": 25
@@ -968,9 +837,7 @@
               "text": "How well documented are current data models, entity relationships, and data-sharing agreements?",
               "weight": 1,
               "answerType": "scale",
-              "topics": [
-                "data"
-              ]
+              "topics": []
             },
             {
               "id": "D-Q2",
@@ -978,9 +845,7 @@
               "text": "What is the degree of data fragmentation, duplication, and inconsistency across the current solution and its dependencies?",
               "weight": 1,
               "answerType": "scale",
-              "topics": [
-                "data"
-              ]
+              "topics": []
             },
             {
               "id": "D-Q3",
@@ -989,7 +854,6 @@
               "weight": 1,
               "answerType": "scale",
               "topics": [
-                "data",
                 "security"
               ]
             },
@@ -999,9 +863,7 @@
               "text": "Is the lifespan and full data lifecycle — from creation to disposition — mapped and governed?",
               "weight": 1,
               "answerType": "scale",
-              "topics": [
-                "data"
-              ]
+              "topics": []
             },
             {
               "id": "D-Q5",
@@ -1009,9 +871,7 @@
               "text": "Are data formats proprietary or based on open, interoperable standards?",
               "weight": 1,
               "answerType": "scale",
-              "topics": [
-                "data"
-              ]
+              "topics": []
             },
             {
               "id": "D-Q6",
@@ -1019,9 +879,7 @@
               "text": "How open and transparent is data publication, and is a default-open approach applied where appropriate?",
               "weight": 1,
               "answerType": "scale",
-              "topics": [
-                "data"
-              ]
+              "topics": []
             },
             {
               "id": "D-Q7",
@@ -1029,9 +887,7 @@
               "text": "Are analytics and trend analysis capabilities available to support decision-making from current data assets?",
               "weight": 1,
               "answerType": "scale",
-              "topics": [
-                "data"
-              ]
+              "topics": []
             },
             {
               "id": "D-Q8",
@@ -1040,7 +896,6 @@
               "weight": 1,
               "answerType": "scale",
               "topics": [
-                "data",
                 "security"
               ]
             },
@@ -1050,9 +905,7 @@
               "text": "How interoperable is the current data environment with other GC systems, programs, and platforms?",
               "weight": 1,
               "answerType": "scale",
-              "topics": [
-                "data"
-              ]
+              "topics": []
             }
           ],
           "stageExpectation": {
@@ -1072,9 +925,7 @@
               "text": "Is there a formal, documented data model that reflects all key entities, relationships, attributes, and business rules?",
               "weight": 1,
               "answerType": "scale",
-              "topics": [
-                "data"
-              ]
+              "topics": []
             },
             {
               "id": "D-Q11",
@@ -1082,9 +933,7 @@
               "text": "How mature is master data management — are authoritative data sources identified, maintained, and trusted?",
               "weight": 1,
               "answerType": "scale",
-              "topics": [
-                "data"
-              ]
+              "topics": []
             },
             {
               "id": "D-Q12",
@@ -1093,7 +942,6 @@
               "weight": 1,
               "answerType": "scale",
               "topics": [
-                "data",
                 "security"
               ]
             },
@@ -1103,9 +951,7 @@
               "text": "Are international and GC data standards applied (e.g., ISO, DCAT, NIEM, GC Open Data Directive)?",
               "weight": 1,
               "answerType": "scale",
-              "topics": [
-                "data"
-              ]
+              "topics": []
             },
             {
               "id": "D-Q14",
@@ -1113,9 +959,7 @@
               "text": "How well defined is data lineage — can the origin, transformation, and movement of data be traced end-to-end?",
               "weight": 1,
               "answerType": "scale",
-              "topics": [
-                "data"
-              ]
+              "topics": []
             },
             {
               "id": "D-Q15",
@@ -1123,9 +967,7 @@
               "text": "Is comprehensive metadata management in place, enabling data discovery, classification, and contextual understanding?",
               "weight": 1,
               "answerType": "scale",
-              "topics": [
-                "data"
-              ]
+              "topics": []
             },
             {
               "id": "D-Q16",
@@ -1133,9 +975,7 @@
               "text": "How mature is data quality management — are completeness, accuracy, consistency, and timeliness measured and enforced?",
               "weight": 1,
               "answerType": "scale",
-              "topics": [
-                "data"
-              ]
+              "topics": []
             },
             {
               "id": "D-Q17",
@@ -1143,9 +983,7 @@
               "text": "Is data instrumentation in place to capture operational telemetry, audit records, and system-generated metadata?",
               "weight": 1,
               "answerType": "scale",
-              "topics": [
-                "data"
-              ]
+              "topics": []
             },
             {
               "id": "D-Q18",
@@ -1153,9 +991,7 @@
               "text": "Are data read/write performance requirements (volumes, IOPS, movement patterns) understood and architecturally addressed?",
               "weight": 1,
               "answerType": "scale",
-              "topics": [
-                "data"
-              ]
+              "topics": []
             },
             {
               "id": "D-Q19",
@@ -1163,9 +999,7 @@
               "text": "Is there a strategy for structured, semi-structured, and unstructured data that applies consistent governance across all types?",
               "weight": 1,
               "answerType": "scale",
-              "topics": [
-                "data"
-              ]
+              "topics": []
             },
             {
               "id": "D-Q20",
@@ -1173,9 +1007,7 @@
               "text": "How well is data residency managed — are intentional copies of data tracked, controlled, and compliant with policy?",
               "weight": 1,
               "answerType": "scale",
-              "topics": [
-                "data"
-              ]
+              "topics": []
             },
             {
               "id": "D-Q21",
@@ -1183,9 +1015,7 @@
               "text": "Does the architecture support event-driven data integration patterns and real-time data processing where needed?",
               "weight": 1,
               "answerType": "scale",
-              "topics": [
-                "data"
-              ]
+              "topics": []
             }
           ],
           "shareOfDomain": 40
@@ -1202,7 +1032,6 @@
               "weight": 1,
               "answerType": "yesno",
               "topics": [
-                "data",
                 "privacy"
               ]
             },
@@ -1213,7 +1042,6 @@
               "weight": 1,
               "answerType": "scale",
               "topics": [
-                "data",
                 "privacy"
               ]
             },
@@ -1223,9 +1051,7 @@
               "text": "How mature is data categorization — are all data assets classified by sensitivity, and is handling appropriate to classification?",
               "weight": 1,
               "answerType": "scale",
-              "topics": [
-                "data"
-              ]
+              "topics": []
             },
             {
               "id": "D-Q25",
@@ -1234,7 +1060,6 @@
               "weight": 1,
               "answerType": "scale",
               "topics": [
-                "data",
                 "security"
               ]
             },
@@ -1245,7 +1070,6 @@
               "weight": 1,
               "answerType": "scale",
               "topics": [
-                "data",
                 "security"
               ]
             },
@@ -1256,7 +1080,6 @@
               "weight": 1,
               "answerType": "scale",
               "topics": [
-                "data",
                 "security",
                 "privacy"
               ]
@@ -1268,7 +1091,6 @@
               "weight": 1,
               "answerType": "scale",
               "topics": [
-                "data",
                 "privacy"
               ]
             },
@@ -1279,7 +1101,6 @@
               "weight": 1,
               "answerType": "yesno",
               "topics": [
-                "data",
                 "security"
               ]
             },
@@ -1290,7 +1111,6 @@
               "weight": 1,
               "answerType": "scale",
               "topics": [
-                "data",
                 "security"
               ]
             }
@@ -1308,9 +1128,7 @@
               "text": "Does the data architecture align with FAIR principles (Findable, Accessible, Interoperable, Reusable)?",
               "weight": 1,
               "answerType": "scale",
-              "topics": [
-                "data"
-              ]
+              "topics": []
             },
             {
               "id": "D-Q32",
@@ -1318,9 +1136,7 @@
               "text": "Are APIs and data-sharing interfaces standards-based and documented, enabling downstream consumption without tight coupling?",
               "weight": 1,
               "answerType": "scale",
-              "topics": [
-                "data"
-              ]
+              "topics": []
             },
             {
               "id": "D-Q33",
@@ -1329,7 +1145,6 @@
               "weight": 1,
               "answerType": "scale",
               "topics": [
-                "data",
                 "security"
               ]
             }
@@ -1347,9 +1162,7 @@
               "text": "Is there a designated data owner and data steward for each key dataset, with documented accountability?",
               "weight": 1,
               "answerType": "scale",
-              "topics": [
-                "data"
-              ]
+              "topics": []
             },
             {
               "id": "D-Q35",
@@ -1357,9 +1170,7 @@
               "text": "How mature is the data governance framework — does it cover policies, standards, roles, dispute resolution, and enforcement?",
               "weight": 1,
               "answerType": "scale",
-              "topics": [
-                "data"
-              ]
+              "topics": []
             },
             {
               "id": "D-Q36",
@@ -1367,9 +1178,7 @@
               "text": "Are data governance decisions transparent and auditable, including any changes to data models, access rules, or classifications?",
               "weight": 1,
               "answerType": "scale",
-              "topics": [
-                "data"
-              ]
+              "topics": []
             },
             {
               "id": "D-Q37",
@@ -1378,7 +1187,6 @@
               "weight": 1,
               "answerType": "scale",
               "topics": [
-                "data",
                 "privacy"
               ]
             },
@@ -1389,7 +1197,6 @@
               "weight": 1,
               "answerType": "scale",
               "topics": [
-                "data",
                 "security"
               ]
             },
@@ -1399,9 +1206,7 @@
               "text": "Is there a regular data audit process to validate compliance with policies, identify orphaned data, and assess data health?",
               "weight": 1,
               "answerType": "scale",
-              "topics": [
-                "data"
-              ]
+              "topics": []
             }
           ],
           "shareOfDomain": 20
@@ -1425,9 +1230,7 @@
               "text": "Is the current application solution fully documented, including architecture diagrams, data flows, and integration points?",
               "weight": 1,
               "answerType": "scale",
-              "topics": [
-                "application"
-              ]
+              "topics": []
             },
             {
               "id": "A-Q2",
@@ -1435,9 +1238,7 @@
               "text": "How well is the current system instrumented — are resource allocation, consumption, and application health monitored?",
               "weight": 1,
               "answerType": "scale",
-              "topics": [
-                "application"
-              ]
+              "topics": []
             },
             {
               "id": "A-Q3",
@@ -1445,9 +1246,7 @@
               "text": "What is the outstanding technical debt, and is it formally tracked in a backlog with prioritization?",
               "weight": 1,
               "answerType": "scale",
-              "topics": [
-                "application"
-              ]
+              "topics": []
             },
             {
               "id": "A-Q4",
@@ -1455,9 +1254,7 @@
               "text": "When are major software contracts expiring, and is there a renewal or replacement strategy in place?",
               "weight": 1,
               "answerType": "scale",
-              "topics": [
-                "application"
-              ]
+              "topics": []
             },
             {
               "id": "A-Q5",
@@ -1466,7 +1263,6 @@
               "weight": 1,
               "answerType": "scale",
               "topics": [
-                "application",
                 "security"
               ]
             },
@@ -1476,9 +1272,7 @@
               "text": "How well understood are the delivery pipeline properties — maturity, automation, deployment frequency, and failure rate?",
               "weight": 1,
               "answerType": "scale",
-              "topics": [
-                "application"
-              ]
+              "topics": []
             },
             {
               "id": "A-Q7",
@@ -1486,9 +1280,7 @@
               "text": "What is the degree of vendor or technology lock-in, and are exit/migration pathways understood?",
               "weight": 1,
               "answerType": "scale",
-              "topics": [
-                "application"
-              ]
+              "topics": []
             },
             {
               "id": "A-Q8",
@@ -1496,9 +1288,7 @@
               "text": "Are all upstream and downstream application dependencies mapped and current?",
               "weight": 1,
               "answerType": "scale",
-              "topics": [
-                "application"
-              ]
+              "topics": []
             },
             {
               "id": "A-Q9",
@@ -1506,9 +1296,7 @@
               "text": "What is the known backlog of defects, flaws, and unresolved issues, and how is it managed?",
               "weight": 1,
               "answerType": "scale",
-              "topics": [
-                "application"
-              ]
+              "topics": []
             }
           ],
           "stageExpectation": {
@@ -1528,9 +1316,7 @@
               "text": "Is the application type (COTS, configured, custom-built, low/no-code, assembled) clearly defined and justified?",
               "weight": 1,
               "answerType": "scale",
-              "topics": [
-                "application"
-              ]
+              "topics": []
             },
             {
               "id": "A-Q11",
@@ -1538,9 +1324,7 @@
               "text": "Is the delivery methodology (agile, waterfall, hybrid) appropriate to the solution's context and documented?",
               "weight": 1,
               "answerType": "scale",
-              "topics": [
-                "application"
-              ]
+              "topics": []
             },
             {
               "id": "A-Q12",
@@ -1548,9 +1332,7 @@
               "text": "How software-defined is the solution — are configuration, policy, and infrastructure managed as code?",
               "weight": 1,
               "answerType": "scale",
-              "topics": [
-                "application"
-              ]
+              "topics": []
             },
             {
               "id": "A-Q13",
@@ -1558,9 +1340,7 @@
               "text": "Is the application designed with capabilities-based modularity, enabling components to be replaced independently?",
               "weight": 1,
               "answerType": "scale",
-              "topics": [
-                "application"
-              ]
+              "topics": []
             },
             {
               "id": "A-Q14",
@@ -1568,9 +1348,7 @@
               "text": "How are interoperability interfaces between internal components and external applications exposed and governed?",
               "weight": 1,
               "answerType": "scale",
-              "topics": [
-                "application"
-              ]
+              "topics": []
             },
             {
               "id": "A-Q15",
@@ -1578,9 +1356,7 @@
               "text": "Is intellectual property ownership clear, and are code licensing obligations tracked and managed?",
               "weight": 1,
               "answerType": "scale",
-              "topics": [
-                "application"
-              ]
+              "topics": []
             },
             {
               "id": "A-Q16",
@@ -1588,9 +1364,7 @@
               "text": "How mature is code reuse — is there a shared code repository, automated integration, and published component catalogue?",
               "weight": 1,
               "answerType": "scale",
-              "topics": [
-                "application"
-              ]
+              "topics": []
             },
             {
               "id": "A-Q17",
@@ -1598,9 +1372,7 @@
               "text": "What is the lowest required integration level (container, VM/OS, physical hardware), and is it minimized where possible?",
               "weight": 1,
               "answerType": "scale",
-              "topics": [
-                "application"
-              ]
+              "topics": []
             },
             {
               "id": "A-Q18",
@@ -1608,9 +1380,7 @@
               "text": "Are volume, redundancy, elasticity, scalability, throttling, and observability requirements defined and implemented?",
               "weight": 1,
               "answerType": "scale",
-              "topics": [
-                "application"
-              ]
+              "topics": []
             },
             {
               "id": "A-Q19",
@@ -1618,9 +1388,7 @@
               "text": "Is the application designed as external-facing, internal enterprise, or administrative — and is the design tailored accordingly?",
               "weight": 1,
               "answerType": "scale",
-              "topics": [
-                "application"
-              ]
+              "topics": []
             }
           ],
           "shareOfDomain": 20
@@ -1637,7 +1405,6 @@
               "weight": 1,
               "answerType": "scale",
               "topics": [
-                "application",
                 "security"
               ]
             },
@@ -1648,7 +1415,6 @@
               "weight": 1,
               "answerType": "scale",
               "topics": [
-                "application",
                 "security"
               ]
             },
@@ -1658,9 +1424,7 @@
               "text": "How well are coding standards, frameworks, and languages documented, enforced, and aligned with GC guidance?",
               "weight": 1,
               "answerType": "scale",
-              "topics": [
-                "application"
-              ]
+              "topics": []
             },
             {
               "id": "A-Q23",
@@ -1669,7 +1433,6 @@
               "weight": 1,
               "answerType": "yesno",
               "topics": [
-                "application",
                 "accessibility"
               ]
             },
@@ -1679,9 +1442,7 @@
               "text": "Is there an algorithmic impact assessment (AIA) process in place for any AI/ML components in the application?",
               "weight": 1,
               "answerType": "yesno",
-              "topics": [
-                "application"
-              ]
+              "topics": []
             },
             {
               "id": "A-Q25",
@@ -1689,9 +1450,7 @@
               "text": "How mature is the code review and peer review process, and is it consistently applied?",
               "weight": 1,
               "answerType": "scale",
-              "topics": [
-                "application"
-              ]
+              "topics": []
             },
             {
               "id": "A-Q26",
@@ -1699,9 +1458,7 @@
               "text": "Are application performance benchmarks established, tested against in CI/CD, and used to gate deployments?",
               "weight": 1,
               "answerType": "scale",
-              "topics": [
-                "application"
-              ]
+              "topics": []
             },
             {
               "id": "A-Q27",
@@ -1709,9 +1466,7 @@
               "text": "Is observability (logging, tracing, metrics) built into the application architecture from the start?",
               "weight": 1,
               "answerType": "scale",
-              "topics": [
-                "application"
-              ]
+              "topics": []
             }
           ],
           "shareOfDomain": 20
@@ -1728,7 +1483,6 @@
               "weight": 1,
               "answerType": "scale",
               "topics": [
-                "application",
                 "security",
                 "privacy"
               ]
@@ -1740,7 +1494,6 @@
               "weight": 1,
               "answerType": "scale",
               "topics": [
-                "application",
                 "security"
               ]
             },
@@ -1750,9 +1503,7 @@
               "text": "Was optionality fully investigated — including multi-vendor, open source, and homegrown options — with a documented rationale?",
               "weight": 1,
               "answerType": "scale",
-              "topics": [
-                "application"
-              ]
+              "topics": []
             },
             {
               "id": "A-Q31",
@@ -1761,7 +1512,6 @@
               "weight": 1,
               "answerType": "scale",
               "topics": [
-                "application",
                 "financial"
               ]
             },
@@ -1772,7 +1522,6 @@
               "weight": 1,
               "answerType": "scale",
               "topics": [
-                "application",
                 "security"
               ]
             },
@@ -1782,9 +1531,7 @@
               "text": "Is the solution designed to integrate with GC-wide shared services (Sign-In Canada, GC Notify, GC Forms, etc.) where applicable?",
               "weight": 1,
               "answerType": "scale",
-              "topics": [
-                "application"
-              ]
+              "topics": []
             },
             {
               "id": "A-Q34",
@@ -1793,7 +1540,6 @@
               "weight": 1,
               "answerType": "scale",
               "topics": [
-                "application",
                 "financial"
               ]
             },
@@ -1803,9 +1549,7 @@
               "text": "Is there a clear strategy for AI integration — including use of GC Foundation Models and GC AI Compute infrastructure?",
               "weight": 1,
               "answerType": "scale",
-              "topics": [
-                "application"
-              ]
+              "topics": []
             },
             {
               "id": "A-Q36",
@@ -1813,9 +1557,7 @@
               "text": "Is the solution designed to be decommissioned or migrated, with a documented sunset and transition strategy?",
               "weight": 1,
               "answerType": "scale",
-              "topics": [
-                "application"
-              ]
+              "topics": []
             },
             {
               "id": "A-Q37",
@@ -1824,7 +1566,6 @@
               "weight": 1,
               "answerType": "scale",
               "topics": [
-                "application",
                 "security"
               ]
             }
@@ -1850,9 +1591,7 @@
               "text": "Are all details of the current solution's hosting environment — hardware, software, network, and configuration — fully documented?",
               "weight": 1,
               "answerType": "scale",
-              "topics": [
-                "technology"
-              ]
+              "topics": []
             },
             {
               "id": "T-Q2",
@@ -1860,9 +1599,7 @@
               "text": "Is the current solution healthy, with no critical alerts, capacity issues, or unresolved infrastructure-level incidents?",
               "weight": 1,
               "answerType": "scale",
-              "topics": [
-                "technology"
-              ]
+              "topics": []
             },
             {
               "id": "T-Q3",
@@ -1870,9 +1607,7 @@
               "text": "Are there any imminent changes to consumed infrastructure services, and is the solution prepared for those transitions?",
               "weight": 1,
               "answerType": "scale",
-              "topics": [
-                "technology"
-              ]
+              "topics": []
             },
             {
               "id": "T-Q4",
@@ -1880,9 +1615,7 @@
               "text": "Is the lifespan of the solution shorter than that of the infrastructure — and if not, is an upgrade plan in the backlog?",
               "weight": 1,
               "answerType": "scale",
-              "topics": [
-                "technology"
-              ]
+              "topics": []
             },
             {
               "id": "T-Q5",
@@ -1890,9 +1623,7 @@
               "text": "How well-informed is the team about their infrastructure service provider's roadmap, changes, and service performance?",
               "weight": 1,
               "answerType": "scale",
-              "topics": [
-                "technology"
-              ]
+              "topics": []
             },
             {
               "id": "T-Q6",
@@ -1900,9 +1631,7 @@
               "text": "Can infrastructure be ordered and provisioned on demand, and what lead time is required?",
               "weight": 1,
               "answerType": "scale",
-              "topics": [
-                "technology"
-              ]
+              "topics": []
             },
             {
               "id": "T-Q7",
@@ -1910,9 +1639,7 @@
               "text": "Is there a clear inventory of all infrastructure components, including versions, patch levels, and support status?",
               "weight": 1,
               "answerType": "scale",
-              "topics": [
-                "technology"
-              ]
+              "topics": []
             }
           ],
           "stageExpectation": {
@@ -1932,9 +1659,7 @@
               "text": "Is the physical hosting model (on-premise EDC, public cloud, private cloud, hybrid) clearly justified and documented?",
               "weight": 1,
               "answerType": "scale",
-              "topics": [
-                "technology"
-              ]
+              "topics": []
             },
             {
               "id": "T-Q9",
@@ -1943,7 +1668,6 @@
               "weight": 1,
               "answerType": "scale",
               "topics": [
-                "technology",
                 "financial"
               ]
             },
@@ -1953,9 +1677,7 @@
               "text": "Are physical kiosks, IoT devices, or specialized hardware requirements identified and architecturally accommodated?",
               "weight": 1,
               "answerType": "scale",
-              "topics": [
-                "technology"
-              ]
+              "topics": []
             },
             {
               "id": "T-Q11",
@@ -1963,9 +1685,7 @@
               "text": "How well does the design leverage GC-wide service consolidation, shared footprint, and enterprise infrastructure services?",
               "weight": 1,
               "answerType": "scale",
-              "topics": [
-                "technology"
-              ]
+              "topics": []
             },
             {
               "id": "T-Q12",
@@ -1973,9 +1693,7 @@
               "text": "Are elasticity, burst capacity, and auto-scaling requirements defined and architecturally implemented?",
               "weight": 1,
               "answerType": "scale",
-              "topics": [
-                "technology"
-              ]
+              "topics": []
             },
             {
               "id": "T-Q13",
@@ -1983,9 +1701,7 @@
               "text": "Are High-Performance Computing (HPC) and edge computing needs assessed and addressed where applicable?",
               "weight": 1,
               "answerType": "scale",
-              "topics": [
-                "technology"
-              ]
+              "topics": []
             },
             {
               "id": "T-Q14",
@@ -1993,9 +1709,7 @@
               "text": "Is GC AI Compute (dedicated GC-owned/controlled GPU infrastructure) considered and evaluated as a first option for AI workloads?",
               "weight": 1,
               "answerType": "yesno",
-              "topics": [
-                "technology"
-              ]
+              "topics": []
             },
             {
               "id": "T-Q15",
@@ -2003,9 +1717,7 @@
               "text": "Are bandwidth, latency, and network connectivity requirements defined and met by the infrastructure design?",
               "weight": 1,
               "answerType": "scale",
-              "topics": [
-                "technology"
-              ]
+              "topics": []
             },
             {
               "id": "T-Q16",
@@ -2013,9 +1725,7 @@
               "text": "Are storage volumes, IOPS, throughput, and data tiering requirements specified and provisioned appropriately?",
               "weight": 1,
               "answerType": "scale",
-              "topics": [
-                "technology"
-              ]
+              "topics": []
             },
             {
               "id": "T-Q17",
@@ -2023,9 +1733,7 @@
               "text": "Is the deployment model designed to meet availability, recovery time, and recovery point objectives?",
               "weight": 1,
               "answerType": "scale",
-              "topics": [
-                "technology"
-              ]
+              "topics": []
             }
           ],
           "shareOfDomain": 25
@@ -2041,9 +1749,7 @@
               "text": "Is configuration and infrastructure managed as code (IaC/CaC), enabling reproducible and auditable deployments?",
               "weight": 1,
               "answerType": "scale",
-              "topics": [
-                "technology"
-              ]
+              "topics": []
             },
             {
               "id": "T-Q19",
@@ -2051,9 +1757,7 @@
               "text": "How well does the team understand and apply GC-relevant infrastructure design patterns and reference architectures?",
               "weight": 1,
               "answerType": "scale",
-              "topics": [
-                "technology"
-              ]
+              "topics": []
             },
             {
               "id": "T-Q20",
@@ -2061,9 +1765,7 @@
               "text": "Does the architecture embrace composable, modular designs and event-driven models where appropriate?",
               "weight": 1,
               "answerType": "scale",
-              "topics": [
-                "technology"
-              ]
+              "topics": []
             },
             {
               "id": "T-Q21",
@@ -2071,9 +1773,7 @@
               "text": "Is interoperability and containerization baked into the infrastructure design from the beginning?",
               "weight": 1,
               "answerType": "scale",
-              "topics": [
-                "technology"
-              ]
+              "topics": []
             },
             {
               "id": "T-Q22",
@@ -2082,7 +1782,6 @@
               "weight": 1,
               "answerType": "scale",
               "topics": [
-                "technology",
                 "security"
               ]
             },
@@ -2092,9 +1791,7 @@
               "text": "How mature is the use of platform engineering practices — are developer-facing platforms self-service and well-governed?",
               "weight": 1,
               "answerType": "scale",
-              "topics": [
-                "technology"
-              ]
+              "topics": []
             },
             {
               "id": "T-Q24",
@@ -2102,9 +1799,7 @@
               "text": "Are orchestration and container management (e.g., Kubernetes) used appropriately and configured to GC standards?",
               "weight": 1,
               "answerType": "scale",
-              "topics": [
-                "technology"
-              ]
+              "topics": []
             }
           ],
           "shareOfDomain": 20
@@ -2120,9 +1815,7 @@
               "text": "Are resilience requirements (availability tiers, fault tolerance, geo-redundancy) formally defined and validated in design?",
               "weight": 1,
               "answerType": "scale",
-              "topics": [
-                "technology"
-              ]
+              "topics": []
             },
             {
               "id": "T-Q26",
@@ -2131,7 +1824,6 @@
               "weight": 1,
               "answerType": "scale",
               "topics": [
-                "technology",
                 "security"
               ]
             },
@@ -2142,7 +1834,6 @@
               "weight": 1,
               "answerType": "scale",
               "topics": [
-                "technology",
                 "security"
               ]
             },
@@ -2153,7 +1844,6 @@
               "weight": 1,
               "answerType": "scale",
               "topics": [
-                "technology",
                 "security"
               ]
             },
@@ -2164,7 +1854,6 @@
               "weight": 1,
               "answerType": "yesno",
               "topics": [
-                "technology",
                 "security"
               ]
             },
@@ -2175,7 +1864,6 @@
               "weight": 1,
               "answerType": "scale",
               "topics": [
-                "technology",
                 "security"
               ]
             },
@@ -2185,9 +1873,7 @@
               "text": "Is there a documented and tested disaster recovery plan, with defined RTO and RPO that align to business requirements?",
               "weight": 1,
               "answerType": "scale",
-              "topics": [
-                "technology"
-              ]
+              "topics": []
             },
             {
               "id": "T-Q32",
@@ -2196,7 +1882,6 @@
               "weight": 1,
               "answerType": "scale",
               "topics": [
-                "technology",
                 "security"
               ]
             }
@@ -2214,9 +1899,7 @@
               "text": "Are real-time monitoring, alerting, and incident response capabilities in place and actively used?",
               "weight": 1,
               "answerType": "scale",
-              "topics": [
-                "technology"
-              ]
+              "topics": []
             },
             {
               "id": "T-Q34",
@@ -2224,9 +1907,7 @@
               "text": "Is activity auditing implemented at the infrastructure level, enabling forensic investigation and compliance verification?",
               "weight": 1,
               "answerType": "scale",
-              "topics": [
-                "technology"
-              ]
+              "topics": []
             },
             {
               "id": "T-Q35",
@@ -2235,7 +1916,6 @@
               "weight": 1,
               "answerType": "scale",
               "topics": [
-                "technology",
                 "financial"
               ]
             },
@@ -2245,9 +1925,7 @@
               "text": "Is there infrastructure-level observability (metrics, logs, traces) that provides end-to-end system visibility?",
               "weight": 1,
               "answerType": "scale",
-              "topics": [
-                "technology"
-              ]
+              "topics": []
             },
             {
               "id": "T-Q37",
@@ -2256,7 +1934,6 @@
               "weight": 1,
               "answerType": "scale",
               "topics": [
-                "technology",
                 "financial"
               ]
             },
@@ -2267,7 +1944,6 @@
               "weight": 1,
               "answerType": "yesno",
               "topics": [
-                "technology",
                 "financial"
               ]
             },
@@ -2277,9 +1953,7 @@
               "text": "How mature is the infrastructure change management process — are changes reviewed, approved, and traceable?",
               "weight": 1,
               "answerType": "scale",
-              "topics": [
-                "technology"
-              ]
+              "topics": []
             }
           ],
           "shareOfDomain": 20

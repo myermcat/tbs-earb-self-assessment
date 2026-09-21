@@ -138,15 +138,23 @@ const ACCESSIBILITY_WORDS = /\b(accessibilit(y|ies)|WCAG|screen reader|assistive
 const OFFICIAL_LANGUAGES_WORDS = /\b(official languages|bilingualism|bilingual|linguistic dualit)/i;
 
 /**
- * The nine topics Dan named on 8 September, as ids. Declared here as well as in the rubric this
- * writes, because a Topics column has to be checked against something while it is being read,
- * and failing at import is the whole point: a topic nobody declared scores nothing, silently,
- * on every screen.
+ * The five categories TBS named on 8 September, as ids.
+ *
+ * Declared here as well as in the rubric this writes, because the Categories column has to be
+ * checked against something while it is being read, and failing at import is the whole point: a
+ * category nobody declared scores nothing, silently, on every screen.
+ *
+ * The four architecture domains are NOT in this list and must never go back into it. A question
+ * sits in exactly one domain and that is where it lives; a category is a thing a question is
+ * also about. Declaring the domains as categories too put the same four names on both axes,
+ * gave every screen a second number for Business that disagreed with the first, and was
+ * reported twice before it came out.
  */
-const TOPIC_IDS = new Set([
-  'business', 'data', 'application', 'technology',
+const CATEGORY_IDS = new Set([
   'security', 'privacy', 'financial', 'accessibility', 'official-languages',
 ]);
+const CATEGORY_NAMES = 'Security, Privacy, Financial, Accessibility, Official Languages';
+const DOMAIN_NAMES = new Set(['business', 'data', 'application', 'technology']);
 
 /**
  * Where the category columns are, if Dan's workbook has them.
@@ -186,14 +194,28 @@ function topicsFromCell(cell, qid, bad) {
     const name = clean(piece);
     if (!name) continue;
     const id = slug(name);
-    if (TOPIC_IDS.has(id)) out.push(id);
-    else bad.push(`${qid}: "${name}" is not one of the nine categories.`);
+    if (CATEGORY_IDS.has(id)) out.push(id);
+    else if (DOMAIN_NAMES.has(id)) {
+      // Typed by somebody who read the four domain names as categories, which is what the
+      // rubric itself used to say. Worth its own sentence, because the fix is "delete the cell"
+      // and the generic message sends people looking for a spelling mistake.
+      bad.push(`${qid}: "${name}" is a domain, not a category. A question's domain is the sheet `
+        + 'it is on, so it is never typed in the Categories column. Leave the cell blank if the '
+        + 'question is only about its own domain.');
+    }
+    else bad.push(`${qid}: "${name}" is not one of the five categories. They are: ${CATEGORY_NAMES}.`);
   }
   return out;
 }
 
-function topicsFor(domainId, text) {
-  const out = [domainId];
+/**
+ * The provisional reading, used only until the workbook carries a Categories column.
+ *
+ * It no longer seeds the question's own domain. That seed is where the nine came from: every
+ * question got its domain as a category, so the four domains appeared on both axes.
+ */
+function topicsFor(_domainId, text) {
+  const out = [];
   if (SECURITY_WORDS.test(text)) out.push('security');
   if (PRIVACY_WORDS.test(text)) out.push('privacy');
   if (FINANCIAL_WORDS.test(text)) out.push('financial');
@@ -217,7 +239,7 @@ const warnings = [];
 const domains = [];
 /** Which sheets carried a Topics column, so the note on screen can say whose assignments these are. */
 const fromColumn = new Set();
-/** Topic names in a sheet that are not one of the nine. These stop the import. */
+/** Category names in a sheet that are not one of the five. These stop the import. */
 const badTopics = [];
 
 for (const d of DOMAINS) {
@@ -253,15 +275,17 @@ for (const d of DOMAINS) {
     if (/^Q\d+$/.test(qNum) && qText && current) {
       const qid = `${d.id.slice(0, 1).toUpperCase()}-${qNum}`;
       /**
-       * A question's own domain is always one of its topics and is never typed by anybody: it
-       * is where the question lives. What a Topics column adds is the second, third and fourth,
-       * and a cell left blank means "this one is only about its own domain", which is the
-       * common case and should cost nobody any typing.
+       * A question's own domain is where it lives and is never one of its categories. A blank
+       * cell means the question is only about its own domain, which is the common case, 130 of
+       * the 176 today, and it should cost nobody any typing.
+       *
+       * The domain used to be seeded in here, so every question carried it as a category and
+       * the four domains showed up on both axes with two different numbers. Reported twice.
        */
       // Every category column on the row, joined. A blank cell is the normal case.
       const named = topicCols.flatMap((c) => topicsFromCell(r[c], qid, badTopics));
       const topics = topicCols.length
-        ? [...new Set([d.id, ...named])]
+        ? [...new Set(named)]
         : topicsFor(d.id, qText);
       current.questions.push({
         id: qid,
@@ -364,11 +388,8 @@ const rubric = {
   stageMultipliersNote:
     'Our addition. Lifecycle stage is not captured in the current process at all - TBS named it as the key missing field. Only "Defining the Current State" sections carry a rule so far.',
 
+  // Five. The four architecture domains are the other axis and are never listed here.
   topics: [
-    { id: 'business',    label: 'Business',    note: 'Strategy, process, value and cost.' },
-    { id: 'data',        label: 'Data',        note: 'Models, quality, lineage and stewardship.' },
-    { id: 'application', label: 'Application', note: 'What the software does and depends on.' },
-    { id: 'technology',  label: 'Technology',  note: 'Where it runs, and whether it stays up.' },
     { id: 'security',    label: 'Security',    note: 'Cuts across all four. Asked for by name by TBS.' },
     { id: 'privacy',     label: 'Privacy',     note: 'Personal information specifically, and not data in general.' },
     { id: 'financial',   label: 'Financial',   note: 'Cost, funding and value for money. Asked for by name by TBS.' },
@@ -383,15 +404,16 @@ const rubric = {
     'list. A no on a yes/no question raises a red flag: it colours the section and the person carries ' +
     'on. Nothing in this tool stops an assessment.',
   topicsNote:
-    'A second axis. The four domains still produce the overall score and a question counts once '
-    + 'there. A question also counts at full weight inside every category it carries, which is '
-    + 'where the weights genuinely differ. TBS named nine on 8 September: Business, Data, '
-    + 'Application, Technology, Security, Privacy, Accessibility, Official Languages and '
-    + 'Financial. The four domain categories are mechanical. The other five are read from the '
-    + 'wording of each question and are PROVISIONAL: TBS owns the real assignments, and the '
-    + 'Categories column in his workbook is where they come from. Accessibility and Official '
-    + 'Languages are thin rather than absent, at three questions and two, which is worth knowing '
-    + 'before anybody reads a score for either.',
+    'A second axis, and not a second spine. Every question sits in exactly one of the four '
+    + 'architecture domains, and the domains carry the weights that produce the overall score. A '
+    + 'question also counts at full weight inside every category it carries, and the categories '
+    + 'add up to nothing. TBS named five on 8 September: Security, Privacy, Financial, '
+    + 'Accessibility and Official Languages. A question\u2019s domain is not one of them: it is '
+    + 'where the question lives and it is never typed into the Categories column. These five are '
+    + 'read from the wording of each question and are PROVISIONAL: TBS owns the real assignments, '
+    + 'and the Categories column in the workbook is where they come from. Accessibility and '
+    + 'Official Languages are thin rather than absent, at three questions and two, which is worth '
+    + 'knowing before anybody reads a score for either.',
 
   lifecycleStages,
   phases,
@@ -438,9 +460,10 @@ if (previous) {
 if (badTopics.length) {
   console.error(`\nRefusing to write ${OUT}. ${badTopics.length} topic name(s) are not recognised:\n`);
   for (const b of badTopics) console.error(`  - ${b}`);
-  console.error(`\nThe nine are: ${[...TOPIC_IDS].join(', ')}.`);
-  console.error('Fix the Topics column in the workbook, or add the topic to TOPIC_IDS here and to the');
-  console.error('topics list below it if TBS has genuinely named a tenth.');
+  console.error(`\nThe five categories are: ${[...CATEGORY_IDS].join(', ')}.`);
+  console.error('A question\u2019s own domain is the sheet it is on and is never typed in that column.');
+  console.error('Fix the Categories column in the workbook, or add the category to CATEGORY_IDS here');
+  console.error('and to the topics list below it if TBS has genuinely named a sixth.');
   process.exit(1);
 }
 
@@ -454,11 +477,12 @@ if (badTopics.length) {
  */
 const allFromColumn = fromColumn.size === DOMAINS.length;
 rubric.topicsNote = allFromColumn
-  ? 'A second axis. The four domains still produce the overall score and a question counts once '
-    + 'there. A question also counts at full weight inside every topic it carries, which is where '
-    + 'the weights genuinely differ. The nine topics are Business, Data, Application, Technology, '
-    + 'Security, Privacy, Accessibility, Official Languages and Financial. Every assignment beyond '
-    + 'a question\u2019s own domain comes from the Topics column in Dan\u2019s workbook.'
+  ? 'A second axis, and not a second spine. Every question sits in exactly one of the four '
+    + 'architecture domains, and the domains carry the weights that produce the overall score. A '
+    + 'question also counts at full weight inside every category it carries, and the categories add '
+    + 'up to nothing. The five categories are Security, Privacy, Financial, Accessibility and '
+    + 'Official Languages. Every assignment comes from the Categories column in the workbook, and a '
+    + 'question\u2019s own domain is never one of them.'
   : rubric.topicsNote;
 if (!allFromColumn && fromColumn.size) {
   warnings.push(

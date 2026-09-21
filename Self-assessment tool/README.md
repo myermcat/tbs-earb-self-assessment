@@ -59,16 +59,18 @@ back in replies and answerable to access-to-information, and the whole code open
 assessment. Four characters is enough to find the thread in Outlook and eight characters short
 of opening anything.
 
-## Domains and topics, which are two different things
+## Domains and categories, which are two different things
 
 A **domain** is one of the four parts of the GC EA framework: Business, Data, Application,
 Technology. Every question lives in exactly one. They carry 25% each and they produce the
 overall score. That is the spine, and it has to stay a clean split or the arithmetic stops
 meaning anything.
 
-A **topic** is a subject label, and a question can carry as many as apply. There are nine, named
-by Dan on 8 September: the four domain names, plus Security, Privacy, Financial, Accessibility
-and Official Languages.
+A **category** is what a question is also about, and a question can carry as many as apply, or
+none. There are five, named by Dan on 8 September: Security, Privacy, Financial, Accessibility
+and Official Languages. A question's own domain is not one of them, because the domain is where
+the question lives and the category is what it is about. Most questions carry no category at
+all, 130 of the 176 today, and that is the normal case.
 
 Both exist because "how are we doing on security?" cannot be answered from the four domains.
 Security questions are scattered across all four, so a department that is weak on security sees
@@ -96,8 +98,9 @@ the results page says so beside the bar. An earlier version of this file said bo
 which was wrong: the sweep counted hits without reading them, and "accessibility" the noun is
 not the same word as "accessible" in the FAIR principles. **A question is never
 duplicated into a second tab** — that would count it twice in the overall score and move the
-department's number for no reason but how we filed it. A name that is not one of the nine
-refuses the whole import and says which question and which name.
+department's number for no reason but how we filed it. A name that is not one of the five
+refuses the whole import and says which question and which name. So does a domain name typed
+into the Categories column, with a sentence saying the cell should be left blank.
 
     node tools/import-rubric.mjs
 
@@ -216,12 +219,12 @@ three-colour red-amber-green of our invention.
   question, its section, the rail row and the domain tab red. It stops nothing: it marks
   where a reader should look first. Which questions these are is our reading of the wording
   and is labelled provisional until Dan confirms it.
-- Questions also carry **topics** - security, privacy, cost, data, business, technology - so
-  the same answers can be cut across the domains. Security questions sit in all four domains,
-  which means a department weak on security cannot see it in the domain bars: the weakness is
-  spread over four numbers that each look fine. A question counts fully in each topic it
-  belongs to, and once in the overall, so the topic scores do not add up to the overall. The
-  page says so.
+- Questions also carry **categories** - security, privacy, financial, accessibility, official
+  languages - so the same answers can be read a second way that the domains cannot show.
+  Security questions sit in all four domains, which means a department weak on security cannot
+  see it in the domain bars: the weakness is spread over four numbers that each look fine. A
+  question counts fully in each category it belongs to, and once in the overall through its
+  domain, so the category scores do not add up to the overall. The page says so.
 
 ## Bands
 
