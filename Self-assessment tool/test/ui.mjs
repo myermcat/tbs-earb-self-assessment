@@ -589,6 +589,75 @@ ok('the rail shows every section of the current domain as done',
     ok('and back to English on both', en.every((x) => / of /.test(x)), en.join(' | '));
   }
 }
+
+/**
+ * Every number on the screen counts the same questions.
+ *
+ * Reported as: with Security on, the rail still shows 0 of 9 for a section showing 2 questions.
+ * Three places counted, and only the domain tabs knew a lens was on, so the rail and both bars
+ * at the bottom described a page nobody was looking at. Nothing exercised the lens at all,
+ * which is how it shipped.
+ *
+ * Written as agreement and not as figures. The figures are Dan's to change, and a gate that
+ * pins them goes red the day he moves a question between categories, which teaches everybody
+ * to edit the gate.
+ */
+{
+  const chip = qa('.lens-chip').find((c) => /Security/i.test(c.textContent));
+  ok('there is a category to look through', !!chip, qa('.lens-chip').map((c) => c.textContent).join(' | '));
+  const claimed = Number((chip.querySelector('.lens-n')?.textContent ?? '0').trim());
+  chip.click();
+
+  const shown = qa('.sheet .question').length;
+  const num = (s) => Number((String(s).match(/(\d+)\s*(?:of|sur|\/)\s*(\d+)/) ?? [])[2] ?? -1);
+  const openTab = qa('.chrome .step').find((t) => t.classList.contains('on'))
+    ?? qa('.chrome .step').find((t) => t.getAttribute('aria-current') === 'page');
+  const railDom = qa('.toc-row.toc-dom').find((x) => x.classList.contains('open'));
+  const bars = qa('.progress-row .pbar-label').map((l) => l.textContent.replace(/\s+/g, ' ').trim());
+
+  ok('the lens puts some questions on the page', shown > 0, String(shown));
+  ok('and the tab for the open domain counts exactly those',
+     num(openTab?.textContent) === shown, `${openTab?.textContent} against ${shown} shown`);
+  ok('and so does its row in the rail',
+     num(railDom?.textContent) === shown, `${railDom?.textContent} against ${shown} shown`);
+  ok('and so does the bar for this page',
+     num(bars[0]) === shown, `${bars[0]} against ${shown} shown`);
+  /**
+   * And it says which domain it is counting. The count alone is not enough: the section this
+   * suite finishes on holds exactly as many questions as the domain holds of this category, so
+   * a bar still captioned "This section" reads the same number by coincidence and the
+   * agreement check passes on a page that is wrong.
+   */
+  ok('and the page bar names the domain it is counting rather than a section',
+     !/This section|Cette section/.test(bars[0]), bars[0]);
+
+  const acrossTabs = qa('.chrome .step').slice(1).reduce((n, t) => n + num(t.textContent), 0);
+  ok('the second bar counts the category everywhere, which is what the tabs add up to',
+     num(bars[1]) === acrossTabs, `${bars[1]} against ${acrossTabs} across the tabs`);
+  ok('and the chip that turned it on says the same number',
+     num(bars[1]) === claimed, `${bars[1]} against ${claimed} on the chip`);
+  ok('and both bars name the category they are counting',
+     /Security/i.test(bars[1]), bars.join(' | '));
+
+  /**
+   * A section with none of the category is greyed and kept. Hiding it would make the rail
+   * change length on every category somebody tries, and the row is the answer to whether any
+   * of it is in there.
+   */
+  const secs = qa('.toc-row.toc-sec');
+  ok('a section holding none of it is greyed rather than taken away',
+     secs.length > 0 && secs.every((x) => x.classList.contains('lens-empty-row') === (num(x.textContent) === 0)),
+     secs.map((x) => `${x.textContent}:${x.classList.contains('lens-empty-row')}`).join(' | '));
+
+  // And turning it off puts every readout back.
+  qa('.lens-chip').find((c) => /All questions/i.test(c.textContent)).click();
+  const back = qa('.progress-row .pbar-label').map((l) => l.textContent.replace(/\s+/g, ' ').trim());
+  ok('turning the lens off restores the section bar', /This section/.test(back[0]), back[0]);
+  ok('and the whole-assessment bar with it',
+     num(back[1]) === TOTAL && /Whole assessment/.test(back[1]), back[1]);
+  ok('and nothing in the rail is greyed any more',
+     qa('.toc-row.lens-empty-row').length === 0, String(qa('.toc-row.lens-empty-row').length));
+}
 // Every scale question got a 7 and every yes/no question got a Yes, which scores the top of
 // the scale, so the overall sits a little above 7.
 ok('footer reflects the sweep: a shade over 7', (() => {
