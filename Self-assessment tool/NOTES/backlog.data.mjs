@@ -249,8 +249,10 @@ export const layers = [
   {
     title: 'Interface: the submitter', owner: 'ours',
     groups: [
-      { t: 'The questionnaire on a phone', status: 'next',
-        why: 'Measured at 375 by 812. The page no longer runs off the side, which was the first half and has landed. The vertical budget is the rest: 322px of fixed header and 191px of fixed footer against an 812px screen, so the question itself gets 299px, which is 37 per cent of the phone. Every label in the section rail collapses to zero width, so that rail renders as a row of bare counts with no names. Three buttons in the footer each wrap onto two lines. Nobody has said they are filling this in on a phone, and nobody has said they are not.' },
+      { t: 'The questionnaire on a phone', status: 'done',
+        why: 'Measured at 375 by 812, before and after. The page laid out 601px wide and every question card was cut off at the right edge; it is 375 now. The fixed header was 322px and the bar at the bottom 191px against an 812px screen, so the question itself had 299px, and it has 500.9, which is the first time a whole question card fits. The section rail rendered as a row of bare counts because every label collapsed to zero width, and it names its sections again. Four captions in the bar were bare English inside a bilingual tool. No new breakpoint was added and a gate refuses an eighth, because seven narrow widths were already in the file and none of them was the agreed one. Desktop measured unchanged at 1200 by 900. Nobody has said they are filling this in on a phone, and nobody has said they are not.' },
+      { t: 'Every readout agrees with the page under a category lens', status: 'done',
+        why: 'Reported as: with Security on, the rail still shows 0 of 9 for a section showing 2 questions. Three places counted the same questions and only the domain tabs knew a lens was on. One function counts now and every readout calls it, so with Security on and Business open the tab, the rail row and the bar at the bottom all say 0 of 1 against the one question on the page, the four tabs add up to 25, and that is what the chip and the second bar say. Nothing exercised the lens at all, which is how it shipped; the gate asserts that the readouts agree with the questions rendered rather than pinning any figure, because the figures are Dan\u2019s to change.' },
       { t: 'Evidence', status: 'done',
         why: 'The change that follows from unclassified-only.',
         subs: [
