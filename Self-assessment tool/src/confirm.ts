@@ -248,6 +248,11 @@ export interface ConfirmTyped {
   /** Everything that goes, listed. GitHub enumerates it and so should we. */
   consequences: string[];
   /** The exact string somebody has to type. Shown, so it can be read and copied. */
+  /**
+   * The line above the list. Defaults to saying the act cannot be undone, which is true of a
+   * deleted assessment and false of access that any assessor can give back.
+   */
+  lead?: string;
   phrase: string;
   /** What to call the phrase in the instruction: "the initiative name", "the reference". */
   phraseLabel: string;
@@ -285,7 +290,7 @@ export function confirmTyped(o: ConfirmTyped): void {
    */
   dlg.appendChild(el('div', { class: 'cf-head' }, [el('h2', { class: 'cf-title' }, [o.title])]));
   dlg.appendChild(el('div', { class: 'cf-body' }, [
-    el('p', {}, [t('This cannot be undone. It removes:', 'Cette action est irréversible. Elle supprime :')]),
+    el('p', {}, [o.lead ?? t('This cannot be undone. It removes:', 'Cette action est irréversible. Elle supprime :')]),
     el('ul', { class: 'typed-list' }, o.consequences.map((c) => el('li', {}, [c]))),
     el('p', { class: 'typed-ask' }, [
       t(`To confirm, type ${o.phraseLabel}: `, `Pour confirmer, saisissez ${o.phraseLabel} : `),

@@ -58,7 +58,7 @@ const asDoc = (a) => ({ name: `projects/p/databases/(default)/documents/assessme
  * One page, booted with whatever storage and whatever store answer a case needs.
  * `listAnswer` decides what the assessments list does: a page of documents, or a refusal.
  */
-async function boot({ session = null, side = null, listAnswer = { documents: [] }, role = null, hash = '', url = null, draft = null } = {}) {
+async function boot({ session = null, side = null, listAnswer = { documents: [] }, role = null, hash = '', url = null, draft = null, people = null } = {}) {
   const seen = [];
   const dom = new JSDOM(html, {
     runScripts: 'dangerously',
@@ -78,16 +78,24 @@ async function boot({ session = null, side = null, listAnswer = { documents: [] 
       w.fetch = async (url, init) => {
         const href = String(url);
         seen.push({ href, method: init?.method ?? 'GET' });
-        const roles = href.includes('/roles/');
-        const body = roles
+        // The access list is a collection read; a role check is one document by name.
+        const peopleList = /\/roles\?/.test(href);
+        const roles = href.includes('/roles/') && !peopleList;
+        const body = peopleList
+          ? { documents: (people ?? []).map((p) => ({
+              name: `projects/x/databases/(default)/documents/roles/${encodeURIComponent(p.email)}`,
+              fields: Object.fromEntries(Object.entries(p).filter(([k]) => k !== 'email')
+                .map(([k, v]) => [k, { stringValue: String(v) }])),
+            })) }
+          : roles
           ? (role ? { fields: { role: { stringValue: role } } } : { error: { code: 404 } })
           : href.includes('/assessments')
             ? (listAnswer.error
                 ? { error: { code: 403, status: 'PERMISSION_DENIED', message: 'Missing or insufficient permissions.' } }
                 : listAnswer)
             : {};
-        const status = roles
-          ? (role ? 200 : 404)
+        const status = peopleList ? 200
+          : roles ? (role ? 200 : 404)
           : href.includes('/assessments') && listAnswer.error ? 403 : 200;
         // jsdom's window has no Response, so the shape the page reads is supplied directly.
         return {
@@ -333,10 +341,35 @@ console.log('\nThe published build, signed in\n');
 }
 
 {
-  // An assessor is not an admin, and the admin view can delete things.
+  /**
+   * One rung. An assessor reaches every screen on this side, the admin view included.
+   *
+   * There used to be an admin above the assessor, and this assertion checked the assessor was
+   * turned back from the admin view. It bought a separation nobody asked for and it cost a
+   * lockout: taking a grant back needed admin, and an assessor could write a role document
+   * naming an admin's own address, after which the admin had no way in. Asked for in these
+   * words: basically there are only two functionalities, submitter and assessor.
+   */
   const { doc, dom } = await boot({ session: live, side: 'assess', role: 'assessor', hash: '#assessor/admin' });
-  ok('an assessor asking for the admin view is turned back', /admin view is for admins/i.test(body(doc)),
-     body(doc).slice(0, 160));
+  const t = body(doc);
+  ok('an assessor reaches the admin view, because there is no rung above assessor',
+     !/does not have access/i.test(t) && !/admin view is for admins/i.test(t), t.slice(0, 160));
+  ok('and it is the portfolio they land on', /Portfolio/.test(t), t.slice(0, 160));
+  dom.window.close();
+}
+
+{
+  /**
+   * An account whose access was taken away is told that, and not told it was never added.
+   *
+   * Removal marks the record rather than deleting it, so this is a state the store can report
+   * and the screen has to be able to name. The two read very differently to the person: one is
+   * "ask somebody to add you", the other is "somebody removed you".
+   */
+  const { doc, dom } = await boot({ session: live, side: 'assess', role: 'removed' });
+  const t = body(doc);
+  ok('a removed account is told it no longer has access', /no longer has access/i.test(t), t.slice(0, 160));
+  ok('and is told any assessor can put it back', /any assessor can put it back/i.test(t), t.slice(0, 200));
   dom.window.close();
 }
 
@@ -746,12 +779,121 @@ console.log('\nThe published build, signed in\n');
     const rail = [...doc.querySelectorAll('.set-navrow')].map((b) => b.textContent.trim());
     ok('an assessor is not offered the submitter\u2019s own answers', !rail.includes('Your answers'), rail.join(' | '));
     ok('nor a control that erases them', !rail.includes('Start again'), rail.join(' | '));
-    ok('and what is left belongs to both sides', rail.length === 3, rail.join(' | '));
+    ok('and what is left belongs to both sides, plus the access list',
+       rail.length === 4, rail.join(' | '));
+    /**
+     * The access list is the assessor's screen. A submitter has no store identity to list, and
+     * the submitter rail is asserted whole in test/ui.mjs, which is where its absence is caught.
+     */
+    ok('and the assessor is offered the access list', rail.includes('Who has access'), rail.join(' | '));
     ok('and nothing on screen offers to discard anything',
        !/Discard this assessment/i.test(doc.querySelector('.set-pane')?.textContent ?? ''));
   dom.window.close();
 }
 
+
+/* --------------------------------------------------------------------------------------- */
+{
+  /**
+   * Who has access, and the two things anybody does to it.
+   *
+   * Any assessor adds another and any assessor can take access away, which is the whole trust
+   * model: no rule can tell a colleague from a stranger, so what the store enforces instead is
+   * that a grant carries whoever made it, and this screen has to show that. Removal is behind
+   * the person's full name typed out, asked for as: to delete, they need to go through hell.
+   */
+  const { doc, dom } = await boot({
+    session: live, side: 'assess', role: 'assessor',
+    people: [
+      { email: ME, name: 'Signed In Assessor', role: 'assessor', addedBy: 'first@tbs-sct.gc.ca', addedAt: '2026-09-01T10:00:00Z' },
+      { email: 'colleague@tbs-sct.gc.ca', name: 'Jean Tremblay', role: 'assessor', addedBy: ME, addedAt: '2026-09-10T10:00:00Z' },
+      { email: 'gone@tbs-sct.gc.ca', name: 'Retired Person', role: 'removed', addedBy: ME, addedAt: '2026-08-01T10:00:00Z', removedBy: ME, removedAt: '2026-09-15T10:00:00Z' },
+    ],
+  });
+  const gear = [...doc.querySelectorAll('button')].find((b) => /Settings/i.test(b.getAttribute('title') || ''));
+  gear.click();
+  await new Promise((r) => setTimeout(r, 60));
+  [...doc.querySelectorAll('.set-navrow')].find((b) => /Who has access/.test(b.textContent)).click();
+  await new Promise((r) => setTimeout(r, 120));
+  const pane = doc.querySelector('.set-pane');
+  const text = pane?.textContent ?? '';
+
+  ok('the access list names everybody the store knows',
+     /Jean Tremblay/.test(text) && /Retired Person/.test(text), text.slice(0, 200));
+  ok('and says who added whom, because any assessor can add anybody',
+     /Added by first@tbs-sct\.gc\.ca/.test(text), text.slice(0, 300));
+  ok('and says who took an access away, and when',
+     new RegExp(`Removed by ${ME}`).test(text), text.slice(0, 400));
+  ok('and marks the account that is signed in', /\byou\b/.test(text), text.slice(0, 200));
+  /**
+   * The one with access is offered removal and the one without is offered it back. A screen
+   * that offers both to both is a screen where the state has to be read out of the prose.
+   */
+  const acts = [...pane.querySelectorAll('.set-row-act button')].map((b) => b.textContent);
+  ok('every row carries exactly one control', acts.length === 3, acts.join(' | '));
+  ok('and a removed person is offered their access back, not removal again',
+     acts.filter((a) => /put their access back/i.test(a)).length === 1, acts.join(' | '));
+
+  /**
+   * Adding asks for a name as well as an address, because removal asks for the name to be typed
+   * and nobody can invent one after the fact.
+   */
+  const fields = [...pane.querySelectorAll('.people-add input')];
+  ok('adding asks for a name and an address', fields.length === 2,
+     fields.map((f) => f.type).join(','));
+  const add = [...pane.querySelectorAll('.people-add button')].find((b) => /Add this assessor/.test(b.textContent));
+  fields[1].value = 'someone@tbs-sct.gc.ca';
+  add.click();
+  await new Promise((r) => setTimeout(r, 30));
+  ok('and refuses an address with no name against it',
+     /Put their name in/i.test(pane.textContent), pane.textContent.slice(-200));
+  fields[0].value = 'Someone New';
+  fields[1].value = 'colleague@tbs-sct.gc.ca';
+  add.click();
+  await new Promise((r) => setTimeout(r, 30));
+  ok('and refuses an address that is already on the list',
+     /already on the list/i.test(pane.textContent), pane.textContent.slice(-200));
+
+  /**
+   * A non-government address warns and does not refuse. Sign-in is Google, so the address that
+   * works is whichever one the person's Google account uses, and the account that set this
+   * project up is a personal one. Refusing would lock out exactly the person who fixes things.
+   */
+  fields[1].value = 'someone@gmail.com';
+  fields[1].dispatchEvent(new dom.window.Event('input', { bubbles: true }));
+  await new Promise((r) => setTimeout(r, 20));
+  ok('a non-government address is warned about and not refused',
+     /not a government address/i.test(pane.textContent)
+     && !doc.querySelector('.people-add button')?.disabled,
+     pane.textContent.slice(-200));
+
+  /**
+   * Removal: two windows, and the second will not commit until the full name is typed.
+   */
+  const remove = [...pane.querySelectorAll('.set-row-act button')].find((b) => /Take their access away/.test(b.textContent));
+  remove.click();
+  await new Promise((r) => setTimeout(r, 40));
+  const first = doc.querySelector('dialog.confirm');
+  ok('removal asks once before it asks for the typing', !!first, 'no window');
+  ok('and says the audit they wrote is untouched',
+     /stays on every score they changed/i.test(first.textContent), first.textContent.slice(0, 300));
+  [...first.querySelectorAll('.cf-actions button')].find((b) => /Continue/.test(b.textContent)).click();
+  await new Promise((r) => setTimeout(r, 40));
+  const typed = doc.querySelector('dialog.confirm.typed');
+  ok('and then asks for the full name to be typed out', !!typed, 'no typing window');
+  const commit = [...typed.querySelectorAll('.cf-actions button')][0];
+  ok('with the button dead until it matches', commit.disabled === true);
+  ok('and it does not claim the removal is permanent, because access can be given back',
+     !/cannot be undone/i.test(typed.textContent), typed.textContent.slice(0, 200));
+  const box = typed.querySelector('input.typed-field');
+  box.value = 'Jean';
+  box.dispatchEvent(new dom.window.Event('input', { bubbles: true }));
+  ok('half the name is not the name', commit.disabled === true);
+  box.value = 'Jean Tremblay';
+  box.dispatchEvent(new dom.window.Event('input', { bubbles: true }));
+  ok('and the whole name arms it', commit.disabled === false);
+  dom.window.close();
+}
 
 console.log(fails ? `\n${fails} hosted check(s) failed\n` : '\nall hosted checks passed\n');
 process.exit(fails ? 1 : 0);
