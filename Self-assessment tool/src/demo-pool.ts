@@ -9,6 +9,7 @@
  * The names are obviously invented on purpose. A demonstration that used a real department's
  * name would be quoted back as that department's score.
  */
+import { DEMO_MARK } from './keys';
 import type { Assessment, Rubric } from './types';
 
 interface Sketch {
@@ -103,7 +104,7 @@ export function demoAssessments(rubric: Rubric): Assessment[] {
       meta: {
         createdAt: '2026-09-01T09:00:00.000Z',
         updatedAt: '2026-09-18T15:00:00.000Z',
-        appVersion: 'demonstration',
+        appVersion: DEMO_MARK,
         ...(sk.submitted ? { submittedAt: '2026-09-18T15:00:00.000Z' } : {}),
       },
     } as Assessment;

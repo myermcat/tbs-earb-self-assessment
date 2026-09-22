@@ -18,10 +18,11 @@
  * eleven rungs of the scale are data, so their French belongs in the rubric file beside the
  * English. That is a separate piece of work and it is his text, not ours.
  */
+import { storeKey } from './keys';
 
 export type Lang = 'en' | 'fr';
 
-const KEY = 'gc-arch-assessment:lang';
+const KEY = storeKey('lang');
 let current: Lang = 'en';
 const missing = new Set<string>();
 const seen = new Set<string>();

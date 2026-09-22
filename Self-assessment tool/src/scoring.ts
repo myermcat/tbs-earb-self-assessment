@@ -288,3 +288,19 @@ export function anchorFor(rubric: Rubric, q: Question, value: number) {
   const ladder = (q.anchors ?? rubric.scale.anchors).slice().sort((a, b) => b.value - a.value);
   return ladder.find((x) => x.value <= value) ?? null;
 }
+
+/**
+ * The order the assessor's list is in, given as one function so the heading over the table can
+ * be checked against it.
+ *
+ * Reported as: "6 submissions, weakest first" so why is Legacy code check last. Three rules
+ * decide that row and the heading named one of them. Ready before draft, because scoring
+ * somebody's unfinished work is the mistake the State column exists to prevent. Then the lowest
+ * score. Then, at the end of its group, a submission with no score at all: none of its answers
+ * exist in a question set this browser holds, so there is no number to rank it by.
+ */
+export function triageOrder<T extends { a: Assessment; r: { overall: number | null } }>(rows: T[]): T[] {
+  const ready = (row: T) => (row.a.meta?.submittedAt ? 0 : 1);
+  const rank = (row: T) => row.r.overall ?? Number.POSITIVE_INFINITY;
+  return [...rows].sort((x, y) => ready(x) - ready(y) || rank(x) - rank(y));
+}

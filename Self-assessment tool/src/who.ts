@@ -22,9 +22,9 @@
  * abandoned and not kept. EARB_ACCESS at build time picks which one answers.
  */
 import { currentUser, isConfigured, knownRole, type Role } from './firebase';
+import { isDemoBuild } from './keys';
 
 declare const __EARB_ACCESS__: string;
-declare const __EARB_DEMO__: boolean;
 
 /**
  * Whether this build is for showing the tool to a room.
@@ -35,9 +35,7 @@ declare const __EARB_DEMO__: boolean;
  *
  * The one thing it must never be is the published assessor page. A test refuses that.
  */
-export function isDemo(): boolean {
-  return typeof __EARB_DEMO__ === 'boolean' ? __EARB_DEMO__ : false;
-}
+export function isDemo(): boolean { return isDemoBuild(); }
 declare const __EARB_SIDE__: string;
 
 export type AccessMode = 'accounts' | 'code';

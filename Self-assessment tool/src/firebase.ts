@@ -1,4 +1,5 @@
 import type { Assessment } from './types';
+import { storeKey } from './keys';
 
 /**
  * Cloud Firestore and Firebase Authentication, over their REST APIs.
@@ -248,8 +249,8 @@ function postJson(url: string, payload: unknown): Promise<Reply> {
 export type Provider = 'google.com' | 'microsoft.com';
 export interface CurrentUser { email: string; idToken: string }
 
-const SESSION_KEY = 'gc-arch-assessment:firebase-session';
-const PENDING_KEY = 'gc-arch-assessment:firebase-signin';
+const SESSION_KEY = storeKey('firebase-session');
+const PENDING_KEY = storeKey('firebase-signin');
 
 /** A token is good for an hour. The minute of margin is for a clock that runs slow. */
 const CLOCK_MARGIN_MS = 60_000;
@@ -774,7 +775,7 @@ export async function getAssessment(id: string): Promise<Assessment | null> {
  * Kept per assessment, because a browser can hold one draft and open somebody else's record by
  * its code in the same session.
  */
-const BASE_KEY = 'gc-arch-assessment:online-base';
+const BASE_KEY = storeKey('online-base');
 
 function readBase(id: string): Record<string, unknown> | null {
   try {
