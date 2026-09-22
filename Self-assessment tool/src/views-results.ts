@@ -221,7 +221,7 @@ export function renderResults(
           onclick: () => onOpenQuestion(qs.question.id),
         }, [
           el('span', { class: `cat-q-score ${qs.answered ? tone(qs.raw as number) : 'dim'}` }, [said]),
-          el('span', { class: 'cat-q-text' }, [
+          el('span', { class: 'cat-q-text', lang: 'en' }, [
             qs.question.text,
             el('span', { class: 'cat-q-where' }, [domainOf.get(qs.question.id) ?? '']),
           ]),
@@ -266,7 +266,7 @@ export function renderResults(
       back.appendChild(el('div', { class: 'backlog-item' }, [
         el('div', { class: 'q-head' }, [
           el('span', { class: `pill small ${tone(qs.raw)}` }, [String(qs.raw)]),
-          el('span', { class: 'q-text' }, [qs.question.text]),
+          el('span', { class: 'q-text', lang: 'en' }, [qs.question.text]),
         ]),
         next ? el('p', { class: 'small' }, [el('b', {}, [`To reach ${next.value}: `]), next.label]) : null,
         qs.question.nextSteps?.length
@@ -331,7 +331,7 @@ export function renderResults(
       const ev = a.answers[qs.question.id]?.evidence ?? [];
       tb.appendChild(el('tr', {}, [
         el('td', {}, [qs.question.id]),
-        el('td', {}, [qs.question.text]),
+        el('td', { lang: 'en' }, [qs.question.text]),
         el('td', { class: tone(qs.raw) }, [qs.na ? 'n/a' : qs.raw === null ? '--' : String(qs.raw)]),
         el('td', { class: 'muted small' }, [qs.effectiveWeight ? qs.effectiveWeight.toFixed(1) : '-']),
         el('td', { class: 'small' }, [ev.length ? ev.map((e) => e.title || 'untitled').join('; ') : '--']),

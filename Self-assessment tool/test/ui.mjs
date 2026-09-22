@@ -658,6 +658,42 @@ ok('the rail shows every section of the current domain as done',
   ok('and nothing in the rail is greyed any more',
      qa('.toc-row.lens-empty-row').length === 0, String(qa('.toc-row.lens-empty-row').length));
 }
+
+/**
+ * The question set is English inside a page that says it is French, and it says so.
+ *
+ * Reported as: in submitter view there is no french text whatsoever. The chrome does switch.
+ * What fills that screen is Dan's 176 questions, the twenty section names and the eleven rungs
+ * of the scale, none of which has a French version to switch to, so 23,236 of the 28,709
+ * characters on a questions page stay English whatever the language link says. Marking them is
+ * what stops a French screen reader pronouncing all of it in a French voice, and it is WCAG 2.1
+ * success criterion 3.1.2.
+ *
+ * Asserted against the rubric this page loaded, so it cannot pass on a screen showing something
+ * else, and through closest('[lang]'), which is what assistive technology resolves. Marking only
+ * the root fails it, because closest would answer fr.
+ */
+{
+  q('.lang-link').click();
+  ok('the page says it is French', document.documentElement.getAttribute('lang') === 'fr');
+  const shown = q('.q-text');
+  const known = rubric.domains.flatMap((d) => d.sections.flatMap((sec) => sec.questions.map((x) => x.text)));
+  ok('a question on it is the question set own English',
+     !!shown && known.includes(shown.textContent), shown?.textContent?.slice(0, 50));
+  ok('and it is marked as English, so it is not read aloud in French',
+     shown?.closest('[lang]')?.getAttribute('lang') === 'en',
+     shown?.closest('[lang]')?.getAttribute('lang'));
+  const heading = q('.section-head-card h2');
+  ok('the section name with it',
+     heading?.closest('[lang]')?.getAttribute('lang') === 'en',
+     heading?.closest('[lang]')?.getAttribute('lang'));
+  const rung = qa('.ladder li span')[0];
+  ok('and every rung of the scale under it',
+     rung?.closest('[lang]')?.getAttribute('lang') === 'en',
+     rung?.closest('[lang]')?.getAttribute('lang'));
+  q('.lang-link').click();
+  ok('and English again afterwards', document.documentElement.getAttribute('lang') === 'en');
+}
 // Every scale question got a 7 and every yes/no question got a Yes, which scores the top of
 // the scale, so the overall sits a little above 7.
 ok('footer reflects the sweep: a shade over 7', (() => {
@@ -706,6 +742,7 @@ ok('and the page says which one it is in',
   q('.lang-link').click();
   ok('and back again', document.documentElement.getAttribute('lang') === 'en');
 }
+
 ok('and one click opens the detail', q('.save-state').tagName === 'BUTTON');
 
 // With work in the file, the start page points at Settings and destroys nothing itself.

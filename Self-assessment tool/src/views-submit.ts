@@ -389,9 +389,9 @@ function sectionHead(
 
   const flagNote = el('div', {});
   const node = el('section', { class: 'card section-head-card' }, [
-    el('p', { class: 'eyebrow' }, [ds.domain.label]),
+    el('p', { class: 'eyebrow', lang: 'en' }, [ds.domain.label]),
     el('div', { class: 'head-row' }, [
-      el('h2', {}, [ss.section.label]),
+      el('h2', { lang: 'en' }, [ss.section.label]),
       pill,
       srPill,
       stageNote,
@@ -451,7 +451,7 @@ function sectionRail(
         class: `toc-row toc-dom ${open ? 'open' : ''}`,
         onclick: () => navigate(firstStopIn(list, d.id)),
       }, [
-        el('span', { class: 'toc-label' }, [shortLabel(d.label)]),
+        el('span', { class: 'toc-label', lang: 'en' }, [shortLabel(d.label)]),
         (() => {
           const c = el('span', { class: 'toc-count' });
           register((rr) => {
@@ -472,7 +472,7 @@ function sectionRail(
               'aria-current': here.key === key ? 'page' : 'false',
               onclick: () => navigate(key),
             }, [
-              el('span', { class: 'toc-label' }, [sec.label]),
+              el('span', { class: 'toc-label', lang: 'en' }, [sec.label]),
               count,
               el('span', { class: 'toc-bar' }, [fill]),
             ]);
@@ -1321,7 +1321,7 @@ function questionBlock(rubric: Rubric, a: Assessment, q: Question, refresh: () =
   wrap.setAttribute('data-qid', cssId(q.id));
   wrap.appendChild(el('div', { class: 'q-head' }, [
     el('span', { class: 'qid' }, [q.id]),
-    el('span', { class: 'q-text', id: textId }, [q.text]),
+    el('span', { class: 'q-text', id: textId, lang: 'en' }, [q.text]),
     expBadge,
   ]));
   if (q.help) wrap.appendChild(el('p', { class: 'muted small' }, [q.help]));
@@ -1333,7 +1333,7 @@ function questionBlock(rubric: Rubric, a: Assessment, q: Question, refresh: () =
     // A third child became a third grid item and dropped onto its own row under the number.
     ladderList.appendChild(el('li', {}, [
       el('b', {}, [String(anchor.value)]),
-      el('span', {}, [
+      el('span', { lang: 'en' }, [
         anchor.name ? el('i', {}, [`${anchor.name}. `]) : null,
         anchor.label,
       ]),
