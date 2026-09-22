@@ -98,7 +98,7 @@ color:var(--ink-3);background:var(--surface-2);border:1px solid var(--line-2)}
 <div class="head"><div class="head-in"><h1>EARB self-assessment: backlog</h1>
 <p class="sub">Updated 2026-09-21.</p></div></div>
 <nav class="topnav"><div class="topnav-in">
-<a class="nav-kpi" href="#quick"><b>39</b><span>next</span></a>
+<a class="nav-kpi" href="#quick"><b>42</b><span>next</span></a>
 <a class="nav-kpi" href="#waiting"><b>14</b><span>waiting on somebody</span></a>
 <a class="nav-kpi" href="#level2"><b>8</b><span>after the prototype</span></a>
 <a class="nav-kpi" href="#done"><b>84</b><span>done</span></a>
@@ -119,6 +119,14 @@ color:var(--ink-3);background:var(--surface-2);border:1px solid var(--line-2)}
 <div class="wrap">
 <h2 id="quick">Quick actions</h2><p class="hint">No discussion needed.</p>
 <div class="card quick">
+<div class="leaf solo">
+<span class="t">The tool is half bilingual, and the assessor side is not bilingual at all</span><span class="st st-next">Next</span>
+<span class="w">Reported as: in submitter view there is no french text whatsoever, the french toggle is present. The toggle works; the screen it was tried on is 8 per cent chrome. Measured on the built pages, visible characters that change when French is asked for: the start page 84 per cent, the overview 73, a questions page 8, the results page 3, the assessor list 2, an open submission 0.06. Three separate things are inside that. One, our own wording that never went through t(): about 380 strings on the submitter and shared side and 138 on the assessor side, where views-review.ts and views-dashboard.ts make no t() call at all. That is three to four days plus a day of review for the submitter side and a day and a half plus half a day for the assessor side, and it waits on nobody. Two, the question set, which is 3,356 words of Dan’s English with no field anywhere to hold a French version: two days of build work for the format, the validator, the importer and the lock file, and it cannot start until the French text exists. Three, things that stay English on purpose: the access code, the question ids, which are spreadsheet column names, and this page. The part that landed on 21 September was the accessibility half: the set now says it is English inside a page that says it is French, so a screen reader stops reading 23,236 characters of English in a French voice.</span>
+</div>
+<div class="leaf solo">
+<span class="t">Ask Dan for the French of the question set</span><span class="st st-wait">Waiting</span>
+<span class="w">3,356 words, and the Translation Bureau on instrument text of that size is weeks, so it is the long pole and the ask should go now. It breaks down as 2,696 words of the 176 questions, 236 for the eleven rungs of the scale, which is the ladder a submitter reads to pick a score, 113 for the routing and maturity bands, 105 for the twenty section names and four domain names, 91 for the seven lifecycle stages, 89 for the five categories and 26 for the title and the rest. Two decisions in it are his and not ours. Whether the French is a second file or extra fields in the one file, given that the ids are spreadsheet column names and rubric-ids.lock.json has to stay identical either way. And who signs off the wording, because a self-assessment whose questions differ between the two languages is two instruments.</span>
+</div>
 <div class="leaf solo">
 <span class="t">Friday: which of three ways Dan sees the assessor side</span><span class="st st-wait">Waiting</span>
 <span class="w">He picks, because two of the three cost him something and that is his to weigh. One, he gives a Google address and is added as an assessor: the real store, the real pool, the real screens, one form and under a minute, nothing built and nothing published. It is a personal address holding a grant on a government prototype, he gets the top rung, which includes deleting any record and removing any assessor, and access can be taken away afterwards in the danger zone. Two, the demonstration page, which needs no account at all: the real screens against four invented submissions, no store address compiled into it, nothing kept. Three, he watches while somebody signed in drives. The submitter side needs no decision at all and never has: the access code is the record’s own name in the store, so holding the code is the credential, and he can fill one in today with no account.</span>
@@ -198,6 +206,14 @@ color:var(--ink-3);background:var(--surface-2);border:1px solid var(--line-2)}
 </tbody></table></div>
 <h2 id="layer-0">Known problems <span class="owner">Build team</span></h2>
 <div class="card">
+<div class="leaf solo">
+<span class="t">The submitter page and the assessor page share one browser</span><span class="st st-next">Next</span>
+<span class="w">Found while working out why the demonstration page was showing real work. The demonstration has its own names now. The two real pages still share every name with each other, because they are one origin, and one of them acts on it: activating a question set on the assessor side clears the submitter’s draft in the same browser, with no warning and nothing to undo it. Nobody has hit this, because the two sides are usually different people. They are the same person on one laptop whenever anybody tests.</span>
+</div>
+<div class="leaf solo">
+<span class="t">Discarding a draft says the browser is holding nothing, and it is</span><span class="st st-next">Next</span>
+<span class="w">Also found in that sweep. Every assessment this browser has ever saved online leaves a full copy behind under its own name, and nothing in the tool ever removes one. The window that discards a draft says what it is taking away and that copy is not in the list, so the sentence is untrue in the one place somebody reads it to decide.</span>
+</div>
 <div class="leaf solo">
 <span class="t">The assessor’s audit never reaches the store</span><span class="st st-next">Next</span>
 <span class="w">The biggest one. An assessor scores a submission and the only thing that happens is a file downloads to their laptop. So the portfolio’s audited count can never leave zero, and a review exists nowhere the department can see. It is a decision before it is a patch: the published rules describe the audit as a separate document beside the assessment, so an assessor can write a score without being able to touch an answer, and the code keeps it as a field inside the assessment, which the rules refuse to let an assessor write at all. One of the two has to move. Writing it where the rules already allow means a second small write beside the assessment; keeping it as a field means widening the rules so an assessor may update the document, and then something has to stop them editing answers.</span>
@@ -888,4 +904,4 @@ color:var(--ink-3);background:var(--surface-2);border:1px solid var(--line-2)}
 <tr><td>Who performs the canada-ca transfer</td><td>Nick</td><td>The repo move</td><td>Asked. An issue on canada-ca/welcome is the route he named</td></tr>
 <tr><td>What the production intake should be</td><td>TBS</td><td>Production only</td><td>The prototype answer is an Azure Function plus one CSP line</td></tr>
 </tbody></table></div>
-<footer>75 open, 84 done. Generated from NOTES/backlog.data.mjs by tools/build-backlog.mjs.</footer></div>
+<footer>79 open, 84 done. Generated from NOTES/backlog.data.mjs by tools/build-backlog.mjs.</footer></div>
