@@ -18,11 +18,13 @@
  * eleven rungs of the scale are data, so their French belongs in the rubric file beside the
  * English. That is a separate piece of work and it is his text, not ours.
  */
-import { storeKey } from './keys';
+import { isDemoBuild, storeKey } from './keys';
 
 export type Lang = 'en' | 'fr';
 
 const KEY = storeKey('lang');
+/** The real pages' own name for it, read by a demonstration and written by nothing. */
+const SHARED_LANG = 'gc-arch-assessment:lang';
 let current: Lang = 'en';
 const missing = new Set<string>();
 const seen = new Set<string>();
@@ -34,6 +36,20 @@ export function bootLang(): Lang {
     if (q === 'fr' || q === 'en') { current = q; return current; }
     const stored = localStorage.getItem(KEY);
     if (stored === 'fr' || stored === 'en') { current = stored; return current; }
+    /**
+     * The demonstration page keeps its own names, so a French speaker who chose French on a
+     * real page would have met a demonstration in English. Serving English to somebody who
+     * asked for French is the expensive failure for a Government of Canada tool, and one of the
+     * five categories this thing scores departments on is Official Languages.
+     *
+     * So the demonstration reads the shared choice once, when it has none of its own, and never
+     * writes it. Anything the room changes during a demonstration stays in the demonstration.
+     * This is the one name that crosses, it is named here, and the gate allows exactly it.
+     */
+    if (isDemoBuild()) {
+      const shared = localStorage.getItem(SHARED_LANG);
+      if (shared === 'fr' || shared === 'en') { current = shared; return current; }
+    }
     if ((navigator.language || '').toLowerCase().startsWith('fr')) current = 'fr';
   } catch {
     /* a private window, or no navigator. English is the default. */
