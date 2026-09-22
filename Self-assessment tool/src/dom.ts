@@ -69,3 +69,16 @@ export function bar(v: number | null): string {
 export function mockupTag(label = 'Mockup'): HTMLElement {
   return el('span', { class: 'badge badge-mockup tiny' }, [label]);
 }
+
+/**
+ * A run of text that came out of the question set.
+ *
+ * The set is Dan's English and there is no French of it anywhere, so on a French page these
+ * words sit inside a document declared lang="fr" and a French voice reads them aloud in French.
+ * Reported as: in submitter view there is no french text whatsoever. That screen is 8 per cent
+ * chrome, and the chrome does switch; the other 92 per cent is the 176 questions, the twenty
+ * section names and the eleven rungs of the scale, and none of those has a French version to
+ * switch to. The attribute is what tells assistive technology to change voice, and it is WCAG
+ * 2.1 success criterion 3.1.2, which the Standard on Web Accessibility requires.
+ */
+export const fromSet = (s: string): HTMLElement => el('span', { class: 'from-set', lang: 'en' }, [s]);
