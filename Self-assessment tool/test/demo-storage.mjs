@@ -92,6 +92,9 @@ await new Promise((r) => setTimeout(r, 400));
 const view = () => (app?.textContent ?? '').replace(/\s+/g, ' ');
 const dialogs = () => [...document.querySelectorAll('dialog')].map((d) => d.textContent).join(' ');
 
+ok('it opens in the language the real pages were left in',
+   document.documentElement.getAttribute('lang') === 'fr',
+   document.documentElement.getAttribute('lang'));
 ok('the demonstration lists its own invented submissions',
    view().includes('Bureau of Illustrative Inspections'));
 ok('and says on its face that it is a demonstration', !!document.querySelector('.demo-banner'));
@@ -103,8 +106,11 @@ ok('nothing on the page names the real submission',
  */
 ok('no window about an assessment that has gone from the store',
    !/no longer in the shared store/.test(dialogs()), dialogs().slice(0, 120));
+// French, because the browser this test seeds had been left in French, which is the whole
+// point of the one name that crosses.
 ok('the count over the table is the count of what is in it',
-   /4 submissions, ready first then weakest/.test(view()), view().match(/\d+ submissions[^.]{0,40}/)?.[0]);
+   /4 soumissions, les prêtes d’abord puis les plus faibles/.test(view()),
+   view().match(/\d+ (?:soumissions|submissions)[^.]{0,60}/)?.[0]);
 
 // Everything the page does is in `touched` by now, and nothing this file does should be.
 const byThePage = [...new Set(touched)];
@@ -124,8 +130,19 @@ ok('it creates no name outside its own namespace', extra.length === 0, extra.joi
 
 // Read from the snapshot, which covers everything the page did including whatever the
 // assertions above drove it to do.
-const strays = byThePage.filter((k) => !k.startsWith(MINE));
-ok('and it touched no name outside its own namespace', strays.length === 0, strays.join(', '));
+/**
+ * One name crosses, and it is named here.
+ *
+ * A demonstration reads the real pages' language choice when it has none of its own, because
+ * serving English to somebody who asked for French is the expensive failure for a Government of
+ * Canada tool. It never writes it, which the value check above is what proves.
+ */
+const SHARED = ['gc-arch-assessment:lang'];
+const strays = byThePage.filter((k) => !k.startsWith(MINE) && !SHARED.includes(k));
+ok('and it touched no name outside its own namespace, beyond the one it is allowed',
+   strays.length === 0, strays.join(', '));
+ok('which it did read, so the allowance is not dead wording',
+   byThePage.includes(SHARED[0]), byThePage.join(', '));
 ok('it touched storage at all, so the check above means something', byThePage.length > 0);
 
 /**
@@ -136,8 +153,12 @@ ok('it touched storage at all, so the check above means something', byThePage.le
  * build with a project. A demonstration build folds the namespace down to one literal, so the
  * built page answers the whole question whether or not anybody reached the code.
  */
-const stems = [...new Set([...html.matchAll(/gc-arch-assessment:(?!demo:)[a-z-]*/g)].map((m) => m[0]))];
-ok('every name in the built page comes from the one helper', stems.length === 0, stems.join(', '));
+const stems = [...new Set([...html.matchAll(/gc-arch-assessment:(?!demo:)[a-z-]*/g)].map((m) => m[0]))]
+  .filter((k) => !SHARED.includes(k));
+ok('every name in the built page comes from the one helper, beyond the one allowance',
+   stems.length === 0, stems.join(', '));
+ok('and the allowance is the only bare name in it, so it stays one',
+   [...new Set([...html.matchAll(/gc-arch-assessment:(?!demo:)[a-z-]*/g)].map((m) => m[0]))].length === 1);
 ok('and the namespace is in the page, so the check above means something',
    html.includes(MINE));
 
