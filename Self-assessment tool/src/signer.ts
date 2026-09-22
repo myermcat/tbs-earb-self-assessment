@@ -29,8 +29,9 @@
  */
 import { el } from './dom';
 import { t } from './i18n';
+import { storeKey } from './keys';
 
-const KEY = 'gc-arch-assessment:signer';
+const KEY = storeKey('signer');
 
 export interface Signer {
   name: string;

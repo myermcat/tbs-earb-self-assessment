@@ -1,4 +1,5 @@
 import type { Rubric } from './types';
+import { storeKey } from './keys';
 
 /**
  * The question sets this browser knows about.
@@ -8,9 +9,9 @@ import type { Rubric } from './types';
  * picked again. The set that ships in the build is always present and cannot be deleted.
  */
 
-const LIB_KEY = 'gc-arch-assessment:rubric-library';
-const CUR_KEY = 'gc-arch-assessment:rubric-current';
-const HIDDEN_KEY = 'gc-arch-assessment:rubric-hidden';
+const LIB_KEY = storeKey('rubric-library');
+const CUR_KEY = storeKey('rubric-current');
+const HIDDEN_KEY = storeKey('rubric-hidden');
 
 /**
  * The set compiled into the page. It is a set like any other on screen: it can be previewed,

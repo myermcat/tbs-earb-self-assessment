@@ -1,7 +1,8 @@
 import { classRank, type Assessment, type AuditEntry, type Rubric } from './types';
 import { refOf } from './storage';
 import { el, clear, tone, bar } from './dom';
-import { allQuestionScores, score, type QuestionScore, type Result } from './scoring';
+import { allQuestionScores, score, triageOrder, type QuestionScore, type Result } from './scoring';
+import { t } from './i18n';
 import { flags, type Flag } from './flags';
 import { csvHeader, csvRow, toCsv } from './csv';
 import { download, readJsonFiles, slug } from './storage';
@@ -15,6 +16,7 @@ import { isHosted, poolRecords, type PoolAnswer } from './store';
 import { repaint } from './views-submit';
 import { nameIsChecked } from './who';
 import BUILTIN from '../rubric/rubric.v1-dan.json';
+import { DEMO_MARK, storeKey } from './keys';
 
 /**
  * The assessor side. Nick and Allison stop transcribing decks and start auditing anomalies.
@@ -28,6 +30,8 @@ interface Loaded {
   rubric: Rubric;
   /** True when the set it was answered against is not here, so the active one was used. */
   substituted: boolean;
+  /** Answers with no question in the set it was scored with, so they counted for nothing. */
+  lost?: number;
   r: Result;
   fs: Flag[];
   /** The store handed back a newer version of this one after the assessor had opened it. */
@@ -46,7 +50,7 @@ let loaded: Loaded[] = [];
  * Only the parsed submissions and the audit on them are kept, which is the same information
  * the files already hold, in the same browser that was reading them.
  */
-const AUDIT_KEY = 'gc-arch-assessment:audit-session';
+const AUDIT_KEY = storeKey('audit-session');
 
 function keepSession(): void {
   try {
@@ -64,14 +68,48 @@ function restoreSession(rubric: Rubric): void {
     const rows = JSON.parse(raw) as { file: string; a: Assessment }[];
     for (const row of rows) {
       if (row?.a?.fileType !== 'gc-arch-assessment') continue;
+      /**
+       * A browser that opened the demonstration page before the names were separated has four
+       * invented submissions in this key, and the real assessor page would restore them into
+       * the worklist on every load for ever, scored and ranked beside real departments. Every
+       * record a demonstration build makes carries its own mark, so they are known wherever
+       * they arrived from.
+       */
+      if (row.a.meta?.appVersion === DEMO_MARK) continue;
       const own = rubricFor(BUILTIN as unknown as Rubric, row.a.rubric);
       const use = own ?? rubric;
       const r = score(use, row.a);
-      loaded.push({ file: row.file, a: row.a, rubric: use, substituted: !own, r, fs: flags(use, row.a, r) });
+      loaded.push({ file: row.file, a: row.a, rubric: use, substituted: !own,
+        lost: own ? 0 : lostAnswers(use, row.a), r, fs: flags(use, row.a, r) });
     }
   } catch {
     /* a half-written record is not worth failing the page over */
   }
+}
+
+/**
+ * Why the number in the Score column is not the score the department got.
+ *
+ * Reported as: what is "question set missing", what do you mean missing. Missing from this
+ * browser, and what it costs is the number. A restored session never writes the note that
+ * opening a file writes, so after a reload this is the only place a reader can find out.
+ */
+function substitutedWhy(l: Loaded): string {
+  const lost = l.lost ?? 0;
+  return t(
+    `This browser does not have ${l.a.rubric.version}, so the score in this row was worked out with ${l.rubric.version}`
+    + (lost ? `, and ${lost} answer${lost === 1 ? '' : 's'} ${lost === 1 ? 'does' : 'do'} not exist in it.` : '.')
+    + ' Add that set in Settings to see the score the department got.',
+    `Ce navigateur n’a pas ${l.a.rubric.version}; la note de cette ligne a donc été calculée avec ${l.rubric.version}`
+    + (lost ? `, et ${lost} réponse${lost > 1 ? 's' : ''} n’existe${lost > 1 ? 'nt' : ''} pas dans cet ensemble.` : '.')
+    + ' Ajoutez cet ensemble dans Paramètres pour voir la note obtenue par le ministère.',
+  );
+}
+
+/** Answer ids with no question in the set they were scored with, so they counted for nothing. */
+function lostAnswers(use: Rubric, a: Assessment): number {
+  const known = new Set(use.domains.flatMap((d) => d.sections.flatMap((s) => s.questions.map((q) => q.id))));
+  return Object.keys(a.answers).filter((id) => !known.has(id)).length;
 }
 
 /** Called by every control that changes an audit, so nothing waits for a file to be saved. */
@@ -318,10 +356,7 @@ async function ingest(rubric: Rubric, files: FileList, root: HTMLElement) {
     if (a.rubric.version !== rubric.version && own) {
       problems.push(`${item.file}: answered against ${a.rubric.version}. That set is in your library, so the scores here were worked out with it.`);
     } else if (substituted) {
-      const known = new Set(
-        use.domains.flatMap((d) => d.sections.flatMap((sec) => sec.questions.map((q) => q.id))),
-      );
-      const lost = Object.keys(a.answers).filter((id) => !known.has(id)).length;
+      const lost = lostAnswers(use, a);
       problems.push(
         `${item.file}: answered against ${a.rubric.version}, which this browser does not have. Scored with ${use.version} instead`
         + (lost ? `, and ${lost} answer${lost === 1 ? '' : 's'} do not exist in it.` : '.')
@@ -334,7 +369,8 @@ async function ingest(rubric: Rubric, files: FileList, root: HTMLElement) {
       problems.push(`${item.file}: this file was already open and has been replaced by the version you just picked. The scores and notes you had typed against the old one are gone.`);
     }
     loaded = loaded.filter((l) => l.file !== item.file);
-    loaded.push({ file: item.file, a, rubric: use, substituted, r, fs: flags(use, a, r) });
+    loaded.push({ file: item.file, a, rubric: use, substituted,
+      lost: substituted ? lostAnswers(use, a) : 0, r, fs: flags(use, a, r) });
     keepSession();
   }
   renderReview(root, rubric);
@@ -348,15 +384,18 @@ async function ingest(rubric: Rubric, files: FileList, root: HTMLElement) {
 
 function paintList(rubric: Rubric, root: HTMLElement) {
   /**
-   * Ready first, then weakest first.
+   * Ready first, then weakest first, then anything carrying no score at all.
    *
-   * The submitter's results page says, in both languages, that marking an assessment ready
-   * puts "Ready to review" beside it in this list. It did not: the list never read the mark,
-   * so a finished assessment and an untouched draft looked the same, and the promise on the
-   * other screen was false. Reading it here is what makes the mark mean something.
+   * The submitter's results page says, in both languages, that marking an assessment ready puts
+   * "Ready to review" beside it in this list. The State column is what keeps that promise. The
+   * order keeps a second one: an assessor reading from the top reaches finished work before
+   * anybody's draft, and scoring a draft is the mistake the State column exists to prevent.
+   *
+   * The heading over the table names all three rules, because naming one of them produced the
+   * report this came from: "6 submissions, weakest first" so why is Legacy code check last. It
+   * was both of the other two at once, a draft with no score.
    */
-  const ready = (l: Loaded) => (l.a.meta?.submittedAt ? 0 : 1);
-  const rows = [...loaded].sort((x, y) => ready(x) - ready(y) || (x.r.overall ?? 99) - (y.r.overall ?? 99));
+  const rows = triageOrder(loaded);
 
   /**
    * Twelve columns, given widths instead of left to fight each other.
@@ -424,11 +463,20 @@ function paintList(rubric: Rubric, root: HTMLElement) {
           : null,
         el('div', { class: 'dim' }, [
           l.a.rubric.version,
-          l.substituted ? el('span', { class: 'badge badge-warn tiny tag' }, ['set missing']) : null,
+          l.substituted
+            ? el('span', {
+                class: 'badge badge-warn tiny tag',
+                title: substitutedWhy(l),
+              }, [t('not comparable', 'non comparable')])
+            : null,
         ]),
       ]),
       el('td', { class: 'small' }, [l.rubric.lifecycleStages.find((s) => s.id === l.a.initiative.lifecycleStage)?.label ?? '--']),
-      el('td', { class: `num ${tone(l.r.overall)}` }, [l.r.overall === null ? '--' : l.r.overall.toFixed(1)]),
+      // The badge is three columns from the number it is about, so the number says it too.
+      el('td', {
+        class: `num ${tone(l.r.overall)}`,
+        ...(l.substituted ? { title: substitutedWhy(l) } : {}),
+      }, [l.r.overall === null ? '--' : l.r.overall.toFixed(1)]),
       el('td', { class: 'small' }, [l.r.band?.label ?? '--']),
       el('td', { class: highs ? 'num red' : 'num' }, [String(highs)]),
       el('td', { class: 'num' }, [String(Object.values(l.a.answers).reduce((n, x) => n + (x.evidence ?? []).length, 0))]),
@@ -468,11 +516,16 @@ function paintList(rubric: Rubric, root: HTMLElement) {
   table.appendChild(tb);
 
   root.appendChild(el('section', { class: 'card' }, [
-    el('h2', {}, [`${loaded.length} submission${loaded.length === 1 ? '' : 's'}, weakest first`]),
+    el('h2', {}, [t(
+      `${loaded.length} submission${loaded.length === 1 ? '' : 's'}, ready first then weakest`,
+      `${loaded.length} soumission${loaded.length === 1 ? '' : 's'}, les prêtes d’abord puis les plus faibles`,
+    )]),
     el('p', { class: 'muted small' }, [
-      'Sorted so the ones that need you are at the top. The middle of the list is where you spend the least time. ',
-      el('b', {}, ['State is self-marked: ']),
-      'the department says when its own assessment is ready, and a draft is somebody still working.',
+      t('Ready ones come first, lowest score first inside each group. A submission with no score yet goes to the end of its group. ',
+        'Les prêtes viennent en premier, la note la plus basse d’abord dans chaque groupe. Une soumission sans note va à la fin de son groupe. '),
+      el('b', {}, [t('State is self-marked: ', 'L’état est déclaré par le ministère : ')]),
+      t('the department says when its own assessment is ready, and a draft is somebody still working.',
+        'le ministère indique quand sa propre évaluation est prête, et une ébauche est un travail en cours.'),
     ]),
     /**
      * The toolbar. It goes above the table, where it reads as belonging to it.

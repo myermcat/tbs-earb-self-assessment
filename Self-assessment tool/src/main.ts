@@ -32,6 +32,7 @@ import { answeredCount, APP_VERSION, autosave, blankAssessment, clearDraft, down
   hasWork, loadDraft, readJsonFiles, saveAssessmentFile, slug } from './storage';
 import { bannerFor, evidenceNote } from './marking';
 import BUILTIN from '../rubric/rubric.v1-dan.json';
+import { storeKey } from './keys';
 
 type Mode = 'home' | 'submit' | 'results' | 'review' | 'admin' | 'settings';
 
@@ -46,7 +47,7 @@ type Mode = 'home' | 'submit' | 'results' | 'review' | 'admin' | 'settings';
  */
 type Side = 'submit' | 'assess';
 
-const SIDE_KEY = 'gc-arch-assessment:side';
+const SIDE_KEY = storeKey('side');
 const SIDE_OF: Record<Mode, Side | null> = {
   home: 'submit', submit: 'submit', results: 'submit',
   review: 'assess', admin: 'assess',
@@ -586,10 +587,17 @@ function paint() {
    * can be looking away from.
    */
   if (isDemo()) {
+    /**
+     * It used to say nothing typed into it is kept, in English only. Both halves were wrong. A
+     * demonstration keeps what somebody types the way any other page does, in this browser and
+     * in its own names, which is what lets a reload during a meeting keep the room's place. And
+     * a banner on a bilingual tool that is written in one language is the thing it is warning
+     * about, on the screen of a room that may be working in French.
+     */
     chrome.appendChild(el('div', { class: 'demo-banner' }, [
-      el('strong', {}, ['Demonstration']),
-      ' Every department, submission and score here is made up. Nothing on this page comes from '
-      + 'the real store, and nothing typed into it is kept.',
+      el('strong', {}, [t('Demonstration', 'Démonstration')]),
+      t(' Every department, submission and score here is made up. Nothing on this page comes from the real store, and nothing typed into it reaches the real store either.',
+        ' Chaque ministère, soumission et note ici est inventé. Rien sur cette page ne provient du dépôt réel, et rien de ce qui y est saisi n’atteint le dépôt réel.'),
     ]));
   }
   if (mode === 'submit' || mode === 'results') chrome.appendChild(banner());
@@ -901,6 +909,16 @@ function draftNote(draft: Assessment, total: number): HTMLElement {
  */
 function warnGoneFromStore(): void {
   if (!isHosted()) return;
+  /**
+   * This is the submitter's warning, about the submitter's own draft, and nothing was stopping
+   * it opening on the assessor screen of a demonstration page. Reported as: why is it talking
+   * about AN assessment if I am in assessor view and do not have any one assessment open.
+   *
+   * A demonstration answers from an invented pool, so a real draft left in this browser is
+   * never in it and the warning was certain to fire, every load, saying an admin had deleted
+   * something nobody had deleted.
+   */
+  if (isDemo() || opensOn() !== 'submit' || side !== 'submit') return;
   // Nothing can have gone missing unless this browser holds a copy that was actually sent. The
   // check used to run on every load for everybody, which asked the store for a list that most
   // people are refused, on the way to answering a question they had not asked.

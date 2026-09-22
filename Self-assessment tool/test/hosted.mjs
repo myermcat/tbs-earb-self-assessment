@@ -58,7 +58,7 @@ const asDoc = (a) => ({ name: `projects/p/databases/(default)/documents/assessme
  * One page, booted with whatever storage and whatever store answer a case needs.
  * `listAnswer` decides what the assessments list does: a page of documents, or a refusal.
  */
-async function boot({ session = null, side = null, listAnswer = { documents: [] }, role = null, hash = '', url = null, draft = null, people = null } = {}) {
+async function boot({ session = null, side = null, listAnswer = { documents: [] }, role = null, hash = '', url = null, draft = null, people = null, audit = null } = {}) {
   const seen = [];
   const dom = new JSDOM(html, {
     runScripts: 'dangerously',
@@ -71,6 +71,9 @@ async function boot({ session = null, side = null, listAnswer = { documents: [] 
         if (session) w.localStorage.setItem(SESSION, JSON.stringify(session));
         if (side) w.localStorage.setItem(SIDE, side);
         if (draft) w.localStorage.setItem(DRAFT, JSON.stringify(draft));
+        // The assessor's own saved session. A real browser has this because /assessor/ and /
+        // are one origin and one localStorage.
+        if (audit) w.localStorage.setItem('gc-arch-assessment:audit-session', JSON.stringify(audit));
       } catch { /* no storage on this origin */ }
       w.scrollTo = () => {};
       w.alert = () => {};
@@ -1099,6 +1102,76 @@ console.log('\nThe published build, signed in\n');
        'the demonstration flag is compiled into a page that reads the real store');
     j.window.close();
   }
+}
+
+/**
+ * The real assessor page, in the browser of somebody who also uses the real submitter page.
+ *
+ * Those two are one origin and one localStorage, which is how the demonstration defect was
+ * found. Two things follow for the real pages and neither was covered.
+ */
+{
+  const real = {
+    fileType: 'gc-arch-assessment', formatVersion: 1, id: 'REALDOCAAAA', ref: 'RL01',
+    rubric: { id: 'other-set', version: '0.9', title: 'An older set' },
+    initiative: { name: 'Coastal Permits Replacement', department: 'A Real Department',
+      contact: 'someone@example.gc.ca', lifecycleStage: 'beta', summary: '', classification: 'Unclassified' },
+    answers: {},
+    meta: { createdAt: '2026-09-01T09:00:00.000Z', updatedAt: '2026-09-02T09:00:00.000Z',
+      submittedAt: '2026-09-02T09:00:00.000Z', appVersion: '0.1.0' },
+  };
+  const invented = JSON.parse(JSON.stringify(real));
+  invented.id = 'DEMOAAAA1111';
+  invented.initiative.name = 'Permit Renewal Online';
+  invented.initiative.department = 'Department of Invented Services';
+  invented.meta.appVersion = 'demonstration';
+
+  const j = await boot({
+    side: 'assess', session: live, role: 'assessor',
+    draft: real,
+    audit: [{ file: 'coastal.json', a: real }, { file: 'invented.json', a: invented }],
+  });
+  const text = (j.doc.querySelector('#app')?.textContent ?? '').replace(/\s+/g, ' ');
+  const dialogText = [...j.doc.querySelectorAll('dialog')].map((d) => d.textContent).join(' ');
+
+  /**
+   * The submitter's warning used to run on every page with no test of side, so an assessor
+   * whose own submitted draft had been deleted met it on the assessor screen. Reported on the
+   * demonstration page as: why is it talking about AN assessment if I am in assessor view and
+   * do not have any one assessment open.
+   */
+  ok('the assessor screen does not warn about the submitter own draft',
+     !/no longer in the shared store/.test(dialogText), dialogText.slice(0, 120));
+
+  /**
+   * And anything a demonstration build made is refused wherever it arrived from. A browser that
+   * opened the demonstration page before the names were separated has four invented submissions
+   * in this key, and they would be restored into the real worklist for ever, scored and ranked
+   * beside real departments.
+   */
+  ok('a real submission left in the saved session is restored',
+     text.includes('Coastal Permits Replacement'), text.slice(0, 160));
+  ok('and one a demonstration made is not',
+     !text.includes('Permit Renewal Online'), text.slice(0, 160));
+  ok('so the count over the table counts what is in it',
+     /1 submission, ready first then weakest/.test(text),
+     text.match(/\d+ submissions?[^.]{0,40}/)?.[0]);
+
+  /**
+   * And the badge on that row says what follows from the missing set rather than naming it.
+   * Reported as: what is "question set missing", what do you mean missing. Missing from this
+   * browser, and what it costs is the number three columns to the right, which is why the
+   * number carries the same words.
+   */
+  const badge = [...j.doc.querySelectorAll('.triage .badge')].find((b) => /comparable/i.test(b.textContent));
+  ok('a row scored with a set it was not answered against says the number is not comparable',
+     !!badge, [...j.doc.querySelectorAll('.triage .badge')].map((b) => b.textContent).join(' | '));
+  ok('and says why, in words, without anybody opening anything',
+     /does not have 0\.9/.test(badge?.getAttribute('title') ?? ''), badge?.getAttribute('title'));
+  ok('and the score it is about says the same thing',
+     /does not have 0\.9/.test(j.doc.querySelector('.triage td.num')?.getAttribute('title') ?? ''),
+     j.doc.querySelector('.triage td.num')?.getAttribute('title'));
+  j.dom.window.close();
 }
 
 console.log(fails ? `\n${fails} hosted check(s) failed\n` : '\nall hosted checks passed\n');

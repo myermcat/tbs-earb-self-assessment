@@ -8,7 +8,7 @@
     "build": "node build.mjs",
     "dev": "node build.mjs --watch",
     "check": "tsc --noEmit",
-    "test": "npm run lint:prose && npm run check && npm run test:logic && npm run test:firestore && npm run test:firestore:code && npm run test:ui && npm run test:routes && npm run test:share && npm run test:code && npm run test:submitter && npm run test:hosted && npm run test:print",
+    "test": "npm run lint:prose && npm run check && npm run test:logic && npm run test:firestore && npm run test:firestore:code && npm run test:ui && npm run test:routes && npm run test:share && npm run test:code && npm run test:submitter && npm run test:hosted && npm run test:demo && npm run test:print",
     "test:logic": "esbuild test/smoke.ts --bundle --platform=node --format=esm --outfile=test/.smoke.mjs --log-level=warning --loader:.json=json && node test/.smoke.mjs",
     "test:firestore": "node test/firestore.mjs",
     "test:firestore:code": "EARB_ACCESS=code node test/firestore.mjs",
@@ -21,7 +21,8 @@
     "test:share": "EARB_FIREBASE= node build.mjs && node test/share.mjs",
     "test:submitter": "EARB_ACCESS=code EARB_FIREBASE='{\"apiKey\":\"test-key\",\"projectId\":\"test-project\"}' node build.mjs && node test/submitter.mjs",
     "test:code": "EARB_FIREBASE='{\"apiKey\":\"test-key\",\"projectId\":\"test-project\"}' node build.mjs && node test/code.mjs",
-    "check:published": "node test/published.mjs"
+    "check:published": "node test/published.mjs",
+    "test:demo": "EARB_FIREBASE= EARB_DEMO=1 EARB_SIDE=assess EARB_OUT=dist/demo.html node build.mjs && node test/demo-storage.mjs"
   },
   "devDependencies": {
     "@types/jsdom": "^30.0.0",

@@ -1,5 +1,6 @@
 import type { Assessment, Rubric } from './types';
 import { newDocId } from './firebase';
+import { DEMO_MARK, isDemoBuild, storeKey } from './keys';
 
 /**
  * There is no server. Persistence is two things:
@@ -8,7 +9,7 @@ import { newDocId } from './firebase';
  * Nothing leaves the machine unless the person exports it and sends it themselves.
  */
 
-const KEY = 'gc-arch-assessment:draft';
+const KEY = storeKey('draft');
 export const APP_VERSION = '0.1.0';
 
 /**
@@ -56,7 +57,12 @@ export function blankAssessment(rubric: Rubric): Assessment {
     rubric: { id: rubric.id, version: rubric.version, title: rubric.title },
     initiative: { name: '', department: '', contact: '', lifecycleStage: '', summary: '', classification: '' },
     answers: {},
-    meta: { createdAt: now, updatedAt: now, appVersion: APP_VERSION },
+    /**
+     * A file saved off the demonstration page used to be indistinguishable from a real
+     * submission in an assessor's inbox. The invented pool already carries this mark, so one
+     * mark answers both and the assessor's list can refuse either.
+     */
+    meta: { createdAt: now, updatedAt: now, appVersion: isDemoBuild() ? DEMO_MARK : APP_VERSION },
   };
 }
 
