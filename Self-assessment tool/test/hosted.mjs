@@ -1295,11 +1295,49 @@ console.log('\nThe published build, signed in\n');
      /on its way to dan\.weekes-hall@tbs-sct\.gc\.ca/.test(j.doc.querySelector('.signin-link')?.textContent ?? ''),
      j.doc.querySelector('.signin-link')?.textContent?.slice(0, 120));
   /**
+   * And it is still possible to do something afterwards.
+   *
+   * Saying a link had gone used to replace the whole block, so the screen became one sentence:
+   * no field, no button, and the daily limit stopped being on the page at the moment somebody
+   * most needed to read it. Reported as three things and they were all this one. It survived a
+   * reload too, so a link that never arrived left the sign-in screen stuck for good.
+   */
+  ok('and the address field is still there, so a different one can be tried',
+     !!j.doc.querySelector('input.signin-email'));
+  ok('and it is filled with the address that was used, so it can be corrected',
+     j.doc.querySelector('input.signin-email')?.value === 'dan.weekes-hall@tbs-sct.gc.ca',
+     j.doc.querySelector('input.signin-email')?.value);
+  ok('and the button is still there, so a link can be asked for again',
+     [...j.doc.querySelectorAll('.signin-other button')].some((b) => /Email me a link/.test(b.textContent)));
+  ok('and the daily limit is still on the page',
+     /Five of these a day/.test(j.doc.querySelector('.signin-link')?.textContent ?? ''));
+  ok('and says that asking again spends one of them',
+     /asking again spends one/.test(j.doc.querySelector('.signin-link')?.textContent ?? ''));
+  ok('and says what to do when nothing arrives',
+     /look in junk/.test(j.doc.querySelector('.signin-link')?.textContent ?? ''));
+  /**
    * Held so the same browser can finish without being asked twice. Firebase refuses to finish
    * without it, deliberately, so that a forwarded link cannot sign in whoever opens the mail.
    */
   ok('and the address is held for the link coming back',
      j.dom.window.localStorage.getItem('gc-arch-assessment:signin-email') === 'dan.weekes-hall@tbs-sct.gc.ca');
+  j.dom.window.close();
+}
+
+{
+  /**
+   * A fresh load, with a link already asked for and never arrived. This is the state somebody
+   * is left in when a departmental filter eats the mail, and it has to be a state they can
+   * leave.
+   */
+  const j = await boot({ side: 'assess', linkEmail: 'mariia.yermolenko@tbs-sct.gc.ca' });
+  const block = j.doc.querySelector('.signin-link')?.textContent ?? '';
+  ok('a reload still says a link went, and to where',
+     /on its way to mariia\.yermolenko@tbs-sct\.gc\.ca/.test(block), block.slice(0, 120));
+  ok('and still offers the field, filled, so another address can be tried',
+     j.doc.querySelector('input.signin-email')?.value === 'mariia.yermolenko@tbs-sct.gc.ca',
+     j.doc.querySelector('input.signin-email')?.value);
+  ok('and still carries the daily limit', /Five of these a day/.test(block));
   j.dom.window.close();
 }
 
