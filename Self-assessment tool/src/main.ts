@@ -293,8 +293,21 @@ type Access = 'ok' | 'checking' | 'denied';
  * that away. Asked for in those words: basically there are only two functionalities, submitter
  * and assessor.
  */
+/**
+ * The screens that belong to the assessor, which is what the door is in front of.
+ *
+ * Settings is one of them when the assessor side is open, and it was not. Both the gate below
+ * and accessState() asked only whether the mode was review or admin, so the assessor's own
+ * settings were outside every check: reported as I can see settings in the assessor view before
+ * I signed in. The submitter's settings are a different screen behind the same word, and that
+ * side has no door at all by design.
+ */
+function isAssessorScreen(): boolean {
+  return mode === 'review' || mode === 'admin' || (mode === 'settings' && side === 'assess');
+}
+
 function accessState(): Access {
-  if (mode !== 'review' && mode !== 'admin') return 'ok';
+  if (!isAssessorScreen()) return 'ok';
   if (!firebaseConfigured() || !currentUser()) return 'ok';
   const role = knownRole();
   if (role === null) return 'checking';
@@ -557,7 +570,7 @@ function paint() {
   // The sign-in gate is its own shell: one screen, nothing to scroll, like any sign-in.
   // A demonstration build asks nobody who they are, because there is nothing behind it to
   // protect: the pool it shows is invented and the store is never reached.
-  const gate = !isDemo() && (mode === 'admin' || mode === 'review') && !assessorName.trim();
+  const gate = !isDemo() && isAssessorScreen() && !assessorName.trim();
   const access = gate ? 'ok' : accessState();
   app.className = mode === 'home' ? 'app-home'
     : mode === 'results' ? 'app-results'
@@ -598,9 +611,27 @@ function paint() {
       if (goToQuestion(rubric, qid)) go('submit');
     });
   }
-  else if (mode === 'settings') renderSettings(body);
+  /**
+   * The submitter's settings are open, because the submitter side has no door at all: the
+   * questionnaire, the results and the danger zone are all reachable without an account by
+   * design.
+   */
+  else if (mode === 'settings' && side === 'submit') renderSettings(body);
   else if (gate) renderSignIn(body, () => paint());
   else if (access !== 'ok') renderNoAccess(body, access);
+  /**
+   * The assessor's settings are behind the same door as the assessor's screens, and this line
+   * used to be above that door.
+   *
+   * Reported as: I can see settings in the assessor view before I signed in, this button should
+   * not even be on the sign-in screen. Copying the address of the settings window into a private
+   * window drew the whole thing, People and Danger zone included, with nobody signed in.
+   *
+   * The store held: every pane that asks it anything answered that it would not hand the list
+   * over. So no address left the store and nothing could be changed. What was wrong is that a
+   * page which exists to say who you are drew the screens for somebody who had not said.
+   */
+  else if (mode === 'settings') renderSettings(body);
   else if (mode === 'admin') renderAdmin(body);
   else renderReview(body, rubric);
 
