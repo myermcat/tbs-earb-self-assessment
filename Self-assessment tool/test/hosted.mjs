@@ -439,6 +439,15 @@ console.log('\nThe published build, signed in\n');
      field?.getAttribute('type') === 'email' && field?.getAttribute('inputmode') === 'email');
   ok('and it says no password is involved',
      /no password/.test(other?.textContent ?? ''), other?.textContent?.slice(0, 140));
+  /**
+   * The cap is on the screen because the way you find out otherwise is that the fourth person
+   * of the day is refused. Five a day for the whole project, and it is five sign-ins and not
+   * five people, which is the half that is easy to read wrong.
+   */
+  ok('and says how many of these there are in a day',
+     /Five of these a day/.test(other?.textContent ?? ''), other?.textContent?.slice(0, 200));
+  ok('and that the limit is on sign-ins and not on people',
+     /not on people/.test(other?.textContent ?? ''));
 
   /**
    * Microsoft is on the screen and is not built. It has to read as unfinished before it is
