@@ -26,7 +26,8 @@ import { bootLang, coverage, lang, type Lang, setLang } from './i18n';
 import { endpointHost, goneFromStore, isHosted, listRecords, putRecord,
   saveOnlineNow, savedOnline, showWhereItStands } from './store';
 import { canSignIn, CODE_LENGTH, currentUser, formatCode, forgetRole, getAssessment, grantsAccess, looksLikeCode, pageAddress, tidyCode, isConfigured as firebaseConfigured, knownRole, lastSignInProblem,
-  loadRole, resumeSignIn, signInWithGoogle, signOut } from './firebase';
+  loadRole, resumeSignIn, signInWithGoogle, signOut,
+  finishSignInLink, linkEmailWaiting, sendSignInLink } from './firebase';
 import { t } from './i18n';
 import { answeredCount, APP_VERSION, autosave, blankAssessment, clearDraft, download, ensureRef,
   hasWork, loadDraft, readJsonFiles, saveAssessmentFile, slug } from './storage';
@@ -1097,25 +1098,103 @@ function renderRealSignIn(root: HTMLElement) {
         class: 'primary', disabled: !canSignIn(),
         onclick: () => { void signInWithGoogle().then((went) => { if (!went) paint(); }); },
       }, [t('Continue with Google', 'Continuer avec Google')]),
-      /**
-       * Microsoft is on the screen because it is how somebody uses their departmental account,
-       * and it is disabled because Firebase needs an application registered in an Azure
-       * directory first. A button that looks ordinary and does nothing is worse than no button.
-       */
-      el('button', {
-        class: 'ghost is-mockup', disabled: true,
-        title: t('Mockup. No working sign-in behind it yet. To build it, somebody with Azure rights at TBS has to register this application in the departmental directory.',
-          'Maquette. Aucune connexion fonctionnelle derrière pour l\u2019instant. Pour la construire, une personne ayant les droits Azure au SCT doit enregistrer cette application dans l\u2019annuaire ministériel.'),
-      }, [
-        t('Continue with your Microsoft or departmental account', 'Continuer avec votre compte Microsoft ou ministériel'),
-      ]),
     ]),
-    el('p', { class: 'tiny dim' }, [
-      t('A departmental account needs somebody with Azure rights at TBS to register this application first. Until they do, that button does nothing and says so. Google works meanwhile.',
-        'Un compte ministériel exige que quelqu\u2019un ayant les droits Azure au SCT enregistre d\u2019abord cette application. D\u2019ici là, ce bouton ne fait rien et le dit. Google fonctionne entre-temps.'),
-    ]),
+    otherWaysToSignIn(),
   ]);
   root.appendChild(card);
+}
+
+/**
+ * The ways in that are not Google, under a heading that says so.
+ *
+ * Google is first because it is the one that works today for everybody who has a Google
+ * account. It is nobody's work account at TBS, which is the whole problem, so what is under
+ * here matters more than its placing suggests and it is second only because it is slower.
+ */
+function otherWaysToSignIn(): HTMLElement {
+  return el('details', { class: 'signin-other', open: linkEmailWaiting() ? true : undefined }, [
+    el('summary', {}, [t('Other ways to sign in', 'Autres façons de se connecter')]),
+    emailLinkBlock(),
+    /**
+     * Microsoft is on the screen because it is how somebody uses their departmental account.
+     * It is disabled because the provider is not enabled on the project, and a button that
+     * looks ordinary and does nothing is worse than no button.
+     *
+     * The wording used to say TBS has to register the application. That is the single-tenant
+     * arrangement. An application registered once as multi-tenant lets people from any
+     * directory sign in, which is why somebody can use a school account with an application
+     * nobody asked their school about, and a department that has switched user consent off is a
+     * separate question from registration. Both are on the backlog and neither is this week.
+     */
+    el('button', {
+      class: 'ghost is-mockup', disabled: true,
+      title: t('Mockup. The Microsoft provider is not enabled on this project yet.',
+        'Maquette. Le fournisseur Microsoft n\u2019est pas encore activé pour ce projet.'),
+    }, [
+      t('Continue with your Microsoft or departmental account', 'Continuer avec votre compte Microsoft ou ministériel'),
+    ]),
+  ]);
+}
+
+/**
+ * A link sent to the address somebody already has.
+ *
+ * The one route to a departmental address that asks nobody outside this team for anything:
+ * no Google account, no application registered in anybody's directory. Firebase mails a
+ * one-time link, opening it proves the person can read that mailbox, and the store's rules
+ * key off the address exactly as they already do.
+ */
+function emailLinkBlock(): HTMLElement {
+  const waiting = linkEmailWaiting();
+  const box = el('div', { class: 'signin-link' });
+
+  const sent = (to: string) => {
+    clear(box);
+    box.appendChild(el('p', { class: 'small' }, [
+      t(`A link is on its way to ${to}. Open it in this browser and you are signed in. It is good once.`,
+        `Un lien est en route vers ${to}. Ouvrez-le dans ce navigateur et vous serez connecté. Il ne sert qu\u2019une fois.`),
+    ]));
+    box.appendChild(el('p', { class: 'tiny dim' }, [
+      /**
+       * Said because Firebase refuses to finish without the address being given again, so a
+       * link opened somewhere else lands on a screen asking for it, and somebody who has not
+       * been told that reads it as the link being broken.
+       */
+      t('Open it in this browser. A link opened somewhere else has to be asked for again, which is deliberate: it stops a forwarded link signing in whoever opened the mail.',
+        'Ouvrez-le dans ce navigateur. Un lien ouvert ailleurs doit être redemandé, et c\u2019est voulu : cela empêche un lien transféré de connecter quiconque ouvre le courriel.'),
+    ]));
+  };
+
+  if (waiting) { sent(waiting); return box; }
+
+  const field = el('input', {
+    type: 'email', class: 'signin-email', autocomplete: 'email', inputmode: 'email',
+    placeholder: 'prenom.nom@tbs-sct.gc.ca',
+  }) as HTMLInputElement;
+  const go = el('button', { class: 'ghost' }, [t('Email me a link', 'M\u2019envoyer un lien')]);
+  const say = el('p', { class: 'signer-advice' });
+
+  go.addEventListener('click', () => {
+    const address = field.value.trim();
+    // The browser's own check, asked for before anything is sent, because the only way to find
+    // out otherwise is that no mail arrives.
+    if (!field.checkValidity() || !address) {
+      say.textContent = t('That is not an address a link can be sent to.',
+        'Ce n\u2019est pas une adresse à laquelle un lien peut être envoyé.');
+      field.focus();
+      return;
+    }
+    say.textContent = t('Sending...', 'Envoi en cours...');
+    void sendSignInLink(address).then((went) => { if (went) sent(address); else paint(); });
+  });
+
+  box.appendChild(el('p', { class: 'small' }, [
+    t('Your work address will do. We send one link to it, opening the link signs you in, and there is no password.',
+      'Votre adresse professionnelle convient. Nous y envoyons un lien, l\u2019ouvrir vous connecte, et il n\u2019y a pas de mot de passe.'),
+  ]));
+  box.appendChild(el('div', { class: 'signin-link-row' }, [field, go]));
+  box.appendChild(say);
+  return box;
 }
 
 function renderSignIn(root: HTMLElement, onDone: () => void) {
@@ -1909,8 +1988,13 @@ if (!check.ok) {
  * address, so the last step of it belongs in the boot sequence. A build with no Firebase
  * project answers false before it touches the network, and nothing here runs.
  */
-void resumeSignIn()
-  .then((came) => { if (came) paint(); })
+/**
+ * Two ways a sign-in comes back to a fresh load of this page: a provider redirect, and a link
+ * out of somebody's mail. Both are finished here, before anything is drawn, because the page
+ * that has to finish either one is this page loading again.
+ */
+void Promise.all([resumeSignIn(), finishSignInLink()])
+  .then(([redirect, link]) => { if (redirect || link) paint(); })
   .catch((err: unknown) => {
     app.textContent = `This page could not finish loading: ${(err as Error).message}`;
   });

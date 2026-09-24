@@ -58,7 +58,7 @@ const asDoc = (a) => ({ name: `projects/p/databases/(default)/documents/assessme
  * One page, booted with whatever storage and whatever store answer a case needs.
  * `listAnswer` decides what the assessments list does: a page of documents, or a refusal.
  */
-async function boot({ session = null, side = null, listAnswer = { documents: [] }, role = null, hash = '', url = null, draft = null, people = null, audit = null } = {}) {
+async function boot({ session = null, side = null, listAnswer = { documents: [] }, role = null, hash = '', url = null, draft = null, people = null, audit = null, oobRefusal = null, linkEmail = null } = {}) {
   const seen = [];
   const dom = new JSDOM(html, {
     runScripts: 'dangerously',
@@ -74,13 +74,37 @@ async function boot({ session = null, side = null, listAnswer = { documents: [] 
         // The assessor's own saved session. A real browser has this because /assessor/ and /
         // are one origin and one localStorage.
         if (audit) w.localStorage.setItem('gc-arch-assessment:audit-session', JSON.stringify(audit));
+        // The address a link was asked for at. Firebase refuses to finish without it.
+        if (linkEmail) w.localStorage.setItem('gc-arch-assessment:signin-email', linkEmail);
       } catch { /* no storage on this origin */ }
       w.scrollTo = () => {};
       w.alert = () => {};
       w.print = () => {};
       w.fetch = async (url, init) => {
         const href = String(url);
-        seen.push({ href, method: init?.method ?? 'GET' });
+        seen.push({ href, method: init?.method ?? 'GET', body: init?.body ?? null });
+        /**
+         * Signing in by a link is two calls: ask for the mail, then trade the code in the link
+         * for a token. Answered here so the page can be driven through both without a project.
+         */
+        if (/accounts:sendOobCode/.test(href)) {
+          const asked = JSON.parse(String(init?.body ?? '{}'));
+          const body = oobRefusal
+            ? { error: { code: 400, message: oobRefusal } }
+            : { email: asked.email };
+          const status = oobRefusal ? 400 : 200;
+          return { ok: !oobRefusal, status,
+            headers: { get: () => 'application/json' },
+            json: async () => body, text: async () => JSON.stringify(body) };
+        }
+        if (/accounts:signInWithEmailLink/.test(href)) {
+          const asked = JSON.parse(String(init?.body ?? '{}'));
+          const body = { email: asked.email, idToken: 'seeded-by-link',
+            refreshToken: 'seeded-refresh', expiresIn: '3600', localId: 'uid' };
+          return { ok: true, status: 200,
+            headers: { get: () => 'application/json' },
+            json: async () => body, text: async () => JSON.stringify(body) };
+        }
         // The access list is a collection read; a role check is one document by name.
         const peopleList = /\/roles\?/.test(href);
         const roles = href.includes('/roles/') && !peopleList;
@@ -388,16 +412,46 @@ console.log('\nThe published build, signed in\n');
 }
 
 {
-  // Microsoft is on the screen and is not built. It has to read as unfinished before it is
-  // pressed, which means disabled and labelled.
+  /**
+   * One offer that works today, and the rest folded under a heading that says so.
+   *
+   * Google is first because everybody with a Google account can use it. It is nobody's work
+   * account at TBS, which is why what is folded away matters more than its placing suggests.
+   */
   const { doc, dom } = await boot({ side: 'assess' });
-  const ms = [...doc.querySelectorAll('.signin-providers button')]
-    .find((b) => /Microsoft/.test(b.textContent));
+  const first = [...doc.querySelectorAll('.signin-providers button')];
+  ok('one offer is made first, and it is the one that works today',
+     first.length === 1 && /Continue with Google/.test(first[0].textContent),
+     first.map((b) => b.textContent).join(' | '));
+
+  const other = doc.querySelector('.signin-other');
+  ok('the rest are under a heading that says what they are',
+     /Other ways to sign in/.test(other?.querySelector('summary')?.textContent ?? ''),
+     other?.querySelector('summary')?.textContent);
+
+  /**
+   * A link to a work address. The route that needs a Google account from nobody and an
+   * application registered in nobody's directory, which is why it is here at all.
+   */
+  const field = other?.querySelector('input.signin-email');
+  ok('a link can be asked for, at an address somebody types', !!field);
+  ok('and the field is an address field, so a phone offers the right keyboard',
+     field?.getAttribute('type') === 'email' && field?.getAttribute('inputmode') === 'email');
+  ok('and it says no password is involved',
+     /no password/.test(other?.textContent ?? ''), other?.textContent?.slice(0, 140));
+
+  /**
+   * Microsoft is on the screen and is not built. It has to read as unfinished before it is
+   * pressed, which means disabled and labelled. The title used to say TBS has to register the
+   * application; that is the single-tenant arrangement and it was stated as though it were the
+   * only one, so it is out of the wording.
+   */
+  const ms = [...(other?.querySelectorAll('button') ?? [])].find((b) => /Microsoft/.test(b.textContent));
   ok('the Microsoft button is disabled', ms?.disabled === true);
-  // A badge beside it was noise. Unclickable, and the whole story on hover.
   ok('and says on hover that it is a mockup', /Mockup/.test(ms?.getAttribute('title') ?? ''),
      ms?.getAttribute('title') ?? '');
-  ok('and what it would take to build', /Azure rights/.test(ms?.getAttribute('title') ?? ''));
+  ok('and no longer claims TBS has to register anything',
+     !/Azure rights/.test(ms?.getAttribute('title') ?? ''), ms?.getAttribute('title') ?? '');
   ok('and carries no badge beside it', !doc.querySelector('.signin-providers .badge-mockup'));
   ok('and the sign-in card no longer calls itself a prototype',
      !/Prototype/.test(doc.querySelector('.signin')?.textContent ?? ''));
@@ -1172,6 +1226,115 @@ console.log('\nThe published build, signed in\n');
      /does not have 0\.9/.test(j.doc.querySelector('.triage td.num')?.getAttribute('title') ?? ''),
      j.doc.querySelector('.triage td.num')?.getAttribute('title'));
   j.dom.window.close();
+}
+
+/**
+ * Signing in with a link sent to a work address.
+ *
+ * The one route to a departmental account that asks nobody outside this team for anything. It
+ * is two calls and it is driven here end to end, because the three legs of a sign-in are the
+ * part of this tool that has reached somebody broken twice.
+ */
+{
+  const j = await boot({ side: 'assess' });
+  const field = j.doc.querySelector('input.signin-email');
+  const ask = [...j.doc.querySelectorAll('.signin-other button')].find((b) => /Email me a link/.test(b.textContent));
+  field.value = 'dan.weekes-hall@tbs-sct.gc.ca';
+  ask.click();
+  await new Promise((r) => setTimeout(r, 60));
+
+  const sent = j.seen.find((c) => /accounts:sendOobCode/.test(c.href));
+  ok('asking for a link calls the service that sends it', !!sent, j.seen.map((c) => c.href).join(' | ').slice(0, 200));
+  const asked = JSON.parse(sent?.body ?? '{}');
+  ok('and asks for a sign-in link and not a password reset', asked.requestType === 'EMAIL_SIGNIN', asked.requestType);
+  ok('and names the address that was typed', asked.email === 'dan.weekes-hall@tbs-sct.gc.ca', asked.email);
+  /**
+   * The address to come back to. Without it the link lands on Firebase's own page and the
+   * person never returns to the tool at all.
+   */
+  /**
+   * continueUrl, and the assertion names the spelling on purpose. The redirect flow next to it
+   * sends continueUri to a different endpoint, and the field this endpoint ignores is the one
+   * that decides whether the link comes back to the tool or stops at Firebase's own page.
+   */
+  ok('and where to come back to, spelled the way this endpoint wants it',
+     /example\.gc\.ca/.test(asked.continueUrl ?? '') && asked.continueUri === undefined,
+     `continueUrl=${asked.continueUrl} continueUri=${asked.continueUri}`);
+  ok('the screen then says a link is on its way',
+     /on its way to dan\.weekes-hall@tbs-sct\.gc\.ca/.test(j.doc.querySelector('.signin-link')?.textContent ?? ''),
+     j.doc.querySelector('.signin-link')?.textContent?.slice(0, 120));
+  /**
+   * Held so the same browser can finish without being asked twice. Firebase refuses to finish
+   * without it, deliberately, so that a forwarded link cannot sign in whoever opens the mail.
+   */
+  ok('and the address is held for the link coming back',
+     j.dom.window.localStorage.getItem('gc-arch-assessment:signin-email') === 'dan.weekes-hall@tbs-sct.gc.ca');
+  j.dom.window.close();
+}
+
+{
+  // The link, opened. A fresh load of this page carrying the code out of the mail.
+  const j = await boot({
+    side: 'assess', linkEmail: 'dan.weekes-hall@tbs-sct.gc.ca',
+    url: 'https://example.gc.ca/tool/?mode=signIn&oobCode=CODE-FROM-THE-MAIL',
+  });
+  const traded = j.seen.find((c) => /accounts:signInWithEmailLink/.test(c.href));
+  ok('opening the link trades the code for a session', !!traded, j.seen.map((c) => c.href).join(' | ').slice(0, 200));
+  const body = JSON.parse(traded?.body ?? '{}');
+  ok('and sends back the code that was in the link', body.oobCode === 'CODE-FROM-THE-MAIL', body.oobCode);
+  ok('and the address it was sent to', body.email === 'dan.weekes-hall@tbs-sct.gc.ca', body.email);
+  // This endpoint takes the code and the address and nothing else.
+  ok('and sends nothing this endpoint does not accept',
+     Object.keys(body).sort().join(',') === 'email,oobCode', Object.keys(body).join(','));
+  ok('the person is signed in afterwards',
+     !/Continue with Google/.test(j.doc.querySelector('#app')?.textContent ?? ''),
+     (j.doc.querySelector('#app')?.textContent ?? '').slice(0, 90));
+  /**
+   * A one-time code in an address bar goes into history, into a bookmark and into anything
+   * pasted into a ticket, so it is taken out as soon as it is spent.
+   */
+  ok('and the spent code is out of the address', !/oobCode/.test(j.dom.window.location.href),
+     j.dom.window.location.href);
+  ok('and the held address is let go', !j.dom.window.localStorage.getItem('gc-arch-assessment:signin-email'));
+  j.dom.window.close();
+}
+
+{
+  /**
+   * The link opened in a different browser from the one that asked. Firebase cannot finish it
+   * and the tool has to say which of the two things went wrong.
+   */
+  const j = await boot({
+    side: 'assess',
+    url: 'https://example.gc.ca/tool/?mode=signIn&oobCode=CODE-FROM-THE-MAIL',
+  });
+  ok('a link opened in another browser says so rather than failing quietly',
+     /different browser/.test(j.doc.querySelector('.signin .card.warn')?.textContent ?? ''),
+     j.doc.querySelector('.signin .card.warn')?.textContent?.slice(0, 120));
+  ok('and no code is traded for a session', !j.seen.some((c) => /signInWithEmailLink/.test(c.href)));
+  j.dom.window.close();
+}
+
+{
+  /**
+   * And the refusal that is not the person's fault. The service says OPERATION_NOT_ALLOWED
+   * when nobody has switched the provider on, which a reader answers by trying a different
+   * address unless the screen says what it means.
+   */
+  // Both codes, because the service names the missing half differently depending on which
+  // half it looked at, and this project answers the second one today.
+  for (const code of ['OPERATION_NOT_ALLOWED', 'PASSWORD_LOGIN_DISABLED']) {
+    const j = await boot({ side: 'assess', oobRefusal: code });
+    const field = j.doc.querySelector('input.signin-email');
+    field.value = 'someone@tbs-sct.gc.ca';
+    [...j.doc.querySelectorAll('.signin-other button')].find((b) => /Email me a link/.test(b.textContent)).click();
+    await new Promise((r) => setTimeout(r, 60));
+    const said = j.doc.querySelector('.signin .card.warn')?.textContent ?? '';
+    ok(`a provider nobody switched on is named as that, and not as ${code}`,
+       /not switched on/.test(said) && !new RegExp(code).test(said), said.slice(0, 160));
+    ok('and says where to switch it on', /Firebase console/.test(said), said.slice(0, 200));
+    j.dom.window.close();
+  }
 }
 
 console.log(fails ? `\n${fails} hosted check(s) failed\n` : '\nall hosted checks passed\n');
