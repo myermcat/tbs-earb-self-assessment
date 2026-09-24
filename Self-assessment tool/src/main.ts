@@ -125,12 +125,29 @@ function bootRoute(): Route {
   return { side: 'submit', mode: 'home' };
 }
 
-// The set in use is remembered, so a reload does not silently go back to the built-in one.
-let rubric: Rubric = currentRubric(BUILTIN as unknown as Rubric);
-let assessment: Assessment = loadDraft() ?? blankAssessment(rubric);
+/**
+ * Which side this page is, decided before anything is read out of the browser.
+ *
+ * Reported as: why is it reading the submitter side if it is the assessor page. It was, and
+ * this line is why. The draft used to be loaded here, above this one, so the submitter's
+ * assessment was in memory before anything had decided which side was being drawn, and the
+ * submitter's warning about a deleted draft then opened over the assessor screen.
+ *
+ * The three pages are already three builds. What they share is the source tree and one origin,
+ * and neither of those is a boundary: this order is.
+ */
 const booted: Route = bootRoute();
 let side: Side = booted.side;
 let mode: Mode = booted.mode;
+
+// The set in use is remembered, so a reload does not silently go back to the built-in one.
+let rubric: Rubric = currentRubric(BUILTIN as unknown as Rubric);
+/**
+ * An assessor has no draft of their own on this screen. Reading one is how somebody else's
+ * work reached a page that was never going to show it, and a blank one costs nothing: crossing
+ * to the submitter side re-reads it, because paint() runs again and loadDraft is cheap.
+ */
+let assessment: Assessment = (booted.side === 'submit' ? loadDraft() : null) ?? blankAssessment(rubric);
 if (booted.stop) setStopKey(booted.stop);
 
 type SettingsPane = 'questions' | 'answers' | 'people' | 'docs' | 'build' | 'danger';

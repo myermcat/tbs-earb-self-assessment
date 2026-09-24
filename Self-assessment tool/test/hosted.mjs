@@ -1180,9 +1180,18 @@ console.log('\nThe published build, signed in\n');
   invented.initiative.department = 'Department of Invented Services';
   invented.meta.appVersion = 'demonstration';
 
+  /**
+   * The draft carries a name of its own, because the saved session below legitimately puts
+   * "Coastal Permits Replacement" on the screen. Without two names, an assertion about the
+   * draft would be answered by the session and could not fail.
+   */
+  const ownDraft = JSON.parse(JSON.stringify(real));
+  ownDraft.id = 'MYOWNDRAFTAA';
+  ownDraft.initiative.name = 'My Own Half Finished Thing';
+
   const j = await boot({
     side: 'assess', session: live, role: 'assessor',
-    draft: real,
+    draft: ownDraft,
     audit: [{ file: 'coastal.json', a: real }, { file: 'invented.json', a: invented }],
   });
   const text = (j.doc.querySelector('#app')?.textContent ?? '').replace(/\s+/g, ' ');
@@ -1196,6 +1205,19 @@ console.log('\nThe published build, signed in\n');
    */
   ok('the assessor screen does not warn about the submitter own draft',
      !/no longer in the shared store/.test(dialogText), dialogText.slice(0, 120));
+  ok('and opens no window at all over it', j.doc.querySelectorAll('dialog[open]').length === 0,
+     String(j.doc.querySelectorAll('dialog[open]').length));
+  /**
+   * And it never read the draft in the first place.
+   *
+   * Reported as: why is it reading the submitter side if it is the assessor page. The draft
+   * used to be loaded at module level, above the line that decides which side is being drawn,
+   * so the submitter's assessment was in memory on every page whatever it was for. The side is
+   * decided first now, and this is the assertion that goes red if that order is put back: the
+   * name is in the planted draft and in nothing else on the screen.
+   */
+  ok('nothing of the draft is drawn on the assessor screen',
+     !text.includes('My Own Half Finished Thing'), text.slice(0, 160));
 
   /**
    * And anything a demonstration build made is refused wherever it arrived from. A browser that
@@ -1335,6 +1357,47 @@ console.log('\nThe published build, signed in\n');
     ok('and says where to switch it on', /Firebase console/.test(said), said.slice(0, 200));
     j.dom.window.close();
   }
+}
+
+/**
+ * The assessor page never reads the submitter's draft at all.
+ *
+ * Reported as: why is it reading the submitter side if it is the assessor page. It was. The
+ * draft was loaded at module level above the line that decides which side is being drawn, so
+ * every page held somebody's assessment whatever it was for, and the submitter's warning about
+ * a deleted draft opened over the assessor screen.
+ *
+ * Asserted on the read and not on the screen, because the assessor screens never drew the
+ * draft even when they held it: a check on what is rendered passes on both builds and proves
+ * nothing. This watches what the page asks the browser for.
+ */
+{
+  const reads = [];
+  const html2 = await readFile('dist/assessor.html', 'utf8');
+  const dom2 = new JSDOM(html2, {
+    runScripts: 'dangerously', url: 'https://example.gc.ca/assessor/', pretendToBeVisual: true,
+    beforeParse(w) {
+      try {
+        w.localStorage.setItem('gc-arch-assessment:draft', JSON.stringify({
+          fileType: 'gc-arch-assessment', formatVersion: 1, id: 'MYOWNDRAFTAA',
+          initiative: { name: 'My Own Half Finished Thing' }, answers: {}, meta: {},
+        }));
+      } catch { /* no storage on this origin */ }
+      const was = w.Storage.prototype.getItem;
+      w.Storage.prototype.getItem = function wrapped(name) {
+        reads.push(String(name));
+        return was.call(this, name);
+      };
+      w.scrollTo = () => {}; w.alert = () => {}; w.print = () => {};
+      w.fetch = () => Promise.reject(new Error('the assessor page reached for the network'));
+    },
+  });
+  await new Promise((r) => setTimeout(r, 200));
+  ok('the assessor page asks the browser for something, so the check below means something',
+     reads.length > 0, String(reads.length));
+  ok('and never for the submitter draft',
+     !reads.includes('gc-arch-assessment:draft'), [...new Set(reads)].join(', '));
+  dom2.window.close();
 }
 
 console.log(fails ? `\n${fails} hosted check(s) failed\n` : '\nall hosted checks passed\n');
