@@ -202,6 +202,11 @@ li { margin-bottom: .22rem; }
 .signin-other > summary:hover { color: var(--ink); }
 .signin-other > button { width: 100%; justify-content: center; margin-top: .6rem; }
 .signin-link { margin: .7rem 0 .2rem; }
+/* What happened last time, above the field and never in place of it. A block that replaced the
+   field left somebody who never got their mail with a sentence and no way onward. */
+.signin-sent { margin: 0 0 .7rem; }
+.signin-sent p { margin: 0; }
+.signin-sent p + p { margin-top: .35rem; }
 /* The field and its button on one line, and stacked where one line will not hold them. */
 .signin-link-row { display: flex; gap: .4rem; flex-wrap: wrap; align-items: stretch; }
 .signin-link-row .signin-email { flex: 1 1 14rem; min-width: 0; }

@@ -1162,34 +1162,50 @@ function otherWaysToSignIn(): HTMLElement {
  * key off the address exactly as they already do.
  */
 function emailLinkBlock(): HTMLElement {
-  const waiting = linkEmailWaiting();
   const box = el('div', { class: 'signin-link' });
 
-  const sent = (to: string) => {
-    clear(box);
-    box.appendChild(el('p', { class: 'small' }, [
-      t(`A link is on its way to ${to}. Open it in this browser and you are signed in. It is good once.`,
-        `Un lien est en route vers ${to}. Ouvrez-le dans ce navigateur et vous serez connecté. Il ne sert qu\u2019une fois.`),
-    ]));
-    box.appendChild(el('p', { class: 'tiny dim' }, [
-      /**
-       * Said because Firebase refuses to finish without the address being given again, so a
-       * link opened somewhere else lands on a screen asking for it, and somebody who has not
-       * been told that reads it as the link being broken.
-       */
-      t('Open it in this browser. A link opened somewhere else has to be asked for again, which is deliberate: it stops a forwarded link signing in whoever opened the mail.',
-        'Ouvrez-le dans ce navigateur. Un lien ouvert ailleurs doit être redemandé, et c\u2019est voulu : cela empêche un lien transféré de connecter quiconque ouvre le courriel.'),
-    ]));
-  };
-
-  if (waiting) { sent(waiting); return box; }
-
+  /**
+   * What happened last time, said above the field and never in place of it.
+   *
+   * This used to replace the whole block, so once a link had gone the screen was a sentence and
+   * nothing else. Reported in three parts and they were all this: I want to test my Google
+   * address now but it does not let me enter a different one, or send the link again, and I do
+   * not see a note anywhere that there is a daily limit. It survived a reload too, because the
+   * address is held until a link is finished, so a link that never arrived left the sign-in
+   * screen stuck for good.
+   */
+  const state = el('div', {});
   const field = el('input', {
     type: 'email', class: 'signin-email', autocomplete: 'email', inputmode: 'email',
     placeholder: 'prenom.nom@tbs-sct.gc.ca',
   }) as HTMLInputElement;
   const go = el('button', { class: 'ghost' }, [t('Email me a link', 'M\u2019envoyer un lien')]);
   const say = el('p', { class: 'signer-advice' });
+
+  const showSent = (to: string) => {
+    clear(state);
+    state.appendChild(el('div', { class: 'card tight signin-sent' }, [
+      el('p', { class: 'small' }, [
+        t(`A link is on its way to ${to}. Open it in the browser you asked from, and you are signed in. It is good once.`,
+          `Un lien est en route vers ${to}. Ouvrez-le dans le navigateur d\u2019où vous l\u2019avez demandé et vous serez connecté. Il ne sert qu\u2019une fois.`),
+      ]),
+      /**
+       * Said because a departmental mail filter is the likeliest thing between a link and an
+       * inbox: it leaves as noreply at a firebaseapp.com address with no sender name, which is
+       * the shape of a message a government filter quarantines.
+       */
+      el('p', { class: 'tiny dim' }, [
+        t('If nothing arrives in a few minutes, look in junk. Mail from an address like this one is often held by a departmental filter, and trying a personal address is the quickest way to tell which is happening.',
+          'Si rien n\u2019arrive en quelques minutes, regardez dans les indésirables. Le courrier provenant d\u2019une adresse comme celle-ci est souvent retenu par un filtre ministériel, et essayer une adresse personnelle est le moyen le plus rapide de savoir ce qui se passe.'),
+      ]),
+    ]));
+  };
+
+  const waiting = linkEmailWaiting();
+  if (waiting) {
+    showSent(waiting);
+    field.value = waiting;
+  }
 
   go.addEventListener('click', () => {
     const address = field.value.trim();
@@ -1202,27 +1218,21 @@ function emailLinkBlock(): HTMLElement {
       return;
     }
     say.textContent = t('Sending...', 'Envoi en cours...');
-    void sendSignInLink(address).then((went) => { if (went) sent(address); else paint(); });
+    void sendSignInLink(address).then((went) => {
+      if (went) { showSent(address); say.textContent = ''; } else paint();
+    });
   });
 
+  box.appendChild(state);
   box.appendChild(el('p', { class: 'small' }, [
     t('Your work address will do. We send one link to it, opening the link signs you in, and there is no password.',
       'Votre adresse professionnelle convient. Nous y envoyons un lien, l\u2019ouvrir vous connecte, et il n\u2019y a pas de mot de passe.'),
   ]));
   box.appendChild(el('div', { class: 'signin-link-row' }, [field, go]));
   box.appendChild(say);
-  /**
-   * The cap is said on the screen because it is not a number anybody would guess and the way
-   * you find out otherwise is that the fourth person of the day gets a refusal.
-   *
-   * Five a day is the whole project, on the plan this runs on. It is five sign-ins and not
-   * five people: a session keeps itself alive afterwards, so somebody who signs in once stays
-   * signed in until they clear their browser. Attaching a billing account takes it to 25,000 a
-   * day, and the bill at this size is nothing.
-   */
   box.appendChild(el('p', { class: 'tiny dim' }, [
-    t('Five of these a day, for everybody using this tool together. Signing in once lasts, so the limit is on new sign-ins and not on people. If it runs out, it comes back tomorrow.',
-      'Cinq de ces liens par jour, pour l\u2019ensemble des personnes qui utilisent cet outil. Une connexion dure, donc la limite porte sur les nouvelles connexions et non sur les personnes. Si elle est atteinte, elle revient le lendemain.'),
+    t('Five of these a day, for everybody using this tool together, and asking again spends one. Signing in once lasts, so the limit is on new sign-ins and not on people. If it runs out, it comes back tomorrow.',
+      'Cinq de ces liens par jour, pour l\u2019ensemble des personnes qui utilisent cet outil, et en redemander un en consomme un. Une connexion dure, donc la limite porte sur les nouvelles connexions et non sur les personnes. Si elle est atteinte, elle revient le lendemain.'),
   ]));
   return box;
 }
