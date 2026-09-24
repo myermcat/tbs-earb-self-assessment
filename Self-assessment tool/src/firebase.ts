@@ -565,15 +565,60 @@ export function arrivedOnSignInLink(): boolean {
  * The answer is whether this load was a link coming back. Whether it worked is currentUser(),
  * and why it did not is lastSignInProblem().
  */
+/**
+ * The code out of a link, while somebody is being asked which address it went to.
+ *
+ * A module variable and not storage, on purpose. scrubAddress() exists to get this value out of
+ * the address bar before it reaches history, a bookmark or a pasted ticket, and writing it to
+ * localStorage or sessionStorage would make the durable copy that line is there to prevent. The
+ * cost is that a reload loses it, which the screen says, and the way back is the mail: the link
+ * is still unspent, because the path that asks for an address makes no call.
+ */
+let heldLinkCode = '';
+
+/** Whether this page is holding a link that needs an address before it can finish. */
+export function linkNeedsAddress(): boolean { return heldLinkCode !== ''; }
+
+/** Give up on the held link and go back to the ordinary screen. */
+export function forgetLinkCode(): void { heldLinkCode = ''; }
+
 export async function finishSignInLink(): Promise<boolean> {
   if (!CONFIG || !arrivedOnSignInLink()) return false;
   const oobCode = new URLSearchParams(window.location.search).get('oobCode') ?? '';
+  // First thing and before any await. A one-time code in the address bar reaches history, a
+  // bookmark and anything somebody pastes into a ticket.
+  scrubAddress();
   const email = linkEmailWaiting();
   if (!email) {
-    scrubAddress();
-    signInProblem = 'This link was opened in a different browser from the one that asked for it. Ask for a new link here and open it in this browser.';
+    /**
+     * A browser that did not ask for this link. Reported as: I only have my work email on my
+     * phone, but I am only signed in from my work laptop, which I do not have. That is the
+     * ordinary working day at TBS and the sign-in has to survive it.
+     *
+     * Firebase's own guide says to ask the person for the address in exactly this case, and
+     * refusing to finish without it is what stops a link signing in whoever opened the mail.
+     * So the code is held and the screen asks. Nothing is spent by arriving here: this returns
+     * above the call below.
+     */
+    heldLinkCode = oobCode;
     return true;
   }
+  return finishHeldLink(oobCode, email);
+}
+
+/**
+ * Finish with an address somebody has just typed.
+ *
+ * Never rejects, like everything else on this path: the refusal lands in lastSignInProblem()
+ * and the caller repaints.
+ */
+export async function finishSignInLinkWith(email: string): Promise<boolean> {
+  if (!CONFIG || !heldLinkCode) return false;
+  return finishHeldLink(heldLinkCode, email);
+}
+
+async function finishHeldLink(oobCode: string, email: string): Promise<boolean> {
+  if (!CONFIG) return false;
   try {
     const reply = await postJson(
       `${IDENTITY}/accounts:signInWithEmailLink?key=${encodeURIComponent(CONFIG.apiKey)}`,
@@ -581,12 +626,25 @@ export async function finishSignInLink(): Promise<boolean> {
       // it returns the tokens either way.
       { email, oobCode },
     );
-    scrubAddress();
-    forgetLinkEmail();
     if (reply.status !== 200 || !isRecord(reply.body)) {
-      signInProblem = `That link did not sign you in: ${problemFrom(reply)}`;
+      /**
+       * One sentence for two causes, because the service gives one code for both.
+       * INVALID_OOB_CODE is what comes back when the address is not the one the link went to
+       * AND when the link is spent or past its six hours, and the reference documents no way
+       * to tell them apart. A screen that guessed would send somebody to check a correct
+       * address. So it names both and names the action that settles either.
+       *
+       * The held code survives a refusal, so correcting a typo costs another attempt and no
+       * second mail.
+       */
+      signInProblem = /INVALID_OOB_CODE|EXPIRED_OOB_CODE/.test(problemFrom(reply))
+        ? 'That is not the address this link was sent to, or the link has been used already. Links are good once and last about six hours. Check the address, and ask for a new one if it still refuses.'
+        : `That link did not sign you in: ${problemFrom(reply)}`;
       return true;
     }
+    // Spent, so neither half of the credential is worth keeping.
+    heldLinkCode = '';
+    forgetLinkEmail();
     const back = text(reply.body.email);
     const idToken = text(reply.body.idToken);
     if (!back || !idToken) {
@@ -603,7 +661,6 @@ export async function finishSignInLink(): Promise<boolean> {
     signInProblem = '';
     return true;
   } catch (err) {
-    scrubAddress();
     forgetLinkEmail();
     signInProblem = `That link did not sign you in: ${(err as Error).message}`;
     return true;

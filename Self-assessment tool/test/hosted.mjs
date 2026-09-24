@@ -58,7 +58,7 @@ const asDoc = (a) => ({ name: `projects/p/databases/(default)/documents/assessme
  * One page, booted with whatever storage and whatever store answer a case needs.
  * `listAnswer` decides what the assessments list does: a page of documents, or a refusal.
  */
-async function boot({ session = null, side = null, listAnswer = { documents: [] }, role = null, hash = '', url = null, draft = null, people = null, audit = null, oobRefusal = null, linkEmail = null } = {}) {
+async function boot({ session = null, side = null, listAnswer = { documents: [] }, role = null, hash = '', url = null, draft = null, people = null, audit = null, oobRefusal = null, linkEmail = null, linkMintedFor = null } = {}) {
   const seen = [];
   const dom = new JSDOM(html, {
     runScripts: 'dangerously',
@@ -99,9 +99,17 @@ async function boot({ session = null, side = null, listAnswer = { documents: [] 
         }
         if (/accounts:signInWithEmailLink/.test(href)) {
           const asked = JSON.parse(String(init?.body ?? '{}'));
-          const body = { email: asked.email, idToken: 'seeded-by-link',
-            refreshToken: 'seeded-refresh', expiresIn: '3600', localId: 'uid' };
-          return { ok: true, status: 200,
+          /**
+           * The fake checks the code AND the address together, the way the real service does.
+           * It used to answer 200 to any address at all, so an assertion that a wrong address
+           * signs nobody in would have passed on a build that ignored the address entirely.
+           */
+          const right = !linkMintedFor || asked.email === linkMintedFor;
+          const body = right
+            ? { email: asked.email, idToken: 'seeded-by-link',
+                refreshToken: 'seeded-refresh', expiresIn: '3600', localId: 'uid' }
+            : { error: { code: 400, message: 'INVALID_OOB_CODE : Invalid oobCode.' } };
+          return { ok: right, status: right ? 200 : 400,
             headers: { get: () => 'application/json' },
             json: async () => body, text: async () => JSON.stringify(body) };
         }
@@ -1370,18 +1378,93 @@ console.log('\nThe published build, signed in\n');
 
 {
   /**
-   * The link opened in a different browser from the one that asked. Firebase cannot finish it
-   * and the tool has to say which of the two things went wrong.
+   * The link opened on a device that did not ask for it. Reported as: I only have my work email
+   * on my phone, but I am only signed in from my work laptop, which I do not have. It used to
+   * be refused, which is the ordinary working day at TBS refused.
    */
   const j = await boot({
-    side: 'assess',
+    side: 'assess', linkMintedFor: 'dan.weekes-hall@tbs-sct.gc.ca',
     url: 'https://example.gc.ca/tool/?mode=signIn&oobCode=CODE-FROM-THE-MAIL',
   });
-  ok('a link opened in another browser says so rather than failing quietly',
-     /different browser/.test(j.doc.querySelector('.signin .card.warn')?.textContent ?? ''),
-     j.doc.querySelector('.signin .card.warn')?.textContent?.slice(0, 120));
-  ok('and no code is traded for a session', !j.seen.some((c) => /signInWithEmailLink/.test(c.href)));
+  const view = () => (j.doc.querySelector('#app')?.textContent ?? '').replace(/\s+/g, ' ');
+  ok('a link opened where it was not asked for asks which address it went to',
+     /Finish signing in/.test(view()) && !!j.doc.querySelector('input.signin-email'),
+     view().slice(0, 120));
+  ok('and nothing is traded before an address is given',
+     !j.seen.some((c) => /signInWithEmailLink/.test(c.href)));
+  ok('and the field starts empty, because an address out of the address bar is the attack',
+     j.doc.querySelector('input.signin-email')?.value === '');
+  ok('and it says which device this signs in',
+     /signs you in on this device/.test(view()), view().slice(0, 200));
+  ok('and that arriving here has not spent the link',
+     /has not used it up/.test(view()));
+  ok('and that a reload loses the code', /Reloading this page loses/.test(view()));
+
+  /**
+   * A wrong address. The service answers INVALID_OOB_CODE for this AND for a link already used,
+   * with no way to tell them apart, so one sentence names both.
+   */
+  const field = j.doc.querySelector('input.signin-email');
+  field.value = 'somebody.else@tbs-sct.gc.ca';
+  [...j.doc.querySelectorAll('.signin button')].find((b) => /Sign in on this device/.test(b.textContent)).click();
+  await new Promise((r) => setTimeout(r, 80));
+  const said = (j.doc.querySelector('#app')?.textContent ?? '').replace(/\s+/g, ' ');
+  ok('a wrong address signs nobody in', !/Submissions/.test(said), said.slice(0, 90));
+  ok('and the refusal names both things it could be',
+     /not the address this link was sent to, or the link has been used already/.test(said),
+     said.slice(0, 220));
+  ok('and the screen is still there, so a typo costs one edit and no second mail',
+     !!j.doc.querySelector('input.signin-email'));
+
+  // And the right one finishes it, on this device.
+  const again = j.doc.querySelector('input.signin-email');
+  again.value = 'dan.weekes-hall@tbs-sct.gc.ca';
+  [...j.doc.querySelectorAll('.signin button')].find((b) => /Sign in on this device/.test(b.textContent)).click();
+  await new Promise((r) => setTimeout(r, 80));
+  ok('the right address finishes it here',
+     !/Finish signing in/.test((j.doc.querySelector('#app')?.textContent ?? '')),
+     (j.doc.querySelector('#app')?.textContent ?? '').slice(0, 90));
+  /**
+   * And the code was never written down. scrubAddress() exists to keep a one-time code out of
+   * history and out of anything pasted into a ticket, and a copy in storage would undo it.
+   */
+  const stored = [];
+  for (const store of [j.dom.window.localStorage, j.dom.window.sessionStorage]) {
+    for (let i = 0; i < store.length; i++) stored.push(String(store.getItem(store.key(i))));
+  }
+  ok('and the one-time code was never written into storage',
+     !stored.some((v) => v.includes('CODE-FROM-THE-MAIL')), stored.join(' | ').slice(0, 120));
+  ok('and it is out of the address bar', !/oobCode/.test(j.dom.window.location.href));
   j.dom.window.close();
+}
+
+{
+  /**
+   * The same link, come back to the SUBMITTER page, which is where it comes back to when it was
+   * asked for there. continueUrl is the page that asked, and that page opens on home.
+   *
+   * The refusal used to be set and drawn nowhere at all, because the home branch runs before
+   * the sign-in branch, so somebody who opened their link met an ordinary questionnaire and no
+   * account. This boots the submitter build, whose opensOn() is submit, and asserts the arrival
+   * screen is what they get.
+   */
+  const dom2 = new JSDOM(await readFile('dist/index.html', 'utf8'), {
+    runScripts: 'dangerously', pretendToBeVisual: true,
+    url: 'https://example.gc.ca/tool/?mode=signIn&oobCode=CODE-FROM-THE-MAIL',
+    beforeParse(w) {
+      w.scrollTo = () => {}; w.alert = () => {}; w.print = () => {};
+      w.fetch = async () => ({ ok: true, status: 200,
+        headers: { get: () => 'application/json' },
+        json: async () => ({}), text: async () => '{}' });
+    },
+  });
+  await new Promise((r) => setTimeout(r, 250));
+  const seen2 = (dom2.window.document.querySelector('#app')?.textContent ?? '').replace(/\s+/g, ' ');
+  ok('a link that comes back to the submitter page is not swallowed by it',
+     /Finish signing in/.test(seen2), seen2.slice(0, 140));
+  ok('and the field to finish it is on that page',
+     !!dom2.window.document.querySelector('input.signin-email'));
+  dom2.window.close();
 }
 
 {
