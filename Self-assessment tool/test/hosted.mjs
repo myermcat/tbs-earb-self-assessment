@@ -1530,5 +1530,67 @@ console.log('\nThe published build, signed in\n');
   dom2.window.close();
 }
 
+/**
+ * The assessor's settings are behind the door, and the door is the sign-in.
+ *
+ * Reported as: I can see settings in the assessor view before I signed in, this button should
+ * not even be on the sign-in screen. The settings branch in paint() sat above the gate, so the
+ * address of the settings window drew the whole screen in a private window with nobody signed
+ * in, People and Danger zone included.
+ *
+ * The store held throughout, which is the part that was never in doubt: every pane that asks it
+ * anything answered that it would not hand the list over. This is about what a page draws for
+ * somebody who has not said who they are.
+ */
+{
+  for (const pane of ['people', 'danger', 'questions']) {
+    const j = await boot({ side: 'assess', hash: `#assessor/settings/${pane}` });
+    const view = (j.doc.querySelector('#app')?.textContent ?? '').replace(/\s+/g, ' ');
+    /**
+     * Asserted on the settings navigation itself, because the first version of this checked for
+     * words that appear on one pane and passed on the two that do not carry them.
+     */
+    /**
+     * Asserted on the sign-in card and on the pane list, because the first version checked for
+     * words that appear on one pane and passed on the two that do not carry them, and the
+     * second used a class the shell puts on the body from the mode whatever it draws.
+     */
+    ok(`signed out, the ${pane} pane draws the door and not the settings`,
+       !!j.doc.querySelector('.signin')
+         && ![...j.doc.querySelectorAll('button')].some((b) => /Danger zone/.test(b.textContent)),
+       view.slice(0, 120));
+    ok(`and the ${pane} address says who it needs you to be`,
+       /needs to know who you are/.test(view), view.slice(0, 120));
+    j.dom.window.close();
+  }
+  // And signed in, it still opens, because this is a door and not a wall.
+  const j = await boot({ side: 'assess', session: live, role: 'assessor', hash: '#assessor/settings/people' });
+  const view = (j.doc.querySelector('#app')?.textContent ?? '').replace(/\s+/g, ' ');
+  ok('signed in, the people pane opens as before',
+     /Everybody who can open the assessor side/.test(view), view.slice(0, 120));
+  j.dom.window.close();
+}
+
+/**
+ * The submitter's settings stay open, because that side has no door by design: the
+ * questionnaire, the results and its own danger zone are all reachable with no account.
+ */
+{
+  const dom3 = new JSDOM(await readFile('dist/index.html', 'utf8'), {
+    runScripts: 'dangerously', pretendToBeVisual: true,
+    url: 'https://example.gc.ca/tool/#settings',
+    beforeParse(w) {
+      w.scrollTo = () => {}; w.alert = () => {}; w.print = () => {};
+      w.fetch = async () => ({ ok: true, status: 200,
+        headers: { get: () => 'application/json' }, json: async () => ({}), text: async () => '{}' });
+    },
+  });
+  await new Promise((r) => setTimeout(r, 250));
+  const view3 = (dom3.window.document.querySelector('#app')?.textContent ?? '').replace(/\s+/g, ' ');
+  ok('a submitter reaches their own settings with no account at all',
+     /Question set|Your answers/.test(view3), view3.slice(0, 140));
+  dom3.window.close();
+}
+
 console.log(fails ? `\n${fails} hosted check(s) failed\n` : '\nall hosted checks passed\n');
 process.exit(fails ? 1 : 0);
