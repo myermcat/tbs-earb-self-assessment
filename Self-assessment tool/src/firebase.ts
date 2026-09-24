@@ -484,8 +484,18 @@ const LINK_EMAIL_KEY = storeKey('signin-email');
 /**
  * Firebase refuses to finish without the address being given again, deliberately: a link that
  * signed somebody in on its own would sign in whoever opened the mail, on whatever device.
- * Holding it here is what lets the same browser finish without asking twice, and a different
- * browser is asked, which is the case the rule exists for.
+ * Holding it here is what lets the same browser finish without asking twice.
+ *
+ * WHAT THIS IS AND IS NOT. accounts:signInWithEmailLink takes oobCode and email, and the service
+ * refuses a pair that disagree. That check is Google's and it happens whoever supplies the
+ * address. Holding the address here supplies it for one browser and no other, so what the
+ * storage adds on top of the service's check is a demand that the browser finishing the sign-in
+ * be the browser that asked. That demand is ours and Firebase does not make it: its web guide
+ * names the other-device case and says to ask the person for the address.
+ *
+ * A browser that never asked used to be refused, which is the ordinary working day at TBS.
+ * Reported as: i only have my work email on my phone. but im only signed in from my work laptop.
+ * which i dont have. does it mean i cannot test it? So a browser with nothing held now asks.
  */
 function rememberLinkEmail(email: string): void {
   try { localStorage.setItem(LINK_EMAIL_KEY, email); } catch { /* asked again on return */ }
@@ -559,39 +569,66 @@ export function arrivedOnSignInLink(): boolean {
 }
 
 /**
- * Finish it. Runs in the boot sequence beside resumeSignIn, because the page that has to
- * finish a link is a fresh load of this one, and like that one it never throws.
+ * The code out of a link this tab opened, while the screen asks who the link was sent to.
  *
- * The answer is whether this load was a link coming back. Whether it worked is currentUser(),
- * and why it did not is lastSignInProblem().
+ * It is in memory and it is written nowhere. A one-time credential in the address bar goes into
+ * history, into a bookmark and into anything somebody pastes into a ticket, so it comes out of
+ * the address on the boot pass, before the first paint, and lives in this tab's heap until it is
+ * traded or the tab is reloaded. sessionStorage was refused for this: it would survive a reload
+ * and keep the credential past the screen that needed it, and the mail still holds the link, so
+ * a reload is answered by opening the link again.
  */
-export async function finishSignInLink(): Promise<boolean> {
-  if (!CONFIG || !arrivedOnSignInLink()) return false;
-  const oobCode = new URLSearchParams(window.location.search).get('oobCode') ?? '';
-  const email = linkEmailWaiting();
-  if (!email) {
-    scrubAddress();
-    signInProblem = 'This link was opened in a different browser from the one that asked for it. Ask for a new link here and open it in this browser.';
-    return true;
-  }
+let heldLinkCode = '';
+
+/**
+ * Whether a link came back to a browser that cannot say who it was for, so the screen has to
+ * ask. The code is in hand while this is true.
+ */
+export function signInLinkNeedsAddress(): boolean { return heldLinkCode !== ''; }
+
+/**
+ * The refusals a second attempt cannot help with, because they are about the code and not about
+ * the address. The code in hand goes and the screen asks for a new link. Every other refusal
+ * keeps it, because the everyday one is a mistyped address and one typo should not cost
+ * somebody their link.
+ */
+const CODE_IS_GONE = /INVALID_OOB_CODE|EXPIRED_OOB_CODE|MISSING_OOB_CODE/;
+
+/**
+ * Trade the code for a session.
+ *
+ * The service is what checks that the address matches the one the link was sent to.
+ * accounts:signInWithEmailLink takes oobCode and email and refuses a pair that disagree, whoever
+ * supplied the address, so this is the same check on both paths into it.
+ *
+ * The held address goes on every outcome, including a refusal. Keeping it would leave the screen
+ * saying a link is on its way with no field to ask for another, which is the state somebody
+ * meets exactly when they need to ask for another.
+ */
+async function tradeLinkCode(oobCode: string, email: string): Promise<boolean> {
+  forgetLinkEmail();
   try {
     const reply = await postJson(
-      `${IDENTITY}/accounts:signInWithEmailLink?key=${encodeURIComponent(CONFIG.apiKey)}`,
+      `${IDENTITY}/accounts:signInWithEmailLink?key=${encodeURIComponent(config().apiKey)}`,
       // oobCode and email, and nothing else. This endpoint does not accept returnSecureToken;
       // it returns the tokens either way.
       { email, oobCode },
     );
-    scrubAddress();
-    forgetLinkEmail();
     if (reply.status !== 200 || !isRecord(reply.body)) {
-      signInProblem = `That link did not sign you in: ${problemFrom(reply)}`;
-      return true;
+      const said = problemFrom(reply);
+      if (CODE_IS_GONE.test(said)) {
+        heldLinkCode = '';
+        signInProblem = 'That link has already been used, or it has run out. Ask for a new one below and open it while it is fresh.';
+        return false;
+      }
+      signInProblem = `That link did not sign you in: ${said}`;
+      return false;
     }
     const back = text(reply.body.email);
     const idToken = text(reply.body.idToken);
     if (!back || !idToken) {
       signInProblem = 'The sign-in service returned no address and no token for that link.';
-      return true;
+      return false;
     }
     const seconds = Number(text(reply.body.expiresIn)) || 3600;
     writeSession({
@@ -600,14 +637,61 @@ export async function finishSignInLink(): Promise<boolean> {
       refreshToken: text(reply.body.refreshToken),
       expiresAt: Date.now() + seconds * 1000,
     });
+    heldLinkCode = '';
     signInProblem = '';
     return true;
   } catch (err) {
-    scrubAddress();
-    forgetLinkEmail();
     signInProblem = `That link did not sign you in: ${(err as Error).message}`;
-    return true;
+    return false;
   }
+}
+
+/**
+ * Finish it. Runs in the boot sequence beside resumeSignIn, because the page that has to
+ * finish a link is a fresh load of this one, and like that one it never throws.
+ *
+ * The answer is whether this load was a link coming back. Whether it worked is currentUser(),
+ * and why it did not is lastSignInProblem(). When the address is unknown the answer is still
+ * true, the code is in hand, and signInLinkNeedsAddress() is what the screen reads.
+ *
+ * The old shape called scrubAddress() on its way to refusing a browser that held no address, so
+ * the one thing that could still have finished the sign-in was destroyed on the way past. The
+ * code is taken out of the address here either way, and kept.
+ */
+export async function finishSignInLink(): Promise<boolean> {
+  if (!CONFIG || !arrivedOnSignInLink()) return false;
+  const oobCode = new URLSearchParams(window.location.search).get('oobCode') ?? '';
+  const email = linkEmailWaiting();
+  heldLinkCode = oobCode;
+  scrubAddress();
+  signInProblem = '';
+  // Nothing held means this browser never asked, which is a phone reading the mail while the
+  // work is on a laptop. The screen asks, and finishSignInLinkAs() below finishes from a click.
+  if (!email) return true;
+  await tradeLinkCode(oobCode, email);
+  return true;
+}
+
+/**
+ * Finish a link with an address typed on the screen now, because this browser never asked for it
+ * and has nothing held.
+ *
+ * Firebase's own web guide names this case and says to ask the person for the address, to stop a
+ * link signing in an unintended user or on an unintended device. The address is typed and is
+ * never read out of the query string: passing it in the redirect address and reusing it is the
+ * one thing that guide tells you not to do, because it enables session injection.
+ *
+ * The answer is whether they are signed in now. Why not is lastSignInProblem(), and the code
+ * stays in hand for a second try unless the service says the code itself is finished.
+ */
+export async function finishSignInLinkAs(email: string): Promise<boolean> {
+  if (!CONFIG) { signInProblem = 'This copy of the tool has no sign-in service configured.'; return false; }
+  if (!heldLinkCode) {
+    signInProblem = 'This tab has no link open any more. Open the link from your mail again, or ask for a new one.';
+    return false;
+  }
+  signInProblem = '';
+  return tradeLinkCode(heldLinkCode, email);
 }
 
 /**
