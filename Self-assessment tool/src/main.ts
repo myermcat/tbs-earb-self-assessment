@@ -1211,6 +1211,19 @@ function emailLinkBlock(): HTMLElement {
   ]));
   box.appendChild(el('div', { class: 'signin-link-row' }, [field, go]));
   box.appendChild(say);
+  /**
+   * The cap is said on the screen because it is not a number anybody would guess and the way
+   * you find out otherwise is that the fourth person of the day gets a refusal.
+   *
+   * Five a day is the whole project, on the plan this runs on. It is five sign-ins and not
+   * five people: a session keeps itself alive afterwards, so somebody who signs in once stays
+   * signed in until they clear their browser. Attaching a billing account takes it to 25,000 a
+   * day, and the bill at this size is nothing.
+   */
+  box.appendChild(el('p', { class: 'tiny dim' }, [
+    t('Five of these a day, for everybody using this tool together. Signing in once lasts, so the limit is on new sign-ins and not on people. If it runs out, it comes back tomorrow.',
+      'Cinq de ces liens par jour, pour l\u2019ensemble des personnes qui utilisent cet outil. Une connexion dure, donc la limite porte sur les nouvelles connexions et non sur les personnes. Si elle est atteinte, elle revient le lendemain.'),
+  ]));
   return box;
 }
 
