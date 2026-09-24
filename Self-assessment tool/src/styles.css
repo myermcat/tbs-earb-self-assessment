@@ -190,6 +190,23 @@ li { margin-bottom: .22rem; }
   border-radius: var(--radius-sm); padding: .7rem .85rem; margin-top: .8rem; }
 .signin-mock button { margin: .3rem 0 .2rem; }
 
+/* The ways in that are not the first one, folded away until somebody looks for them. A second
+   and a third button at the same weight as the first made three equal offers, and only one of
+   them works for everybody today. */
+.signin-other { margin-top: 1rem; border-top: 1px solid var(--line); padding-top: .8rem; }
+.signin-other > summary { cursor: pointer; font-size: .875rem; font-weight: 600; color: var(--ink-2);
+  list-style: none; display: flex; align-items: center; gap: .4rem; }
+.signin-other > summary::-webkit-details-marker { display: none; }
+.signin-other > summary::before { content: '\25B8'; color: var(--ink-3); font-size: .8rem; }
+.signin-other[open] > summary::before { content: '\25BE'; }
+.signin-other > summary:hover { color: var(--ink); }
+.signin-other > button { width: 100%; justify-content: center; margin-top: .6rem; }
+.signin-link { margin: .7rem 0 .2rem; }
+/* The field and its button on one line, and stacked where one line will not hold them. */
+.signin-link-row { display: flex; gap: .4rem; flex-wrap: wrap; align-items: stretch; }
+.signin-link-row .signin-email { flex: 1 1 14rem; min-width: 0; }
+.signin-link-row button { flex: 0 0 auto; }
+
 .side-badge { font-size: .68rem; font-weight: 700; letter-spacing: .09em; text-transform: uppercase;
   color: var(--accent); border: 1px solid var(--accent-line); background: var(--accent-soft);
   border-radius: 999px; padding: .05rem .45rem; }

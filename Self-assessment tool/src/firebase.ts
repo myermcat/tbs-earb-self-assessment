@@ -460,6 +460,156 @@ async function attempt(providerId: Provider): Promise<boolean> {
 export function signInWithGoogle(): Promise<boolean> { return attempt('google.com'); }
 export function signInWithMicrosoft(): Promise<boolean> { return attempt('microsoft.com'); }
 
+/* ---------- signing in with a link sent to an address ------------------------------------- *
+ *
+ * The one route to a departmental account that asks nobody outside this team for anything.
+ *
+ * Google is not a work account at TBS and Microsoft needs an application registered somewhere.
+ * A link sent to the address somebody already has needs neither: Firebase mails a one-time
+ * link, clicking it proves the person can read that mailbox, and the rules key off the address
+ * the same way they already do. It verifies the address by construction, which is what
+ * signedIn() in deploy/firestore.rules insists on.
+ *
+ * TWO THINGS SOMEBODY HAS TO DO ONCE IN THE FIREBASE CONSOLE, and neither is ours:
+ * enable Email/Password, then enable Email link (passwordless sign-in) under it. The address
+ * this page is served from is already in the authorised domains, because Google sign-in works.
+ *
+ * WHAT IT COSTS: Firebase caps the mail it sends on the no-cost plan, so this is a route for a
+ * handful of people and not a pilot. The current figure is on the backlog.
+ */
+
+/** The address the link was sent to, held until the link comes back. */
+const LINK_EMAIL_KEY = storeKey('signin-email');
+
+/**
+ * Firebase refuses to finish without the address being given again, deliberately: a link that
+ * signed somebody in on its own would sign in whoever opened the mail, on whatever device.
+ * Holding it here is what lets the same browser finish without asking twice, and a different
+ * browser is asked, which is the case the rule exists for.
+ */
+function rememberLinkEmail(email: string): void {
+  try { localStorage.setItem(LINK_EMAIL_KEY, email); } catch { /* asked again on return */ }
+}
+
+function forgetLinkEmail(): void {
+  try { localStorage.removeItem(LINK_EMAIL_KEY); } catch { /* nothing to forget */ }
+}
+
+/** The address this browser sent a link to, if it was this browser that sent it. */
+export function linkEmailWaiting(): string {
+  try { return localStorage.getItem(LINK_EMAIL_KEY) ?? ''; } catch { return ''; }
+}
+
+/**
+ * Send the link. Never rejects, for the same reason attempt() does not: every caller was
+ * dropping the refusal into a promise nobody read.
+ */
+export async function sendSignInLink(email: string): Promise<boolean> {
+  signInProblem = '';
+  if (!CONFIG) { signInProblem = 'This copy of the tool has no sign-in service configured.'; return false; }
+  try {
+    const reply = await postJson(
+      `${IDENTITY}/accounts:sendOobCode?key=${encodeURIComponent(CONFIG.apiKey)}`,
+      {
+        requestType: 'EMAIL_SIGNIN',
+        email,
+        /**
+         * continueUrl, and not continueUri. The redirect flow above sends continueUri to
+         * accounts:createAuthUri, which is a different endpoint with a different spelling, and
+         * copying that line into this one sent a field the service ignores. What that produces
+         * is a link back to Firebase's own page, so the person reads their mail, clicks, and
+         * never returns to the tool.
+         */
+        continueUrl: returnAddress(),
+        canHandleCodeInApp: true,
+      },
+    );
+    if (reply.status !== 200) {
+      /**
+       * The one refusal worth translating, because it is not the person's fault and the
+       * service's own words for it are OPERATION_NOT_ALLOWED. It means the provider has never
+       * been switched on, which is a console step nobody has done, and a reader who is told
+       * the raw code will try a different address instead.
+       */
+      const said = problemFrom(reply);
+      /**
+       * Two codes for one cause, because email link sign-in needs the Email/Password provider
+       * switched on under it and the service names the missing half differently depending on
+       * which half it looked at. Probed against this project on 23 September: it answers
+       * PASSWORD_LOGIN_DISABLED today, which is what a provider nobody has enabled looks like.
+       */
+      signInProblem = /OPERATION_NOT_ALLOWED|PASSWORD_LOGIN_DISABLED/.test(said)
+        ? 'Sign-in by link is not switched on for this project yet. In the Firebase console, under Authentication and Sign-in method, enable Email/Password and then Email link (passwordless sign-in) under it.'
+        : said;
+      return false;
+    }
+    rememberLinkEmail(email);
+    return true;
+  } catch (err) {
+    signInProblem = (err as Error).message;
+    return false;
+  }
+}
+
+/** Whether this page load is somebody arriving on a link out of their mail. */
+export function arrivedOnSignInLink(): boolean {
+  if (typeof window === 'undefined') return false;
+  const q = new URLSearchParams(window.location.search);
+  return q.get('mode') === 'signIn' && !!q.get('oobCode');
+}
+
+/**
+ * Finish it. Runs in the boot sequence beside resumeSignIn, because the page that has to
+ * finish a link is a fresh load of this one, and like that one it never throws.
+ *
+ * The answer is whether this load was a link coming back. Whether it worked is currentUser(),
+ * and why it did not is lastSignInProblem().
+ */
+export async function finishSignInLink(): Promise<boolean> {
+  if (!CONFIG || !arrivedOnSignInLink()) return false;
+  const oobCode = new URLSearchParams(window.location.search).get('oobCode') ?? '';
+  const email = linkEmailWaiting();
+  if (!email) {
+    scrubAddress();
+    signInProblem = 'This link was opened in a different browser from the one that asked for it. Ask for a new link here and open it in this browser.';
+    return true;
+  }
+  try {
+    const reply = await postJson(
+      `${IDENTITY}/accounts:signInWithEmailLink?key=${encodeURIComponent(CONFIG.apiKey)}`,
+      // oobCode and email, and nothing else. This endpoint does not accept returnSecureToken;
+      // it returns the tokens either way.
+      { email, oobCode },
+    );
+    scrubAddress();
+    forgetLinkEmail();
+    if (reply.status !== 200 || !isRecord(reply.body)) {
+      signInProblem = `That link did not sign you in: ${problemFrom(reply)}`;
+      return true;
+    }
+    const back = text(reply.body.email);
+    const idToken = text(reply.body.idToken);
+    if (!back || !idToken) {
+      signInProblem = 'The sign-in service returned no address and no token for that link.';
+      return true;
+    }
+    const seconds = Number(text(reply.body.expiresIn)) || 3600;
+    writeSession({
+      email: back,
+      idToken,
+      refreshToken: text(reply.body.refreshToken),
+      expiresAt: Date.now() + seconds * 1000,
+    });
+    signInProblem = '';
+    return true;
+  } catch (err) {
+    scrubAddress();
+    forgetLinkEmail();
+    signInProblem = `That link did not sign you in: ${(err as Error).message}`;
+    return true;
+  }
+}
+
 /**
  * The last step of a redirect sign-in, which belongs in the boot sequence because the page
  * that has to finish it is a fresh load of this one.
