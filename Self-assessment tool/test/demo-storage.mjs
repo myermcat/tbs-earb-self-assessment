@@ -13,7 +13,7 @@
  * This seeds the bare names the real pages write, boots the demonstration over them, and fails
  * on any name it touches outside its own namespace.
  */
-import { readFile } from 'node:fs/promises';
+import { readdir, readFile } from 'node:fs/promises';
 import { JSDOM } from 'jsdom';
 
 let fails = 0;
@@ -148,10 +148,14 @@ ok('it touched storage at all, so the check above means something', byThePage.le
 /**
  * A name on a path this test never walks.
  *
- * The wrapper above sees only what booting the page touches, which is seven of the eleven names
- * this tool stores: the signer's name waits for a dialog, and the three Firebase names need a
- * build with a project. A demonstration build folds the namespace down to one literal, so the
- * built page answers the whole question whether or not anybody reached the code.
+ * The wrapper above sees only what booting the page touches, which is seven of the names this
+ * tool stores: the signer's name waits for a dialog, and the Firebase ones need a build with a
+ * project. A demonstration build folds the namespace down to one literal, so the built page
+ * answers the whole question whether or not anybody reached the code.
+ *
+ * The count used to be written out as a number here and it went stale the day the sign-in link
+ * added a name. It is counted below now, so it cannot say one thing while the code says
+ * another.
  */
 const stems = [...new Set([...html.matchAll(/gc-arch-assessment:(?!demo:)[a-z-]*/g)].map((m) => m[0]))]
   .filter((k) => !SHARED.includes(k));
@@ -161,6 +165,20 @@ ok('and the allowance is the only bare name in it, so it stays one',
    [...new Set([...html.matchAll(/gc-arch-assessment:(?!demo:)[a-z-]*/g)].map((m) => m[0]))].length === 1);
 ok('and the namespace is in the page, so the check above means something',
    html.includes(MINE));
+
+/**
+ * Every name this tool stores goes through the one helper, counted rather than stated.
+ *
+ * A comment above used to say how many there were and was wrong within a week. This reads the
+ * source, so the day somebody adds a name without the helper it is the count that disagrees.
+ */
+const sources = await Promise.all(
+  (await readdir('src')).filter((f) => f.endsWith('.ts')).map((f) => readFile(`src/${f}`, 'utf8')),
+);
+const named = [...new Set(sources.flatMap((src) =>
+  [...src.matchAll(/storeKey\('([a-z-]+)'\)/g)].map((m) => m[1])))].sort();
+ok('every stored name is made by the helper, and there is more than one',
+   named.length >= 10, `${named.length}: ${named.join(', ')}`);
 
 window.close();
 console.log(fails ? `\n${fails} demonstration storage check(s) failed\n` : '\nthe demonstration keeps to itself\n');
