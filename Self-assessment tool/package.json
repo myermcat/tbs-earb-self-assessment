@@ -16,7 +16,7 @@
     "lint:prose": "node tools/prose-lint.mjs",
     "measure": "node build.mjs && node tools/measure-repaint.mjs",
     "test:print": "EARB_FIREBASE= node build.mjs && node test/print.mjs",
-    "test:hosted": "EARB_FIREBASE='{\"apiKey\":\"test-key\",\"projectId\":\"test-project\"}' node build.mjs && node test/hosted.mjs",
+    "test:hosted": "EARB_FIREBASE='{\"apiKey\":\"test-key\",\"projectId\":\"test-project\"}' node build.mjs && EARB_FIREBASE='{\"apiKey\":\"test-key\",\"projectId\":\"test-project\"}' EARB_SIDE=assess EARB_OUT=dist/assessor.html node build.mjs && node test/hosted.mjs",
     "test:routes": "EARB_FIREBASE= node build.mjs && node test/routes.mjs",
     "test:share": "EARB_FIREBASE= node build.mjs && node test/share.mjs",
     "test:submitter": "EARB_ACCESS=code EARB_FIREBASE='{\"apiKey\":\"test-key\",\"projectId\":\"test-project\"}' node build.mjs && node test/submitter.mjs",
