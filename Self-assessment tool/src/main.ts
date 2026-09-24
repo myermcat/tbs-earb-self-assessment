@@ -27,7 +27,8 @@ import { endpointHost, goneFromStore, isHosted, listRecords, putRecord,
   saveOnlineNow, savedOnline, showWhereItStands } from './store';
 import { canSignIn, CODE_LENGTH, currentUser, formatCode, forgetRole, getAssessment, grantsAccess, looksLikeCode, pageAddress, tidyCode, isConfigured as firebaseConfigured, knownRole, lastSignInProblem,
   loadRole, resumeSignIn, signInWithGoogle, signOut,
-  finishSignInLink, linkEmailWaiting, sendSignInLink } from './firebase';
+  finishSignInLink, finishSignInLinkWith, forgetLinkCode, linkEmailWaiting, linkNeedsAddress,
+  sendSignInLink } from './firebase';
 import { t } from './i18n';
 import { answeredCount, APP_VERSION, autosave, blankAssessment, clearDraft, download, ensureRef,
   hasWork, loadDraft, readJsonFiles, saveAssessmentFile, slug } from './storage';
@@ -576,7 +577,16 @@ function paint() {
     ].filter(Boolean).join(' '),
   });
 
-  if (mode === 'home') renderHome(body);
+  /**
+   * A link that has come back to a browser which did not ask for it, before anything else.
+   *
+   * Before the mode branches, because continueUrl is the page that asked and a link asked for
+   * on the submitter page comes back to a page whose mode is home. The refusal used to be set
+   * and drawn nowhere, so somebody who opened their link met an ordinary questionnaire and no
+   * sign-in at all.
+   */
+  if (linkNeedsAddress()) renderLinkArrival(body);
+  else if (mode === 'home') renderHome(body);
   else if (mode === 'submit') renderSubmit(body, rubric, assessment, () => go('results'));
   else if (mode === 'results') {
     /**
@@ -1063,6 +1073,90 @@ let assessorName = '';
  * their departmental account. Which one a person picks changes nothing downstream: the store's
  * rules key off the address, and a role is a document an admin writes.
  */
+/**
+ * Somebody has opened their link here, and this browser does not know which address it went to.
+ *
+ * Reported as: I only have my work email on my phone, but I am only signed in from my work
+ * laptop, which I do not have. Does it mean I cannot test it? It did, and it should not have:
+ * work mail on a phone and work on a laptop is the ordinary working day at TBS.
+ *
+ * Firebase's own web guide names this case and says to ask the person for the address, because
+ * the address is the half of the credential the mail does not carry. What the old refusal was
+ * really protecting is thin: anybody who can read the mailbox can type the address into the
+ * ordinary field and have their own browser hold it, so the only case it covered was a link
+ * pasted somewhere public by somebody who does not know whose it is.
+ */
+function renderLinkArrival(root: HTMLElement) {
+  const problem = lastSignInProblem();
+  const field = el('input', {
+    type: 'email', class: 'signin-email', autocomplete: 'email', inputmode: 'email',
+    placeholder: 'prenom.nom@tbs-sct.gc.ca',
+  }) as HTMLInputElement;
+  const go = el('button', { class: 'primary' }, [t('Sign in on this device', 'Se connecter sur cet appareil')]);
+  const say = el('p', { class: 'signer-advice' });
+
+  go.addEventListener('click', () => {
+    const address = field.value.trim();
+    if (!field.checkValidity() || !address) {
+      say.textContent = t('That is not an address a link can be sent to.',
+        'Ce n\u2019est pas une adresse à laquelle un lien peut être envoyé.');
+      field.focus();
+      return;
+    }
+    say.textContent = t('Signing in...', 'Connexion en cours...');
+    void finishSignInLinkWith(address).then(() => { paint(); });
+  });
+
+  root.appendChild(el('section', { class: 'card signin' }, [
+    el('div', { class: 'head-row' }, [el('h1', {}, [t('Finish signing in', 'Terminer la connexion')])]),
+    el('p', { class: 'muted' }, [
+      t('This browser did not ask for that link, so it does not know which address the link went to. Type that address and the sign-in finishes here.',
+        'Ce navigateur n\u2019a pas demandé ce lien, il ne sait donc pas à quelle adresse il a été envoyé. Saisissez cette adresse et la connexion se terminera ici.'),
+    ]),
+    problem
+      ? el('div', { class: 'card warn tight' }, [
+          el('strong', { class: 'small' }, [t('That did not finish', 'Cela n\u2019a pas abouti')]),
+          el('p', { class: 'small' }, [problem]),
+        ])
+      : null,
+    el('div', { class: 'signin-link-row' }, [field, go]),
+    say,
+    /**
+     * Said before the button, because it is the thing somebody would not think of: the session
+     * lands on whatever device finishes the link. And it is true that arriving here spends
+     * nothing, because the path that asks for an address returns above the call.
+     */
+    el('div', { class: 'card warn tight' }, [
+      el('strong', { class: 'small' }, [t('This signs you in on this device', 'Cela vous connecte sur cet appareil')]),
+      el('p', { class: 'small' }, [
+        t('To work on another computer, open the same link there and finish it there. Opening the link here has not used it up. Finishing here does.',
+          'Pour travailler sur un autre ordinateur, ouvrez le même lien là-bas et terminez-y la connexion. Ouvrir le lien ici ne l\u2019a pas consommé. Le terminer ici, oui.'),
+      ]),
+    ]),
+    el('p', { class: 'tiny dim' }, [
+      t('Reloading this page loses the code that was in the link. Open the link in your mail again to come back here.',
+        'Recharger cette page perd le code contenu dans le lien. Ouvrez de nouveau le lien dans votre courrier pour revenir ici.'),
+    ]),
+    el('p', { class: 'tiny dim' }, [
+      el('button', { class: 'linkish', onclick: () => { forgetLinkCode(); go2home(); } },
+        [t('Ask for a new link instead', 'Demander plutôt un nouveau lien')]),
+    ]),
+  ]));
+}
+
+/**
+ * Out of the arrival screen and onto one that can ask for a link.
+ *
+ * A bare repaint would land back on whatever page the link came to, and on the submitter page
+ * that is the questionnaire with no sign-in on it, which is the trap this screen exists to
+ * escape. So it crosses to the side that has a sign-in.
+ */
+function go2home(): void {
+  side = 'assess';
+  mode = 'review';
+  paint();
+}
+
 function renderRealSignIn(root: HTMLElement) {
   const problem = lastSignInProblem();
 
