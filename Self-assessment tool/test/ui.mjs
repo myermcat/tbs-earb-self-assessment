@@ -1685,12 +1685,31 @@ ok('audited file keeps the self-score alongside the audited one',
    * used to pin both of those strings, which is why nobody caught it.
    */
   ok('the two roll-ups are named as two different groupings, not two cuts of one',
-     view().includes('Average by architecture domain') && view().includes('Average by category')
+     view().includes('By architecture domain') && view().includes('By category')
      && !view().includes('Average across the domains'));
+  /**
+   * And they sit in one box with a rule between them, the way the submitter's results page
+   * holds the same pair.
+   *
+   * Asked for in those words: combine them the same way they are combined in the submitter
+   * part, so they are together, and keep the styling choices similar on both sides. They were
+   * two cards with a gap, which reads as two unrelated findings when they are the same answers
+   * grouped twice. Asserted on the structure, because the wording is what changed and the
+   * arrangement is what was asked for.
+   */
   {
-    const cards = qa('main .card').filter((c) => c.querySelector('h2'));
-    const domainCard = cards.find((c) => c.querySelector('h2').textContent === 'Average by architecture domain');
-    const catCard = cards.find((c) => c.querySelector('h2').textContent === 'Average by category');
+    const box = q('.cuts');
+    const panels = qa('.cuts > .cut');
+    ok('both roll-ups are in one box', !!box && panels.length === 2, String(panels.length));
+    ok('and the box is the one the results page uses, so the two sides match',
+       !!box && box.classList.contains('cuts') && panels.every((c) => c.classList.contains('res-sub')));
+    ok('and the box has a heading of its own',
+       /Where the portfolio is weak/.test(view()));
+  }
+  {
+    const cards = qa('main .cuts > .cut');
+    const domainCard = cards.find((c) => c.querySelector('h3')?.textContent === 'By architecture domain');
+    const catCard = cards.find((c) => c.querySelector('h3')?.textContent === 'By category');
     const labels = (card) => [...card.querySelectorAll('.bar-row .bar-label')]
       .map((n) => n.firstChild.textContent.trim());
     const nums = (card) => [...card.querySelectorAll('.bar-row .bar-num')].map((n) => n.textContent.trim());

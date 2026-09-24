@@ -124,15 +124,32 @@ function paint(
     return vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : null;
   };
 
-  const byDomain = el('section', { class: 'card' }, [
-    el('h2', {}, ['Average by architecture domain']),
-    el('p', { class: 'muted small' }, [`Across ${rows.length} record${rows.length === 1 ? '' : 's'}. These carry weights and they add up to the overall.`]),
+  /**
+   * One block holding both, the way the submitter's results page holds them.
+   *
+   * Asked for in those words: combine average by architecture domain and average by category the
+   * same way they are combined in the submitter part, so they are together, and keep the styling
+   * choices similar on both sides. They were two cards with a gap, which reads as two unrelated
+   * findings when they are the same answers grouped twice. The results page solved this already
+   * with one bordered box and a rule between the halves, so this uses the same box.
+   */
+  const where = el('section', { class: 'card' }, [
+    el('h2', {}, ['Where the portfolio is weak']),
+    el('p', { class: 'muted small' }, [`Across ${rows.length} record${rows.length === 1 ? '' : 's'}, grouped twice.`]),
+  ]);
+  const cuts = el('div', { class: 'cuts' });
+  where.appendChild(cuts);
+  root.appendChild(where);
+
+  const byDomain = el('div', { class: 'res-sub cut' }, [
+    el('h3', {}, ['By architecture domain']),
+    el('p', { class: 'muted small' }, ['These carry weights and they add up to the overall.']),
   ]);
   rubric.domains.forEach((d, i) => {
     const v = avgOf((row) => row.r.domains[i]?.score ?? null);
     byDomain.appendChild(barRow(d.label, `${d.weight}% of the total`, v));
   });
-  root.appendChild(byDomain);
+  cuts.appendChild(byDomain);
 
   /**
    * The category block, matched by id and never by position.
@@ -148,8 +165,8 @@ function paint(
   const scoreOf = (row: Row, id: string) => row.r.topics.find((x) => x.topic.id === id) ?? null;
   const shown = categories.filter((t) => rows.some((row) => (scoreOf(row, t.id)?.total ?? 0) > 0));
   if (shown.length) {
-    const byCategory = el('section', { class: 'card' }, [
-      el('h2', {}, ['Average by category']),
+    const byCategory = el('div', { class: 'res-sub cut' }, [
+      el('h3', {}, ['By category']),
       el('p', { class: 'muted small' }, [
         'The same questions grouped by what they are about. One question can be in several categories at once, so these do not add up to the overall.',
       ]),
@@ -159,7 +176,7 @@ function paint(
       const flagged = rows.reduce((n, row) => n + (scoreOf(row, t.id)?.redFlags.length ?? 0), 0);
       byCategory.appendChild(barRow(t.label, flagged ? `${flagged} answered no` : '', v));
     }
-    root.appendChild(byCategory);
+    cuts.appendChild(byCategory);
   }
 
   // The records themselves, weakest first: the list is a worklist, not an alphabet.
