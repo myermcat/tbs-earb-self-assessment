@@ -1414,6 +1414,16 @@ console.log('\nThe published build, signed in\n');
   ok('and nothing has been traded for a session yet, because it still takes a press',
      !j.seen.some((c) => /accounts:signInWithEmailLink/.test(c.href)),
      j.seen.map((c) => c.href).join(' | ').slice(0, 160));
+  /**
+   * The press is the consent, so the button says whose account it enters. A crafted link can
+   * name any address; the code will not open that account, but it could offer to sign somebody
+   * in as its owner, and a button reading "sign in on this device" is a press made without
+   * looking.
+   */
+  ok('and the button names the account the press would enter',
+     /Sign in as dan\.weekes-hall@tbs-sct\.gc\.ca/.test(
+       [...j.doc.querySelectorAll('button')].map((b) => b.textContent).join(' | ')),
+     [...j.doc.querySelectorAll('button')].map((b) => b.textContent).join(' | ').slice(0, 160));
   ok('and the address is out of the address bar with the code',
      !/[?&]e=/.test(j.dom.window.location.href), j.dom.window.location.href);
   j.dom.window.close();

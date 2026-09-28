@@ -1139,19 +1139,40 @@ function renderLinkArrival(root: HTMLElement) {
     autocapitalize: 'none', autocorrect: 'off', spellcheck: 'false',
     placeholder: 'prenom.nom@tbs-sct.gc.ca',
   }) as HTMLInputElement;
-  const go = el('button', { class: 'primary' }, [t('Sign in on this device', 'Se connecter sur cet appareil')]);
-  const say = el('p', { class: 'signer-advice' });
-
   /**
-   * The address the link names, filled in and not acted on.
+   * The address the link names, filled in and named on the button.
    *
-   * It is there so nobody retypes an address from memory on a phone keyboard, which is what
-   * produced a refusal that read as the tool rejecting somebody's own address. It is still a
-   * press, and the address is named in the sentence above the field, because a link somebody
-   * else crafted could name theirs and this is the step where that is visible.
+   * Asked directly: does carrying the address in the link break the security of it. It does not
+   * open anything, because the one-time code only works for the address it was minted for, so a
+   * link naming somebody else's address signs nobody in. The one thing it could do is offer to
+   * sign you in AS somebody else, which is what Firebase asks for the address to prevent: their
+   * crafted link, their address, your press, and your work saves into their account.
+   *
+   * So the press is what carries the consent, and the button says whose account it is. A
+   * prefilled field under a button reading "sign in on this device" is a press somebody makes
+   * without looking; a button reading "sign in as dan@..." is not.
    */
   const named = addressTheLinkNames();
   if (named) field.value = named;
+  const go = el('button', { class: 'primary' }, [
+    named
+      ? t(`Sign in as ${named}`, `Se connecter en tant que ${named}`)
+      : t('Sign in on this device', 'Se connecter sur cet appareil'),
+  ]);
+  const say = el('p', { class: 'signer-advice' });
+
+  /**
+   * And if the address is edited, the button stops naming the old one. A button that still says
+   * somebody else's address after you have typed yours is worse than a button that says nothing.
+   */
+  if (named) {
+    field.addEventListener('input', () => {
+      const now = field.value.trim();
+      go.textContent = now && now !== named
+        ? t(`Sign in as ${now}`, `Se connecter en tant que ${now}`)
+        : t(`Sign in as ${named}`, `Se connecter en tant que ${named}`);
+    });
+  }
 
   go.addEventListener('click', () => {
     const address = field.value.trim().toLowerCase();
