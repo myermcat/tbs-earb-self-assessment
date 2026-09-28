@@ -1322,7 +1322,17 @@ console.log('\nThe published build, signed in\n');
   ok('and says that asking again spends one of them',
      /asking again spends one/.test(j.doc.querySelector('.signin-link')?.textContent ?? ''));
   ok('and says what to do when nothing arrives',
-     /look in junk/.test(j.doc.querySelector('.signin-link')?.textContent ?? ''));
+     /look in your junk folder/.test(j.doc.querySelector('.signin-link')?.textContent ?? ''));
+  /**
+   * And says only that. Reported as: is this for debugging, why does a user need to know about
+   * it. The sentence used to explain departmental mail filters and suggest testing with a
+   * personal address, which is a note between us.
+   */
+  ok('and does not put our debugging on a user screen',
+     !/departmental filter|personal address/.test(j.doc.querySelector('.signin-link')?.textContent ?? ''),
+     j.doc.querySelector('.signin-link')?.textContent?.slice(0, 160));
+  ok('and says how long a link lasts, in the words anybody uses for it',
+     /works once, and for six hours/.test(j.doc.querySelector('.signin-link')?.textContent ?? ''));
   /**
    * Held so the same browser can finish without being asked twice. Firebase refuses to finish
    * without it, deliberately, so that a forwarded link cannot sign in whoever opens the mail.
@@ -1590,6 +1600,27 @@ console.log('\nThe published build, signed in\n');
   ok('a submitter reaches their own settings with no account at all',
      /Question set|Your answers/.test(view3), view3.slice(0, 140));
   dom3.window.close();
+}
+
+/**
+ * Signing out of the assessor side leaves you on the assessor side.
+ *
+ * Reported as: in assessor I clicked sign out, and this is where it sent me, with a picture of
+ * the submitter's start page. leave() called setSide('submit'), so signing out dropped somebody
+ * onto a questionnaire they had not asked for, with no way back to the screen they had left.
+ */
+{
+  const j = await boot({ side: 'assess', session: live, role: 'assessor' });
+  const out = [...j.doc.querySelectorAll('button')].find((b) => /^Sign out$/.test(b.textContent.trim()));
+  ok('there is a way out while signed in', !!out,
+     [...j.doc.querySelectorAll('button')].map((b) => b.textContent.trim()).slice(0, 10).join(' | '));
+  out.click();
+  await new Promise((r) => setTimeout(r, 80));
+  const after = (j.doc.querySelector('#app')?.textContent ?? '').replace(/\s+/g, ' ');
+  ok('and it lands on the assessor sign-in and not on the questionnaire',
+     /needs to know who you are/.test(after) && !/Assess your own architecture/.test(after),
+     after.slice(0, 140));
+  j.dom.window.close();
 }
 
 console.log(fails ? `\n${fails} hosted check(s) failed\n` : '\nall hosted checks passed\n');

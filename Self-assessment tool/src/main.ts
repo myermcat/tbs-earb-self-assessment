@@ -555,13 +555,23 @@ function offerOnlineSave(): void {
   });
 }
 
-/** Sign out, from wherever it was asked for. Everything the account decided goes with it. */
+/**
+ * Sign out, from wherever it was asked for. Everything the account decided goes with it.
+ *
+ * The side is not one of those things, and it used to be. Reported as: in assessor I clicked
+ * sign out, and this is where it sent me, with a picture of the submitter's start page. Signing
+ * out of the assessor side left somebody on a questionnaire they had not asked for, with no way
+ * back to the screen they had just left. Which product a person is in is which page they opened,
+ * and no account decided it.
+ */
 function leave(): void {
   signOut();
   forgetPool();
   forgetRole();
   assessorName = '';
-  setSide('submit');
+  // The repaint used to come from setSide, which was also the line taking somebody to the wrong
+  // product. Taking that out took the repaint with it, and the screen kept saying signed in.
+  paint();
 }
 
 function paint() {
@@ -1311,17 +1321,23 @@ function emailLinkBlock(): HTMLElement {
     clear(state);
     state.appendChild(el('div', { class: 'card tight signin-sent' }, [
       el('p', { class: 'small' }, [
-        t(`A link is on its way to ${to}. Open it in the browser you asked from, and you are signed in. It is good once.`,
-          `Un lien est en route vers ${to}. Ouvrez-le dans le navigateur d\u2019où vous l\u2019avez demandé et vous serez connecté. Il ne sert qu\u2019une fois.`),
+        /**
+         * Reported as: the first sentence is very long and I do not get it, and what is good
+         * once. So the sentence is one thing and the life of the link is said in the words
+         * anybody uses for it.
+         */
+        t(`A link is on its way to ${to}. Opening it signs you in. It works once, and for six hours.`,
+          `Un lien est en route vers ${to}. L\u2019ouvrir vous connecte. Il fonctionne une seule fois, et pendant six heures.`),
       ]),
       /**
-       * Said because a departmental mail filter is the likeliest thing between a link and an
-       * inbox: it leaves as noreply at a firebaseapp.com address with no sender name, which is
-       * the shape of a message a government filter quarantines.
+       * What to do, and none of why. Reported as: is this for debugging, why does a user need to
+       * know about it. The sentence used to explain departmental mail filters and suggest
+       * testing with a personal address, which is a note between us and not something anybody
+       * signing in has a use for.
        */
       el('p', { class: 'tiny dim' }, [
-        t('If nothing arrives in a few minutes, look in junk. Mail from an address like this one is often held by a departmental filter, and trying a personal address is the quickest way to tell which is happening.',
-          'Si rien n\u2019arrive en quelques minutes, regardez dans les indésirables. Le courrier provenant d\u2019une adresse comme celle-ci est souvent retenu par un filtre ministériel, et essayer une adresse personnelle est le moyen le plus rapide de savoir ce qui se passe.'),
+        t('If nothing arrives in a few minutes, look in your junk folder.',
+          'Si rien n\u2019arrive en quelques minutes, regardez dans vos indésirables.'),
       ]),
     ]));
   };
