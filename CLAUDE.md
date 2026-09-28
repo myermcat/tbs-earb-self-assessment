@@ -30,17 +30,41 @@ counts inside every folder afterwards, because the folders themselves survive an
 ## Every folder, and what is in it
 
 This list exists because it was missing. A session asked to work on the concept case read a
-folder map that named three of the six folders. It never learned that a recorded meeting with
-the programme lead was already in the repository, and it wrote a document without that meeting.
+folder map that named three of the folders. It never learned that a recorded meeting with the
+programme lead was already on disk, and it wrote a document without that meeting.
+
+**THE WORK IS IN TWO FOLDERS, AND ONLY ONE OF THEM IS THE REPOSITORY.** They sit side by side:
+
+    Claude -- TBS/
+      TBS fall (EARB self assessment)/   the repository. Public on GitHub.
+      TBS fall (working material)/       on this machine only. Never published.
+
+They were one folder until 28 September 2026, and the working material was kept out of the
+repository by four lines in .gitignore. That is one edit away from publishing a recorded meeting
+with a colleague, and a service-account key had already landed in there untracked, so the
+separation is a folder boundary now and not a rule a tool has to remember.
+
+### In the repository
 
 | Folder | What it holds |
 |---|---|
 | `Self-assessment tool/` | The app. TypeScript, builds to one offline HTML file. Has its own CLAUDE.md. |
-| `Concept case/` | The concept case PDF and a README. Everything else, including the source text, the builder, the presenter deck and the working notes, is in `Concept case/Claude working files/`. **The README carries a list of claims that were corrected on 21 September 2026. Read it before editing the document.** |
-| `Colleague meeting transcripts/` | Recorded reviews with the programme lead. **Primary evidence for anything anybody said.** Quote from these. A remembered version of a quote has been wrong several times. |
-| `EARB target state knowledge base/` | Dan's source material, plus read-once notes on the PDFs. |
-| `Categories spreadsheet/` | The workbook where it is decided what each question is about. Has its own README. The live copy is on Google Sheets at one address that never changes. |
-| `deploy/` | Firestore rules, the publish script, and the GitHub Pages workflow. |
+| `deploy/` | Firestore rules, the publish scripts, the sign-in link generator, and the GitHub Pages workflow. |
+| `.github/` | The test workflows. |
+
+### Beside it, on this machine only, in `../TBS fall (working material)/`
+
+Paths below are written from the repository, which is where a session usually starts.
+
+| Folder | What it holds |
+|---|---|
+| `../TBS fall (working material)/Concept case/` | The concept case PDF and a README. Everything else, including the source text, the builder, the presenter deck and the working notes, is in `Concept case/Claude working files/`. **The README carries a list of claims that were corrected on 21 September 2026. Read it before editing the document.** |
+| `../TBS fall (working material)/Colleague meeting transcripts/` | Recorded reviews with the programme lead. **Primary evidence for anything anybody said.** Quote from these. A remembered version of a quote has been wrong several times. |
+| `../TBS fall (working material)/EARB target state knowledge base/` | Dan's source material, plus read-once notes on the PDFs. |
+| `../TBS fall (working material)/Categories spreadsheet/` | The workbook where it is decided what each question is about. Has its own README. The live copy is on Google Sheets at one address that never changes. |
+
+Nothing in that folder is published, and nothing in it should be copied into the repository
+without a decision. Adding a file to the repository is a decision to publish it.
 
 ## How a folder is arranged
 
@@ -48,7 +72,7 @@ A rule for folders, and not for the source tree of a repository, where the layou
 build's to decide.
 
 **What Mariia reads sits at the top of the folder. Everything that exists only so the work can
-be done goes one level down, into a folder named for what it is.** Opening `Concept case/`
+be done goes one level down, into a folder named for what it is.** Opening the concept case
 should show the concept case PDF and a README, and nothing else. The .docx behind the PDF, the
 source text the builder reads, the builder itself, the presenter deck, the extracted slides, the
 research notes and the blank template are all working files, and they belong in a subfolder.
@@ -66,14 +90,16 @@ Two artefacts describe the assessment and they are **not** the same thing. Confu
 untrue statements into a document that goes to the Secretariat.
 
 **The presenter deck is the instrument.**
-`Concept case/Claude working files/2026-08-05_GC_EARB_Presenter_GENERAL_EN.pdf` is the template
+`../TBS fall (working material)/Concept case/Claude working files/2026-08-05_GC_EARB_Presenter_GENERAL_EN.pdf`
+is the template
 a department fills in and brings to the board. Anything about what the assessment asks of a
 department, or how the board scores it, is answered here first. It is extracted to text and
 JSON in the `slides/` folder beside it by `convert-slides.py`, so nobody has to open the PDF
 again.
 
 **The spreadsheet is a recent export.** It is no part of the instrument. The
-`EARB target state knowledge base/GC_EA_Assessment_Tool(*).csv` files carry the 176 questions,
+`../TBS fall (working material)/EARB target state knowledge base/GC_EA_Assessment_Tool(*).csv` files
+carry the 176 questions,
 the eleven-rung scale and the section weights. They were produced recently and with AI help.
 
 So: a defect found only in the CSV is a defect in the CSV. Writing that the assessment "has
@@ -127,7 +153,7 @@ Document layout follows `Claude Hub/Document house rules.md`.
 
 ## The concept case
 
-**Read `Concept case/README.md` before changing a word of it.** It lists the claims that were
+**Read `../TBS fall (working material)/Concept case/README.md` before changing a word of it.** It lists the claims that were
 written into this document and later found to be untrue, so that an older draft or an older
 summary cannot put them back.
 

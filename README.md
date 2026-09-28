@@ -31,10 +31,14 @@ Assessors audit the handful of answers that do not add up.
 It replaces a PowerPoint template and a score deck built by hand.
 
 ```
-Self-assessment tool/          the app. TypeScript, builds to one offline HTML file
-EARB target state knowledge base/   Dan's source material, and read-once notes on it
-deploy/                        the GitHub Pages workflow, dormant until the content is cleared
+Self-assessment tool/   the app. TypeScript, builds to one offline HTML file
+deploy/                 the store's rules, the publish scripts, and the GitHub Pages workflow
+.github/                the test workflows
 ```
+
+The source material this is built from — the framework documents, the recorded reviews and the
+workbook that decides what each question is about — is not in this repository. It stays on the
+machine it was made on.
 
 ## What it does
 

@@ -32,9 +32,10 @@ import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 
 const run = promisify(execFile);
-const KB = '../EARB target state knowledge base';
+// Both of these moved out of the repository on 28 September. See CLAUDE.md.
+const KB = '../../TBS fall (working material)/EARB target state knowledge base';
 // Named for what it holds. It was called Deliverables, which told nobody anything.
-const OUT_DIR = '../Categories spreadsheet';
+const OUT_DIR = '../../TBS fall (working material)/Categories spreadsheet';
 
 /**
  * Dan's four question sheets.

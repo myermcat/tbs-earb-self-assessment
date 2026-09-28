@@ -12,7 +12,9 @@
 import { readFile, writeFile } from 'node:fs/promises';
 import { readdirSync } from 'node:fs';
 
-const KB = '../EARB target state knowledge base';
+// One level further out since 28 September: the source material is no longer inside the
+// repository, so a recorded meeting or a spreadsheet cannot be published by a stray git add.
+const KB = '../../TBS fall (working material)/EARB target state knowledge base';
 const OUT = 'rubric/rubric.v1-dan.json';
 
 const DOMAINS = [

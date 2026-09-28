@@ -16,12 +16,13 @@ deploy/firebase-config.json
 # directory is machine-local and shows up as untracked noise in both sessions otherwise.
 .claude/worktrees/
 
-# The repository holds the tool. Everything else in this folder is working material that stays
-# on this machine: recorded meetings with colleagues, Dan's source spreadsheets, the concept
-# case, and the files sent to people. They were tracked until 21 September 2026, and the
-# history was rewritten that day so the repository could be made public. It is public now, so
-# these lines are the only thing keeping this material off the internet. Adding a file to the
-# repository is a decision to publish it.
+# The working material moved out of this folder on 28 September 2026, into
+# ../TBS fall (working material)/, so that keeping it unpublished is a folder boundary rather
+# than four lines somebody has to remember. These lines stay as a net: if a recorded meeting or
+# one of Dan's spreadsheets is ever copied back in here, git still will not take it.
+#
+# They were tracked until 21 September 2026, and the history was rewritten that day so the
+# repository could be made public. It is public. Adding a file to it is a decision to publish.
 Colleague meeting transcripts/
 Concept case/
 Categories spreadsheet/
