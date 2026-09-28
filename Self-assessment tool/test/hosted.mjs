@@ -506,7 +506,15 @@ console.log('\nThe published build, signed in\n');
   const kinds = [...right.children].map((n) => n.className.split(' ')[0]);
   ok('the sign-in header carries no save badge', !kinds.includes('save-state'), kinds.join(','));
   ok('and no breadcrumb', !kinds.includes('path'), kinds.join(','));
-  ok('and the language link is still there', kinds.includes('lang-link'), kinds.join(','));
+  /**
+   * The language link used to be the one thing kept in the header here, on the reasoning that a
+   * screen nobody can read is a screen nobody can leave. Reported of the no-access screen: it has
+   * a settings button, the language link and the account badge, and none of those should be
+   * there. So the header carries nothing and the card carries the link, which keeps the reason
+   * and drops the clutter.
+   */
+  ok('and no language link in the header', !kinds.includes('lang-link'), kinds.join(','));
+  ok('because it is on the card instead', !!doc.querySelector('.card-lang .lang-link'));
   dom.window.close();
 }
 
@@ -1319,6 +1327,20 @@ console.log('\nThe published build, signed in\n');
    * the link was issued for, so a capital nobody pressed comes back as the tool refusing the
    * person's own address. jsdom has no keyboard, so what is checked is the instruction to it.
    */
+  /**
+   * A screen whose whole job is to say you cannot see anything carries nothing but the way out.
+   * Reported of the no-access screen: it has a settings button, the language link and the account
+   * badge, and none of those should be there.
+   */
+  {
+    const bar = j.doc.querySelector('header.topbar');
+    ok('the sign-in screen has no settings gear in the header', !bar?.querySelector('.icon-btn'));
+    ok('and no account chip', !bar?.querySelector('.account-menu'));
+    ok('and no language link in the header', !bar?.querySelector('.lang-link'));
+    ok('but the language link is on the card, so French is still reachable',
+       !!j.doc.querySelector('.card-lang .lang-link'));
+  }
+
   ok('the address field tells a phone keyboard to leave it alone',
      field.getAttribute('autocapitalize') === 'none' && field.getAttribute('autocorrect') === 'off',
      `${field.getAttribute('autocapitalize')} / ${field.getAttribute('autocorrect')}`);
