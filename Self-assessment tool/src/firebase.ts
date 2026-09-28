@@ -540,6 +540,13 @@ export async function sendSignInLink(email: string): Promise<boolean> {
        */
       signInProblem = /OPERATION_NOT_ALLOWED|PASSWORD_LOGIN_DISABLED/.test(said)
         ? 'Sign-in by link is not switched on for this project yet. In the Firebase console, under Authentication and Sign-in method, enable Email/Password and then Email link (passwordless sign-in) under it.'
+        /**
+         * The day's links are gone. Asked directly: if I request a link but there are none left
+         * for the day, will the tool say anything. It said QUOTA_EXCEEDED, which reads as a
+         * fault rather than as a number that comes back.
+         */
+        : /QUOTA_EXCEEDED|TOO_MANY_ATTEMPTS/.test(said)
+        ? 'Today\u2019s links are used up. There are five a day for everybody using this tool together, and the count starts again tomorrow.'
         : said;
       return false;
     }
@@ -637,9 +644,28 @@ async function finishHeldLink(oobCode: string, email: string): Promise<boolean> 
        * The held code survives a refusal, so correcting a typo costs another attempt and no
        * second mail.
        */
-      signInProblem = /INVALID_OOB_CODE|EXPIRED_OOB_CODE/.test(problemFrom(reply))
+      const said = problemFrom(reply);
+      /**
+       * Three answers for the three things that actually happen, because the raw words were on
+       * the screen. Reported after typing an address into the window that asks for one: that
+       * link did not sign you in, INVALID_EMAIL, the email provided does not match the sign-in
+       * email address.
+       *
+       * INVALID_EMAIL is the service being precise and it deserves its own sentence, because
+       * the person is looking at an address they believe is right and the likeliest reason is
+       * that the link went to their other one.
+       */
+      signInProblem = /INVALID_EMAIL/.test(said)
+        ? 'That link was sent to a different address. Type the one the link arrived at, which may not be the one you meant to use.'
+        /**
+         * And this one stays two causes in one sentence, because the service gives one code for
+         * both. INVALID_OOB_CODE is the answer when the address does not match AND when the link
+         * is spent or past its six hours, and the reference documents no way to separate them.
+         * Splitting it was tried and it made the message wrong half the time.
+         */
+        : /INVALID_OOB_CODE|EXPIRED_OOB_CODE/.test(said)
         ? 'That is not the address this link was sent to, or the link has been used already. Links are good once and last about six hours. Check the address, and ask for a new one if it still refuses.'
-        : `That link did not sign you in: ${problemFrom(reply)}`;
+        : `That link did not sign you in: ${said}`;
       return true;
     }
     // Spent, so neither half of the credential is worth keeping.

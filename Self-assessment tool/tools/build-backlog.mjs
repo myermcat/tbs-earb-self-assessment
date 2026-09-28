@@ -57,6 +57,18 @@ details[open]>summary.row::before{transform:rotate(90deg)}
 summary.row .t{font-weight:650;font-size:.95rem}
 summary.row .w{grid-column:2;color:var(--ink-2);font-size:.84rem;max-width:72ch}
 .leaf{display:grid;grid-template-columns:1rem 1fr auto;gap:.15rem .7rem;padding:.55rem .9rem}
+/* A folded item. The summary carries the grid so the title and the state sit exactly where they
+   did when every row was open, and the list reads the same whether anything is expanded. */
+.leaf-fold{display:block;padding:0}
+.leaf-fold>summary{display:grid;grid-template-columns:1rem 1fr auto;gap:.15rem .7rem;
+padding:.55rem .9rem;cursor:pointer;list-style:none;align-items:baseline}
+.leaf-fold>summary::-webkit-details-marker{display:none}
+.leaf-fold>summary::before{content:'\\25B8';grid-column:1;color:var(--ink-3);font-size:.75rem}
+.leaf-fold[open]>summary::before{content:'\\25BE'}
+.leaf-fold>summary:hover{background:var(--surface-2)}
+.leaf-fold>.w{display:block;padding:0 .9rem .7rem 2.6rem}
+.subs .leaf-fold>summary{padding-left:2.1rem}
+.subs .leaf-fold>.w{padding-left:3.8rem}
 .leaf.solo{border-top:1px solid var(--line)}
 .leaf .t{grid-column:2;font-weight:600;font-size:.9rem}
 .leaf .w{grid-column:2;color:var(--ink-2);font-size:.82rem;max-width:72ch}
@@ -123,13 +135,30 @@ const LABEL = { next: 'Next', wait: 'Waiting', later: 'Later', done: 'Done' };
  */
 const tier = (item) => (item.tier === 'level2' ? '<span class="tier">Level 2</span>' : '');
 
-/** A leaf row. `solo` when it is not inside a group. */
+/**
+ * A leaf row, folded shut.
+ *
+ * Reported as: all of your backlog items should be toggled, they are way too big, I should be
+ * able to scroll through and see all the items I have without reading their details, and only
+ * then open them if I want details.
+ *
+ * That is how every backlog people actually use is built. An item on the list is its title and
+ * its state, one line each, and the reasoning is a click away. Ours put a paragraph under every
+ * title, so a page that exists to be scanned could only be read. The title carries the whole
+ * meaning now and `why` is what you open.
+ *
+ * A leaf with no `why` stays a plain row: a fold that opens onto nothing is a worse control than
+ * no fold.
+ */
 function leaf(item, solo = false) {
+  const head = `<span class="t">${esc(item.t)}${tier(item)}</span>`
+    + `<span class="st st-${item.status}">${LABEL[item.status]}</span>`;
+  if (!item.why) return `<div class="leaf${solo ? ' solo' : ''}">${head}</div>`;
   return [
-    `<div class="leaf${solo ? ' solo' : ''}">`,
-    `<span class="t">${esc(item.t)}${tier(item)}</span><span class="st st-${item.status}">${LABEL[item.status]}</span>`,
-    item.why ? `<span class="w">${esc(item.why)}</span>` : '',
-    '</div>',
+    `<details class="leaf leaf-fold${solo ? ' solo' : ''}">`,
+    `<summary>${head}</summary>`,
+    `<span class="w">${esc(item.why)}</span>`,
+    '</details>',
   ].join('\n');
 }
 
@@ -197,12 +226,9 @@ const doneByLayer = (rows) => {
 // changelog since that review, which is the list he should be walked through.
 const doneNew = done.filter((r) => !r.item.seen);
 const doneSeen = done.filter((r) => r.item.seen);
-const doneRow = ({ item }) => [
-  '<div class="leaf solo">',
-  `<span class="t">${esc(item.t)}</span><span class="st st-done">Done</span>`,
-  `<span class="w">${esc(item.why ?? '')}</span>`,
-  '</div>',
-].join('\n');
+// Folded like every other item. This is the longest list on the page and the one somebody
+// scrolls to see what has landed, so it is the one that most needed the titles alone.
+const doneRow = ({ item }) => leaf({ ...item, status: 'done' }, true);
 /**
  * A tier the renderer does not know draws nothing at all.
  *
