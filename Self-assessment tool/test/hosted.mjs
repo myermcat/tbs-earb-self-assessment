@@ -58,7 +58,7 @@ const asDoc = (a) => ({ name: `projects/p/databases/(default)/documents/assessme
  * One page, booted with whatever storage and whatever store answer a case needs.
  * `listAnswer` decides what the assessments list does: a page of documents, or a refusal.
  */
-async function boot({ session = null, side = null, listAnswer = { documents: [] }, role = null, hash = '', url = null, draft = null, people = null, audit = null, oobRefusal = null, linkEmail = null, linkMintedFor = null } = {}) {
+async function boot({ session = null, side = null, listAnswer = { documents: [] }, role = null, hash = '', url = null, draft = null, people = null, audit = null, audits = null, oobRefusal = null, linkEmail = null, linkMintedFor = null } = {}) {
   const seen = [];
   const dom = new JSDOM(html, {
     runScripts: 'dangerously',
@@ -112,6 +112,29 @@ async function boot({ session = null, side = null, listAnswer = { documents: [] 
           return { ok: right, status: right ? 200 : 400,
             headers: { get: () => 'application/json' },
             json: async () => body, text: async () => JSON.stringify(body) };
+        }
+        /**
+         * The audit subcollection, which is where an assessor's work lives now.
+         *
+         * Matched before the assessments branch below, because its address is inside an
+         * assessment's: a stub that tested for /assessments first answered a read of the audits
+         * with a page of assessments and the page decoded them as audits without complaining.
+         */
+        if (/\/assessments\/[^/]+\/audit/.test(href)) {
+          const code = href.match(/assessments\/([^/?]+)\/audit/)[1];
+          const mine = (audits ?? {})[code] ?? [];
+          const listing = {
+            documents: mine.map((x) => ({
+              name: `projects/x/databases/(default)/documents/assessments/${code}/audit/${encodeURIComponent(x.reviewer)}`,
+              fields: toValue(x).mapValue.fields,
+            })),
+          };
+          const out = init?.method === 'PATCH' ? {} : listing;
+          return {
+            ok: true, status: 200,
+            headers: { get: () => 'application/json' },
+            json: async () => out, text: async () => JSON.stringify(out),
+          };
         }
         // The access list is a collection read; a role check is one document by name.
         const peopleList = /\/roles\?/.test(href);
@@ -1741,6 +1764,67 @@ console.log('\nThe published build, signed in\n');
      /needs to know who you are/.test(after) && !/Assess your own architecture/.test(after),
      after.slice(0, 140));
   j.dom.window.close();
+}
+
+/* --------------------------------------------------------------------------------------- */
+/**
+ * An assessor's audit, which used to live in one browser and nowhere else.
+ *
+ * What it cost: the department never saw the review, a second assessor could not see the first
+ * one's work, and clearing a browser lost all of it. views-review.ts made no network call at
+ * all. It is one document per assessor now, beside the assessment, named with the writer's
+ * address, and this drives the page rather than reading the code.
+ */
+{
+  const one = submission('AB12', 'Licensing Renewal');
+  one.answers = { 'B-Q1': { score: 3, evidence: [], justification: 'we think so' } };
+  const theirs = {
+    reviewer: 'other@tbs-sct.gc.ca',
+    reviewerName: 'Nick',
+    reviewedAt: '2026-09-27T00:00:00.000Z',
+    perQuestion: { 'B-Q1': { auditedScore: 8, verdict: 'adjust', note: 'The evidence covers it.' } },
+  };
+  const { doc, dom, seen } = await boot({
+    session: live, side: 'assess', role: 'assessor',
+    listAnswer: { documents: [asDoc(one)] },
+    audits: { [one.id]: [theirs] },
+  });
+
+  const open = [...doc.querySelectorAll('.row-acts button')].find((b) => /^Open$/.test(b.textContent.trim()));
+  ok('a submission can be opened', !!open, [...doc.querySelectorAll('.row-acts button')].map((b) => b.textContent).join(' | '));
+  open.click();
+  await new Promise((r) => setTimeout(r, 120));
+
+  ok('opening one reads the audits written against it',
+     seen.some((x) => /\/assessments\/[^/]+\/audit/.test(x.href) && x.method === 'GET'),
+     seen.map((x) => `${x.method} ${x.href}`).slice(-4).join(' | '));
+  const said = body(doc);
+  ok('another assessor\u2019s reading is on the question, with their name',
+     /Nick/.test(said) && /The evidence covers it/.test(said), said.slice(0, 200));
+  ok('and their score is shown as theirs rather than merged into one number',
+     !!doc.querySelector('.other-audit'), String(doc.querySelectorAll('.other-audit').length));
+  ok('the page says where this assessor\u2019s own audit lives',
+     /saved in the store, under your own name/.test(said), said.slice(-260));
+
+  // Scoring a question sends this assessor's own audit, under this assessor's own address.
+  const before = seen.length;
+  const box = doc.querySelector('.audit-controls input[type=number]');
+  ok('there is somewhere to put a score', !!box);
+  box.value = '6';
+  box.dispatchEvent(new dom.window.Event('change', { bubbles: true }));
+  await new Promise((r) => setTimeout(r, 1600));
+  const wrote = seen.slice(before).filter((x) => x.method === 'PATCH' && /\/audit\//.test(x.href));
+  ok('scoring sends the audit to the store', wrote.length === 1,
+     seen.slice(before).map((x) => `${x.method} ${x.href}`).join(' | '));
+  ok('under this assessor\u2019s own address, which is the name of the document',
+     wrote[0]?.href.includes(encodeURIComponent(ME)), wrote[0]?.href);
+  ok('and it never writes the assessment itself',
+     !seen.slice(before).some((x) => x.method === 'PATCH' && /\/assessments\/[^/]+\?/.test(x.href)),
+     seen.slice(before).map((x) => `${x.method} ${x.href}`).join(' | '));
+  const sent = JSON.parse(wrote[0]?.body ?? '{}');
+  ok('carrying the score that was typed',
+     JSON.stringify(sent).includes('"integerValue":"6"'), JSON.stringify(sent).slice(0, 200));
+  dom.window.close();
 }
 
 console.log(fails ? `\n${fails} hosted check(s) failed\n` : '\nall hosted checks passed\n');

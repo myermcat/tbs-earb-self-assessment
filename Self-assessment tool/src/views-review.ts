@@ -11,7 +11,7 @@ import { rubricFor } from './library';
 import { confirmStep } from './confirm';
 import { SAD_CAT } from './cat';
 import { ICON_DOWN } from './icons';
-import { formatCode } from './firebase';
+import { currentUser, formatCode, listAudits, putAudit, type AssessorAudit } from './firebase';
 import { isHosted, poolRecords, type PoolAnswer } from './store';
 import { repaint } from './views-submit';
 import { nameIsChecked } from './who';
@@ -36,6 +36,111 @@ interface Loaded {
   fs: Flag[];
   /** The store handed back a newer version of this one after the assessor had opened it. */
   changed?: boolean;
+  /**
+   * What other assessors have written against this submission, read-only.
+   *
+   * One document each, beside the assessment, so nobody's reading is overwritten by the next
+   * person's. There is no single score of record: EARB is handed both opinions and the board
+   * decides between them, which is a judgement and not a calculation.
+   */
+  others?: AssessorAudit[];
+  /** Whether the audits for this one have been fetched, so an empty list means empty. */
+  auditsRead?: boolean;
+}
+
+/**
+ * Where this assessor's own audit lives, and what the screen says about it.
+ *
+ * Everything typed here used to stay in this browser and leave as a downloaded file, so a
+ * second assessor saw none of it, a cleared browser lost all of it, and the department it was
+ * written about never saw a word. It is a document now, named with the writer's address,
+ * beside the assessment it is about.
+ *
+ * It saves itself, which is a deliberate departure from the submitter's side. Saving there is
+ * one act each time because the stored copy is a publication. An audit is nobody's publication:
+ * it is the assessor's working record, read by the department and by the board, and the failure
+ * that matters is losing it rather than sending it too early.
+ */
+type AuditSave = { state: 'off' | 'saved' | 'saving' | 'failed'; problem?: string };
+
+/** What the screen says about where this audit is, which is the whole of the fix in one line. */
+function auditWhere(l: Loaded): string {
+  if (!isHosted()) return 'This build has no store, so your audit stays in this browser and leaves as a file.';
+  if (!currentUser()) return 'Sign in to save your audit. Until you do it stays in this browser and leaves as a file.';
+  if (!l.a.id) return 'This submission has never been online, so there is nowhere to put an audit of it yet.';
+  const others = (l.others ?? []).length;
+  const alongside = others === 0 ? ''
+    : others === 1 ? ' One other assessor has written on this submission, and their reading is under each question.'
+    : ` ${others} other assessors have written on this submission, and their readings are under each question.`;
+  if (auditSave.state === 'saving') return `Saving your audit.${alongside}`;
+  if (auditSave.state === 'failed') return `Your audit is not saved: ${auditSave.problem ?? 'the store refused it'}. It is still in this browser.`;
+  return `Your audit is saved in the store, under your own name, where the department can read it and no other assessor can change it.${alongside}`;
+}
+let auditSave: AuditSave = { state: 'off' };
+const auditTimers = new Map<string, ReturnType<typeof setTimeout>>();
+
+/** Read every audit on this submission, and adopt this assessor's own as the one being edited. */
+async function readAudits(l: Loaded): Promise<void> {
+  // Marked before anything can fail or be awaited, because this ends in a repaint and a
+  // repaint comes back here. Left until after the first early return, it never got marked at
+  // all on a build with no store, and the redraw called it again for as long as the page lived.
+  l.auditsRead = true;
+  const code = l.a.id;
+  if (!isHosted() || !code) return;
+  try {
+    const all = await listAudits(code);
+    const me = currentUser()?.email ?? '';
+    l.others = all.filter((x) => x.reviewer !== me);
+    const mine = all.find((x) => x.reviewer === me);
+    // The stored copy wins only where this browser is holding nothing, so an audit typed
+    // offline is never thrown away by a read that happens to land after it.
+    if (mine && !Object.keys(l.a.audit?.perQuestion ?? {}).length) {
+      l.a.audit = {
+        reviewer: mine.reviewer, reviewedAt: mine.reviewedAt,
+        perQuestion: mine.perQuestion ?? {}, overallNote: mine.overallNote,
+      };
+    }
+    auditSave = { state: 'saved' };
+  } catch (err) {
+    auditSave = { state: 'failed', problem: (err as Error).message };
+  }
+}
+
+/**
+ * Send this assessor's audit, a moment after they stop typing.
+ *
+ * The wait is what turns a typed sentence into one write rather than one per keystroke, and
+ * the store counts every one of them.
+ */
+function scheduleAuditSave(l: Loaded, after: () => void = () => {}): void {
+  const code = l.a.id;
+  if (!isHosted() || !code || !currentUser()) return;
+  clearTimeout(auditTimers.get(code));
+  auditSave = { state: 'saving' };
+  after();
+  /**
+   * The wait must not be a reason for a program to stay alive.
+   *
+   * A pending timer holds Node's event loop open, so a suite that touched one audit control sat
+   * there after its last assertion with nothing left to do. Browsers have no unref and need
+   * none; this is one word and it costs the page nothing.
+   */
+  const timer = setTimeout(() => {
+    const audit = l.a.audit;
+    if (!audit) return;
+    void putAudit(code, {
+      reviewer: currentUser()?.email ?? '',
+      reviewerName: auditor,
+      reviewedAt: audit.reviewedAt || new Date().toISOString(),
+      perQuestion: audit.perQuestion,
+      overallNote: audit.overallNote,
+    }).then(
+      () => { auditSave = { state: 'saved' }; after(); },
+      (err: Error) => { auditSave = { state: 'failed', problem: err.message }; after(); },
+    );
+  }, 1200);
+  (timer as unknown as { unref?: () => void }).unref?.();
+  auditTimers.set(code, timer);
 }
 
 let loaded: Loaded[] = [];
@@ -586,6 +691,9 @@ function openDetail(rubric: Rubric, root: HTMLElement, l: Loaded) {
   const needLook = new Set([...byQuestion.keys(), ...inAggregate]);
   const questionOf = new Map(allQuestionScores(r).map((qs) => [qs.question.id, qs]));
   const repaint = () => openDetail(rubric, root, l);
+  // Other people's audits arrive after the page does. Nothing waits on them: the screen draws
+  // with this assessor's own work and redraws when the rest lands.
+  if (!l.auditsRead) void readAudits(l).then(repaint);
 
   const changed = Object.entries(audit.perQuestion).filter(
     ([qid, e]) => typeof e.auditedScore === 'number' && e.auditedScore !== (a.answers[qid]?.score ?? null),
@@ -778,7 +886,7 @@ function openDetail(rubric: Rubric, root: HTMLElement, l: Loaded) {
     const rows = el('div', {});
     for (const qid of f.questionIds) {
       const qs = questionOf.get(qid);
-      if (qs) rows.appendChild(auditRow(rubric, a, qs, audit, byQuestion.get(qid) ?? [], repaint, true));
+      if (qs) rows.appendChild(auditRow(rubric, a, qs, audit, byQuestion.get(qid) ?? [], repaint, true, l));
     }
     flagBox.appendChild(el('div', { class: `flag sev-${f.severity}` }, [
       flagTitle(f),
@@ -798,7 +906,7 @@ function openDetail(rubric: Rubric, root: HTMLElement, l: Loaded) {
     if (inAggregate.has(qid)) continue;   // already shown inside its aggregate
     const qs = questionOf.get(qid);
     if (!qs) continue;
-    flagBox.appendChild(auditRow(rubric, a, qs, audit, qflags, repaint, true));
+    flagBox.appendChild(auditRow(rubric, a, qs, audit, qflags, repaint, true, l));
   }
   root.appendChild(flagBox);
 
@@ -878,7 +986,7 @@ function openDetail(rubric: Rubric, root: HTMLElement, l: Loaded) {
           : null,
       ]));
       for (const qs of rows) {
-        domainRows.push(auditRow(rubric, a, qs, audit, [], repaint, false));
+        domainRows.push(auditRow(rubric, a, qs, audit, [], repaint, false, l));
         restCount++;
       }
     }
@@ -915,6 +1023,15 @@ function openDetail(rubric: Rubric, root: HTMLElement, l: Loaded) {
         : el('span', { class: 'badge badge-warn' }, ['not checked']),
       el('span', { class: 'muted' }, [' Recorded against every score you change.']),
     ]),
+    /**
+     * Where this audit lives, in a sentence, because it used to live nowhere.
+     *
+     * Everything typed here stayed in one browser and left as a downloaded file. A second
+     * assessor saw none of it and a cleared browser lost all of it, and nothing on screen said
+     * so. Saying where the work is takes one line and is the difference between a tool
+     * somebody can rely on and one they find out about afterwards.
+     */
+    el('p', { class: 'small audit-where' }, [auditWhere(l)]),
     el('label', { class: 'field' }, [
       el('span', {}, ['Overall note for the board']),
       el('textarea', {
@@ -976,6 +1093,11 @@ function flagCard(f: Flag): HTMLElement {
   ]);
 }
 
+/** How a verdict reads when it is somebody else's, where there is no room for a dropdown. */
+const VERDICT_SAID: Record<string, string> = {
+  agree: 'agreed', adjust: 'adjusted', insufficient: 'not enough evidence',
+};
+
 /** One question, with its flags, its evidence, and the controls to re-score it. */
 function auditRow(
   rubric: Rubric,
@@ -985,6 +1107,7 @@ function auditRow(
   qflags: Flag[],
   repaint: () => void,
   flagged: boolean,
+  l: Loaded,
 ): HTMLElement {
   const q = qs.question;
   const ans = a.answers[q.id];
@@ -1061,6 +1184,29 @@ function auditRow(
         ])
       : null,
 
+    /**
+     * What the other assessors made of this question.
+     *
+     * One block each, read-only, because they are one document each and nobody's reading is
+     * overwritten by the next person's. There is no combined number here on purpose: two
+     * assessors who disagree are a thing for the board to settle in the room, and a tool that
+     * averaged them would be making that decision quietly and badly.
+     */
+    ...(l.others ?? [])
+      .map((other) => ({ other, e: other.perQuestion?.[q.id] }))
+      .filter(({ e }) => e && (typeof e.auditedScore === 'number' || (e.note ?? '').trim() || e.verdict))
+      .map(({ other, e }) => el('div', { class: 'other-audit' }, [
+        el('div', { class: 'other-head small' }, [
+          el('b', {}, [other.reviewerName?.trim() || other.reviewer]),
+          el('span', { class: 'muted' }, [' scored ']),
+          el('b', {}, [e!.auditedScore === null || e!.auditedScore === undefined ? '--' : String(e!.auditedScore)]),
+          e!.verdict ? el('span', { class: 'badge tiny' }, [VERDICT_SAID[e!.verdict] ?? e!.verdict]) : null,
+        ]),
+        (e!.note ?? '').trim()
+          ? el('div', { class: 'small' }, [e!.note ?? ''])
+          : el('div', { class: 'small muted' }, ['No reason given.']),
+      ])),
+
     el('div', { class: 'audit-controls' }, [
       el('label', {}, ['Your score ', el('input', {
         type: 'number', min: 0, max: 10, value: entry.auditedScore ?? '',
@@ -1079,6 +1225,7 @@ function auditRow(
             });
           }
           keepSession();
+          scheduleAuditSave(l, repaint);
           repaint();
         },
         oninput: (e: Event) => {
@@ -1087,7 +1234,11 @@ function auditRow(
         },
       })]),
       el('select', {
-        onchange: (e: Event) => { entry.verdict = (e.target as HTMLSelectElement).value as AuditEntry['verdict']; },
+        onchange: (e: Event) => {
+          entry.verdict = (e.target as HTMLSelectElement).value as AuditEntry['verdict'];
+          keepSession();
+          scheduleAuditSave(l, repaint);
+        },
       }, [
         el('option', { value: '', selected: entry.verdict === '' }, ['Choose a verdict']),
         el('option', { value: 'agree', selected: entry.verdict === 'agree' }, ['Agree with them']),
@@ -1108,6 +1259,7 @@ function auditRow(
           const last = hist[hist.length - 1];
           if (last && last.score === entry.auditedScore) last.note = entry.note ?? '';
           keepSession();
+          scheduleAuditSave(l);
         },
         onchange: () => repaint(),
       }),

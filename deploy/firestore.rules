@@ -213,13 +213,38 @@ service cloud.firestore {
       // code can damage an assessment and can never remove it.
       allow delete: if isAssessor();
 
-      // The audit trail as a subcollection. Nothing in src/ writes here yet; the audit the tool
-      // actually keeps is a field of the assessment, frozen against a code holder above. This
-      // stays closed until there is something in it.
+      /**
+       * One assessor's audit of this submission, named with their own address.
+       *
+       * This is where an assessor's work lives now, and the shape carries three decisions
+       * Mariia made on 28 September rather than a convenience.
+       *
+       * AN ASSESSOR NEVER WRITES A SUBMISSION. Not restricted, not filtered: there is no rule
+       * above that lets them, and with the audit out here they no longer need one. A
+       * department's answers cannot be reached by an assessor even by mistake.
+       *
+       * ONE ASSESSOR CANNOT OVERWRITE ANOTHER. The document is named with the writer's address
+       * and `entry == email()` is the whole of it, so a second assessor writes a second
+       * document and both survive. EARB reads every opinion side by side; there is no single
+       * score of record, because deciding between two readings is the board's job and not the
+       * tool's.
+       *
+       * THE DEPARTMENT READS WHAT WAS SAID ABOUT IT. An assessment comes back with reasons on
+       * it, and a reason nobody can read is a score with no appeal. The owner is read off the
+       * assessment above, because an audit document has no ownerEmail of its own and isOwner()
+       * asked it for one, which is why this said the owner could read and no owner ever could.
+       *
+       * Delete is the writer's own, and nobody else's. An assessor who wants a verdict gone
+       * takes their own back; a verdict that inconveniences somebody is not theirs to remove.
+       */
       match /audit/{entry} {
-        allow get, list: if isOwner() || isAssessor();
-        allow create, update: if isAssessor();
-        allow delete: if isAssessor();
+        // The assessor test is first on purpose. A get() inside a rule is a billable read on
+        // every request that reaches it, refused ones included, so the path walked by every
+        // assessor on every submission never pays for one and only the department does.
+        allow get, list: if isAssessor() || ownerOfAssessment(id);
+        allow create, update: if isAssessor() && entry == email()
+                              && request.resource.data.get('reviewer', '') == email();
+        allow delete: if isAssessor() && entry == email();
       }
     }
 
@@ -305,6 +330,18 @@ service cloud.firestore {
     }
     function isOwner() {
       return signedIn() && resource.data.ownerEmail == email();
+    }
+    /**
+     * Whether this is the department's own assessment, asked from inside a subcollection.
+     *
+     * isOwner() reads ownerEmail off the document being reached, which under /audit is an audit
+     * and has none. It answered false every time, so the rule that said an owner may read the
+     * audit written about them never let one through.
+     */
+    function ownerOfAssessment(id) {
+      return signedIn()
+        && exists(/databases/$(database)/documents/assessments/$(id))
+        && get(/databases/$(database)/documents/assessments/$(id)).data.get('ownerEmail', '') == email();
     }
     function roleOf() {
       return exists(/databases/$(database)/documents/roles/$(email()))
