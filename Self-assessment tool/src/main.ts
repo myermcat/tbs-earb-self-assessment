@@ -322,6 +322,30 @@ function accessState(): Access {
  * that this address was never added or that its access was taken away. Both are answered the
  * same way: hand the address over, because any assessor can add it.
  */
+
+/**
+ * The other language, named in that language, which is the Canada.ca pattern.
+ *
+ * The href is real, because bootLang() reads ?lang=, so the French page is something a person can
+ * send to somebody. `lang` on the link is what makes a screen reader say "Français" in a French
+ * voice inside an English page.
+ *
+ * It leaves the header on a stripped-down screen along with everything else, and the screens that
+ * strip it put it on their own card. A sign-in or a refusal that cannot be read in French is a
+ * screen somebody is stuck on, and this instrument is half-translated already.
+ */
+function languageLink(): HTMLElement {
+  const other: Lang = lang() === 'en' ? 'fr' : 'en';
+  const label = other === 'fr' ? 'Français' : 'English';
+  return el('a', {
+    class: 'lang-link', lang: other, hreflang: other, href: `?lang=${other}`,
+    onclick: (e: Event) => { e.preventDefault(); setLang(other); paint(); },
+  }, [
+    el('span', { class: 'lang-full' }, [label]),
+    el('abbr', { class: 'lang-abbr', title: label }, [other.toUpperCase()]),
+  ]);
+}
+
 function renderNoAccess(root: HTMLElement, state: Access) {
   const me = currentUser();
   const checking = state === 'checking';
@@ -368,6 +392,7 @@ function renderNoAccess(root: HTMLElement, state: Access) {
           ? el('p', { class: 'mono small addr' }, [me.email])
           : null,
         actions.length ? el('div', { class: 'actions' }, actions) : null,
+        el('p', { class: 'card-lang' }, [languageLink()]),
       ]),
     ]),
   ]));
@@ -829,17 +854,7 @@ function header(bare = false): HTMLElement {
        * person can send to somebody. `lang` on the link is what makes a screen reader say
        * "Français" with a French voice inside an English page.
        */
-      (() => {
-        const other: Lang = lang() === 'en' ? 'fr' : 'en';
-        const label = other === 'fr' ? 'Français' : 'English';
-        return el('a', {
-          class: 'lang-link', lang: other, hreflang: other, href: `?lang=${other}`,
-          onclick: (e: Event) => { e.preventDefault(); setLang(other); paint(); },
-        }, [
-          el('span', { class: 'lang-full' }, [label]),
-          el('abbr', { class: 'lang-abbr', title: label }, [other.toUpperCase()]),
-        ]);
-      })(),
+      bare ? null : languageLink(),
       /**
        * The account menu.
        *
@@ -854,7 +869,19 @@ function header(bare = false): HTMLElement {
        * account here?" is the question this answers: today, on the accounts build, yes, and
        * that is why the badge is there.
        */
-      hasAccounts() && currentUser()
+      /**
+       * Nothing on a bare screen but the way out of it.
+       *
+       * Reported of the no-access screen: it has a settings button, the language link and the
+       * account badge, and none of those should be there. All three were drawn outside the check
+       * that strips the header down, so a screen whose whole job is to say this account cannot
+       * see anything still carried a chip naming the account and a gear opening the settings
+       * behind the same door.
+       *
+       * The card itself already names the address and offers a different account, which is what
+       * the chip was for.
+       */
+      hasAccounts() && currentUser() && !bare
         ? el('details', { class: 'set-menu account-menu' }, [
             el('summary', {
               class: 'set-menu-btn account-btn',
@@ -870,7 +897,7 @@ function header(bare = false): HTMLElement {
             ]),
           ])
         : null,
-      el('button', {
+      bare ? null : el('button', {
         class: `icon-btn ${mode === 'settings' ? 'on' : ''}`,
         title: t('Settings', 'Paramètres'), 'aria-label': t('Settings', 'Paramètres'),
         html: GEAR,
@@ -1336,6 +1363,8 @@ function renderRealSignIn(root: HTMLElement) {
     otherWaysToSignIn(),
   ]);
   root.appendChild(card);
+  // The header carries nothing on this screen, so the way into the other language is here.
+  root.appendChild(el('p', { class: 'card-lang' }, [languageLink()]));
 }
 
 /**
@@ -1516,6 +1545,8 @@ function renderSignIn(root: HTMLElement, onDone: () => void) {
     if ((e as KeyboardEvent).key === 'Enter') { e.preventDefault(); go(); }
   });
   root.appendChild(card);
+  // The header carries nothing on this screen, so the way into the other language is here.
+  root.appendChild(el('p', { class: 'card-lang' }, [languageLink()]));
   setTimeout(() => input.focus?.(), 0);
 }
 
