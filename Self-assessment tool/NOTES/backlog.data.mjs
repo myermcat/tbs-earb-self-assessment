@@ -29,10 +29,16 @@
  *              answer. It used to be a property of the section, which works for two people and
  *              stops working the moment three of them share 'ours'.
  *  - owes      who owes us the answer, on a 'wait' item, and nothing on any other.
- *  - asked     the date somebody was asked, on a 'wait' item. REQUIRED THERE, and the build
- *              stops without it. This is the field that stops the rot: a question put to Nick on
- *              1 September and a question put yesterday looked identical on this page, and one
- *              of them has been ignored for four weeks.
+ *  - asked     the date somebody was ACTUALLY ASKED. Not the date the item was written down.
+ *  - since     the date it went on the list, for a 'wait' item nobody has actually asked yet.
+ *              A 'wait' needs one or the other and the build stops without either.
+ *
+ *              THESE ARE TWO FIELDS BECAUSE THE PAGE WAS LYING. Every waiting item said "asked
+ *              N days ago", and for nine of them the date was the commit that first wrote the
+ *              item down, because that was the only evidence there was. Reported, correctly, as:
+ *              we never asked him for anything. A thing nobody has asked for is a different
+ *              problem from a thing somebody has ignored for a month, and the page now says
+ *              which it is looking at.
  *  - size      'hours' | 'days' | 'weeks', required on anything next or doing. Three values and
  *              not an estimate, because an estimate is a thing you have to stop and think about
  *              and so it never gets written.
@@ -51,13 +57,13 @@ export const updated = '2026-09-28';
 /** The tabs, across the top. Dan's three, and the critical path he asked for on top of them. */
 export const tracks = [
   { id: 'golive', title: 'To go live',
-    hint: 'Dan asked for the critical path on 26 September. Nothing here is confirmed: these are the items we think block a real department using the tool, until he says otherwise. Each one also sits in its own tab.' },
+    hint: 'Everything that has to be true before a real department fills this in and a real assessor reads it. Dan asked for this list on 26 September and nothing on it is confirmed: it is what we think blocks going live until he says otherwise. Every item here also sits in the tab it belongs to.' },
   { id: 'questions', title: 'The questions',
-    hint: 'The instrument itself. What is asked, in what order, and in which language.' },
+    hint: 'The question set: what is asked, in what order, in which language, and what each answer is worth. The content is Dan\u2019s and most of this tab waits on him.' },
   { id: 'engine', title: 'The engine',
-    hint: 'The tool that carries the questions: the screens, the scoring, and the saving.' },
+    hint: 'The tool that carries the questions: the screens a submitter and an assessor use, the scoring, and the saving. All of it is ours to build.' },
   { id: 'admin', title: 'Administrative',
-    hint: 'Everything that is neither the questions nor the engine: where it is published, who owns it, who may sign in, and what people do around it.' },
+    hint: 'Everything that is neither the questions nor the engine: where the tool is published, who owns the accounts it runs on, who may sign in, and what people do around it.' },
 ];
 
 /**
@@ -90,7 +96,6 @@ export const sections = [
   { id: 'a-publish', track: 'admin', title: 'Where it lives' },
   { id: 'a-owner', track: 'admin', title: 'Ownership and handover' },
   { id: 'a-process', track: 'admin', title: 'Process, for people' },
-  { id: 'a-settled', track: 'admin', title: 'Settled' },
   { id: 'a-done', track: 'admin', title: 'Done' },
 ];
 
@@ -102,11 +107,10 @@ export const items = [
     why: "An official instrument that is English on half its screens is not usable in government, so this is a defect and not a feature.\n\nThe machinery works: 403 pieces of wording go through the translator and 402 of them carry French. What is missing is wording that never went through it at all. On the assessor side that is 108 pieces, and the portfolio screen does not so much as import the translator. Across the submitter and shared screens it is roughly 300 more.\n\nThere is a second half nobody can start: the question set itself, 3,344 words of Dan’s English, and there is nowhere in the file format to put a French version. That is what the item below is for.\n\nAnd the accessibility fix that landed in September only reached the submitter side. The assessor screens still show English text inside a page that says it is French, so a screen reader reads English in a French voice. That is a ten-minute fix and should go first.\n\nWhat stays English on purpose: the access code, the question ids, and this page.",
   },
   {
-    id: "dan-owes-french-question", track: "questions", section: "q-french", kind: "question",
-    status: "wait", priority: "high", owner: "Dan", golive: true, size: "weeks", owes: "Dan",
-    asked: "2026-09-21",
-    t: "Dan owes the French of the question set",
-    why: "Part of the French defect above, and the half that waits on somebody else. 3,344 words, and the Translation Bureau on instrument text of that size is weeks, so this is the long pole and the ask should go now.\n\nIt breaks down as 2,760 words in the 176 questions, 228 in the eleven rungs of the scale a submitter reads to pick a score, 104 in the routing and maturity bands, 98 in the section and domain names, 84 in the five categories and 70 in the seven lifecycle stages.\n\nTwo decisions in it are his. Whether the French is a second file or extra fields in the one file, given the ids are spreadsheet column names either way. And who signs off the wording, because a self-assessment whose questions differ between the two languages is two instruments.",
+    id: "dan-owes-french-question", track: "questions", section: "q-french", kind: "feature",
+    status: "next", priority: "high", owner: "ours", golive: true, size: "weeks",
+    t: "The French of the question set, which nobody has asked Dan for",
+    why: "Reported: we can do this ourselves, and we never asked him for anything. Both are right, and the item said otherwise on both counts.\n\nWhat is true: 3,344 words of Dan’s English have no French anywhere, and the file format has nowhere to put it. That is 2,760 words in the 176 questions, 228 in the eleven rungs of the scale a submitter reads to pick a score, 104 in the routing and maturity bands, 98 in the section and domain names, 84 in the five categories and 70 in the seven lifecycle stages.\n\nTwo ways to get it, and they are not exclusive. Draft it here and have it approved, which starts today and needs nobody. Or send it to the Translation Bureau, which is weeks on instrument text of this size and is the route an official instrument normally takes. Drafting first and having the Bureau check a draft is faster than either.\n\nTwo decisions are genuinely Dan’s and neither has been put to him. Whether the French is a second file or extra fields in the one file, given the ids are spreadsheet column names either way. And who signs off the wording, because a self-assessment whose questions differ between the two languages is two instruments.\n\nIt also waits on the set settling. Translating 176 questions while duplicates are still being cut is translating work that is about to be deleted.",
   },
   {
     id: "dan-seen-assessor-side", track: "engine", section: "e-done", kind: "feature",
@@ -129,7 +133,7 @@ export const items = [
   {
     id: "each-assessor-sees-pool", track: "engine", section: "e-assessor", kind: "question",
     status: "wait", priority: "medium", owner: "ours", golive: false, size: "days",
-    owes: "Dan or Chris", asked: "2026-09-03",
+    owes: "Dan or Chris", since: "2026-09-03",
     t: "What each assessor sees of the pool",
     why: "Everything, for now. Chris says departments know who their assessor is, so they could pick one at submission, and an assessor could hand a file on. Until that is decided, every assessor sees the whole pool, and a My assessments tab is the filter to add once the rule exists.\n\nThis used to be written twice, here and in a separate list of open questions. It is one record now, and it is marked as a question.",
   },
@@ -521,7 +525,7 @@ export const items = [
   },
   {
     id: "content-dan-still-owes", track: "questions", section: "q-content", kind: "feature",
-    status: "wait", priority: "medium", owner: "Dan", golive: false, asked: "2026-09-01",
+    status: "wait", priority: "medium", owner: "Dan", golive: false, since: "2026-09-01",
     t: "Content Dan still owes",
     why: "None of this is ours to write.",
   },
@@ -773,7 +777,7 @@ export const items = [
   },
   {
     id: "who-the-assessor-is", track: "engine", section: "e-assessor", kind: "feature",
-    status: "wait", priority: "medium", owner: "ours", golive: false, asked: "2026-09-01",
+    status: "wait", priority: "medium", owner: "ours", golive: false, since: "2026-09-01",
     t: "Who the assessor is",
     why: "Their name goes against a number somebody may dispute.",
   },
@@ -873,7 +877,7 @@ export const items = [
   },
   {
     id: "admin-actions", track: "engine", section: "e-admin", kind: "feature", status: "wait",
-    priority: "low", owner: "ours", golive: false, owes: "Dan", asked: "2026-09-01",
+    priority: "low", owner: "ours", golive: false, owes: "Dan", since: "2026-09-01",
     t: "Admin-only actions",
     why: "Nobody has decided whether admin is a role. Listed so the roles matrix is complete.",
   },
@@ -980,7 +984,7 @@ export const items = [
   {
     id: "publish-built-page-canada", track: "admin", section: "a-publish", kind: "feature",
     status: "wait", priority: "medium", owner: "ours", golive: false, size: "hours", owes: "Dan",
-    asked: "2026-09-03", parent: "move-tool-canada-ca",
+    since: "2026-09-03", parent: "move-tool-canada-ca",
     t: "Publish the built page into canada-ca/TBS-OCIO-ESP",
     why: "One commit, once Dan says the 176 draft questions can be public. The repository is public, access is already granted, and it already serves a Pages site.",
   },
@@ -1012,7 +1016,7 @@ export const items = [
   },
   {
     id: "notifications", track: "admin", section: "a-process", kind: "feature", status: "wait",
-    priority: "low", owner: "ours", golive: false, asked: "2026-09-01",
+    priority: "low", owner: "ours", golive: false, since: "2026-09-01",
     t: "Notifications",
     why: "GC Notify is the sanctioned service and is already in Dan’s own rubric at application question Q33. What triggers one is his decision and he has not made it.",
   },
@@ -1025,7 +1029,7 @@ export const items = [
   {
     id: "decide-triggers", track: "admin", section: "a-process", kind: "feature", status: "wait",
     priority: "medium", owner: "Dan", golive: false, size: "hours", owes: "Dan",
-    asked: "2026-09-01", parent: "notifications",
+    since: "2026-09-01", parent: "notifications",
     t: "Decide the triggers",
     why: "Submission, assignment, a changed score and a reminder are four different decisions.",
   },
@@ -1104,7 +1108,7 @@ export const items = [
   {
     id: "q-may-write-prototype", track: "admin", section: "a-signin", kind: "question",
     status: "wait", priority: "medium", owner: "ours", golive: false, size: "hours",
-    owes: "ours, then Dan", asked: "2026-09-03",
+    owes: "ours, then Dan", since: "2026-09-03",
     t: "Who may write to the prototype store",
     why: "Meanwhile: Anybody who reads the page source. Fine for unclassified drafts, and the reason the real one needs the departmental sign-in",
   },
@@ -1137,67 +1141,67 @@ export const items = [
     why: "Blocks: Production only. Meanwhile: The prototype answer is an Azure Function plus one CSP line",
   },
   {
-    id: "settled-assessor-side-work", track: "admin", section: "a-settled", kind: "question",
+    id: "settled-assessor-side-work", track: "admin", section: "a-done", kind: "question",
     status: "done", priority: "low", owner: "ours", golive: false, seen: true,
     t: "Can the assessor side work on a code, the way the submitter side does?",
     why: "No, and it was worked through rather than waved away. The legal half is real: a rule can grant read on a named document, so a roll-up document named by a long code would be a lawful thing to read, and each submitter could be confined to writing their own row into it. It fails on what a leak costs. One assessment code leaks one assessment. An index code leaks every department at once, and it cannot be rotated, because its address is compiled into every published submitter page: old pages keep writing to the old document and anybody holding an old build keeps the address. Loosening the write rules enough to make it work also removes the one thing that lets a reader tell afterwards whether a verdict was written by an assessor or by the department being assessed, which takes the audit out of evidence.",
   },
   {
-    id: "settled-should-tool-hold", track: "admin", section: "a-settled", kind: "question",
+    id: "settled-should-tool-hold", track: "admin", section: "a-done", kind: "question",
     status: "done", priority: "low", owner: "ours", golive: false, seen: true,
     t: "Should the tool hold classified information?",
     why: "No. Nothing protected or classified goes in at all, settled with Dan on 1 September. That removed the second deployment, the local-only engine, the theme switch, and the whole recall problem.",
   },
   {
-    id: "settled-happens-online-data", track: "admin", section: "a-settled", kind: "question",
+    id: "settled-happens-online-data", track: "admin", section: "a-done", kind: "question",
     status: "done", priority: "low", owner: "ours", golive: false, seen: true,
     t: "What happens to online data when a marking rises?",
     why: "Dropped. The tool never stores classified evidence, so the question cannot arise.",
   },
   {
-    id: "settled-two-topic-question", track: "admin", section: "a-settled", kind: "question",
+    id: "settled-two-topic-question", track: "admin", section: "a-done", kind: "question",
     status: "done", priority: "low", owner: "ours", golive: false, seen: true,
     t: "Does a two-topic question count twice overall?",
     why: "No. Once in the overall score, and at full weight inside each topic, which is where the weights genuinely differ.",
   },
   {
-    id: "settled-file-sharing-team", track: "admin", section: "a-settled", kind: "question",
+    id: "settled-file-sharing-team", track: "admin", section: "a-done", kind: "question",
     status: "done", priority: "low", owner: "ours", golive: false, seen: true,
     t: "File sharing for a team filling one in together?",
     why: "No files. Everything is online, so version control stops being a problem the tool has to solve.",
   },
   {
-    id: "settled-deletion-rights", track: "admin", section: "a-settled", kind: "question",
+    id: "settled-deletion-rights", track: "admin", section: "a-done", kind: "question",
     status: "done", priority: "low", owner: "ours", golive: false, seen: true,
     t: "Deletion rights",
     why: "Nothing is ever hard-deleted. A record is withdrawn and left out of the statistics.",
   },
   {
-    id: "settled-build-two", track: "admin", section: "a-settled", kind: "question",
-    status: "done", priority: "low", owner: "ours", golive: false, seen: true,
+    id: "settled-build-two", track: "admin", section: "a-done", kind: "question", status: "done",
+    priority: "low", owner: "ours", golive: false, seen: true,
     t: "One build or two?",
     why: "One. Submission is a capability the hosting turns on.",
   },
   {
-    id: "settled-plan-lives", track: "admin", section: "a-settled", kind: "question",
+    id: "settled-plan-lives", track: "admin", section: "a-done", kind: "question",
     status: "done", priority: "low", owner: "ours", golive: false, seen: true,
     t: "Where the plan lives",
     why: "This page. The Markdown version is deleted.",
   },
   {
-    id: "settled-org-access-canada", track: "admin", section: "a-settled", kind: "question",
+    id: "settled-org-access-canada", track: "admin", section: "a-done", kind: "question",
     status: "done", priority: "low", owner: "ours", golive: false, seen: true,
     t: "Org access to canada-ca",
     why: "Done. Nick invited you, and the TBS-OCIO-ESP team gives push access to canada-ca/TBS-OCIO-ESP.",
   },
   {
-    id: "settled-may-replace-question", track: "admin", section: "a-settled", kind: "question",
+    id: "settled-may-replace-question", track: "admin", section: "a-done", kind: "question",
     status: "done", priority: "low", owner: "ours", golive: false, seen: true,
     t: "Who may replace the question set?",
     why: "The assessor and admin side only. Loading one clears every answer, so a submitter is told where it lives and not handed the control.",
   },
   {
-    id: "settled-dashboard-stay-current", track: "admin", section: "a-settled", kind: "question",
+    id: "settled-dashboard-stay-current", track: "admin", section: "a-done", kind: "question",
     status: "done", priority: "low", owner: "ours", golive: false, seen: true,
     t: "How does the dashboard stay current?",
     why: "By storing nothing. It recalculates each record from its answers as the page draws, so there is no roll-up that can go stale.",
