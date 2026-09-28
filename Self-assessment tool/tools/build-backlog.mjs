@@ -33,7 +33,10 @@ const here = dirname(fileURLToPath(import.meta.url));
 const out = join(here, '..', 'NOTES', 'backlog.html');
 
 const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-const STATUS = { next: 'Next', wait: 'Waiting', later: 'Later', done: 'Done' };
+const STATUS = { wait: 'Waiting', next: 'Next', doing: 'Doing', later: 'Later', done: 'Done' };
+/** Which status a heading takes from the items under it: the furthest along anything below it. */
+const FROM_KIDS = ['doing', 'next', 'wait', 'later', 'done'];
+const SIZE = { hours: 'Hours', days: 'Days', weeks: 'Weeks' };
 const RANK = { high: 0, medium: 1, low: 2 };
 
 /**
@@ -45,6 +48,7 @@ const RANK = { high: 0, medium: 1, low: 2 };
   const trackIds = new Set(tracks.map((t) => t.id));
   const wrong = [];
   const seen = new Set();
+  const hasKids = new Set(items.filter((i) => i.parent).map((i) => i.parent));
   for (const i of items) {
     if (!ids.has(i.section)) wrong.push(`${i.id}: no section called ${JSON.stringify(i.section)}`);
     if (!trackIds.has(i.track)) wrong.push(`${i.id}: no tab called ${JSON.stringify(i.track)}`);
@@ -52,6 +56,29 @@ const RANK = { high: 0, medium: 1, low: 2 };
     if (!STATUS[i.status]) wrong.push(`${i.id}: status ${JSON.stringify(i.status)}`);
     if (seen.has(i.id)) wrong.push(`${i.id}: written twice`);
     seen.add(i.id);
+    if (!i.owner) wrong.push(`${i.id}: no owner. Who does the work once it is unblocked?`);
+    /**
+     * The two fields that stop the rot, enforced rather than encouraged.
+     *
+     * A 'wait' with no date is the failure this backlog actually has: a question put to Nick on
+     * 1 September read exactly like one put yesterday, and one of them had been ignored for four
+     * weeks. A 'next' with no size is an item nobody can plan a week around. Neither is asked of
+     * a heading, which carries no work of its own.
+     */
+    if (i.status === 'wait' && !/^\d{4}-\d{2}-\d{2}$/.test(i.asked ?? '')) {
+      wrong.push(`${i.id}: waiting on ${i.owes || 'somebody'} since when? asked must be a date.`);
+    }
+    if (i.status !== 'wait' && i.owes) wrong.push(`${i.id}: owes is for waiting items only`);
+    if (!hasKids.has(i.id) && (i.status === 'next' || i.status === 'doing') && !SIZE[i.size]) {
+      wrong.push(`${i.id}: size must be hours, days or weeks.`);
+    }
+  }
+  const doing = items.filter((i) => i.status === 'doing');
+  if (doing.length > 2) {
+    console.error(`${doing.length} items are marked doing. Two at a time is the cap, and a list `
+      + `where everything is started is a list where nothing is:\n  `
+      + doing.map((i) => i.id).join('\n  '));
+    process.exit(1);
   }
   for (const i of items) if (i.parent && !seen.has(i.parent)) wrong.push(`${i.id}: parent ${i.parent} does not exist`);
   for (const s of sections) if (!trackIds.has(s.track)) wrong.push(`section ${s.id}: no tab called ${s.track}`);
@@ -140,7 +167,14 @@ border:1px solid;border-radius:999px;padding:.07rem .42rem;white-space:nowrap}
 .k-bug{color:var(--hot);border-color:var(--hot);background:var(--hot-bg)}
 .k-question{color:var(--ink-2);border-color:var(--line-2);background:var(--surface-2)}
 .k-golive{color:var(--accent);border-color:var(--accent-line);background:var(--accent-soft)}
-.owes{font-size:.72rem;color:var(--warn)}
+.st-doing{color:#fff;border-color:var(--accent);background:var(--accent)}
+.sz{color:var(--ink-3);border-color:var(--line-2);background:transparent;font-weight:600}
+.who{color:var(--ink-2);border-color:var(--line-2);background:var(--surface-2)}
+/* How long somebody has owed us an answer. It goes amber at a fortnight and red at a month,
+   because the thing this page kept failing to say is that nobody has replied since. */
+.stale{font-size:.72rem;color:var(--warn);white-space:nowrap}
+.stale[data-days-over="14"]{font-weight:700}
+.stale[data-days-over="28"]{color:var(--hot);font-weight:700}
 
 /* Three buttons, high to low. The one in force is filled. */
 .prio{display:flex;gap:2px;padding:.62rem 0 0;flex:0 0 auto}
@@ -161,6 +195,14 @@ cursor:pointer;padding:0}
 .foot-in{max-width:1180px;margin:0 auto;padding:.4rem 1.1rem;display:flex;gap:1.1rem;align-items:baseline;
 flex-wrap:wrap;font-size:.76rem;color:var(--ink-3)}
 .foot b{font-family:var(--mono);font-size:.92rem;color:var(--ink);font-weight:600}
+/* The counts are also the filter. Pressing one shows only those, which is what the separate
+   tables of waiting and deferred rows used to be, without a second copy of every row. */
+.foot button{appearance:none;font:inherit;font-size:.76rem;color:var(--ink-3);background:none;
+border:1px solid transparent;border-radius:999px;padding:.1rem .5rem;cursor:pointer;display:flex;
+gap:.3rem;align-items:baseline}
+.foot button:hover{border-color:var(--line-2);color:var(--ink-2)}
+.foot button[aria-pressed=true]{background:var(--accent-soft);border-color:var(--accent-line);color:var(--accent)}
+.foot button[aria-pressed=true] b{color:var(--accent)}
 .foot .sp{margin-left:auto;font-size:.72rem}
 .foot a{color:var(--accent)}
 .empty{color:var(--ink-3);font-size:.86rem;padding:.9rem;background:var(--surface);
@@ -186,13 +228,33 @@ function rowsIn(sectionId, trackId) {
     .sort(order);
 }
 
+const isGroup = (i) => items.some((k) => k.parent === i.id);
+/** A heading takes the state of the furthest-along thing under it. */
+const statusOf = (i) => {
+  if (!isGroup(i)) return i.status;
+  const kids = items.filter((k) => k.parent === i.id).map((k) => statusOf(k));
+  return FROM_KIDS.find((st) => kids.includes(st)) ?? i.status;
+};
+
 function chips(i) {
   const out = [];
   if (i.kind === 'bug') out.push('<span class="chip k-bug">Bug</span>');
   if (i.kind === 'question') out.push('<span class="chip k-question">Question</span>');
   if (i.golive) out.push('<span class="chip k-golive">Go live</span>');
-  out.push(`<span class="chip st-${i.status}">${STATUS[i.status]}</span>`);
-  if (i.owes) out.push(`<span class="owes">${esc(i.owes)} owes it</span>`);
+  const st = statusOf(i);
+  out.push(`<span class="chip st-${st}">${STATUS[st]}</span>`);
+  if (!isGroup(i) && SIZE[i.size] && st !== 'done') out.push(`<span class="chip sz">${SIZE[i.size]}</span>`);
+  if (i.owner && i.owner !== 'ours' && st !== 'done') out.push(`<span class="chip who">${esc(i.owner)}</span>`);
+  /**
+   * How long it has been. Written as a date and turned into a count of days in the browser,
+   * because this page is read weeks after it is built and a number baked in at build time would
+   * be the one thing on the page that quietly stops being true.
+   */
+  if (i.owes && i.asked) {
+    out.push(`<span class="stale" data-asked="${esc(i.asked)}">${esc(i.owes)} owes it</span>`);
+  } else if (i.owes) {
+    out.push(`<span class="stale">${esc(i.owes)} owes it</span>`);
+  }
   return out.join('');
 }
 
@@ -212,7 +274,8 @@ function row(i, depth = 0) {
     ? `<details class="item"><summary><span class="t">${esc(i.t)}</span>${chips(i)}</summary>${body}</details>`
     : `<div class="item"><div style="padding:.55rem .6rem .55rem .85rem"><span class="t">${esc(i.t)}</span> ${chips(i)}</div></div>`;
   return `<div class="row" data-id="${esc(i.id)}" data-priority="${i.priority}" `
-    + `data-status="${i.status}" data-kind="${i.kind}">${inner}${prio(i)}</div>`;
+    + `data-status="${statusOf(i)}" data-kind="${i.kind}" data-golive="${i.golive}" `
+    + `data-group="${isGroup(i)}"${i.owes ? ' data-owes="1"' : ''}>${inner}${prio(i)}</div>`;
 }
 
 const panes = tracks.map((tr) => {
@@ -276,14 +339,14 @@ const SCRIPT = `<script>
   // What a tab says is what its own pane holds, counted the same way the bar at the bottom
   // counts it, so the two can never disagree.
   panes.forEach(function (p) {
-    var open = p.querySelectorAll('.row:not([data-status=done])').length;
+    var open = p.querySelectorAll('.row:not([data-status=done]):not([data-group=true])').length;
     var tab = document.querySelector('.tab[data-track="' + p.dataset.track + '"] .c');
     if (tab) tab.textContent = String(open);
     // Section counts include what is folded inside an item, for the same reason: a heading that
     // says three over a group holding seven pieces of work is a heading that misleads.
     [].slice.call(p.querySelectorAll('main h2')).forEach(function (h) {
       var card = h.nextElementSibling;
-      var n = card ? card.querySelectorAll('.row').length : 0;
+      var n = card ? card.querySelectorAll('.row:not([data-group=true])').length : 0;
       var c = h.querySelector('.c');
       if (c) c.textContent = String(n);
       var link = p.querySelector('.side a[data-sec="' + h.id + '"] .c');
@@ -300,19 +363,88 @@ const SCRIPT = `<script>
   tabs.forEach(function (t) { t.addEventListener('click', function () { show(t.dataset.track); }); });
 
   // ------------------------------------------------------------------ the counts
+  /**
+   * What each count means, and what pressing it shows. A heading is not counted: it carries the
+   * state of the items under it, and counting it as well says there is more work than there is.
+   */
+  var MATCH = {
+    doing: function (r) { return r.dataset.status === 'doing'; },
+    next: function (r) { return r.dataset.status === 'next'; },
+    wait: function (r) { return r.dataset.status === 'wait'; },
+    later: function (r) { return r.dataset.status === 'later'; },
+    done: function (r) { return r.dataset.status === 'done'; },
+    bug: function (r) { return r.dataset.kind === 'bug' && r.dataset.status !== 'done'; },
+    question: function (r) { return r.dataset.kind === 'question' && r.dataset.status !== 'done'; },
+  };
+  var filter = '';
+
   function count() {
     var pane = document.querySelector('.pane:not([hidden])');
     if (!pane) return;
-    var rows = [].slice.call(pane.querySelectorAll('.row'));
-    var n = function (f) { return rows.filter(f).length; };
-    var put = function (k, v) { var el = document.getElementById('n-' + k); if (el) el.textContent = String(v); };
-    put('next', n(function (r) { return r.dataset.status === 'next'; }));
-    put('wait', n(function (r) { return r.dataset.status === 'wait'; }));
-    put('later', n(function (r) { return r.dataset.status === 'later'; }));
-    put('done', n(function (r) { return r.dataset.status === 'done'; }));
-    put('bug', n(function (r) { return r.dataset.kind === 'bug' && r.dataset.status !== 'done'; }));
-    put('question', n(function (r) { return r.dataset.kind === 'question' && r.dataset.status !== 'done'; }));
+    var rows = [].slice.call(pane.querySelectorAll('.row')).filter(function (r) {
+      return r.dataset.group !== 'true';
+    });
+    Object.keys(MATCH).forEach(function (k) {
+      var el = document.getElementById('n-' + k);
+      if (el) el.textContent = String(rows.filter(MATCH[k]).length);
+    });
   }
+
+  function apply() {
+    document.querySelectorAll('.foot button').forEach(function (b) {
+      b.setAttribute('aria-pressed', String(b.dataset.filter === filter));
+    });
+    document.querySelectorAll('.pane').forEach(function (pane) {
+      pane.querySelectorAll('.card > .row').forEach(function (r) {
+        // A heading stays when something under it matches, or the thing you filtered for
+        // disappears along with its own title.
+        var inside = [].slice.call(r.querySelectorAll('.kids .row'));
+        var mine = [r].concat(inside).filter(function (x) { return x.dataset.group !== 'true'; });
+        r.hidden = !!filter && !mine.some(MATCH[filter]);
+      });
+      pane.querySelectorAll('main h2').forEach(function (h) {
+        var card = h.nextElementSibling;
+        var rows = card ? [].slice.call(card.children) : [];
+        var left = rows.filter(function (r) { return !r.hidden; }).length;
+        h.hidden = !left;
+        if (card) card.hidden = !left;
+        var link = pane.querySelector('.side a[data-sec="' + h.id + '"]');
+        if (link) link.hidden = !left;
+        // Under a filter the heading says how many of the section you are looking at, because a
+        // count that keeps reporting the whole section is describing rows that are not there.
+        var all = card ? card.querySelectorAll('.row:not([data-group=true])').length : 0;
+        var some = card ? [].slice.call(card.querySelectorAll('.row:not([data-group=true])'))
+          .filter(function (r) { return filter && MATCH[filter](r); }).length : 0;
+        var text = filter ? some + ' of ' + all : String(all);
+        var c = h.querySelector('.c');
+        if (c) c.textContent = text;
+        var lc = link && link.querySelector('.c');
+        if (lc) lc.textContent = text;
+      });
+    });
+  }
+
+  document.querySelectorAll('.foot button').forEach(function (b) {
+    b.addEventListener('click', function () {
+      filter = filter === b.dataset.filter ? '' : b.dataset.filter;
+      apply();
+    });
+  });
+
+  /**
+   * How long somebody has owed us an answer, worked out when the page is read and not when it
+   * was built. A question put on 1 September and one put yesterday used to look the same.
+   */
+  (function stale() {
+    var today = new Date();
+    document.querySelectorAll('.stale[data-asked]').forEach(function (el) {
+      var days = Math.floor((today - new Date(el.dataset.asked + 'T00:00:00')) / 86400000);
+      if (!isFinite(days) || days < 0) return;
+      el.textContent = el.textContent + ', ' + (days === 0 ? 'asked today'
+        : days === 1 ? 'asked yesterday' : 'asked ' + days + ' days ago');
+      el.dataset.daysOver = days >= 28 ? '28' : days >= 14 ? '14' : '0';
+    });
+  }());
 
   // ------------------------------------------------------------------ priorities
   var RANK = { high: 0, medium: 1, low: 2 };
@@ -437,12 +569,11 @@ const html = [
   '</nav></div></header>',
   '<div class="cols">', panes, '</div>',
   '<footer class="foot"><div class="foot-in">',
-  '<span><b id="n-next">0</b> next</span>',
-  '<span><b id="n-wait">0</b> waiting on somebody</span>',
-  '<span><b id="n-later">0</b> after the prototype</span>',
-  '<span><b id="n-bug">0</b> broken</span>',
-  '<span><b id="n-question">0</b> open questions</span>',
-  '<span><b id="n-done">0</b> done</span>',
+  [
+    ['doing', 'doing'], ['next', 'next'], ['wait', 'waiting on somebody'],
+    ['later', 'later'], ['bug', 'broken'], ['question', 'open questions'], ['done', 'done'],
+  ].map(([k, label]) => `<button type="button" data-filter="${k}" aria-pressed="false">`
+    + `<b id="n-${k}">0</b> ${esc(label)}</button>`).join(''),
   '<span class="sp" id="signed"></span>',
   '</div></footer>',
   SCRIPT,
