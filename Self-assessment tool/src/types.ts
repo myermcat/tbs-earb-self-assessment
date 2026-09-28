@@ -282,7 +282,22 @@ export interface Assessment {
     contact: string;
     lifecycleStage: string;
     summary: string;
-    /** The marking on this file as a whole. Must be at least as high as anything inside it. */
+    /**
+     * The highest marking of the EVIDENCE this assessment points at. Not of this file.
+     *
+     * This assessment is an unclassified document and everything typed into it stays
+     * unclassified; what carries a marking is the material behind an answer, a cost model or a
+     * report, which is linked and never pasted in. The question on screen says exactly that, and
+     * the pledge that takes over the screen above unclassified says it again: recording the
+     * marking is right, putting the material in is not, a link is unclassified even when the
+     * document is not.
+     *
+     * THIS COMMENT USED TO SAY "the marking on this file as a whole, must be at least as high as
+     * anything inside it", which reads as the file and is the opposite of what the tool does. On
+     * 28 September it sent a reader to open a contradiction on the backlog between this line and
+     * the Settings sentence saying everything in the tool is unclassified. There was none. The
+     * sentence is right and this line was wrong.
+     */
     classification: Classification | '';
     /**
      * Which marking the pledge was given for. Switching Protected B to Secret is a different

@@ -172,6 +172,7 @@ position:absolute;left:.62rem;top:.62rem}
 .item>summary:hover{background:var(--surface-2)}
 .item>summary:hover::before{color:var(--ink-2)}
 .item .t{font-weight:640;font-size:.93rem;min-width:0;text-wrap:pretty}
+.under{display:block;font-weight:500;font-size:.72rem;color:var(--ink-3);margin-bottom:.1rem}
 
 /* An opened item: its own block, set in from the title, with air under it so it does not run
    into the next row. Blank lines in the note become paragraph gaps. */
@@ -258,6 +259,9 @@ padding:.45rem 0}
 .archive[open]>summary::before{content:'\\25BE'}
 .arch-t{font-size:1.02rem;font-weight:650}
 .arch-note{font-size:.78rem;color:var(--ink-3)}
+.arch-sec{font-size:.86rem;font-weight:650;color:var(--ink-2);margin:1.1rem 0 .4rem;
+display:flex;gap:.45rem;align-items:baseline}
+.arch-sec .c{font-family:var(--mono);font-size:.72rem;color:var(--ink-3);font-weight:500}
 .archive>summary:hover .arch-t{color:var(--accent)}
 /* What the marks mean, said once at the top of every tab instead of nowhere. */
 .key{font-size:.72rem;color:var(--ink-3);margin:-1rem 0 1.4rem;display:flex;gap:.85rem;flex-wrap:wrap}
@@ -273,7 +277,16 @@ padding:.45rem 0}
 
 const byId = new Map(items.map((i) => [i.id, i]));
 const kidsOf = (id) => items.filter((i) => i.parent === id);
-const order = (a, b) => RANK[a.priority] - RANK[b.priority] || items.indexOf(a) - items.indexOf(b);
+/**
+ * Priority first, then broken things, then the order they are written in.
+ *
+ * Asked for: within their categories, bugs float up. Under the priority and not over it, because
+ * a low-priority bug is still low priority; what this settles is two items that matter the same
+ * amount, where the broken one goes first.
+ */
+const order = (a, b) => RANK[a.priority] - RANK[b.priority]
+  || (a.kind === 'bug' ? 0 : 1) - (b.kind === 'bug' ? 0 : 1)
+  || items.indexOf(a) - items.indexOf(b);
 
 /** The rows a section shows: its own items, with anything that has a parent tucked under it. */
 function rowsIn(sectionId, trackId) {
@@ -337,9 +350,20 @@ function row(i, tabId) {
   const kids = kidsOf(i.id).sort(order);
   const body = (i.why ? `<div class="why">${esc(i.why)}</div>` : '')
     + (kids.length ? `<div class="kids">${kids.map((k) => row(k, tabId)).join('')}</div>` : '');
+  /**
+   * In the first tab, a piece of a bigger item says which item.
+   *
+   * Asked: why is telling Cyber Security its own item when it is a subitem of the sign-in one. It
+   * is not, but that tab lists what blocks going live and the sign-in item itself does not, so the
+   * piece arrives without its parent and reads as standalone. It carries the parent's name now.
+   */
+  const parent = tabId === 'golive' && i.parent ? items.find((x) => x.id === i.parent) : null;
+  const title = parent
+    ? `<span class="t"><span class="under">${esc(parent.t)}</span>${esc(i.t)}</span>`
+    : `<span class="t">${esc(i.t)}</span>`;
   const inner = body
-    ? `<details class="item"><summary><span class="t">${esc(i.t)}</span>${chips(i, tabId)}</summary>${body}</details>`
-    : `<div class="item"><div class="plain"><span class="t">${esc(i.t)}</span>${chips(i, tabId)}</div></div>`;
+    ? `<details class="item"><summary>${title}${chips(i, tabId)}</summary>${body}</details>`
+    : `<div class="item"><div class="plain">${title}${chips(i, tabId)}</div></div>`;
   return `<div class="row" data-id="${esc(i.id)}" data-priority="${i.priority}" `
     + `data-status="${statusOf(i)}" data-kind="${i.kind}" data-golive="${i.golive}" `
     + `data-group="${isGroup(i)}"${i.owes ? ' data-owes="1"' : ''}>${inner}${prio(i)}</div>`;
@@ -361,10 +385,22 @@ const panes = tracks.map((tr) => {
    */
   const drawn = tr.id === 'golive'
     ? [{ s: { id: 'path', title: 'Blocks going live' },
-         rows: items.filter((i) => i.golive && i.status !== 'done').sort(order) }]
+         /**
+          * A piece of a bigger item shows under it rather than beside it. Asked: why is telling
+          * Cyber Security its own item when it is a subitem of the sign-in one. It was not, but
+          * this tab was drawing every flagged item flat, so a child with a parent that is not
+          * flagged arrived looking like a top-level thing.
+          */
+         rows: items.filter((i) => i.golive && i.status !== 'done'
+           && !items.some((p) => p.id === i.parent && p.golive)).sort(order) }]
       .filter((x) => x.rows.length)
     : sections.filter((s) => s.track === tr.id)
-      .map((s) => ({ s, rows: rowsIn(s.id, tr.id) })).filter((x) => x.rows.length);
+      .map((s) => ({
+        s,
+        rows: /-done$/.test(s.id)
+          ? items.filter((i) => i.track === tr.id && i.status === 'done' && !i.parent).sort(order)
+          : rowsIn(s.id, tr.id).filter((i) => i.status !== 'done'),
+      })).filter((x) => x.rows.length);
   const nav = drawn.map(({ s, rows }) =>
     `<a href="#s-${esc(tr.id)}-${esc(s.id)}" data-sec="s-${esc(tr.id)}-${esc(s.id)}">`
     + `<span>${esc(s.title)}</span><span class="c">${rows.length}</span></a>`).join('');
@@ -377,11 +413,28 @@ const panes = tracks.map((tr) => {
        * the whole heading toggled, and closed by default. So the heading is the control.
        */
       if (!/-done$/.test(s.id)) return head + card;
+      /**
+       * Done keeps the categories. Asked for in those words, and it was one flat list of a
+       * hundred rows, which is a record nobody can read. The section an item was finished in is
+       * recovered from the file this backlog was rebuilt out of; the ones added since that
+       * rebuild have no earlier home and sit together under a heading that says so.
+       */
+      const groups = new Map();
+      for (const i of rows) {
+        const sec = sections.find((x) => x.id === i.section);
+        const name = sec && !/-done$/.test(sec.id) ? sec.title : 'Earlier work';
+        if (!groups.has(name)) groups.set(name, []);
+        groups.get(name).push(i);
+      }
+      const inner = [...groups.entries()]
+        .sort((a, b) => (a[0] === 'Earlier work' ? 1 : b[0] === 'Earlier work' ? -1 : 0))
+        .map(([name, list]) => `<h3 class="arch-sec">${esc(name)} <span class="c">${list.length}</span></h3>`
+          + `<div class="card">${list.map((i) => row(i, tr.id)).join('')}</div>`).join('');
       return `<details class="archive" id="s-${esc(tr.id)}-${esc(s.id)}">`
         + `<summary><span class="arch-t">${esc(s.title)}</span>`
         + `<span class="c">${rows.length}</span>`
-        + '<span class="arch-note">kept for good, newest first</span></summary>'
-        + card + '</details>';
+        + '<span class="arch-note">kept for good, by where it was done</span></summary>'
+        + inner + '</details>';
     }).join('')
     : '<p class="empty">Nothing here yet.</p>';
   return `<section class="pane" data-track="${esc(tr.id)}" hidden>
