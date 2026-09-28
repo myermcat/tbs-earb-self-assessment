@@ -223,6 +223,36 @@ service cloud.firestore {
       }
     }
 
+    /**
+     * What Dan thinks matters more than what.
+     *
+     * The backlog page is published beside the tool and holds no assessment and nobody's answers.
+     * One document per backlog item, named by that item's id, carrying the priority somebody set
+     * and when. It exists because Dan asked on 26 September for a list he could look at and say
+     * this before that, and a priority kept in one person's browser is a private note rather than
+     * an answer to that.
+     *
+     * READING NEEDS NO ACCOUNT, and that is deliberate: the page itself is public, so a priority
+     * on it is not a secret, and a reader who had to sign in to see the order would see a
+     * different list from everybody else. CHANGING ONE NEEDS AN ACCOUNT, because otherwise the
+     * order of the work is writable by the internet.
+     *
+     * NOTHING HERE RECORDS WHO. An earlier draft kept the address of whoever set the priority,
+     * which would have put working addresses on a page anybody can open. The signed-in address is
+     * still what the rule checks; it is simply not stored.
+     */
+    match /backlog/{item} {
+      allow get, list: if true;
+      allow create, update: if signedIn()
+        && request.resource.data.keys().hasOnly(['priority', 'setAt'])
+        && request.resource.data.priority in ['high', 'medium', 'low']
+        && request.resource.data.setAt is string
+        && request.resource.data.setAt.size() <= 40;
+      // An item's priority is never absent, only low. Deleting one would mean a row whose order
+      // depends on which copy of the page you opened.
+      allow delete: if false;
+    }
+
     /** The shape of a code this tool mints: twelve characters, I O 0 and 1 left out. */
     function isCodeShaped(id) {
       return id.matches('^[A-HJ-NP-Z2-9]{12}$');

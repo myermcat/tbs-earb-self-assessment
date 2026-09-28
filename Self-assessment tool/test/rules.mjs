@@ -59,10 +59,52 @@ async function create(id, fields) {
   return r.status;
 }
 
+
+/**
+ * A signed-in request, as the emulator understands one.
+ *
+ * The emulator accepts an unsigned token and reads its claims, which is the only way to test a
+ * rule that turns on who somebody is without standing up a real sign-in. What it proves is the
+ * rule, not Google's signature checking, and that is the half we write.
+ */
+function asPerson(email) {
+  const part = (o) => Buffer.from(JSON.stringify(o)).toString('base64url');
+  const now = Math.floor(Date.now() / 1000);
+  const token = `${part({ alg: 'none', typ: 'JWT' })}.${part({
+    iss: 'https://securetoken.google.com/demo-earb', aud: 'demo-earb',
+    sub: email, user_id: email, email, email_verified: true,
+    iat: now, exp: now + 3600, auth_time: now, firebase: { sign_in_provider: 'password' },
+  })}.`;
+  return { authorization: `Bearer ${token}` };
+}
+
+async function patch(path, fields, headers = {}) {
+  const mask = Object.keys(fields).map((k) => `updateMask.fieldPaths=${k}`).join('&');
+  const r = await fetch(`${BASE}/${path}?${mask}`, {
+    method: 'PATCH',
+    headers: { 'content-type': 'application/json', ...headers },
+    body: JSON.stringify({ fields }),
+  });
+  return r.status;
+}
+
+async function read(path, headers = {}) {
+  const r = await fetch(`${BASE}/${path}`, { headers });
+  return r.status;
+}
+
 let failed = 0;
+/**
+ * 'opens' is its own answer and not a loose 'allowed'. A read of a document that is not there
+ * comes back not-found, which means the rule let the request through and there was nothing
+ * behind it. Counting that as a refusal would hide the one case this file exists to catch.
+ */
 function check(what, status, want) {
-  const ok = (want === 'allowed') === (status === 200);
-  console.log(`  ${ok ? 'ok  ' : 'FAIL'}  ${what} — ${status === 200 ? 'allowed' : `refused ${status}`}`);
+  const ok = want === 'opens' ? (status === 200 || status === 404)
+    : (want === 'allowed') === (status === 200);
+  const said = status === 200 ? 'allowed'
+    : status === 404 ? 'opens, nothing there' : `refused ${status}`;
+  console.log(`  ${ok ? 'ok  ' : 'FAIL'}  ${what} — ${said}`);
   if (!ok) failed++;
 }
 
@@ -93,5 +135,37 @@ check('a body missing one of the five parts', await create('STUVWXYZ2345', {
 check('a name that is not a code this tool mints', await create('nope', REAL), 'refused');
 check('the right shape under the wrong fileType', await create('TUVWXYZ23456', { ...REAL, fileType: str('something-else') }), 'refused');
 
-console.log(failed ? `\n${failed} rules check(s) failed` : '\nthe create rule holds');
+
+/**
+ * The backlog's priorities.
+ *
+ * The page that shows them is published where anybody can open it, so reading is open on
+ * purpose: a reader who had to sign in to see the order would see a different list from
+ * everybody else. Changing one needs an account, because otherwise the order of the work is
+ * writable by the internet.
+ */
+const PRIO = { priority: str('high'), setAt: str('2026-09-28T00:00:00Z') };
+
+check('anybody may read a priority, signed in or not',
+      await read('backlog/some-item'), 'opens');
+check('and may list them, which is how the page loads',
+      await read('backlog'), 'allowed');
+check('nobody signed out may set one',
+      await patch('backlog/some-item', PRIO), 'refused');
+check('somebody signed in may',
+      await patch('backlog/some-item', PRIO, asPerson('dan@example.com')), 'allowed');
+check('and may change it again',
+      await patch('backlog/some-item', { priority: str('low'), setAt: str('2026-09-28T01:00:00Z') },
+                  asPerson('dan@example.com')), 'allowed');
+check('a priority the page does not offer is refused',
+      await patch('backlog/other-item', { priority: str('urgent'), setAt: PRIO.setAt },
+                  asPerson('dan@example.com')), 'refused');
+check('and so is anything else written beside it',
+      await patch('backlog/other-item', { ...PRIO, note: str('x') },
+                  asPerson('dan@example.com')), 'refused');
+check('nothing records who set it, so no address reaches a public page',
+      await patch('backlog/other-item', { ...PRIO, setBy: str('dan@example.com') },
+                  asPerson('dan@example.com')), 'refused');
+
+console.log(failed ? `\n${failed} rules check(s) failed` : '\nthe create rule holds, and so does the backlog');
 process.exit(failed ? 1 : 0);

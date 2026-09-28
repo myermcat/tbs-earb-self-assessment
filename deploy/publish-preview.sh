@@ -113,6 +113,16 @@ cp "$HERE/Self-assessment tool/dist/demo.html" "$WORK/site/docs/demo/index.html"
 # It names colleagues and the state of internal decisions. Nothing in it is protected, and
 # nothing of Dan's question set is in it beyond counts.
 cp "$HERE/Self-assessment tool/NOTES/backlog.html" "$WORK/site/docs/backlog.html"
+# The one file that lets the backlog page reach the store, so the priorities Dan sets are the
+# priorities everybody sees. It is written here and never committed: the repository is public,
+# and a second copy of this key in it buys nothing and sets off GitHub's secret scanning. The
+# page works without it, read-only, which is what happens when the backlog is opened from a
+# local file.
+python3 - "$HERE/deploy/firebase-config.json" > "$WORK/site/docs/backlog-config.js" <<'PYCFG'
+import json, sys
+c = json.load(open(sys.argv[1]))
+print('window.EARB_FIREBASE = %s;' % json.dumps({'apiKey': c['apiKey'], 'projectId': c['projectId']}))
+PYCFG
 cp "$HERE/Self-assessment tool/NOTES/requirements.html" "$WORK/site/docs/requirements.html"
 # The explanation of domains and categories, which is the page somebody presents. It needs no
 # sign-in, because the people who have to read it are in meetings and not in the tool.
