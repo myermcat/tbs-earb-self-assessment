@@ -1,5 +1,10 @@
 {
-  "firestore": {
-    "rules": "firestore.rules"
-  }
+  "_comment": [
+    "Read by two things and nothing else: publish-rules.sh, which sends firestore.rules to the",
+    "live project, and `npm run test:rules` in ../Self-assessment tool, which starts Google's",
+    "emulator with the same file so a rule can be proved before it is published rather than",
+    "after. The emulator block below is only for the second; deploying ignores it."
+  ],
+  "firestore": { "rules": "firestore.rules" },
+  "emulators": { "firestore": { "port": 8181 }, "ui": { "enabled": false } }
 }

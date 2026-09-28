@@ -22,6 +22,7 @@
     "test:submitter": "EARB_ACCESS=code EARB_FIREBASE='{\"apiKey\":\"test-key\",\"projectId\":\"test-project\"}' node build.mjs && node test/submitter.mjs",
     "test:code": "EARB_FIREBASE='{\"apiKey\":\"test-key\",\"projectId\":\"test-project\"}' node build.mjs && node test/code.mjs",
     "check:published": "node test/published.mjs",
+    "test:rules": "firebase emulators:exec --only firestore --project demo-earb --config ../deploy/firebase.json \"node test/rules.mjs\"",
     "test:demo": "EARB_FIREBASE= EARB_DEMO=1 EARB_SIDE=assess EARB_OUT=dist/demo.html node build.mjs && node test/demo-storage.mjs"
   },
   "devDependencies": {
