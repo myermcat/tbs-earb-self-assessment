@@ -16,8 +16,8 @@ import { el, clear } from './dom';
 import { t } from './i18n';
 import { confirmStep } from './confirm';
 import {
-  addPerson, currentUser, grantsAccess, listPeople, renamePerson, setPersonAccess,
-  type Person,
+  addPerson, currentUser, grantsAccess, lastSignInProblem, listPeople, renamePerson,
+  sendSignInLink, setPersonAccess, type Person,
 } from './firebase';
 import { sameText } from './danger-people';
 
@@ -65,6 +65,14 @@ function personRow(p: Person, mine: boolean, after: () => void): HTMLElement {
    * name and the address. Putting access back is not destructive, so it stays here where the
    * person who needs it is looking.
    */
+  /**
+   * The row's actions, behind the same three dots the portfolio uses.
+   *
+   * Asked for in those words: it should have three dots, and inside it edit the name and send
+   * them a sign-in link. Nothing in here takes anything away; removal is one button in the
+   * danger zone that does not know who it is about until somebody types both the name and the
+   * address.
+   */
   const act = gone
     ? el('button', {
         class: 'ghost',
@@ -72,8 +80,24 @@ function personRow(p: Person, mine: boolean, after: () => void): HTMLElement {
           void setPersonAccess(p, true).then(after, (e: Error) => alert(e.message));
         },
       }, [t('Put their access back', 'Rétablir son accès')])
-    : el('button', { class: 'ghost small', onclick: () => editName(p, after) },
-        [t('Edit the name', 'Modifier le nom')]);
+    : el('details', { class: 'set-menu row-menu' }, [
+        el('summary', {
+          class: 'set-menu-btn',
+          title: t('More', 'Plus'),
+          'aria-label': t(`More actions for ${p.name}`, `Autres actions pour ${p.name}`),
+        }, ['\u22EF']),
+        el('div', { class: 'set-menu-pop' }, [
+          el('span', { class: 'menu-head mono' }, [p.email]),
+          el('button', {
+            class: 'menu-item',
+            onclick: () => { closeMenu(); editName(p, after); },
+          }, [t('Edit the name', 'Modifier le nom')]),
+          el('button', {
+            class: 'menu-item',
+            onclick: () => { closeMenu(); sendTheirLink(p); },
+          }, [t(`Send a sign-in link to ${p.name}`, `Envoyer un lien de connexion à ${p.name}`)]),
+        ]),
+      ]);
 
   return el('div', { class: 'set-row' }, [
     el('div', {}, [
@@ -83,6 +107,50 @@ function personRow(p: Person, mine: boolean, after: () => void): HTMLElement {
     ]),
     el('div', { class: 'set-row-act' }, [act]),
   ]);
+}
+
+
+/** Shuts whichever row menu is open, so the dialog does not appear behind it. */
+function closeMenu(): void {
+  document.querySelectorAll('details.row-menu[open]').forEach((d) => d.removeAttribute('open'));
+}
+
+/**
+ * Mail somebody on this list a sign-in link.
+ *
+ * WHAT THIS IS NOT. It is not the generator in deploy/. That asks the service to hand the link
+ * back as text instead of posting it, which needs a credential that can act as the whole
+ * project, and putting one of those in a published page would give everybody who opened the page
+ * the ability to mint a sign-in link for any address, including an assessor's. Asked directly on
+ * 28 September and probed the same day: the published key gets INSUFFICIENT_PERMISSION for that
+ * request, which is the service refusing it, and that refusal is the thing keeping the store
+ * closed. Generating a link as text needs something of ours running on a server, and there is
+ * none.
+ *
+ * WHAT IT IS. The same send the sign-in screen already offers, aimed at a person on this list so
+ * nobody has to retype their address. It grants nothing new: that screen takes any address from
+ * anybody, signed in or not.
+ *
+ * WHAT IT COSTS. One of five a day for the whole project, on the plan this runs on. So the
+ * confirmation says the number out loud, because sending four by reflex leaves one.
+ */
+function sendTheirLink(p: Person): void {
+  confirmStep({
+    tier: 'caution',
+    title: t(`Send a sign-in link to ${p.email}?`, `Envoyer un lien de connexion à ${p.email} ?`),
+    body: t('They open it and they are signed in, on whatever device they opened it on. It works once and lasts about six hours, so it is worth sending when they are at their desk.\n\nThis project can send five a day in total, for everybody, and this is one of them.\n\nMail from this tool is often held by a departmental filter. If nothing arrives, tell them to look in junk.',
+      'En l\u2019ouvrant, la personne est connectée, sur l\u2019appareil où elle l\u2019a ouvert. Le lien fonctionne une seule fois et dure environ six heures : mieux vaut l\u2019envoyer quand elle est à son poste.\n\nCe projet peut en envoyer cinq par jour au total, pour tout le monde, et celui-ci en fait partie.\n\nLe courrier de cet outil est souvent retenu par un filtre ministériel. Si rien n\u2019arrive, dites-lui de regarder dans les indésirables.'),
+    commitLabel: t('Send the link', 'Envoyer le lien'),
+    cancelLabel: t('Not now', 'Pas maintenant'),
+    onCommit: () => {
+      void sendSignInLink(p.email).then((went) => {
+        alert(went
+          ? t(`A link is on its way to ${p.email}. It works once and lasts about six hours. If it does not arrive, look in junk.`,
+              `Un lien est en route vers ${p.email}. Il fonctionne une seule fois et dure environ six heures. S\u2019il n\u2019arrive pas, regardez dans les indésirables.`)
+          : (lastSignInProblem() || t('That did not send.', 'L\u2019envoi a échoué.')));
+      });
+    },
+  });
 }
 
 /**
