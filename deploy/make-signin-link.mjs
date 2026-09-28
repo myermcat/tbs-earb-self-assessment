@@ -121,11 +121,41 @@ const made = await reply.json();
 if (!reply.ok) die(`The service refused: ${JSON.stringify(made, null, 2)}`);
 if (!made.oobLink) die(`No link came back:\n${JSON.stringify(made, null, 2)}`);
 
+/**
+ * The link goes straight to the tool, and not through Firebase's own page.
+ *
+ * What comes back from the service points at tbs-earb-self-assessment.firebaseapp.com, which
+ * reads the code, reads continueUrl and sends the browser on to the tool. Everything it does,
+ * the tool does for itself: it is the tool that reads mode and oobCode out of the address and
+ * trades them for a session.
+ *
+ * THREE REASONS THAT HOP IS WORTH LOSING.
+ *
+ * It is the reason the mail is stopped. That domain has no DMARC record and is documented as a
+ * phishing host, and a link to it is what a departmental filter reads before it decides. A link
+ * to the page the person is actually being sent to has none of that.
+ *
+ * It puts the project's browser key in an address somebody pastes into a message, a ticket and
+ * their history. The key authorises nothing on its own and the published page carries it
+ * anyway, but a message full of it is one more thing to explain.
+ *
+ * And it is one more thing to go wrong in the middle. Reported on 28 September, from a phone:
+ * the Firebase page answered "API key not valid" and there was nothing behind it to look at.
+ *
+ * The code is the credential either way, and it is the same code. Nothing here weakens it.
+ */
+const code = new URL(made.oobLink).searchParams.get('oobCode');
+if (!code) die(`The link that came back has no code in it:\n${made.oobLink}`);
+const joiner = RETURN_TO.includes('?') ? '&' : '?';
+const link = `${RETURN_TO}${joiner}mode=signIn&oobCode=${encodeURIComponent(code)}`
+  + `&e=${encodeURIComponent(email)}`;
+
 console.log(`
 A sign-in link for ${email}. Nothing has been sent and the daily five is untouched.
 
-${made.oobLink}
+${link}
 
 Paste it into an ordinary message from your own mail to that address, and open it there.
-It works once, and for six hours.
+It works once, and for six hours. The screen it opens names the address before anything is
+pressed, so if it is the wrong one you will see which.
 `);
