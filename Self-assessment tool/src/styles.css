@@ -2170,3 +2170,7 @@ dialog.confirm.shake { animation: cf-shake .34s cubic-bezier(.36, .07, .19, .97)
 .res-toolbar .filelabel { display: inline-flex; align-items: center; gap: .4rem; cursor: pointer; }
 .res-toolbar .filelabel input[type="file"] { position: absolute; width: 1px; height: 1px;
   opacity: 0; pointer-events: none; }
+
+/* The language link on a stripped-down screen, where the header carries nothing. */
+.card-lang { margin: 1rem 0 0; text-align: center; font-size: .85rem; }
+.card-lang .lang-link { color: var(--accent); }
