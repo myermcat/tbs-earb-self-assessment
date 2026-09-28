@@ -1,0 +1,42 @@
+# Runs the store's rules against a real Firestore, whenever they change.
+#
+# deploy/firestore.rules is the only access control this tool has, and it used to be the one
+# part of the design nothing could check: it was tested by publishing it over the live store.
+# A tightening proposed for the open create path would have refused every submitter, silently,
+# because it asked for five keys where a real record carries seven. Reading caught it. Reading
+# is not a method.
+#
+# Separate from tests.yml because this needs a JDK and downloads Google's emulator, and there
+# is no reason to pay that on a pull request that only touches the questionnaire.
+name: Store rules
+
+on:
+  push:
+    branches: [main]
+    paths: ['deploy/firestore.rules', 'deploy/firebase.json', 'Self-assessment tool/test/rules.mjs', '.github/workflows/rules.yml']
+  pull_request:
+    paths: ['deploy/firestore.rules', 'deploy/firebase.json', 'Self-assessment tool/test/rules.mjs', '.github/workflows/rules.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  rules:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: Self-assessment tool
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      # Pinned, because a CLI that changes under us would fail a run that has nothing to do
+      # with the rules. Not a dependency of the tool: nothing here ships.
+      - run: npm install --no-save firebase-tools@15
+      - run: npx firebase emulators:exec --only firestore --project demo-earb --config ../deploy/firebase.json "node test/rules.mjs"

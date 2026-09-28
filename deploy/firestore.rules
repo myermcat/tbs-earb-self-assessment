@@ -23,7 +23,9 @@
 //      The region cannot be changed afterwards, so choose it now.
 //   3. Build > Authentication > Sign-in method > Email link (passwordless sign-in), enable.
 //      A person types their work address and clicks the link in the mail. No password exists.
-//   4. Paste these rules into Firestore Database > Rules and publish.
+//   4. Publish these rules: bash deploy/publish-rules.sh. Not by pasting them into the
+//      console, which is how one line of somebody else's clipboard nearly got published
+//      on 21 September. See the header of that script.
 //   5. Project settings > General > Your apps > Web, register one, copy the config.
 //   6. Firestore Database > Data, create a document at roles/<your-email> with
 //      { "role": "assessor" }. That is the first one. From then on it is done in the tool, in
@@ -226,10 +228,27 @@ service cloud.firestore {
       return id.matches('^[A-HJ-NP-Z2-9]{12}$');
     }
 
-    /** The five parts every assessment carries. Not a security control: a shape check. */
+    /**
+     * The shape of an assessment. Not a security control: a shape check.
+     *
+     * Two halves, and they do different jobs. hasAll names the five parts every assessment
+     * carries, so a body missing one of them is not an assessment. hasOnly names every field
+     * this tool has ever written, so the anonymous create path above cannot be used to store
+     * something that is not an assessment at all under invented field names.
+     *
+     * THE LIST IS LONGER THAN THE ONE ABOVE ON PURPOSE. hasOnly over the five would take the
+     * tool down: a real record carries formatVersion, id and meta's siblings as well, and
+     * seven keys go out on the first save. Every name below is a field of the Assessment
+     * interface in src/types.ts. ADD TO THIS LIST WHEN A FIELD IS ADDED THERE, in the same
+     * commit, or the next save is refused.
+     */
     function looksLikeAnAssessment() {
       return request.resource.data.get('fileType', '') == 'gc-arch-assessment'
-        && request.resource.data.keys().hasAll(['fileType', 'rubric', 'initiative', 'answers', 'meta']);
+        && request.resource.data.keys().hasAll(['fileType', 'rubric', 'initiative', 'answers', 'meta'])
+        && request.resource.data.keys().hasOnly([
+             'fileType', 'formatVersion', 'id', 'ref', 'rubric', 'initiative', 'answers',
+             'meta', 'withdrawnAt', 'ownerEmail', 'sharing', 'audit'
+           ]);
     }
 
     /**

@@ -11,6 +11,14 @@
 #
 # This never leaves the file. It reads deploy/firestore.rules and sends it to Google.
 #
+# BEFORE RUNNING IT, prove the change against a Firestore that enforces it:
+#
+#   cd '../Self-assessment tool' && npm run test:rules
+#
+# That starts Google's emulator with this same file. check-rules.sh below runs afterwards
+# and can only probe the live store for what must be refused; the emulator is the only
+# place a rule that must ALLOW something can be tested without writing to production.
+#
 # ONCE, ON A NEW MACHINE:
 #   npm install -g firebase-tools
 #   firebase login
