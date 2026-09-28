@@ -1312,6 +1312,13 @@ console.log('\nThe published build, signed in\n');
   ok('and asks for a sign-in link and not a password reset', asked.requestType === 'EMAIL_SIGNIN', asked.requestType);
   ok('and names the address that was typed', asked.email === 'dan.weekes-hall@tbs-sct.gc.ca', asked.email);
   /**
+   * The address rides back on the return address, so a browser that never asked for the link can
+   * say which address it went to instead of making somebody remember. The code still has to
+   * match it, so this opens nothing on its own.
+   */
+  ok('and the way back carries the address the link was issued for',
+     /[?&]e=dan\.weekes-hall%40tbs-sct\.gc\.ca$/.test(asked.continueUrl ?? ''), asked.continueUrl);
+  /**
    * The address to come back to. Without it the link lands on Firebase's own page and the
    * person never returns to the tool at all.
    */
@@ -1384,6 +1391,35 @@ console.log('\nThe published build, signed in\n');
 }
 
 {
+  /**
+   * The link opened somewhere that never asked for it, which is a phone. Reported on
+   * 27 September: the address was typed and the answer was a refusal.
+   *
+   * The link names the address now. What is checked here is that the screen says which address,
+   * fills it in, and still waits to be pressed: a page that signed somebody in on arrival would
+   * sign in whoever opened the mail, and a crafted link could name an address that is not
+   * theirs.
+   */
+  const j = await boot({
+    side: 'assess',
+    url: 'https://example.gc.ca/tool/?mode=signIn&oobCode=CODE-FROM-THE-MAIL&e=dan.weekes-hall%40tbs-sct.gc.ca',
+  });
+  const card = j.doc.querySelector('#app')?.textContent ?? '';
+  ok('a browser that never asked is told which address the link went to',
+     /link was sent to\s*dan\.weekes-hall@tbs-sct\.gc\.ca/.test(card.replace(/\s+/g, ' ')),
+     card.replace(/\s+/g, ' ').slice(0, 200));
+  ok('and the field is filled with it, so nobody retypes it on a phone',
+     j.doc.querySelector('input.signin-email')?.value === 'dan.weekes-hall@tbs-sct.gc.ca',
+     j.doc.querySelector('input.signin-email')?.value);
+  ok('and nothing has been traded for a session yet, because it still takes a press',
+     !j.seen.some((c) => /accounts:signInWithEmailLink/.test(c.href)),
+     j.seen.map((c) => c.href).join(' | ').slice(0, 160));
+  ok('and the address is out of the address bar with the code',
+     !/[?&]e=/.test(j.dom.window.location.href), j.dom.window.location.href);
+  j.dom.window.close();
+}
+
+{
   // The link, opened. A fresh load of this page carrying the code out of the mail.
   const j = await boot({
     side: 'assess', linkEmail: 'dan.weekes-hall@tbs-sct.gc.ca',
@@ -1426,7 +1462,13 @@ console.log('\nThe published build, signed in\n');
      view().slice(0, 120));
   ok('and nothing is traded before an address is given',
      !j.seen.some((c) => /signInWithEmailLink/.test(c.href)));
-  ok('and the field starts empty, because an address out of the address bar is the attack',
+  /**
+   * A link that names no address leaves the field empty, and there is nothing to guess from.
+   * Links made before 28 September are all of this kind. A link that does name one fills the
+   * field and says so, which is the check above; neither of them signs anybody in without a
+   * press, which is the line that actually holds.
+   */
+  ok('a link that names no address leaves the field empty',
      j.doc.querySelector('input.signin-email')?.value === '');
   ok('and it says which device this signs in',
      /signs you in on this device/.test(view()), view().slice(0, 200));
