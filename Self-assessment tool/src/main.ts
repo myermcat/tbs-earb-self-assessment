@@ -1146,7 +1146,10 @@ function renderLinkArrival(root: HTMLElement) {
     ]),
     problem
       ? el('div', { class: 'card warn tight' }, [
-          el('strong', { class: 'small' }, [t('That did not finish', 'Cela n\u2019a pas abouti')]),
+          /** Reported as: "That did not finish" -- that what? */
+          el('strong', { class: 'small' }, [
+            t('That link did not sign you in', 'Ce lien ne vous a pas connecté'),
+          ]),
           el('p', { class: 'small' }, [problem]),
         ])
       : null,

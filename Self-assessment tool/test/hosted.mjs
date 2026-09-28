@@ -1415,6 +1415,13 @@ console.log('\nThe published build, signed in\n');
      said.slice(0, 220));
   ok('and the screen is still there, so a typo costs one edit and no second mail',
      !!j.doc.querySelector('input.signin-email'));
+  /**
+   * And the card above it says what did not finish. Reported as: "That did not finish" -- that
+   * what? A heading that names no subject leaves somebody reading the sentence under it twice.
+   */
+  ok('and the refusal names what did not finish',
+     /That link did not sign you in/.test(j.doc.querySelector('.signin .card.warn')?.textContent ?? ''),
+     j.doc.querySelector('.signin .card.warn')?.textContent?.slice(0, 80));
 
   // And the right one finishes it, on this device.
   const again = j.doc.querySelector('input.signin-email');
@@ -1475,6 +1482,23 @@ console.log('\nThe published build, signed in\n');
    */
   // Both codes, because the service names the missing half differently depending on which
   // half it looked at, and this project answers the second one today.
+  /**
+   * And the day running out is a number coming back, not a fault. Asked directly: if I request a
+   * link but there are none left for the day, will the tool say anything.
+   */
+  {
+    const j = await boot({ side: 'assess', oobRefusal: 'QUOTA_EXCEEDED : Exceeded quota.' });
+    const field = j.doc.querySelector('input.signin-email');
+    field.value = 'someone@tbs-sct.gc.ca';
+    [...j.doc.querySelectorAll('.signin-other button')].find((b) => /Email me a link/.test(b.textContent)).click();
+    await new Promise((r) => setTimeout(r, 60));
+    const said = j.doc.querySelector('.signin .card.warn')?.textContent ?? '';
+    ok('a day with no links left says so, and says when it comes back',
+       /used up/.test(said) && /tomorrow/.test(said) && !/QUOTA_EXCEEDED/.test(said),
+       said.slice(0, 160));
+    j.dom.window.close();
+  }
+
   for (const code of ['OPERATION_NOT_ALLOWED', 'PASSWORD_LOGIN_DISABLED']) {
     const j = await boot({ side: 'assess', oobRefusal: code });
     const field = j.doc.querySelector('input.signin-email');
