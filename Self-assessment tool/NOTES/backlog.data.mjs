@@ -29,16 +29,15 @@
  *              answer. It used to be a property of the section, which works for two people and
  *              stops working the moment three of them share 'ours'.
  *  - owes      who owes us the answer, on a 'wait' item, and nothing on any other.
- *  - asked     the date somebody was ACTUALLY ASKED. Not the date the item was written down.
- *  - since     the date it went on the list, for a 'wait' item nobody has actually asked yet.
- *              A 'wait' needs one or the other and the build stops without either.
+ *  - owes      who owes us the answer, on a 'wait' item, and nothing on any other.
  *
- *              THESE ARE TWO FIELDS BECAUSE THE PAGE WAS LYING. Every waiting item said "asked
- *              N days ago", and for nine of them the date was the commit that first wrote the
- *              item down, because that was the only evidence there was. Reported, correctly, as:
- *              we never asked him for anything. A thing nobody has asked for is a different
- *              problem from a thing somebody has ignored for a month, and the page now says
- *              which it is looking at.
+ *              THERE IS NO DATE FIELD ANY MORE. There were two, and the page turned them into
+ *              lines reading "Dan owes it, asked 27 days". Reported: are you going to maintain
+ *              that every day, and we did not ask anyone yet and Dan owes us nothing so far.
+ *              Both fair. The dates came from commits rather than from anybody being asked, so
+ *              the page was counting days since a thing that had not happened. If a date matters
+ *              to an item, it is a fact about that item and it belongs in `why`, in a sentence,
+ *              where it can say what actually happened.
  *  - size      'hours' | 'days' | 'weeks', required on anything next or doing. Three values and
  *              not an estimate, because an estimate is a thing you have to stop and think about
  *              and so it never gets written.
@@ -133,7 +132,7 @@ export const items = [
   {
     id: "each-assessor-sees-pool", track: "engine", section: "e-assessor", kind: "question",
     status: "wait", priority: "medium", owner: "ours", golive: false, size: "days",
-    owes: "Dan or Chris", since: "2026-09-03",
+    owes: "Dan or Chris",
     t: "What each assessor sees of the pool",
     why: "Everything, for now. Chris says departments know who their assessor is, so they could pick one at submission, and an assessor could hand a file on. Until that is decided, every assessor sees the whole pool, and a My assessments tab is the filter to add once the rule exists.\n\nThis used to be written twice, here and in a separate list of open questions. It is one record now, and it is marked as a question.",
   },
@@ -498,41 +497,41 @@ export const items = [
   },
   {
     id: "answer-types-criticality", track: "questions", section: "q-behaviour", kind: "feature",
-    status: "wait", priority: "medium", owner: "Dan", golive: false, asked: "2026-09-01",
+    status: "wait", priority: "medium", owner: "Dan", golive: false,
     t: "Answer types and criticality",
     why: "The shape of the questions, which Dan called the biggest remaining piece. Our reading is in the tool and labelled provisional.",
   },
   {
     id: "confirm-answer-type-every", track: "questions", section: "q-behaviour", kind: "feature",
     status: "wait", priority: "medium", owner: "Dan", golive: false, size: "hours", owes: "Dan",
-    asked: "2026-09-01", parent: "answer-types-criticality",
+    parent: "answer-types-criticality",
     t: "Confirm the answer type for every question",
     why: "Ten are yes/no on our reading of the wording. The other 166 are scored 0 to 10.",
   },
   {
     id: "confirm-no-answers-matter", track: "questions", section: "q-behaviour", kind: "feature",
     status: "wait", priority: "medium", owner: "Dan", golive: false, size: "hours", owes: "Dan",
-    asked: "2026-09-01", parent: "answer-types-criticality",
+    parent: "answer-types-criticality",
     t: "Confirm which no answers matter most",
     why: "Every no colours its section red today. If some should not, that is his call.",
   },
   {
     id: "set-per-question-criticality", track: "questions", section: "q-behaviour",
     kind: "feature", status: "wait", priority: "medium", owner: "Dan", golive: false,
-    size: "days", owes: "Dan", asked: "2026-09-01", parent: "answer-types-criticality",
+    size: "days", owes: "Dan", parent: "answer-types-criticality",
     t: "Set per-question criticality",
     why: "Separate from section weight, and nothing in his workbook carries it.",
   },
   {
     id: "content-dan-still-owes", track: "questions", section: "q-content", kind: "feature",
-    status: "wait", priority: "medium", owner: "Dan", golive: false, since: "2026-09-01",
+    status: "wait", priority: "medium", owner: "Dan", golive: false,
     t: "Content Dan still owes",
     why: "None of this is ours to write.",
   },
   {
     id: "fix-section-weights-total", track: "questions", section: "q-content", kind: "feature",
     status: "wait", priority: "medium", owner: "Dan", golive: false, size: "hours", owes: "Dan",
-    asked: "2026-09-01", parent: "content-dan-still-owes",
+    parent: "content-dan-still-owes",
     t: "Fix the section weights that total 80",
     why: "His error, confirmed in his own words. The tool shares the missing 20 proportionally and shows the normalised share.",
   },
@@ -546,7 +545,7 @@ export const items = [
   {
     id: "bring-dropdown-answers", track: "questions", section: "q-content", kind: "feature",
     status: "wait", priority: "medium", owner: "Dan", golive: false, size: "weeks", owes: "Dan",
-    asked: "2026-08-26", parent: "content-dan-still-owes",
+    parent: "content-dan-still-owes",
     t: "Bring in the dropdown answers",
     why: "No picklists exist. Needs the 700 or more past assessments, which only he can hand over.",
   },
@@ -777,7 +776,7 @@ export const items = [
   },
   {
     id: "who-the-assessor-is", track: "engine", section: "e-assessor", kind: "feature",
-    status: "wait", priority: "medium", owner: "ours", golive: false, since: "2026-09-01",
+    status: "wait", priority: "medium", owner: "ours", golive: false,
     t: "Who the assessor is",
     why: "Their name goes against a number somebody may dispute.",
   },
@@ -877,7 +876,7 @@ export const items = [
   },
   {
     id: "admin-actions", track: "engine", section: "e-admin", kind: "feature", status: "wait",
-    priority: "low", owner: "ours", golive: false, owes: "Dan", since: "2026-09-01",
+    priority: "low", owner: "ours", golive: false, owes: "Dan",
     t: "Admin-only actions",
     why: "Nobody has decided whether admin is a role. Listed so the roles matrix is complete.",
   },
@@ -977,14 +976,14 @@ export const items = [
   },
   {
     id: "move-tool-canada-ca", track: "admin", section: "a-publish", kind: "feature",
-    status: "wait", priority: "medium", owner: "Nick", golive: true, asked: "2026-09-01",
+    status: "next", priority: "medium", owner: "Nick", golive: true,
     t: "Move the tool into the canada-ca GitHub organisation",
     why: "canada-ca is a GitHub organisation at github.com/canada-ca. It is not the canada.ca website, and nothing here is about publishing to canada.ca.\n\nDan raised it again on 26 September: the tool and this backlog should sit in a Government of Canada place rather than a personal account.\n\nTwo separate moves are tangled in this one line. Publishing the built page into canada-ca/TBS-OCIO-ESP needs no new repository and no transfer: that repository is public, access is already granted, and it already serves a GitHub Pages site. It waits only on Dan clearing the 176 draft questions for public view. Moving the source repository out of a personal account is the other one, and that waits on Nick, who was asked on 1 September and has not answered.",
   },
   {
     id: "publish-built-page-canada", track: "admin", section: "a-publish", kind: "feature",
     status: "wait", priority: "medium", owner: "ours", golive: false, size: "hours", owes: "Dan",
-    since: "2026-09-03", parent: "move-tool-canada-ca",
+    parent: "move-tool-canada-ca",
     t: "Publish the built page into canada-ca/TBS-OCIO-ESP",
     why: "One commit, once Dan says the 176 draft questions can be public. The repository is public, access is already granted, and it already serves a Pages site.",
   },
@@ -1003,7 +1002,7 @@ export const items = [
   {
     id: "nick-owes-answer-moves", track: "admin", section: "a-publish", kind: "question",
     status: "wait", priority: "low", owner: "Nick", golive: false, size: "hours", owes: "Nick",
-    asked: "2026-09-01", parent: "move-tool-canada-ca",
+    parent: "move-tool-canada-ca",
     t: "Nick owes an answer on who moves the repository",
     why: "Open an issue on canada-ca/welcome is the route he named. Whether he moves it or you do is the part still unanswered.",
   },
@@ -1016,7 +1015,7 @@ export const items = [
   },
   {
     id: "notifications", track: "admin", section: "a-process", kind: "feature", status: "wait",
-    priority: "low", owner: "ours", golive: false, since: "2026-09-01",
+    priority: "low", owner: "ours", golive: false,
     t: "Notifications",
     why: "GC Notify is the sanctioned service and is already in Dan’s own rubric at application question Q33. What triggers one is his decision and he has not made it.",
   },
@@ -1029,7 +1028,7 @@ export const items = [
   {
     id: "decide-triggers", track: "admin", section: "a-process", kind: "feature", status: "wait",
     priority: "medium", owner: "Dan", golive: false, size: "hours", owes: "Dan",
-    since: "2026-09-01", parent: "notifications",
+    parent: "notifications",
     t: "Decide the triggers",
     why: "Submission, assignment, a changed score and a reminder are four different decisions.",
   },
@@ -1108,35 +1107,19 @@ export const items = [
   {
     id: "q-may-write-prototype", track: "admin", section: "a-signin", kind: "question",
     status: "wait", priority: "medium", owner: "ours", golive: false, size: "hours",
-    owes: "ours, then Dan", since: "2026-09-03",
+    owes: "ours, then Dan",
     t: "Who may write to the prototype store",
     why: "Meanwhile: Anybody who reads the page source. Fine for unclassified drafts, and the reason the real one needs the departmental sign-in",
   },
   {
-    id: "q-may-edit-stored", track: "admin", section: "a-signin", kind: "question",
-    status: "wait", priority: "medium", owner: "ours", golive: false, size: "days", owes: "Dan",
-    asked: "2026-09-01",
-    t: "Who may edit a stored assessment, and how it is checked",
-    why: "Blocks: Real authentication. Meanwhile: Mockup screen, everything labelled unverified",
-  },
-  {
-    id: "q-verifying-assessor-s", track: "admin", section: "a-signin", kind: "question",
-    status: "wait", priority: "medium", owner: "ours", golive: false, size: "weeks", owes: "Dan",
-    asked: "2026-09-01",
-    t: "Verifying an assessor’s identity",
-    why: "Blocks: Real sign-in. Meanwhile: Typed name, labelled unverified on every change it records",
-  },
-  {
     id: "q-admin-role-assessor", track: "engine", section: "e-admin", kind: "question",
     status: "wait", priority: "medium", owner: "ours", golive: false, size: "days", owes: "Dan",
-    asked: "2026-09-01",
     t: "Is admin a role, or an assessor with more buttons?",
     why: "Blocks: The admin-only actions. Meanwhile: The dashboard is built; the actions are listed and marked unbuilt",
   },
   {
     id: "q-production-intake-should", track: "admin", section: "a-publish", kind: "question",
     status: "wait", priority: "medium", owner: "ours", golive: false, size: "weeks", owes: "TBS",
-    asked: "2026-09-01",
     t: "What the production intake should be",
     why: "Blocks: Production only. Meanwhile: The prototype answer is an Azure Function plus one CSP line",
   },
@@ -1240,15 +1223,22 @@ export const items = [
   },
   {
     id: "internal-gc-sign-in", track: "admin", section: "a-signin", kind: "feature",
-    status: "later", priority: "medium", owner: "ours", golive: false,
+    status: "next", priority: "medium", owner: "ours", golive: false, size: "weeks",
     t: "Signing in with a Government of Canada credential instead of a personal one",
-    why: "The end state, and everything under here is a piece of it. Today an assessor signs in with a personal Google account or a one-time link to their mailbox. Neither is a work credential, and neither can tell the tool anything about the person beyond the fact that they can read that inbox.\n\nNothing here is a this-term job. Every route runs through a named person inside a department, and the published rules say who: an individual asks their own departmental security group, and that group writes to the Treasury Board Secretariat. Not HR, and not us directly.\n\nOne thing worth knowing before any of it starts, because it will come up in the room and it is funny: the Guideline on Cloud Authentication says exceptions to using an approved Government of Canada authentication service are assessed through the GC Enterprise Architecture Review Board. The tool being built for EARB would itself be an EARB matter.",
+    why: "The end state, and everything under here is a piece of it. Today an assessor signs in with a personal Google account or a one-time link to their mailbox. Neither is a work credential, and neither can tell the tool anything about the person beyond the fact that they can read that inbox.\n\nNothing here is a this-term job. Every route runs through a named person inside a department, and the published rules say who: an individual asks their own departmental security group, and that group writes to the Treasury Board Secretariat. Not HR, and not us directly.\n\nOne thing worth knowing before any of it starts, because it will come up in the room and it is funny: the Guideline on Cloud Authentication says exceptions to using an approved Government of Canada authentication service are assessed through the GC Enterprise Architecture Review Board. The tool being built for EARB would itself be an EARB matter.\n\nTWO QUESTIONS THAT USED TO SIT BESIDE THIS ONE AS STUBS, folded in on 28 September because they are this item and not neighbours of it.\n\nVerifying an assessor’s identity. Today the tool takes a typed name and labels it unverified on everything it records. A work credential is what would change that, which is what this item is. Until then the label is the honest answer and it stays.\n\nWho may edit a stored assessment, and how that is checked. The store already answers the second half: the rules compare the signed-in address against the record. What is unsettled is the first half, and it is a policy question rather than a technical one, so it moves when this does.",
   },
   {
     id: "send-the-link-through-gc-notify", track: "admin", section: "a-signin", kind: "feature",
-    status: "later", priority: "medium", owner: "ours", golive: false, size: "days",
+    status: "next", priority: "medium", owner: "ours", golive: false, size: "days",
     parent: "mail-from-a-domain-we-own",
     t: "Send the sign-in link through GC Notify, from a government address",
     why: "The real fix for mail that a departmental filter eats, and it is free. GC Notify is run by the Canadian Digital Service for federal public servants, there is no set-up fee and no procurement, and what it sends arrives from notification.canada.ca carrying the Government of Canada wordmark. That is the opposite end of the scale from noreply at a firebaseapp.com address with no DMARC record.\n\nRegistering is ours and it needs nobody. The form asks for a full name, a government email address only you can access rather than a shared inbox, a phone number for the two-factor sign-in, and a password. No manager, no departmental agreement. A new service starts in trial mode, which sends fifty a day and only to yourself, your team and addresses you put on a safelist, which is enough to test the whole thing; going live is a request in the settings.\n\nFIREBASE CANNOT BE POINTED AT IT, and this is the part worth understanding rather than retrying. Firebase’s custom mail setting asks for four things: a host, a port, a username and a password. GC Notify publishes none of them, because it has no mail server to connect to. It has a web interface you post a message to. The word SMTP does not appear on any of its fourteen documentation pages. Those four boxes will never be filled.\n\nIt still works, in a different shape. Something that is not the browser mints the link, the way deploy/make-signin-link.mjs already does, and then posts it to GC Notify as a value dropped into a template. The page finishes the sign-in when somebody clicks.\n\nWhat it costs is the thing to weigh: the tool stops being a page with nothing behind it. The key that mints links and the key that sends mail can neither of them sit in a page a browser downloads, so this needs a small piece of code running somewhere, and something to keep two secrets in. That is the first server this project would have.",
+  },
+  {
+    id: "register-for-gc-notify", track: "admin", section: "a-signin", kind: "chore",
+    status: "next", priority: "medium", owner: "ours", golive: false, size: "hours",
+    parent: "send-the-link-through-gc-notify",
+    t: "Register for GC Notify, which needs nobody",
+    why: "Half an hour, and it unblocks the rest of that item. The form at notification.canada.ca/register asks for a full name, a government email address only you can access rather than a shared inbox, a phone number for the two-factor sign-in, and a password. No manager, no departmental agreement, no procurement.\n\nA new service starts in trial mode: fifty messages a day, and only to yourself, your team and addresses you put on a safelist. That is enough to send yourself a sign-in link from a canada.ca address and find out whether a departmental filter still eats it, which is the question that has been open for a week. Going live is a request in the settings afterwards.\n\nOne thing worth a sentence to a supervisor before going live, even though the form never asks: whether a co-op student should own a service that sends mail branded as the Government of Canada.",
   },
 ];

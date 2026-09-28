@@ -58,24 +58,19 @@ const RANK = { high: 0, medium: 1, low: 2 };
     seen.add(i.id);
     if (!i.owner) wrong.push(`${i.id}: no owner. Who does the work once it is unblocked?`);
     /**
-     * The two fields that stop the rot, enforced rather than encouraged.
+     * Nothing under an item may be further along than the item.
      *
-     * A 'wait' with no date is the failure this backlog actually has: a question put to Nick on
-     * 1 September read exactly like one put yesterday, and one of them had been ignored for four
-     * weeks. A 'next' with no size is an item nobody can plan a week around. Neither is asked of
-     * a heading, which carries no work of its own.
+     * Reported as: subitems of LATER cannot be NEXT, there is no way subitems can come before the
+     * item. Right, and the page was drawing it that way because a heading takes the state of the
+     * furthest-along thing under it, which let the heading disagree with its own status field.
+     * The heading still shows what is happening underneath; the file now has to agree with it.
      */
-    const day = /^\d{4}-\d{2}-\d{2}$/;
-    if (i.status === 'wait' && !day.test(i.asked ?? '') && !day.test(i.since ?? '')) {
-      wrong.push(`${i.id}: waiting on ${i.owes || 'somebody'} since when? `
-        + `asked must be the date somebody was actually asked, or since the date it went on the list.`);
-    }
-    if (i.asked && i.since) wrong.push(`${i.id}: asked and since are the same field twice. Pick one.`);
-    // A leaf that waits on nobody in particular is the oldest kind of rot: five of these had
-    // been sitting for a month and the page had nobody to chase. A heading is excused, because
-    // the items under it name the person.
-    if (i.status === 'wait' && !i.owes && !hasKids.has(i.id)) {
-      wrong.push(`${i.id}: waiting on whom? owes must name somebody.`);
+    if (i.parent) {
+      const p = items.find((x) => x.id === i.parent);
+      if (p && FROM_KIDS.indexOf(i.status) < FROM_KIDS.indexOf(p.status)) {
+        wrong.push(`${i.id} is '${i.status}' under a '${p.status}' parent, ${p.id}. `
+          + 'Nothing under an item may be further along than the item.');
+      }
     }
     if (i.status !== 'wait' && i.owes) wrong.push(`${i.id}: owes is for waiting items only`);
     if (!hasKids.has(i.id) && (i.status === 'next' || i.status === 'doing') && !SIZE[i.size]) {
@@ -104,6 +99,7 @@ const STYLE = `<style>
 --accent-soft:#1b2436;--accent-line:#2f4570;--good:#5fbf82;--good-bg:#14251b;--warn:#e0a34a;--warn-bg:#2a2113;
 --hot:#e8756b;--hot-bg:#2d1817}}
 *{box-sizing:border-box}
+html{scroll-padding-top:calc(var(--head) + 1rem)}
 body{margin:0;background:var(--bg);color:var(--ink);
 font:15px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;-webkit-font-smoothing:antialiased}
 
@@ -157,8 +153,13 @@ border-top:1px solid var(--line);padding:.1rem .55rem .1rem 0}
    painted by the row and covered by the hover, so pointing at an item took its mark away. */
 .row[data-priority=high]{box-shadow:3px 0 0 var(--hot) inset}
 .item{min-width:0}
-.item>summary{cursor:pointer;list-style:none;display:flex;flex-wrap:wrap;align-items:baseline;
-gap:.4rem .9rem;padding:.6rem .6rem .6rem 1.5rem;position:relative;border-radius:0 6px 6px 0}
+/* The marks sit to the right of the title and stay there. Reported: I liked it when the status
+   bars were to the right of the name, and the heading can take a few lines, that is no problem.
+   A grid rather than a wrapping flex row, so a long title wraps inside its own column instead of
+   pushing the marks onto a line of their own. */
+.item>summary{cursor:pointer;list-style:none;display:grid;grid-template-columns:minmax(0,1fr) auto;
+gap:.4rem .9rem;align-items:start;padding:.6rem .6rem .6rem 1.5rem;position:relative;
+border-radius:0 6px 6px 0}
 .item>summary::-webkit-details-marker{display:none}
 /* Bigger, and clear of the red edge. It was a 0.7rem triangle sitting on top of the mark. */
 .item>summary::before{content:'\\25B8';color:var(--ink-3);font-size:.9rem;line-height:1;
@@ -166,7 +167,7 @@ position:absolute;left:.62rem;top:.62rem}
 .item[open]>summary::before{content:'\\25BE'}
 .item>summary:hover{background:var(--surface-2)}
 .item>summary:hover::before{color:var(--ink-2)}
-.item .t{font-weight:640;font-size:.93rem;flex:1 1 20rem;min-width:0}
+.item .t{font-weight:640;font-size:.93rem;min-width:0;text-wrap:pretty}
 
 /* An opened item: its own block, set in from the title, with air under it so it does not run
    into the next row. Blank lines in the note become paragraph gaps. */
@@ -179,12 +180,12 @@ background:var(--surface-2);border-radius:0 6px 6px 0}
 
 /* One column per kind of mark, so a row with an owner does not push every other row's state
    sideways. Reported as: they look like a mishmash and I cannot trace them. */
-.marks{display:grid;grid-template-columns:5.6rem 4.8rem 3.6rem 5.2rem minmax(9rem,auto);
-gap:.3rem;align-items:baseline;justify-items:start;flex:0 0 auto}
+/* One column per kind of mark, each a fixed width, so Next sits under Next all the way down and
+   an item with an owner does not shift every other row's state sideways. */
+.marks{display:grid;grid-template-columns:5.6rem 4.8rem 3.6rem 5rem;gap:.3rem;
+align-items:baseline;justify-items:start}
 .marks .cell{display:flex;gap:.25rem;min-width:0}
-.marks .c-chase{justify-self:end;text-align:right}
-@media(max-width:1100px){.marks{grid-template-columns:5.6rem 4.8rem 3.6rem 5.2rem}
-.marks .c-chase{grid-column:1/-1;justify-self:start;text-align:left;margin-top:.15rem}}
+@media(max-width:820px){.marks{grid-template-columns:auto auto auto auto;justify-items:end}}
 
 .chip{font-size:.63rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;
 border:1px solid;border-radius:999px;padding:.07rem .42rem;white-space:nowrap}
@@ -274,38 +275,6 @@ function rowsIn(sectionId, trackId) {
 
 const isGroup = (i) => items.some((k) => k.parent === i.id);
 
-/**
- * How long somebody has been waiting, and whether anybody has actually been asked.
- *
- * Two fields, because the page was stating an inference as a fact. Every waiting row said
- * "asked N days ago", and for nine of them the date was the commit that first wrote the item
- * down, which was the only evidence there was. Reported, correctly, as: we never asked him for
- * anything. So `asked` is a real ask and `since` is the day it went on the list, and the row
- * says which one it is looking at.
- */
-function chaseOf(i) {
-  // A heading with no name of its own borrows the name from whichever item under it has been
-  // waiting longest, because "somebody owes it" names nobody to chase.
-  const named = (x) => x.owes || (x.owner && x.owner !== 'ours' ? x.owner : '');
-  if (i.owes || i.asked || i.since) {
-    return { who: named(i), asked: i.asked, since: i.since };
-  }
-  const under = (x) => items.filter((k) => k.parent === x.id).flatMap((k) => [k, ...under(k)]);
-  const waiting = under(i).filter((k) => k.owes && (k.asked || k.since))
-    .sort((a, b) => (a.asked || a.since).localeCompare(b.asked || b.since));
-  return waiting[0] ? { who: named(waiting[0]), asked: waiting[0].asked, since: waiting[0].since } : null;
-}
-
-function chaseChip(c, group) {
-  const when = c.asked || c.since || '';
-  const kind = c.asked ? 'asked' : 'since';
-  const lead = c.asked
-    ? (c.who ? `${esc(c.who)} owes it` : 'waiting on an answer')
-    : (c.who ? `nobody has asked ${esc(c.who)}` : 'nobody has been asked');
-  return `<span class="stale" data-when="${esc(when)}" data-kind="${kind}"`
-    + `${group ? ' data-group="1"' : ''}>${lead}</span>`;
-}
-
 /** A heading takes the state of the furthest-along thing under it. */
 const statusOf = (i) => {
   if (!isGroup(i)) return i.status;
@@ -322,7 +291,7 @@ const statusOf = (i) => {
  * an empty cell holds its place, so Next is under Next all the way down and adding an owner
  * moves nothing.
  */
-const CELLS = ['flag', 'state', 'size', 'who', 'chase'];
+const CELLS = ['flag', 'state', 'size', 'who'];
 function chips(i) {
   const st = statusOf(i);
   const cell = {
@@ -333,11 +302,8 @@ function chips(i) {
       ? `<span class="chip sz" title="Roughly how long the work is: hours, days or weeks">${SIZE[i.size]}</span>` : '',
     who: i.owner && i.owner !== 'ours' && st !== 'done'
       ? `<span class="chip who" title="Whose work this is once it is unblocked">${esc(i.owner)}</span>` : '',
-    chase: '',
   };
   if (i.golive) cell.flag = `<span class="chip k-golive">Go live</span>${cell.flag}`;
-  const c = st === 'done' ? null : chaseOf(i);
-  if (c) cell.chase = chaseChip(c, isGroup(i));
   return `<span class="marks">${CELLS.map((k) => `<span class="cell c-${k}">${cell[k]}</span>`).join('')}</span>`;
 }
 
@@ -581,25 +547,6 @@ const SCRIPT = `<script>
    * How long somebody has owed us an answer, worked out when the page is read and not when it
    * was built. A question put on 1 September and one put yesterday used to look the same.
    */
-  (function stale() {
-    var today = new Date();
-    document.querySelectorAll('.stale[data-when]').forEach(function (el) {
-      var when = el.dataset.when;
-      if (!when) return;
-      var days = Math.floor((today - new Date(when + 'T00:00:00')) / 86400000);
-      if (!isFinite(days) || days < 0) return;
-      var span = days === 0 ? 'today' : days === 1 ? '1 day' : days + ' days';
-      var asked = el.dataset.kind === 'asked';
-      // "oldest here" on a heading, because the number belongs to one item underneath it and
-      // not to the group. "longest 27 days" said neither of those things.
-      var lead = el.dataset.group ? (asked ? 'oldest here ' : 'on the list ')
-        : (asked ? 'asked ' : 'on the list ');
-      el.textContent = el.textContent + ', ' + lead + span;
-      el.title = asked ? 'Asked on ' + when
-        : 'Nobody has been asked. This is the day it went on the list, ' + when + '.';
-      el.dataset.daysOver = days >= 28 ? '28' : days >= 14 ? '14' : '0';
-    });
-  }());
 
   // ------------------------------------------------------------------ priorities
   var RANK = { high: 0, medium: 1, low: 2 };
