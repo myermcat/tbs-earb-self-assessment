@@ -27,8 +27,8 @@ import { endpointHost, goneFromStore, isHosted, listRecords, putRecord,
   saveOnlineNow, savedOnline, showWhereItStands } from './store';
 import { canSignIn, CODE_LENGTH, currentUser, formatCode, forgetRole, getAssessment, grantsAccess, looksLikeCode, pageAddress, tidyCode, isConfigured as firebaseConfigured, knownRole, lastSignInProblem,
   loadRole, resumeSignIn, signInWithGoogle, signOut,
-  finishSignInLink, finishSignInLinkWith, forgetLinkCode, linkEmailWaiting, linkNeedsAddress,
-  sendSignInLink } from './firebase';
+  addressTheLinkNames, finishSignInLink, finishSignInLinkWith, forgetLinkCode, linkEmailWaiting,
+  linkNeedsAddress, sendSignInLink } from './firebase';
 import { t } from './i18n';
 import { answeredCount, APP_VERSION, autosave, blankAssessment, clearDraft, download, ensureRef,
   hasWork, loadDraft, readJsonFiles, saveAssessmentFile, slug } from './storage';
@@ -1132,6 +1132,17 @@ function renderLinkArrival(root: HTMLElement) {
   const go = el('button', { class: 'primary' }, [t('Sign in on this device', 'Se connecter sur cet appareil')]);
   const say = el('p', { class: 'signer-advice' });
 
+  /**
+   * The address the link names, filled in and not acted on.
+   *
+   * It is there so nobody retypes an address from memory on a phone keyboard, which is what
+   * produced a refusal that read as the tool rejecting somebody's own address. It is still a
+   * press, and the address is named in the sentence above the field, because a link somebody
+   * else crafted could name theirs and this is the step where that is visible.
+   */
+  const named = addressTheLinkNames();
+  if (named) field.value = named;
+
   go.addEventListener('click', () => {
     const address = field.value.trim().toLowerCase();
     if (!field.checkValidity() || !address) {
@@ -1146,10 +1157,18 @@ function renderLinkArrival(root: HTMLElement) {
 
   root.appendChild(el('section', { class: 'card signin' }, [
     el('div', { class: 'head-row' }, [el('h1', {}, [t('Finish signing in', 'Terminer la connexion')])]),
-    el('p', { class: 'muted' }, [
-      t('This browser did not ask for that link, so it does not know which address the link went to. Type that address and the sign-in finishes here.',
-        'Ce navigateur n\u2019a pas demandé ce lien, il ne sait donc pas à quelle adresse il a été envoyé. Saisissez cette adresse et la connexion se terminera ici.'),
-    ]),
+    el('p', { class: 'muted' }, named
+      ? [
+        t('This browser did not ask for that link, so it cannot finish on its own. The link was sent to ',
+          'Ce navigateur n\u2019a pas demandé ce lien, il ne peut donc pas terminer seul. Le lien a été envoyé à '),
+        el('strong', {}, [named]),
+        t('. Sign in as that address, or change it if it is not the one you meant.',
+          '. Connectez-vous avec cette adresse, ou modifiez-la si ce n\u2019est pas celle que vous vouliez.'),
+      ]
+      : [
+        t('This browser did not ask for that link, so it does not know which address the link went to. Type that address and the sign-in finishes here.',
+          'Ce navigateur n\u2019a pas demandé ce lien, il ne sait donc pas à quelle adresse il a été envoyé. Saisissez cette adresse et la connexion se terminera ici.'),
+      ]),
     problem
       ? el('div', { class: 'card warn tight' }, [
           /** Reported as: "That did not finish" -- that what? */
