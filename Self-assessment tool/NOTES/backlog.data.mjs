@@ -17,14 +17,21 @@
  * EDITING RULES, so this stays cheap to keep current:
  *  - id        never changes. It is the name of the document in the store that holds this item's
  *              priority, so renaming it loses whatever priority somebody set.
- *  - status    'wait' | 'next' | 'doing' | 'later' | 'done'. Finishing something is a one-word
+ *  - status    'wait' | 'open' | 'doing' | 'done'. Finishing something is a one-word
  *              change, and a done item is never deleted: it moves itself into that track's Done
  *              section. 'wait' means somebody outside this repository owes a reply, and owes
  *              names them. 'doing' means started and not finished, and there should be at most
  *              two of them at a time; a list where everything is started is a list where nothing
- *              is. 'later' means after the prototype. There used to be a separate 'level 2' tag
- *              as well, which meant the same thing and could contradict the status on the same
- *              row. It is gone, and the word 'later' is the only name for that idea now.
+ *              is. 'open' is everything else, and it draws no badge at all.
+ *
+ *              THERE USED TO BE 'next' AND 'later' AS WELL, and they were priority wearing a
+ *              status's clothes. Asked: are next and later not the same as priority, considering
+ *              80% of items carry next. Measured before agreeing: 53% said next and 25% said
+ *              later, so the badge on half the page was telling a reader nothing. A status now
+ *              says only what cannot be a preference. Blocked on somebody is a fact. Started is a
+ *              fact. Finished is a fact. How much something matters is the priority, which is
+ *              three coloured buttons and already on every row. Everything that was 'later' is
+ *              'open' at low priority, and the reason it waits was already in its own words.
  *  - owner     who does the work once it is unblocked, which is not the same as who owes us an
  *              answer. It used to be a property of the section, which works for two people and
  *              stops working the moment three of them share 'ours'.
@@ -38,9 +45,11 @@
  *              the page was counting days since a thing that had not happened. If a date matters
  *              to an item, it is a fact about that item and it belongs in `why`, in a sentence,
  *              where it can say what actually happened.
- *  - size      'hours' | 'days' | 'weeks', required on anything next or doing. Three values and
- *              not an estimate, because an estimate is a thing you have to stop and think about
- *              and so it never gets written.
+ *  - THERE IS NO SIZE FIELD. There was, with three values, and it was filled by reading the code
+ *              and guessing. Reported: the badges look to be set by you and do not seem to be
+ *              approximated correctly, so not having it is better than having it. Right. Where an
+ *              estimate came from something real it is still in the item's own words, which is
+ *              where it can say what it is based on.
  *  - priority  'high' | 'medium' | 'low'. This is only the starting value. The page lets anybody
  *              signed in change it, and that change is kept in the store so everybody sees the
  *              same list. What is written here is what a reader sees before the store answers.
@@ -101,13 +110,13 @@ export const sections = [
 export const items = [
   {
     id: "french-missing-assessor-screens", track: "questions", section: "q-french", kind: "bug",
-    status: "next", priority: "high", owner: "ours", golive: true, size: "weeks",
+    status: "open", priority: "high", owner: "ours", golive: true,
     t: "French is missing from the assessor screens and from half the rest",
     why: "An official instrument that is English on half its screens is not usable in government, so this is a defect and not a feature.\n\nThe machinery works: 403 pieces of wording go through the translator and 402 of them carry French. What is missing is wording that never went through it at all. On the assessor side that is 108 pieces, and the portfolio screen does not so much as import the translator. Across the submitter and shared screens it is roughly 300 more.\n\nThere is a second half nobody can start: the question set itself, 3,344 words of Dan’s English, and there is nowhere in the file format to put a French version. That is what the item below is for.\n\nAnd the accessibility fix that landed in September only reached the submitter side. The assessor screens still show English text inside a page that says it is French, so a screen reader reads English in a French voice. That is a ten-minute fix and should go first.\n\nWhat stays English on purpose: the access code, the question ids, and this page.",
   },
   {
     id: "dan-owes-french-question", track: "questions", section: "q-french", kind: "feature",
-    status: "next", priority: "high", owner: "ours", golive: true, size: "weeks",
+    status: "open", priority: "high", owner: "ours", golive: true,
     t: "The French of the question set, which nobody has asked Dan for",
     why: "Reported: we can do this ourselves, and we never asked him for anything. Both are right, and the item said otherwise on both counts.\n\nWhat is true: 3,344 words of Dan’s English have no French anywhere, and the file format has nowhere to put it. That is 2,760 words in the 176 questions, 228 in the eleven rungs of the scale a submitter reads to pick a score, 104 in the routing and maturity bands, 98 in the section and domain names, 84 in the five categories and 70 in the seven lifecycle stages.\n\nTwo ways to get it, and they are not exclusive. Draft it here and have it approved, which starts today and needs nobody. Or send it to the Translation Bureau, which is weeks on instrument text of this size and is the route an official instrument normally takes. Drafting first and having the Bureau check a draft is faster than either.\n\nTwo decisions are genuinely Dan’s and neither has been put to him. Whether the French is a second file or extra fields in the one file, given the ids are spreadsheet column names either way. And who signs off the wording, because a self-assessment whose questions differ between the two languages is two instruments.\n\nIt also waits on the set settling. Translating 176 questions while duplicates are still being cut is translating work that is about to be deleted.",
   },
@@ -125,14 +134,13 @@ export const items = [
   },
   {
     id: "put-real-submission-pool", track: "engine", section: "e-assessor", kind: "feature",
-    status: "next", priority: "medium", owner: "ours", golive: false, size: "hours",
+    status: "open", priority: "medium", owner: "ours", golive: false,
     t: "Put a real submission in the pool",
     why: "There is no seeding tool, so test submissions are made through the submitter page, which needs no account, and sent. Half an hour. Without it an assessor signs in to an empty list, and an empty list reads as a broken tool rather than an empty one.",
   },
   {
     id: "each-assessor-sees-pool", track: "engine", section: "e-assessor", kind: "question",
-    status: "wait", priority: "medium", owner: "ours", golive: false, size: "days",
-    owes: "Dan or Chris",
+    status: "wait", priority: "medium", owner: "ours", golive: false, owes: "Dan or Chris",
     t: "What each assessor sees of the pool",
     why: "Everything, for now. Chris says departments know who their assessor is, so they could pick one at submission, and an assessor could hand a file on. Until that is decided, every assessor sees the whole pool, and a My assessments tab is the filter to add once the rule exists.\n\nThis used to be written twice, here and in a separate list of open questions. It is one record now, and it is marked as a question.",
   },
@@ -144,14 +152,13 @@ export const items = [
   },
   {
     id: "counts-finished-assessment", track: "engine", section: "e-submitter", kind: "feature",
-    status: "later", priority: "low", owner: "ours", golive: false, size: "days",
+    status: "open", priority: "low", owner: "ours", golive: false,
     t: "What counts as a finished assessment",
     why: "Answered on 21 September, and the answer is to leave it alone: Dan and Mariia agreed it stays the submitter’s judgement until real submissions exist, because answering every question is not the same as attaching every piece of evidence and a submitter may come back to a question after adding one. The choices below are what a later answer has to pick from. You spotted this yourself: there is no obvious finishing line. Filling every score is one answer, but evidence is not mandatory and neither is the reasoning, so the tool cannot say when somebody is done without being told. What the rubric says: nothing. All 176 questions carry weight 1, none is marked required, and no question asks for evidence. So the finishing line is the instrument’s decision, and these are the choices. Complete means every question in the set has a score or is marked not applicable. Whether the six overview fields count: they are not scored, but the lifecycle stage changes every score through the stage multipliers and the marking gates saving at all, so the working answer is that they count. Whether a floor is needed, since with none an assessment marked not applicable throughout is complete and unscored. Whether saying it is finished freezes the answers, or whether the submitter keeps editing and the assessor is warned. Whether an assessor may do anything with an unfinished one beyond reading it. Whether the portfolio averages should exclude unfinished ones.",
   },
   {
     id: "completion-flow-notification-exist", track: "engine", section: "e-submitter",
-    kind: "feature", status: "next", priority: "medium", owner: "ours", golive: false,
-    size: "days",
+    kind: "feature", status: "open", priority: "medium", owner: "ours", golive: false,
     t: "The completion flow, and the notification that does not exist yet",
     why: "Designed and ready to build. Saving an unfinished assessment online already asks first and says what an assessor will and will not do with it. What is left: the window that appears when the last question is filled, offering to mark it complete and tell an assessor; the mockup screen that follows, which has to say plainly that no notification is sent; the assessor screen split, with finished submissions and the statistics at the top and unfinished ones below; and the rule that an assessor can read an unfinished submission and cannot change anything in it.",
   },
@@ -421,13 +428,13 @@ export const items = [
   },
   {
     id: "opening-question-set-assessor", track: "engine", section: "e-broken", kind: "bug",
-    status: "next", priority: "high", owner: "ours", golive: false, size: "hours",
+    status: "open", priority: "high", owner: "ours", golive: false,
     t: "Opening a question set on the assessor page deletes the submitter’s draft",
     why: "Both pages are served from one address, so they share one browser store. The demonstration page was given its own namespace in September; the two real pages were not.\n\nWhat happens: the assessor page still offers Question set, and activating a set there clears the draft on the submitter page. Somebody halfway through 176 questions loses them, in another tab, with no warning.\n\nThe fix is the same one the demonstration page got: a namespace per side, so the two cannot reach each other’s keys.",
   },
   {
     id: "discarding-draft-browser-empty", track: "engine", section: "e-broken", kind: "bug",
-    status: "next", priority: "high", owner: "ours", golive: false, size: "hours",
+    status: "open", priority: "high", owner: "ours", golive: false,
     t: "Discarding a draft says the browser is empty, and it is not",
     why: "The window that asks you to confirm says it erases the copy this browser is holding, and the Settings row says the same. Both sentences are false.\n\nDiscarding removes one key. Every online save also writes a full second copy of the document under its own key, and nothing ever removes one of those. So the answers a person believed they had just destroyed are still in the browser, under a name they were never told about.\n\nTwo things to fix and they are separate: remove those copies when a draft is discarded, and until that is done, stop the screen claiming otherwise.",
   },
@@ -444,54 +451,51 @@ export const items = [
     why: "It emptied every submission and every score, verdict and reason the assessor had typed. The audit exists in one browser key and in a file somebody may or may not have saved, so it was the only copy: a control that destroyed an afternoon, on the main screen, the same size and colour as an export beside it. Closing one submission you are finished with is what an assessor actually wants and the screen could not do, so that is a per-row menu item now, and the one that closes everything is the last item of a menu in red with an offer to save the audited files first. No test covered the old button, which is how it lasted.",
   },
   {
-    id: "assessor-s-review-saved", track: "engine", section: "e-broken", kind: "bug",
-    status: "next", priority: "high", owner: "ours", golive: true, size: "days",
+    id: "assessor-s-review-saved", track: "engine", section: "e-done", kind: "bug",
+    status: "done", priority: "high", owner: "ours", golive: false,
     t: "An assessor’s review is never saved anywhere but their own laptop",
-    why: "The worst thing on this list. An assessor’s scores, verdicts and notes live in memory and in one key in their own browser, and the only button that does anything with them writes a file to their own laptop. views-review.ts makes no network call at all.\n\nWhat that costs a person: the department never sees the review. A second assessor cannot see the first one’s work. Clearing the browser, or picking up a different machine, loses all of it. And the portfolio tile that counts audited records reads the audit off the record, so it is permanently zero.\n\nThe decision to make first: the rules already allow an assessor to write a subcollection under the assessment, and nothing writes there. Taking that route needs no rules change and no republish, and it is about a day: a save, a read when the pool is listed, a change so the audited state comes from what was read, and a test. The other route, keeping the audit as a field of the assessment, needs the rules widened to let an assessor update somebody else’s document, which is more work and more risk. Take the subcollection.\n\nOne line of the code says \"the audit is in the store\", which is false, and goes in the same change.\n\nTHE SHAPE IS DECIDED, on 28 September, and passed on by the session building it rather than witnessed here. One audit document per assessor, beside the submission. An assessor may edit their own and nobody else’s. EARB sees every assessor’s opinion side by side, rather than one score of record, which is the part that had never been settled: the old design had a single audit on the assessment and no answer for two assessors disagreeing. And the department can read what was written about its own submission.\n\nThat resolves the field-or-subcollection question by making it neither: a document per assessor is a subcollection keyed by who wrote it, so an assessor writing their own needs no rule that lets anybody write anybody else’s, and nothing has to widen the update rule on the assessment itself.\n\nAND THE RULES DO HAVE TO CHANGE, which this item said twice that they did not. Corrected on 28 September by the session building it, and checked here against deploy/firestore.rules rather than taken on trust. Two lines fail the decisions above.\n\nallow create, update: if isAssessor() lets any assessor write an entry under any name, so one assessor can overwrite another’s audit. An assessor editing their own and nobody else’s needs the document named by the assessor’s address and the write tied to it.\n\nallow get, list: if isOwner() || isAssessor() does not do what it looks like. isOwner() compares ownerEmail on the document being read, and an audit document has no ownerEmail, so it is always false and the department cannot read the audits written about it. Letting them read it needs a look at the parent assessment.\n\nSo it is a rules change and a republish, small but real, and both belong in the same piece of work rather than after it.",
+    why: "The worst thing on this list. An assessor’s scores, verdicts and notes live in memory and in one key in their own browser, and the only button that does anything with them writes a file to their own laptop. views-review.ts makes no network call at all.\n\nWhat that costs a person: the department never sees the review. A second assessor cannot see the first one’s work. Clearing the browser, or picking up a different machine, loses all of it. And the portfolio tile that counts audited records reads the audit off the record, so it is permanently zero.\n\nThe decision to make first: the rules already allow an assessor to write a subcollection under the assessment, and nothing writes there. Taking that route needs no rules change and no republish, and it is about a day: a save, a read when the pool is listed, a change so the audited state comes from what was read, and a test. The other route, keeping the audit as a field of the assessment, needs the rules widened to let an assessor update somebody else’s document, which is more work and more risk. Take the subcollection.\n\nOne line of the code says \"the audit is in the store\", which is false, and goes in the same change.\n\nTHE SHAPE IS DECIDED, on 28 September, and passed on by the session building it rather than witnessed here. One audit document per assessor, beside the submission. An assessor may edit their own and nobody else’s. EARB sees every assessor’s opinion side by side, rather than one score of record, which is the part that had never been settled: the old design had a single audit on the assessment and no answer for two assessors disagreeing. And the department can read what was written about its own submission.\n\nThat resolves the field-or-subcollection question by making it neither: a document per assessor is a subcollection keyed by who wrote it, so an assessor writing their own needs no rule that lets anybody write anybody else’s, and nothing has to widen the update rule on the assessment itself.\n\nAND THE RULES DO HAVE TO CHANGE, which this item said twice that they did not. Corrected on 28 September by the session building it, and checked here against deploy/firestore.rules rather than taken on trust. Two lines fail the decisions above.\n\nallow create, update: if isAssessor() lets any assessor write an entry under any name, so one assessor can overwrite another’s audit. An assessor editing their own and nobody else’s needs the document named by the assessor’s address and the write tied to it.\n\nallow get, list: if isOwner() || isAssessor() does not do what it looks like. isOwner() compares ownerEmail on the document being read, and an audit document has no ownerEmail, so it is always false and the department cannot read the audits written about it. Letting them read it needs a look at the parent assessment.\n\nSo it is a rules change and a republish, small but real, and both belong in the same piece of work rather than after it.\n\nDONE on 28 September, built in another session and checked here against the live store rather than taken on trust. An audit is one document per assessor under the submission, named by their address. An assessor writes their own and the rules refuse them anybody else’s, twice over: the document name has to be their address and the reviewer field inside it has to match. The department that owns the submission may read every audit written about it, and a stranger signed in may not, and somebody holding only the access code may not either. Probed unauthenticated against the live project: the assessment opens on its name alone and the audits on it do not.\n\nOne thing worth keeping from how it was built. The rule that lets a department read its own audits needs a look at the parent assessment, and a look inside a rule is a billable read on every request that reaches it, refused ones included. The assessor test is written first, so the path every assessor walks on every submission never pays for one and only a department does.",
   },
   {
     id: "nothing-tests-signing-google", track: "engine", section: "e-broken", kind: "bug",
-    status: "next", priority: "medium", owner: "ours", golive: false, size: "hours",
+    status: "open", priority: "medium", owner: "ours", golive: false,
     t: "Nothing tests signing in with Google",
     why: "Half of this is now done. The email-link sign-in is tested end to end: the test stubs the two calls, opens a real link and checks the code sent, the address sent and the session that comes back.\n\nThe Google route is not tested at all. Four calls carry it and no test mentions any of them; the tests only check that the button is on the screen. That is the route every assessor will actually use, and the one that broke in September with a redirect mismatch nobody caught.",
   },
   {
     id: "rules-tested-nobody-signed", track: "engine", section: "e-broken", kind: "bug",
-    status: "next", priority: "medium", owner: "ours", golive: false, size: "hours",
+    status: "open", priority: "medium", owner: "ours", golive: false,
     t: "The rules are only ever tested with nobody signed in",
     why: "The blocker is gone. There is now a rules test that runs Google’s own Firestore with our rules loaded, and it proves what an anonymous request can and cannot do.\n\nWhat it still does not prove is the part that needs two identities: that one submitter cannot read another’s assessment, and that somebody who is not an assessor cannot list the pool. Those are the rules that actually protect the work, and they have never been run against a signed-in request.",
   },
   {
     id: "changing-question-s-meaning", track: "questions", section: "q-broken", kind: "bug",
-    status: "next", priority: "medium", owner: "ours", golive: false, size: "hours",
+    status: "open", priority: "medium", owner: "ours", golive: false,
     t: "Changing a question’s meaning warns once, then the warning is written away",
     why: "The lock file exists so a question cannot quietly change meaning while old submissions still carry its id. It does not hold. A changed meaning prints a warning and carries on, where a bad section name a few lines later stops the run outright. Then the same run rewrites the lock file at the end, so the drift is absorbed and the second run is silent.\n\nNothing else in the repository reads the lock file, and it is not in the test suite. So today it records what happened rather than preventing it.",
   },
   {
     id: "submitter-delete-withdraw-submission", track: "engine", section: "e-broken",
-    kind: "question", status: "next", priority: "medium", owner: "ours", golive: false,
-    size: "hours",
+    kind: "question", status: "open", priority: "medium", owner: "ours", golive: false,
     t: "A submitter cannot delete or withdraw their own submission",
     why: "True, and it is our decision, not a wait on anybody. The rules let only an assessor delete, and only an assessor withdraw. The one destructive thing a submitter can do is discard the copy in their own browser; the copy at TBS stays.\n\nSettings already tells them so, in those words. What is missing is the decision: can a department pull back a submission it sent by mistake, and does pulling it back delete it or only take it out of the statistics. After that it is about one line of rules and one button.\n\nIt was marked as waiting on the \"Build team\", which is us, and that was wrong.",
   },
   {
     id: "restrict-browser-key-site", track: "admin", section: "a-owner", kind: "feature",
-    status: "next", priority: "medium", owner: "ours", golive: false, size: "hours",
+    status: "open", priority: "medium", owner: "ours", golive: false,
     parent: "personal-accounts",
     t: "Restrict the browser key to our own site and three services",
     why: "GitHub flagged the Firebase web key in the published page as a Google API key. It is a public identifier by design and it authorises nothing on its own, so the page is not a leak. What is worth changing is that the key currently answers from anywhere: a check from the command line reached the project with no site attached at all. In the Google Cloud console, under Credentials, the browser key takes a website restriction of myermcat.github.io and localhost, and an API restriction of Identity Toolkit, Token Service and Cloud Firestore. Nothing the tool does falls outside those three.",
   },
   {
     id: "close-github-secret-scanning", track: "admin", section: "a-owner", kind: "feature",
-    status: "next", priority: "low", owner: "ours", golive: false, size: "hours",
-    parent: "personal-accounts",
+    status: "open", priority: "low", owner: "ours", golive: false, parent: "personal-accounts",
     t: "Close the GitHub secret-scanning alert as will not fix",
     why: "The alert is correct about what it found. Revoking the key would take the store down and change nothing about who can read what, because reading is gated by sign-in and by the published rules. Will not fix, with the restriction above as the note.",
   },
   {
     id: "whether-department-many-decisions", track: "questions", section: "q-behaviour",
-    kind: "feature", status: "later", priority: "low", owner: "ours", golive: false,
-    size: "hours",
+    kind: "feature", status: "open", priority: "low", owner: "ours", golive: false,
     t: "Whether a department says how many decisions are already made",
     why: "Dan floated this on 21 September as a way to tell whether an assessment can still change anything. A department that has chosen the product and signed the contract answers the same 176 questions as one still deciding, and the two are worth different amounts to a board. It would be one overview field and nothing scored.",
   },
@@ -503,14 +507,14 @@ export const items = [
   },
   {
     id: "confirm-answer-type-every", track: "questions", section: "q-behaviour", kind: "feature",
-    status: "wait", priority: "medium", owner: "Dan", golive: false, size: "hours", owes: "Dan",
+    status: "wait", priority: "medium", owner: "Dan", golive: false, owes: "Dan",
     parent: "answer-types-criticality",
     t: "Confirm the answer type for every question",
     why: "Ten are yes/no on our reading of the wording. The other 166 are scored 0 to 10.",
   },
   {
     id: "confirm-no-answers-matter", track: "questions", section: "q-behaviour", kind: "feature",
-    status: "wait", priority: "medium", owner: "Dan", golive: false, size: "hours", owes: "Dan",
+    status: "wait", priority: "medium", owner: "Dan", golive: false, owes: "Dan",
     parent: "answer-types-criticality",
     t: "Confirm which no answers matter most",
     why: "Every no colours its section red today. If some should not, that is his call.",
@@ -518,7 +522,7 @@ export const items = [
   {
     id: "set-per-question-criticality", track: "questions", section: "q-behaviour",
     kind: "feature", status: "wait", priority: "medium", owner: "Dan", golive: false,
-    size: "days", owes: "Dan", parent: "answer-types-criticality",
+    owes: "Dan", parent: "answer-types-criticality",
     t: "Set per-question criticality",
     why: "Separate from section weight, and nothing in his workbook carries it.",
   },
@@ -530,35 +534,34 @@ export const items = [
   },
   {
     id: "fix-section-weights-total", track: "questions", section: "q-content", kind: "feature",
-    status: "wait", priority: "medium", owner: "Dan", golive: false, size: "hours", owes: "Dan",
+    status: "wait", priority: "medium", owner: "Dan", golive: false, owes: "Dan",
     parent: "content-dan-still-owes",
     t: "Fix the section weights that total 80",
     why: "His error, confirmed in his own words. The tool shares the missing 20 proportionally and shows the normalised share.",
   },
   {
     id: "add-security-privacy-questions", track: "questions", section: "q-content",
-    kind: "feature", status: "later", priority: "low", owner: "Dan", golive: false, size: "days",
+    kind: "feature", status: "open", priority: "low", owner: "Dan", golive: false,
     parent: "content-dan-still-owes",
     t: "Add security and privacy questions",
     why: "Neither is represented. A security review is already asking. The topic view makes the gap visible in the meantime.",
   },
   {
     id: "bring-dropdown-answers", track: "questions", section: "q-content", kind: "feature",
-    status: "wait", priority: "medium", owner: "Dan", golive: false, size: "weeks", owes: "Dan",
+    status: "wait", priority: "medium", owner: "Dan", golive: false, owes: "Dan",
     parent: "content-dan-still-owes",
     t: "Bring in the dropdown answers",
     why: "No picklists exist. Needs the 700 or more past assessments, which only he can hand over.",
   },
   {
     id: "routing-thresholds-approximations-dan", track: "questions", section: "q-behaviour",
-    kind: "feature", status: "later", priority: "low", owner: "ours", golive: false,
-    size: "days",
+    kind: "feature", status: "open", priority: "low", owner: "ours", golive: false,
     t: "The routing thresholds are approximations, and Dan said so",
     why: "Confirmed on 21 September: the numbers the tool routes on are the ones he named in the first conversation and are not accurate. He added a case the tool cannot express. A department scoring itself around three does not need to come to the board at all, because everybody already agrees the work is weak, and what matters is what they plan to do about it. So the band is not one line with a score on each side of it.",
   },
   {
     id: "recording-rework-loop", track: "engine", section: "e-assessor", kind: "feature",
-    status: "later", priority: "low", owner: "ours", golive: false, size: "weeks",
+    status: "open", priority: "low", owner: "ours", golive: false,
     t: "Recording the rework loop",
     why: "Dan called the back and forth before a board date the real value GC EARB adds, and said on 21 September that he cannot prove that value because nothing captures it. It is also why the endorsement rate is 100 per cent: an initiative that would fail is reworked or abandoned before it ever reaches the board. Recording each round would make it visible. What a round looks like as data is the open question, and nobody has answered it.",
   },
@@ -594,7 +597,7 @@ export const items = [
   },
   {
     id: "saving-two-people-saving", track: "engine", section: "e-storage", kind: "feature",
-    status: "next", priority: "medium", owner: "ours", golive: false,
+    status: "open", priority: "medium", owner: "ours", golive: false,
     t: "Saving, and two people saving at once",
     why: "Everything is unclassified, so it can all live online. The seam is written; the store is not.",
   },
@@ -613,28 +616,28 @@ export const items = [
   },
   {
     id: "deliberate-first-submit", track: "engine", section: "e-storage", kind: "feature",
-    status: "next", priority: "medium", owner: "ours", golive: false, size: "hours",
+    status: "open", priority: "medium", owner: "ours", golive: false,
     parent: "saving-two-people-saving",
     t: "One deliberate first submit",
     why: "You should know the moment your work becomes visible to TBS.",
   },
   {
     id: "autosave-online-after", track: "engine", section: "e-storage", kind: "feature",
-    status: "next", priority: "medium", owner: "ours", golive: false, size: "days",
+    status: "open", priority: "medium", owner: "ours", golive: false,
     parent: "saving-two-people-saving",
     t: "Autosave online after that",
     why: "Like a document. Every later change writes through.",
   },
   {
     id: "field-level-last-write", track: "engine", section: "e-storage", kind: "feature",
-    status: "next", priority: "low", owner: "ours", golive: false, size: "hours",
+    status: "open", priority: "low", owner: "ours", golive: false,
     parent: "saving-two-people-saving",
     t: "Field-level last write wins, with a marker",
     why: "Not locking. Two people in different questions never collide.",
   },
   {
     id: "tell-other-person-changed", track: "engine", section: "e-storage", kind: "feature",
-    status: "next", priority: "low", owner: "ours", golive: false, size: "days",
+    status: "open", priority: "low", owner: "ours", golive: false,
     parent: "saving-two-people-saving",
     t: "Tell the other person it changed under them",
     why: "The audit trail already keeps both accounts. What is missing is the live signal while somebody is looking at the line.",
@@ -719,7 +722,7 @@ export const items = [
   },
   {
     id: "marking-pickers", track: "engine", section: "e-submitter", kind: "feature",
-    status: "next", priority: "low", owner: "ours", golive: false,
+    status: "open", priority: "low", owner: "ours", golive: false,
     t: "The marking pickers",
     why: "Somebody still has to state the marking of what they point at.",
   },
@@ -738,21 +741,19 @@ export const items = [
   },
   {
     id: "collapse-three-pickers", track: "engine", section: "e-submitter", kind: "feature",
-    status: "next", priority: "low", owner: "ours", golive: false, size: "hours",
-    parent: "marking-pickers",
+    status: "open", priority: "low", owner: "ours", golive: false, parent: "marking-pickers",
     t: "Collapse three pickers into one",
     why: "The footer’s seven pills bypass the whole design.",
   },
   {
-    id: "sending-tbs", track: "engine", section: "e-submitter", kind: "feature", status: "next",
+    id: "sending-tbs", track: "engine", section: "e-submitter", kind: "feature", status: "open",
     priority: "medium", owner: "ours", golive: false,
     t: "Sending it to TBS",
     why: "The moment work stops being private. Everything here is about the person knowing that.",
   },
   {
     id: "first-submit-confirmation", track: "engine", section: "e-submitter", kind: "feature",
-    status: "next", priority: "medium", owner: "ours", golive: false, size: "hours",
-    parent: "sending-tbs",
+    status: "open", priority: "medium", owner: "ours", golive: false, parent: "sending-tbs",
     t: "First-submit confirmation",
     why: "Names what is about to go online and asks them to confirm it is unclassified.",
   },
@@ -881,83 +882,77 @@ export const items = [
     why: "Nobody has decided whether admin is a role. Listed so the roles matrix is complete.",
   },
   {
-    id: "withdraw-record", track: "engine", section: "e-admin", kind: "feature", status: "later",
-    priority: "low", owner: "ours", golive: false, size: "hours", parent: "admin-actions",
+    id: "withdraw-record", track: "engine", section: "e-admin", kind: "feature", status: "open",
+    priority: "low", owner: "ours", golive: false, parent: "admin-actions",
     t: "Withdraw a record",
     why: "Out of every statistic and still in the list, with nothing deleted.",
   },
   {
     id: "re-assign-assessor", track: "engine", section: "e-admin", kind: "feature",
-    status: "later", priority: "low", owner: "ours", golive: false, size: "days",
-    parent: "admin-actions",
+    status: "open", priority: "low", owner: "ours", golive: false, parent: "admin-actions",
     t: "Re-assign an assessor",
     why: "Somebody leaves, or a file needs a second pair of eyes.",
   },
   {
     id: "clear-test-submissions", track: "engine", section: "e-admin", kind: "feature",
-    status: "later", priority: "low", owner: "ours", golive: false, size: "hours",
-    parent: "admin-actions",
+    status: "open", priority: "low", owner: "ours", golive: false, parent: "admin-actions",
     t: "Clear out test submissions",
     why: "Dan raised it and parked it.",
   },
   {
     id: "twelve-month-questions-dan", track: "engine", section: "e-exec", kind: "feature",
-    status: "later", priority: "low", owner: "ours", golive: false,
+    status: "open", priority: "low", owner: "ours", golive: false,
     t: "The twelve-month questions Dan wants answered",
     why: "The reason the data is worth capturing at all. All of it needs more than one record to mean anything.",
   },
   {
     id: "per-question-averages-histograms", track: "engine", section: "e-exec", kind: "feature",
-    status: "later", priority: "low", owner: "ours", golive: false, size: "days",
+    status: "open", priority: "low", owner: "ours", golive: false,
     parent: "twelve-month-questions-dan",
     t: "Per-question averages and histograms",
     why: "Which questions the whole GC is weak on, which is the argument for changing a question.",
   },
   {
     id: "average-department", track: "engine", section: "e-exec", kind: "feature",
-    status: "later", priority: "low", owner: "ours", golive: false, size: "hours",
+    status: "open", priority: "low", owner: "ours", golive: false,
     parent: "twelve-month-questions-dan",
     t: "Average by department",
     why: "Needs enough records that a department average is not one initiative.",
   },
   {
     id: "best-worst-evidence-per", track: "engine", section: "e-exec", kind: "feature",
-    status: "later", priority: "low", owner: "ours", golive: false, size: "days",
+    status: "open", priority: "low", owner: "ours", golive: false,
     parent: "twelve-month-questions-dan",
     t: "Best and worst evidence per question",
     why: "Gives a submitter an example of what good looks like, which is the thing people ask for first.",
   },
   {
-    id: "assessor-sign", track: "admin", section: "a-signin", kind: "feature", status: "next",
+    id: "assessor-sign", track: "admin", section: "a-signin", kind: "feature", status: "open",
     priority: "high", owner: "ours", golive: false,
     t: "Assessor sign-in",
     why: "Four routes, and they are a sequence rather than a choice. Each was argued on its own and the cheapest was never costed.",
   },
   {
     id: "sign-link-sent-work", track: "admin", section: "a-signin", kind: "feature",
-    status: "next", priority: "high", owner: "ours", golive: false, size: "days",
-    parent: "assessor-sign",
+    status: "open", priority: "high", owner: "ours", golive: false, parent: "assessor-sign",
     t: "Sign in with a link sent to your work address",
     why: "Built and working. Firebase mails a one-time link, opening it proves the person can read that mailbox, and the address comes back verified, which is what the store’s rules insist on. It sits under Other ways to sign in, below the Google button.\n\nWhat it costs: five sign-in emails a day for the whole project on the no-cost plan. Read that as five sign-in events, not five people; somebody who signs in once stays signed in until they clear their browser. A room trying it at the same time, or one person mistyping twice, is what it will not survive.\n\nThere is no per-email price anywhere in Firebase. The two columns of that table are headed \"instrumentless\" and \"with billing instrument\", so what moves you past five is attaching a card, not spending money. Do not attach one yet: Firebase’s spend caps do not cover Firestore or Authentication, so a card removes the only ceiling this project has.\n\nTesting costs nothing now. Generating a link is a different operation with a limit of 20,000 a day and it posts no mail, so links can be made on a laptop and sent from an ordinary mailbox.\n\nWhat is still unsolved is delivery to a gc.ca address. Mail from this project goes out as noreply at a firebaseapp.com address, with no sender name, carrying a link to that same domain, which has no DMARC record and is a documented phishing host. A copy sent to a Gmail address on 27 September landed in spam. TBS sits behind Microsoft Defender, where high-confidence phishing is quarantined where an ordinary user cannot see it, and Safe Senders is explicitly ignored.",
   },
   {
     id: "password-set-link-later", track: "admin", section: "a-signin", kind: "feature",
-    status: "next", priority: "medium", owner: "ours", golive: false, size: "days",
-    parent: "assessor-sign",
+    status: "open", priority: "medium", owner: "ours", golive: false, parent: "assessor-sign",
     t: "A password, set from a link, so later sign-ins cost no mail",
     why: "Asked for on 26 September: add password sign in. Dan waved it away in the first conversation and the reason was never written down, so ask him before building it. What it buys is the cap. Firebase’s own limits table gives sign-in link mail five a day for the whole project and password reset mail a hundred and fifty, on the same no-cost plan, and there is no per-message charge on either. The shape that keeps this tool’s promise is not a password box on the front door. Nobody types a password to get in the first time: an assessor is invited with a link, which spends one of the five, and once they are inside, the tool offers to set a password on an address the link has already verified. That inverts the cap. Five a day stops meaning five sign-ins and starts meaning five new people, and somebody who already has a password is never counted again, because signing in with one sends no mail at all. It satisfies the store’s rules for the same reason the link does: those rules ask only that the address be verified, and an address verified by a link stays verified when a password is set on it. What it costs is that passwords then exist, which this tool was built to avoid, and a password is one more thing somebody reuses from another site. It also needs a way back for somebody who forgets one, which is the hundred and fifty a day and not the five. Nothing is needed in the console: Email/Password was enabled on 24 September alongside the link.",
   },
   {
     id: "sign-work-microsoft-account", track: "admin", section: "a-signin", kind: "feature",
-    status: "later", priority: "medium", owner: "ours", golive: false, size: "days",
-    parent: "internal-gc-sign-in",
+    status: "open", priority: "low", owner: "ours", golive: false, parent: "internal-gc-sign-in",
     t: "Sign in with a work Microsoft account",
     why: "The final goal, and the blocker is a measurement nobody has taken rather than a decision from TBS. Three things settled on 24 September. One, registration needs nobody’s advance permission: an application registered once as multi-tenant lets people from any Microsoft directory sign in, the other organisation is never asked beforehand, and it costs nothing. The September note saying TBS must register it was wrong about that. Two, what is true is narrower and it is ours: the store refuses any identity without a verified address, and Firebase has an open report since August 2024 that it reports a Microsoft address as unverified. Three, and this is the part that changes the answer, that report is about an address signing in for the first time, where Microsoft creates the account. An address that has already signed in once by emailed link already exists with a verified address, and Firebase with one account per address does not make a second. The link shipped first, so that is the case our three assessors will actually meet. Nobody has measured either case. Measuring costs an application registration in any directory somebody already has, which Entra lets an ordinary user make by default, and then one real sign-in with the token read back. If the answer is that the address comes back verified, the build is a button, a provider enabled in the console and two redirect addresses. If it comes back unverified, the choice is between asking TBS for a single-tenant registration, which keeps the rules intact because TBS controls the addresses, and softening the rule, which would mean trusting every directory administrator in the world with a claim they are free to set, over a store holding pre-decisional departmental work. Do not soften the rule.",
   },
   {
     id: "ask-security-already-assessed", track: "admin", section: "a-signin", kind: "feature",
-    status: "next", priority: "low", owner: "ours", golive: false, size: "hours",
-    parent: "internal-gc-sign-in",
+    status: "open", priority: "low", owner: "ours", golive: false, parent: "internal-gc-sign-in",
     t: "Ask IT Security what they have already assessed",
     why: "The question under the other three, and nobody has asked it. Nick said what they would prefer depends on what IT Security has assessed, and that this is corporate and not his group. The useful ask is for the list of assessed services, because the list decides the destination, where a ruling on Firestore only closes a door. He named Robin Sidhu for the identity side and was explicit that it is a separate conversation from which third-party services are authorised. Asking IMTD for an Azure registration before this is a request that fails twice. Commitment: none, it is one message.",
   },
@@ -969,20 +964,19 @@ export const items = [
   },
   {
     id: "moving-store-off-firestore", track: "admin", section: "a-publish", kind: "feature",
-    status: "later", priority: "low", owner: "ours", golive: false, size: "weeks",
-    parent: "assessor-sign",
+    status: "open", priority: "low", owner: "ours", golive: false, parent: "assessor-sign",
     t: "Moving the store off Firestore",
     why: "Rewritten on 23 September because the first version of this was not understandable. What it means: today the page talks straight to Google’s database and Google decides who may read what. Moving off Firestore means putting something of our own in the middle, and then we decide, which means we are the thing that has to be right, stay up and stay patched after the work term ends. Today a bad request is refused even if somebody edits the page’s JavaScript in their own browser. Three to five weeks for a destination somebody has named, and no estimate for one nobody has: only three files anywhere name Firestore, but the tidy seam covers the submitter’s document alone and eleven modules reach past it for roles, sign-in, withdrawal and the code lookup, so those get untangled first. And it does not fix the reason an assessor needs an account. Show me every submission cannot be tied to a secret somebody is holding; a server has the same problem, because it still has to know who is asking. What it would genuinely buy is limiting how often one address can ask, a log of who asked for what, and whatever the IT Security list turns out to say. Real, and none of it urgent.",
   },
   {
     id: "move-tool-canada-ca", track: "admin", section: "a-publish", kind: "feature",
-    status: "next", priority: "medium", owner: "Nick", golive: true,
+    status: "open", priority: "medium", owner: "Nick", golive: true,
     t: "Move the tool into the canada-ca GitHub organisation",
     why: "canada-ca is a GitHub organisation at github.com/canada-ca. It is not the canada.ca website, and nothing here is about publishing to canada.ca.\n\nDan raised it again on 26 September: the tool and this backlog should sit in a Government of Canada place rather than a personal account.\n\nTwo separate moves are tangled in this one line. Publishing the built page into canada-ca/TBS-OCIO-ESP needs no new repository and no transfer: that repository is public, access is already granted, and it already serves a GitHub Pages site. It waits only on Dan clearing the 176 draft questions for public view. Moving the source repository out of a personal account is the other one, and that waits on Nick, who was asked on 1 September and has not answered.",
   },
   {
     id: "publish-built-page-canada", track: "admin", section: "a-publish", kind: "feature",
-    status: "wait", priority: "medium", owner: "ours", golive: false, size: "hours", owes: "Dan",
+    status: "wait", priority: "medium", owner: "ours", golive: false, owes: "Dan",
     parent: "move-tool-canada-ca",
     t: "Publish the built page into canada-ca/TBS-OCIO-ESP",
     why: "One commit, once Dan says the 176 draft questions can be public. The repository is public, access is already granted, and it already serves a Pages site.",
@@ -1001,15 +995,15 @@ export const items = [
   },
   {
     id: "nick-owes-answer-moves", track: "admin", section: "a-publish", kind: "question",
-    status: "wait", priority: "low", owner: "Nick", golive: false, size: "hours", owes: "Nick",
+    status: "wait", priority: "low", owner: "Nick", golive: false, owes: "Nick",
     parent: "move-tool-canada-ca",
     t: "Nick owes an answer on who moves the repository",
     why: "Open an issue on canada-ca/welcome is the route he named. Whether he moves it or you do is the part still unanswered.",
   },
   {
     id: "retire-separate-preview-repository", track: "admin", section: "a-publish",
-    kind: "feature", status: "next", priority: "low", owner: "ours", golive: false,
-    size: "hours", parent: "move-tool-canada-ca",
+    kind: "feature", status: "open", priority: "low", owner: "ours", golive: false,
+    parent: "move-tool-canada-ca",
     t: "Retire the separate preview repository",
     why: "The second repository exists only because GitHub Pages will not serve a private repository on a free account. The source repository was made public on 21 September, so that reason is gone and the two can be one. Three files still say it is private, and they are wrong.",
   },
@@ -1027,50 +1021,49 @@ export const items = [
   },
   {
     id: "decide-triggers", track: "admin", section: "a-process", kind: "feature", status: "wait",
-    priority: "medium", owner: "Dan", golive: false, size: "hours", owes: "Dan",
-    parent: "notifications",
+    priority: "medium", owner: "Dan", golive: false, owes: "Dan", parent: "notifications",
     t: "Decide the triggers",
     why: "Submission, assignment, a changed score and a reminder are four different decisions.",
   },
   {
     id: "john-s-team-validates", track: "admin", section: "a-process", kind: "feature",
-    status: "later", priority: "low", owner: "John", golive: false, size: "weeks",
+    status: "open", priority: "low", owner: "John", golive: false,
     t: "How John’s team validates evidence",
     why: "Their job changes completely and Dan expects resistance.",
   },
   {
     id: "intake-accepts-whom", track: "admin", section: "a-process", kind: "feature",
-    status: "later", priority: "low", owner: "Dan", golive: false, size: "days",
+    status: "open", priority: "low", owner: "Dan", golive: false,
     t: "What the intake accepts, and from whom",
     why: "Dan called it a protocol for the humans.",
   },
   {
     id: "initiatives-must-submit", track: "admin", section: "a-process", kind: "feature",
-    status: "later", priority: "low", owner: "Dan", golive: false, size: "hours",
+    status: "open", priority: "low", owner: "Dan", golive: false,
     t: "Which initiatives must submit",
     why: "His call. Blocks nothing we build.",
   },
   {
-    id: "personal-accounts", track: "admin", section: "a-owner", kind: "chore", status: "next",
+    id: "personal-accounts", track: "admin", section: "a-owner", kind: "chore", status: "open",
     priority: "high", owner: "ours", golive: true,
     t: "The tool runs on a personal GitHub account and a personal Firebase project",
     why: "Everything the tool is made of is held by one student. The source repository and the published site are under a personal GitHub account. The store, the sign-in and the only key are a Firebase project under a personal Google account. A co-op term ends.\n\nThis is not a note. The personal address is compiled into the product: four links a user sees on screen point at that account.\n\nAnd nothing anywhere in the repository says who owns it, when it ends, or how it is handed over. That was checked on 28 September against every file in NOTES, the README and CLAUDE.md, and there is no such sentence.\n\nThe four things under this are what turn it from a risk into a record. It was written up before as a section under her name, which made it read as her housekeeping rather than as the project’s single point of failure.",
   },
   {
-    id: "owner-of-record", track: "admin", section: "a-owner", kind: "chore", status: "next",
-    priority: "high", owner: "ours", golive: true, size: "hours",
+    id: "owner-of-record", track: "admin", section: "a-owner", kind: "chore", status: "open",
+    priority: "high", owner: "ours", golive: true,
     t: "Name an owner of record for the store",
     why: "A named person at TBS who is answerable for what is in the database, written down in the repository. The wording already exists in the requirements with the name left blank. It stays blank until somebody says it.",
   },
   {
-    id: "store-delete-date", track: "admin", section: "a-owner", kind: "chore", status: "next",
-    priority: "medium", owner: "ours", golive: false, size: "hours",
+    id: "store-delete-date", track: "admin", section: "a-owner", kind: "chore", status: "open",
+    priority: "medium", owner: "ours", golive: false,
     t: "Set a date the prototype store is deleted",
     why: "A prototype that holds real departmental answers with no end date becomes a system nobody decided to run. Pick the date now, while it is cheap, and write it beside the owner.",
   },
   {
     id: "handover-written-down", track: "admin", section: "a-owner", kind: "chore",
-    status: "next", priority: "high", owner: "ours", golive: true, size: "hours",
+    status: "open", priority: "high", owner: "ours", golive: true,
     t: "Write down how the project hands over",
     why: "One page: which accounts exist, what each one holds, what has to be transferred, and in what order, so that somebody who was not here can pick it up. Today that page does not exist, and the knowledge is in one head and in this backlog.",
   },
@@ -1082,44 +1075,43 @@ export const items = [
   },
   {
     id: "duplicate-questions", track: "questions", section: "q-broken", kind: "bug",
-    status: "next", priority: "high", owner: "ours", golive: true, size: "days",
+    status: "open", priority: "high", owner: "ours", golive: true,
     t: "The same question is asked twice in different sections",
     why: "Dan found it himself in the meeting on 26 September: he asked the same thing twice, in two different sections, and said neither of them had ever been happy with it.\n\nSo this is a defect in the instrument, not a preference. A department answering the same question twice, in two places, with two scores, makes the total meaningless and makes the tool look careless.\n\nIt needs a pass over all 176 questions to find the pairs, and then Dan’s decision on which of each pair survives. Ours to find, his to cut.",
   },
   {
     id: "conditional-questions", track: "questions", section: "q-behaviour", kind: "feature",
-    status: "later", priority: "low", owner: "ours", golive: undefined, size: "days",
+    status: "open", priority: "low", owner: "ours", golive: undefined,
     t: "Follow-on questions that only appear when they apply",
     why: "Dan’s idea, on 26 September, and he priced it himself: nice to have, not need to have, and explicitly not high priority.\n\nWhat it means. Some questions are yes or no, and they govern others. His example: if the answer to \"are all your connections secure\" is no, the follow-up about which programs are used should not be asked at all. Today it is asked anyway, and a department clicks no through a run of questions that do not apply to them.\n\nSo it is a user-experience change rather than a scoring one. It needs the question set to say which question controls which, which is another thing only Dan can supply, and it should wait until the set itself is settled.",
   },
   {
     id: "backlog-where-dan-can-see-it", track: "admin", section: "a-publish", kind: "chore",
-    status: "next", priority: "medium", owner: "ours", golive: undefined, size: "hours",
+    status: "open", priority: "medium", owner: "ours", golive: undefined,
     t: "Put this backlog where Dan can read it without being sent a link",
     why: "Asked for on 26 September. He had not seen the backlog, and asked for one in the SharePoint drive so he could look at it and say what matters more than what.\n\nHe accepted HTML when told that is what it is, and then asked the real question: is it in a Government of Canada place. It is not. It is published from a personal GitHub account, so it goes wherever the tool goes, which is the canada-ca item above.\n\nThe priority picker on this page is the other half of the same ask: it is how he says this before that without writing anything down.",
   },
   {
     id: "mail-from-a-domain-we-own", track: "admin", section: "a-signin", kind: "feature",
-    status: "next", priority: "medium", owner: "ours", golive: undefined, size: "days",
+    status: "open", priority: "medium", owner: "ours", golive: undefined,
     t: "Send sign-in mail from an address a government filter will accept",
     why: "The blocker on every route that mails somebody. What leaves today comes from noreply at a firebaseapp.com address, with no sender name, carrying a link to that same domain: no DMARC record, and a domain documented as a phishing host. Gmail put it in spam on 27 September. TBS is behind Microsoft Defender, which quarantines high-confidence phishing where the recipient cannot see it and ignores Safe Senders.\n\nTwo ways out, and neither is to wait.\n\nOne, do not use Firebase’s mail at all. Generate the link, which is free and uncapped, and send it from an ordinary Outlook mailbox. Government to government is the delivery profile most likely to arrive. This works today and needs nobody outside the team.\n\nTwo, point Firebase at a mail server we control, which is a setting on the no-cost plan. It needs a sending domain and credentials for it, and we have neither. GC Notify is the sanctioned service in the Government of Canada and offers no SMTP, only a REST interface, which makes that a piece of work rather than a setting.\n\nA third way, found on 28 September and better than either: GC Notify is free to federal public servants, sends from a government domain, and its own documentation covers sending sign-in codes. That is the sanctioned service, it solves the filtering problem at the source rather than working around it, and it needs a government email address to register, which we have. It has a REST interface and no SMTP, so Firebase cannot be pointed at it: the shape is the generator making a link and GC Notify sending it.",
   },
   {
     id: "q-may-write-prototype", track: "admin", section: "a-signin", kind: "question",
-    status: "wait", priority: "medium", owner: "ours", golive: false, size: "hours",
-    owes: "ours, then Dan",
+    status: "wait", priority: "medium", owner: "ours", golive: false, owes: "ours, then Dan",
     t: "Who may write to the prototype store",
     why: "Meanwhile: Anybody who reads the page source. Fine for unclassified drafts, and the reason the real one needs the departmental sign-in",
   },
   {
     id: "q-admin-role-assessor", track: "engine", section: "e-admin", kind: "question",
-    status: "wait", priority: "medium", owner: "ours", golive: false, size: "days", owes: "Dan",
+    status: "wait", priority: "medium", owner: "ours", golive: false, owes: "Dan",
     t: "Is admin a role, or an assessor with more buttons?",
     why: "Blocks: The admin-only actions. Meanwhile: The dashboard is built; the actions are listed and marked unbuilt",
   },
   {
     id: "q-production-intake-should", track: "admin", section: "a-publish", kind: "question",
-    status: "wait", priority: "medium", owner: "ours", golive: false, size: "weeks", owes: "TBS",
+    status: "wait", priority: "medium", owner: "ours", golive: false, owes: "TBS",
     t: "What the production intake should be",
     why: "Blocks: Production only. Meanwhile: The prototype answer is an Azure Function plus one CSP line",
   },
@@ -1197,46 +1189,44 @@ export const items = [
   },
   {
     id: "expired-session-dead-end", track: "engine", section: "e-broken", kind: "bug",
-    status: "next", priority: "high", owner: "ours", golive: true, size: "hours",
+    status: "open", priority: "high", owner: "ours", golive: true,
     t: "A session that goes bad leaves the assessor on a screen with no way to sign in",
     why: "Found on 28 September while testing the Google sign-in. An account was deleted in the console while a browser still held its session. Reloading the assessor page then drew the submissions screen, carrying a panel that read \"Sign in to see the pool\", and nothing anywhere on it to sign in with.\n\nWhy it happens: the door in front of the assessor screens opens as soon as a name is known, and the name is taken from whatever session the browser is holding at that moment. A session whose token can no longer be refreshed still carries a name, so the door opens, the store then refuses to list anything, and the screen that results asks for a sign-in it does not offer.\n\nWho it reaches: anybody whose access is taken away in the danger zone, anybody whose account is removed, and anybody whose sign-in simply stops refreshing. None of those is unusual, and what they get is a screen they cannot leave without knowing to clear their browser.\n\nThe fix is to open the door on a session the store still accepts rather than on a name being present, and to put the way back on the refusal screen either way.",
   },
   {
     id: "unclassified-only-contradiction", track: "engine", section: "e-broken", kind: "bug",
-    status: "next", priority: "medium", owner: "ours", golive: true, size: "hours",
+    status: "open", priority: "medium", owner: "ours", golive: true,
     t: "Settings says everything in the tool is unclassified, and the pool holds a Protected B record",
     why: "Noticed on 28 September while taking the same claim out of the footer, where it appeared on every screen.\n\nSettings, under Where your answers go, opens with \"Everything in this tool is unclassified. Nothing protected or classified belongs in it.\" The tool asks every assessment for a marking, offers six above unclassified, takes a pledge for them, and the real pool holds a record marked Protected B right now.\n\nSo the sentence is either wrong or badly worded, and which one it is depends on a distinction nobody has written down: whether the marking on an assessment describes the evidence it points at, or the file itself. The type says the marking must be at least as high as anything inside it, which reads as the file. The pledge screen talks about not pasting classified content in, which reads as the evidence.\n\nSettle that first, then say it once, in one place. A rule repeated in three wordings is three rules.",
   },
   {
     id: "ask-cyber-security-about-sign-in", track: "admin", section: "a-signin", kind: "chore",
-    status: "next", priority: "high", owner: "Dan", golive: true, size: "hours",
-    parent: "internal-gc-sign-in",
+    status: "open", priority: "high", owner: "Dan", golive: true, parent: "internal-gc-sign-in",
     t: "Tell TBS Cyber Security what we are signing people in with",
     why: "This is owed now, whatever happens with anything else, and nobody has done it. The Treasury Board Guideline on Cloud Authentication says an organization must contact the TBS Cyber Security Division before using a bespoke cloud authentication solution. Google sign-in plus a Firebase email link is exactly that.\n\nIt has to come from Dan rather than from us, because it is a departmental conversation and the address it goes to is zztbscybers@tbs-sct.gc.ca.\n\nTwo questions in one message. One: we run an internal tool for TBS staff and for assessors in other departments, signing in with Google and a one-time email link, and is that acceptable for a prototype. Two: is there a Government of Canada sign-in for that internal audience we should be planning toward, and what is it called this year.\n\nThe second question matters because the internal service has a name that keeps changing. The ICAM framework names GCpass. Shared Services Canada described delivering cross-department single sign-on for six departments in September 2025 and building a government-wide sign-in foundation for public servants for 2026-27, without naming it GCpass. So the capability is real and current and the name is uncertain, which is a reason to ask rather than to design around it.\n\nCORRECTED on 28 September, because the first version of this said to email zztbscybers directly. The published instruments do not work that way. The Directive on Identity Management, the Policy on Government Security and the Directive on Security Management all carry the same two lines: an individual in a department contacts their own departmental security management group, and only that group writes to the Treasury Board Secretariat. The Guideline on Cloud Authentication says organizations must contact the TBS Cyber Security Division, and means organizations.\n\nSo the first move is finding TBS’s own internal IT security contact, which the intranet has and the open web does not, and the message goes from Dan. Name the colleague who already used a Government of Canada sign-in service in it, because that is a precedent their own department has already approved.",
   },
   {
     id: "canada-login-is-for-the-public", track: "admin", section: "a-signin", kind: "question",
-    status: "later", priority: "low", owner: "Dan", golive: false, size: "weeks",
-    parent: "internal-gc-sign-in",
+    status: "open", priority: "low", owner: "Dan", golive: false, parent: "internal-gc-sign-in",
     t: "Find out how the department already uses CanadaLogin",
     why: "Dan said somebody else in the department had used a Canada sign-in service. He was right and the first answer here was wrong, so this item is what replaces it.\n\nWhat was wrong: this said CanadaLogin is for the public and not for public servants. Its own list of participating services, published on 23 September, names seven and two of them are the Treasury Board Secretariat’s: the ATIP Online Request Service, which is for anybody filing a request, and the ATIP Online Management Tools, which is staff only. That second one is ATIP practitioners inside federal institutions signing in through the same service with a credential created for work. So a department can run a staff-facing tool on it, and this department already does. That is almost certainly what Dan heard about, and it is the precedent to point at.\n\nWhat CanadaLogin is: the successor to Sign In Canada, built by the Canadian Digital Service, which as of 3 September is part of Digital Transformation Canada. Sign In Canada stopped taking new applications on 31 July 2023 and its remaining departments move across by 30 December 2026. Replaced rather than retired: the capability is not going anywhere, it is changing hands and name.\n\nWhy it is later and not next. There is no self-serve sign-up: the partner portal is not due until somewhere between October 2026 and March 2027, so onboarding today is a hands-on conversation. The terms of use ask for a departmental agreement, privacy authority, a Protected B security assessment and an authority to operate. None of that fits a co-op term.\n\nWhat to copy in the meantime, which is free. ATIP Online pairs an outside sign-in that proves somebody controls a mailbox with a code or a list issued by a named person, and that is what grants access to the department’s data. That is exactly what this tool does already, so the hand-kept assessor list is not a weakness to apologise for: it is the pattern a real government service uses.\n\nAnd one more place to ask, which came out of the same check: GC Digital Talent, run by the Public Service Commission, is on that list and verifies a Government of Canada work address to unlock the tools meant for employees. That is the nearest thing anybody has built to the question this tool has.",
   },
   {
     id: "internal-gc-sign-in", track: "admin", section: "a-signin", kind: "feature",
-    status: "next", priority: "medium", owner: "ours", golive: false, size: "weeks",
+    status: "open", priority: "medium", owner: "ours", golive: false,
     t: "Signing in with a Government of Canada credential instead of a personal one",
     why: "The end state, and everything under here is a piece of it. Today an assessor signs in with a personal Google account or a one-time link to their mailbox. Neither is a work credential, and neither can tell the tool anything about the person beyond the fact that they can read that inbox.\n\nNothing here is a this-term job. Every route runs through a named person inside a department, and the published rules say who: an individual asks their own departmental security group, and that group writes to the Treasury Board Secretariat. Not HR, and not us directly.\n\nOne thing worth knowing before any of it starts, because it will come up in the room and it is funny: the Guideline on Cloud Authentication says exceptions to using an approved Government of Canada authentication service are assessed through the GC Enterprise Architecture Review Board. The tool being built for EARB would itself be an EARB matter.\n\nTWO QUESTIONS THAT USED TO SIT BESIDE THIS ONE AS STUBS, folded in on 28 September because they are this item and not neighbours of it.\n\nVerifying an assessor’s identity. Today the tool takes a typed name and labels it unverified on everything it records. A work credential is what would change that, which is what this item is. Until then the label is the honest answer and it stays.\n\nWho may edit a stored assessment, and how that is checked. The store already answers the second half: the rules compare the signed-in address against the record. What is unsettled is the first half, and it is a policy question rather than a technical one, so it moves when this does.",
   },
   {
     id: "send-the-link-through-gc-notify", track: "admin", section: "a-signin", kind: "feature",
-    status: "next", priority: "medium", owner: "ours", golive: false, size: "days",
+    status: "open", priority: "medium", owner: "ours", golive: false,
     parent: "mail-from-a-domain-we-own",
     t: "Send the sign-in link through GC Notify, from a government address",
     why: "The real fix for mail that a departmental filter eats, and it is free. GC Notify is run by the Canadian Digital Service for federal public servants, there is no set-up fee and no procurement, and what it sends arrives from notification.canada.ca carrying the Government of Canada wordmark. That is the opposite end of the scale from noreply at a firebaseapp.com address with no DMARC record.\n\nRegistering is ours and it needs nobody. The form asks for a full name, a government email address only you can access rather than a shared inbox, a phone number for the two-factor sign-in, and a password. No manager, no departmental agreement. A new service starts in trial mode, which sends fifty a day and only to yourself, your team and addresses you put on a safelist, which is enough to test the whole thing; going live is a request in the settings.\n\nFIREBASE CANNOT BE POINTED AT IT, and this is the part worth understanding rather than retrying. Firebase’s custom mail setting asks for four things: a host, a port, a username and a password. GC Notify publishes none of them, because it has no mail server to connect to. It has a web interface you post a message to. The word SMTP does not appear on any of its fourteen documentation pages. Those four boxes will never be filled.\n\nIt still works, in a different shape. Something that is not the browser mints the link, the way deploy/make-signin-link.mjs already does, and then posts it to GC Notify as a value dropped into a template. The page finishes the sign-in when somebody clicks.\n\nWhat it costs is the thing to weigh: the tool stops being a page with nothing behind it. The key that mints links and the key that sends mail can neither of them sit in a page a browser downloads, so this needs a small piece of code running somewhere, and something to keep two secrets in. That is the first server this project would have.",
   },
   {
     id: "register-for-gc-notify", track: "admin", section: "a-signin", kind: "chore",
-    status: "next", priority: "medium", owner: "ours", golive: false, size: "hours",
+    status: "open", priority: "medium", owner: "ours", golive: false,
     parent: "send-the-link-through-gc-notify",
     t: "Register for GC Notify, which needs nobody",
     why: "Half an hour, and it unblocks the rest of that item. The form at notification.canada.ca/register asks for a full name, a government email address only you can access rather than a shared inbox, a phone number for the two-factor sign-in, and a password. No manager, no departmental agreement, no procurement.\n\nA new service starts in trial mode: fifty messages a day, and only to yourself, your team and addresses you put on a safelist. That is enough to send yourself a sign-in link from a canada.ca address and find out whether a departmental filter still eats it, which is the question that has been open for a week. Going live is a request in the settings afterwards.\n\nOne thing worth a sentence to a supervisor before going live, even though the form never asks: whether a co-op student should own a service that sends mail branded as the Government of Canada.",

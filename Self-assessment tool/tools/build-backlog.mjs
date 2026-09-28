@@ -33,10 +33,18 @@ const here = dirname(fileURLToPath(import.meta.url));
 const out = join(here, '..', 'NOTES', 'backlog.html');
 
 const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-const STATUS = { wait: 'Waiting', next: 'Next', doing: 'Doing', later: 'Later', done: 'Done' };
+/**
+ * A status says only what cannot be a preference: blocked, started, finished. 'open' is
+ * everything else and draws nothing at all.
+ *
+ * Asked: are next and later not the same as priority, considering 80% of items carry next.
+ * Measured before agreeing, and it was 53% next and 25% later, so the badge on half the page was
+ * telling a reader nothing it did not already know. How much a thing matters is the priority,
+ * which is three coloured buttons already sitting on every row.
+ */
+const STATUS = { wait: 'Waiting', doing: 'Doing', done: 'Done', open: '' };
 /** Which status a heading takes from the items under it: the furthest along anything below it. */
-const FROM_KIDS = ['doing', 'next', 'wait', 'later', 'done'];
-const SIZE = { hours: 'Hours', days: 'Days', weeks: 'Weeks' };
+const FROM_KIDS = ['doing', 'open', 'wait', 'done'];
 const RANK = { high: 0, medium: 1, low: 2 };
 
 /**
@@ -53,29 +61,25 @@ const RANK = { high: 0, medium: 1, low: 2 };
     if (!ids.has(i.section)) wrong.push(`${i.id}: no section called ${JSON.stringify(i.section)}`);
     if (!trackIds.has(i.track)) wrong.push(`${i.id}: no tab called ${JSON.stringify(i.track)}`);
     if (RANK[i.priority] === undefined) wrong.push(`${i.id}: priority ${JSON.stringify(i.priority)}`);
-    if (!STATUS[i.status]) wrong.push(`${i.id}: status ${JSON.stringify(i.status)}`);
+    if (STATUS[i.status] === undefined) wrong.push(`${i.id}: status ${JSON.stringify(i.status)}`);
     if (seen.has(i.id)) wrong.push(`${i.id}: written twice`);
     seen.add(i.id);
     if (!i.owner) wrong.push(`${i.id}: no owner. Who does the work once it is unblocked?`);
     /**
-     * Nothing under an item may be further along than the item.
+     * Nothing open may sit under something finished, which is the one case that is never right.
      *
-     * Reported as: subitems of LATER cannot be NEXT, there is no way subitems can come before the
-     * item. Right, and the page was drawing it that way because a heading takes the state of the
-     * furthest-along thing under it, which let the heading disagree with its own status field.
-     * The heading still shows what is happening underneath; the file now has to agree with it.
+     * The rule used to be that nothing under an item may be further along than the item, written
+     * when 'later' existed and a Next under a Later heading read as a contradiction. Without
+     * 'later' the contradiction is gone: a heading blocked on somebody can perfectly well have a
+     * piece under it that nobody is blocked on, and saying otherwise forced the heading to lie.
      */
     if (i.parent) {
       const p = items.find((x) => x.id === i.parent);
-      if (p && FROM_KIDS.indexOf(i.status) < FROM_KIDS.indexOf(p.status)) {
-        wrong.push(`${i.id} is '${i.status}' under a '${p.status}' parent, ${p.id}. `
-          + 'Nothing under an item may be further along than the item.');
+      if (p && p.status === 'done' && i.status !== 'done') {
+        wrong.push(`${i.id} is '${i.status}' under a finished parent, ${p.id}.`);
       }
     }
     if (i.status !== 'wait' && i.owes) wrong.push(`${i.id}: owes is for waiting items only`);
-    if (!hasKids.has(i.id) && (i.status === 'next' || i.status === 'doing') && !SIZE[i.size]) {
-      wrong.push(`${i.id}: size must be hours, days or weeks.`);
-    }
   }
   const doing = items.filter((i) => i.status === 'doing');
   if (doing.length > 2) {
@@ -182,10 +186,12 @@ background:var(--surface-2);border-radius:0 6px 6px 0}
    sideways. Reported as: they look like a mishmash and I cannot trace them. */
 /* One column per kind of mark, each a fixed width, so Next sits under Next all the way down and
    an item with an owner does not shift every other row's state sideways. */
-.marks{display:grid;grid-template-columns:5.6rem 4.8rem 3.6rem 5rem;gap:.3rem;
+.marks{display:grid;grid-template-columns:5.6rem 4.8rem 5rem;gap:.3rem;
 align-items:baseline;justify-items:start}
 .marks .cell{display:flex;gap:.25rem;min-width:0}
-@media(max-width:820px){.marks{grid-template-columns:auto auto auto auto;justify-items:end}}
+.plain{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:.4rem .9rem;
+align-items:start;padding:.6rem .6rem .6rem 1.5rem}
+@media(max-width:820px){.marks{grid-template-columns:auto auto auto;justify-items:end}}
 
 .chip{font-size:.63rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;
 border:1px solid;border-radius:999px;padding:.07rem .42rem;white-space:nowrap}
@@ -223,19 +229,23 @@ cursor:pointer;padding:0}
 .prio[data-locked=true] button{cursor:default;opacity:.55}
 
 /* The counts, along the bottom, for the tab you are looking at. */
+/* One line, and as little of the window as it can take. Asked for: keep the signed-in sentence
+   as it is, make it smaller, and fit everything on the same line. */
 .foot{position:sticky;bottom:0;z-index:25;background:var(--surface);border-top:1px solid var(--line)}
-.foot-in{max-width:1180px;margin:0 auto;padding:.4rem 1.1rem;display:flex;gap:1.1rem;align-items:baseline;
-flex-wrap:wrap;font-size:.76rem;color:var(--ink-3)}
-.foot b{font-family:var(--mono);font-size:.92rem;color:var(--ink);font-weight:600}
+.foot-in{max-width:1180px;margin:0 auto;padding:.15rem 1.1rem;display:flex;gap:.55rem;
+align-items:center;font-size:.7rem;color:var(--ink-3);white-space:nowrap;overflow-x:auto;
+scrollbar-width:none}
+.foot-in::-webkit-scrollbar{display:none}
+.foot b{font-family:var(--mono);font-size:.78rem;color:var(--ink);font-weight:600}
 /* The counts are also the filter. Pressing one shows only those, which is what the separate
    tables of waiting and deferred rows used to be, without a second copy of every row. */
-.foot button{appearance:none;font:inherit;font-size:.76rem;color:var(--ink-3);background:none;
-border:1px solid transparent;border-radius:999px;padding:.1rem .5rem;cursor:pointer;display:flex;
-gap:.3rem;align-items:baseline}
+.foot button{appearance:none;font:inherit;font-size:.7rem;color:var(--ink-3);background:none;
+border:1px solid transparent;border-radius:999px;padding:.05rem .4rem;cursor:pointer;display:flex;
+gap:.25rem;align-items:baseline;white-space:nowrap;flex:0 0 auto}
 .foot button:hover{border-color:var(--line-2);color:var(--ink-2)}
 .foot button[aria-pressed=true]{background:var(--accent-soft);border-color:var(--accent-line);color:var(--accent)}
 .foot button[aria-pressed=true] b{color:var(--accent)}
-.foot .sp{margin-left:auto;font-size:.72rem}
+.foot .sp{margin-left:auto;font-size:.7rem;padding-left:.8rem;flex:0 0 auto}
 .foot a{color:var(--accent)}
 .empty{color:var(--ink-3);font-size:.86rem;padding:.9rem;background:var(--surface);
 border:1px dashed var(--line-2);border-radius:10px}
@@ -250,7 +260,7 @@ padding:.45rem 0}
 .arch-note{font-size:.78rem;color:var(--ink-3)}
 .archive>summary:hover .arch-t{color:var(--accent)}
 /* What the marks mean, said once at the top of every tab instead of nowhere. */
-.key{font-size:.76rem;color:var(--ink-3);margin:-.9rem 0 1.5rem;display:flex;gap:.9rem;flex-wrap:wrap}
+.key{font-size:.72rem;color:var(--ink-3);margin:-1rem 0 1.4rem;display:flex;gap:.85rem;flex-wrap:wrap}
 .key b{font-weight:600;color:var(--ink-2)}
 @media(max-width:820px){
   .pane{grid-template-columns:minmax(0,1fr);gap:0}
@@ -291,19 +301,27 @@ const statusOf = (i) => {
  * an empty cell holds its place, so Next is under Next all the way down and adding an owner
  * moves nothing.
  */
-const CELLS = ['flag', 'state', 'size', 'who'];
-function chips(i) {
+const CELLS = ['flag', 'state', 'who'];
+function chips(i, tabId) {
   const st = statusOf(i);
   const cell = {
     flag: i.kind === 'bug' ? '<span class="chip k-bug">Bug</span>'
       : i.kind === 'question' ? '<span class="chip k-question">Question</span>' : '',
-    state: `<span class="chip st-${st}">${STATUS[st]}</span>`,
-    size: !isGroup(i) && SIZE[i.size] && st !== 'done'
-      ? `<span class="chip sz" title="Roughly how long the work is: hours, days or weeks">${SIZE[i.size]}</span>` : '',
+    // A status that is neither blocked, started nor finished draws nothing. An empty cell still
+    // holds its column, so the marks line up down the page either way.
+    state: STATUS[st] ? `<span class="chip st-${st}">${STATUS[st]}</span>` : '',
     who: i.owner && i.owner !== 'ours' && st !== 'done'
       ? `<span class="chip who" title="Whose work this is once it is unblocked">${esc(i.owner)}</span>` : '',
   };
-  if (i.golive) cell.flag = `<span class="chip k-golive">Go live</span>${cell.flag}`;
+  /**
+   * The Go live mark, everywhere except the tab that is made of it.
+   *
+   * Asked: we have a To go live tab and items outside it also carry a Go live tag, is that
+   * duplication. It is one record drawn twice, which is the whole arrangement: the tab is a view
+   * over the flag rather than a second list. But inside that tab the flag is on every row and
+   * says nothing, so it is left off there.
+   */
+  if (i.golive && tabId !== 'golive') cell.flag = `<span class="chip k-golive">Go live</span>${cell.flag}`;
   return `<span class="marks">${CELLS.map((k) => `<span class="cell c-${k}">${cell[k]}</span>`).join('')}</span>`;
 }
 
@@ -315,13 +333,13 @@ function prio(i) {
     + '</div>';
 }
 
-function row(i, depth = 0) {
+function row(i, tabId) {
   const kids = kidsOf(i.id).sort(order);
   const body = (i.why ? `<div class="why">${esc(i.why)}</div>` : '')
-    + (kids.length ? `<div class="kids">${kids.map((k) => row(k, depth + 1)).join('')}</div>` : '');
+    + (kids.length ? `<div class="kids">${kids.map((k) => row(k, tabId)).join('')}</div>` : '');
   const inner = body
-    ? `<details class="item"><summary><span class="t">${esc(i.t)}</span>${chips(i)}</summary>${body}</details>`
-    : `<div class="item"><div style="padding:.55rem .6rem .55rem .85rem"><span class="t">${esc(i.t)}</span> ${chips(i)}</div></div>`;
+    ? `<details class="item"><summary><span class="t">${esc(i.t)}</span>${chips(i, tabId)}</summary>${body}</details>`
+    : `<div class="item"><div class="plain"><span class="t">${esc(i.t)}</span>${chips(i, tabId)}</div></div>`;
   return `<div class="row" data-id="${esc(i.id)}" data-priority="${i.priority}" `
     + `data-status="${statusOf(i)}" data-kind="${i.kind}" data-golive="${i.golive}" `
     + `data-group="${isGroup(i)}"${i.owes ? ' data-owes="1"' : ''}>${inner}${prio(i)}</div>`;
@@ -353,7 +371,7 @@ const panes = tracks.map((tr) => {
   const body = drawn.length
     ? drawn.map(({ s, rows }) => {
       const head = `<h2 id="s-${esc(tr.id)}-${esc(s.id)}">${esc(s.title)} <span class="c">${rows.length}</span></h2>`;
-      const card = `<div class="card">${rows.map((i) => row(i)).join('')}</div>`;
+      const card = `<div class="card">${rows.map((i) => row(i, tr.id)).join('')}</div>`;
       /**
        * Done is an archive and it is the longest list on the page. Asked for directly: we want
        * the whole heading toggled, and closed by default. So the heading is the control.
@@ -370,10 +388,9 @@ const panes = tracks.map((tr) => {
 <nav class="side"><div class="lead">${esc(tr.title)}</div>${nav}</nav>
 <main><p class="tab-hint">${esc(tr.hint)}</p>
 <p class="key"><span><b>Bug</b> broken, not missing</span>
-<span><b>Hours / Days / Weeks</b> roughly how long the work is</span>
+<span><b>Waiting</b> blocked on somebody outside</span>
 <span><b>A name</b> whose work it is</span>
-<span><b>owes it</b> somebody was asked and has not answered</span>
-<span><b>nobody has asked</b> it is on the list and the question has never gone out</span></p>
+<span><b>H M L</b> how much it matters, and anybody signed in can change it</span></p>
 ${body}</main>
 </section>`;
 }).join('\n');
@@ -480,10 +497,9 @@ const SCRIPT = `<script>
    * state of the items under it, and counting it as well says there is more work than there is.
    */
   var MATCH = {
-    doing: function (r) { return r.dataset.status === 'doing'; },
-    next: function (r) { return r.dataset.status === 'next'; },
+    open: function (r) { return r.dataset.status === 'open'; },
     wait: function (r) { return r.dataset.status === 'wait'; },
-    later: function (r) { return r.dataset.status === 'later'; },
+    doing: function (r) { return r.dataset.status === 'doing'; },
     done: function (r) { return r.dataset.status === 'done'; },
     bug: function (r) { return r.dataset.kind === 'bug' && r.dataset.status !== 'done'; },
     question: function (r) { return r.dataset.kind === 'question' && r.dataset.status !== 'done'; },
@@ -678,8 +694,8 @@ const html = [
   '<div class="cols">', panes, '</div>',
   '<footer class="foot"><div class="foot-in">',
   [
-    ['doing', 'doing'], ['next', 'next'], ['wait', 'waiting on somebody'],
-    ['later', 'later'], ['bug', 'broken'], ['question', 'open questions'], ['done', 'done'],
+    ['open', 'open'], ['wait', 'waiting on somebody'], ['doing', 'doing'],
+    ['bug', 'broken'], ['question', 'questions'], ['done', 'done'],
   ].map(([k, label]) => `<button type="button" data-filter="${k}" aria-pressed="false">`
     + `<b id="n-${k}">0</b> ${esc(label)}</button>`).join(''),
   '<span class="sp" id="signed"></span>',
