@@ -111,6 +111,10 @@ function confirmDeletion(code: string, name: string, after: () => void): void {
     onCommit: () => {
       void deleteRecord(code).then((res) => {
         if (!res.ok) { alert(res.problem); return; }
+        if (res.already) {
+          alert(t('That assessment had already been removed from the store. The row you pressed was a list read when this page loaded. It is gone from the list now.',
+                  'Cette évaluation avait déjà été retirée du dépôt. La ligne sur laquelle vous avez appuyé provenait d\u2019une liste lue au chargement de la page. Elle a maintenant disparu de la liste.'));
+        }
         after();
       });
     },

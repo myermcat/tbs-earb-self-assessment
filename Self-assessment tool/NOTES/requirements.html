@@ -145,9 +145,9 @@ background:var(--surface);border:1px solid var(--line);border-radius:10px;list-s
 .kpi a{color:inherit;text-decoration:none}
 </style>
 <div class="head"><div class="head-in"><h1>GC EA self-assessment: requirements specification</h1>
-<p class="sub">Living document, updated 2026-09-28. 131 requirements, baselined at each release. Following ISO/IEC/IEEE 29148:2018, tailored.</p></div></div>
+<p class="sub">Living document, updated 2026-09-28. 135 requirements, baselined at each release. Following ISO/IEC/IEEE 29148:2018, tailored.</p></div></div>
 <nav class="topnav"><div class="topnav-in">
-<span class="nav-kpi"><b>77</b><span>built</span></span>
+<span class="nav-kpi"><b>81</b><span>built</span></span>
 <span class="nav-kpi"><b>30</b><span>agreed, not built</span></span>
 <span class="nav-kpi"><b>3</b><span>proposed</span></span>
 <span class="nav-kpi"><b>21</b><span>open</span></span>
@@ -348,6 +348,34 @@ background:var(--surface);border:1px solid var(--line);border-radius:10px;list-s
 <span class="st st-later">Open</span>
 <span class="req-owner">Mariia owes this</span>
 <span class="req-note">The published page carries the key, which is how Firebase is meant to work: it names the project and authorises nothing by itself. GitHub secret scanning flags it anyway, because the same shape of key can carry billable access on other Google APIs. A command-line call reached the project with no site attached, so the key today carries no restriction. The restriction to write is websites myermcat.github.io and localhost, APIs Identity Toolkit, Token Service and Cloud Firestore. What guards the data is the sign-in and the published rules, so this is about somebody else spending the project’s free quota.</span>
+</div>
+<div class="req">
+<span class="req-id mono">S30</span>
+<span class="req-t">An assessor never writes an assessment. Not restricted, not filtered: they have no write on that document at all.</span>
+<span class="st st-done">Built</span>
+<span class="req-owner">Mariia owes this</span>
+<span class="req-note">Enforced by Google and not by the page being careful, which is the test every line below has to pass. The audit lives in a document beside the assessment, so an assessor does not need a write on the assessment and does not have one. A department’s answers and evidence cannot be reached by an assessor even by mistake, and there is no code path that would try. Proved in test/rules.mjs against Google’s own emulator rather than by reading the file.</span>
+</div>
+<div class="req">
+<span class="req-id mono">S31</span>
+<span class="req-t">An assessor edits their own audit and nobody else’s.</span>
+<span class="st st-done">Built</span>
+<span class="req-owner">Mariia owes this</span>
+<span class="req-note">The document is named with the writer’s address and the rule is `entry == email()`, with a second test that the reviewer field inside it matches too, so an assessor cannot sign their own document with somebody else’s name. A second assessor writes a second document and both stand. Enforced by Google: a request written by hand with another assessor’s document name is refused.</span>
+</div>
+<div class="req">
+<span class="req-id mono">S32</span>
+<span class="req-t">Every assessor’s reading is shown side by side, and there is no single score of record.</span>
+<span class="st st-done">Built</span>
+<span class="req-owner">Mariia, then Dan owes this</span>
+<span class="req-note">Decided by Mariia on 28 September, to put to Dan. Under each question the submitter’s answer comes first, then one block per assessor: their name, their score, their verdict, their reason. No combined number is computed. Two assessors who disagree are for the board to settle in the room, and a tool that averaged them would be making that decision quietly and badly. The open part is process rather than code: if EARB needs one number per question, somebody has to own it.</span>
+</div>
+<div class="req">
+<span class="req-id mono">S33</span>
+<span class="req-t">The department reads every audit written about its own assessment.</span>
+<span class="st st-done">Built</span>
+<span class="req-owner">Mariia owes this</span>
+<span class="req-note">A score with a reason nobody can read is a score with no appeal. Enforced by Google: the rule reads the owner off the parent assessment, because an audit document has no owner of its own. That is the bug it replaced, which said an owner could read and let none through for as long as it stood. The assessor test is evaluated first, because a get() inside a rule is a billable read on every request that reaches it and only a department should ever pay for one.</span>
 </div>
 <div class="req">
 <span class="req-id mono">S29</span>
