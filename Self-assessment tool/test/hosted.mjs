@@ -671,7 +671,7 @@ console.log('\nThe published build, signed in\n');
    * read-only here: an opinion about a question belongs in the audit, which is its own screen
    * with its own reasons attached.
    */
-  [...doc.querySelectorAll('.row-acts button')].find((b) => /^Open$/.test(b.textContent.trim())).click();
+  doc.querySelector('.triage tbody tr.row-open').dispatchEvent(new dom.window.MouseEvent('click', { bubbles: true }));
   await new Promise((r) => setTimeout(r, 60));
   const catBox = [...doc.querySelectorAll('.card')]
     .find((c) => c.querySelector('h2')?.textContent === 'By category');
@@ -1790,9 +1790,14 @@ console.log('\nThe published build, signed in\n');
     audits: { [one.id]: [theirs] },
   });
 
-  const open = [...doc.querySelectorAll('.row-acts button')].find((b) => /^Open$/.test(b.textContent.trim()));
-  ok('a submission can be opened', !!open, [...doc.querySelectorAll('.row-acts button')].map((b) => b.textContent).join(' | '));
-  open.click();
+  // The row is the way in now. The Open button at the end of eleven columns is gone, and the
+  // menu still carries one for anybody who looks there first.
+  const row = doc.querySelector('.triage tbody tr.row-open');
+  ok('the row itself opens the submission', !!row);
+  ok('and the menu still offers it in words',
+     [...doc.querySelectorAll('.row-acts .menu-item')].some((b) => /Open this submission/.test(b.textContent)),
+     [...doc.querySelectorAll('.row-acts .menu-item')].map((b) => b.textContent).join(' | '));
+  row.dispatchEvent(new dom.window.MouseEvent('click', { bubbles: true }));
   await new Promise((r) => setTimeout(r, 120));
 
   ok('opening one reads the audits written against it',
@@ -1849,10 +1854,13 @@ console.log('\nThe published build, signed in\n');
   });
   await new Promise((r) => setTimeout(r, 150));
   const said = body(doc);
-  ok('the list says which one you have audited', /Audited by you/.test(said), said.slice(0, 260));
-  ok('and which one somebody else has', /Audited by 1/.test(said), said.slice(0, 260));
-  ok('and the two are told apart, because the question is whether you already looked',
-     said.indexOf('Audited by you') !== said.indexOf('Audited by 1'));
+  const auditedCells = [...doc.querySelectorAll('.triage tbody tr')]
+    .map((tr) => tr.querySelector('.audited-who, .muted[title*="audit"]')?.textContent?.trim() ?? '');
+  ok('the list has a column saying who audited each one', auditedCells.length === 2, auditedCells.join(' | '));
+  ok('and yours says so in the first person', auditedCells.some((x) => /^You/.test(x)), auditedCells.join(' | '));
+  ok('and somebody else is named rather than counted', auditedCells.some((x) => /Nick/.test(x)), auditedCells.join(' | '));
+  ok('and a row nobody has touched says so in words rather than leaving a blank',
+     !auditedCells.some((x) => x === ''), auditedCells.join(' | '));
 
   /**
    * And the two counts read as one sentence.

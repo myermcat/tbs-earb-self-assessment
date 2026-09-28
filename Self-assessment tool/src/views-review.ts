@@ -50,6 +50,18 @@ interface Loaded {
   auditedBy?: string[];
   /** Whether this assessor is one of them, which is the thing they look for first. */
   auditedByMe?: boolean;
+  /**
+   * Whether this row arrived from the shared store rather than from a file on this machine.
+   *
+   * Kept because the session list is written to this browser and restored on every load, so a
+   * record deleted from the store a week ago came back for ever, sat in the worklist, and was
+   * counted as something somebody had opened from a file. Reported as both: a submission that
+   * was deleted still showing in the table, and "1 opened from files here" by somebody who has
+   * never opened a file.
+   */
+  fromStore?: boolean;
+  /** Came from the store, and the store no longer has it. Kept only when it has been audited. */
+  goneFromStore?: boolean;
 }
 
 /**
@@ -164,6 +176,9 @@ function scheduleAuditSave(l: Loaded, after: () => void = () => {}): void {
   const timer = setTimeout(() => {
     const audit = l.a.audit;
     if (!audit) return;
+    // Stamped locally as well as in the document, so a browser that later belongs to somebody
+    // else can tell whose work it is holding.
+    audit.reviewer = currentUser()?.email ?? '';
     void putAudit(code, {
       reviewer: currentUser()?.email ?? '',
       reviewerName: auditor,
@@ -195,7 +210,7 @@ const AUDIT_KEY = storeKey('audit-session');
 
 function keepSession(): void {
   try {
-    localStorage.setItem(AUDIT_KEY, JSON.stringify(loaded.map((l) => ({ file: l.file, a: l.a }))));
+    localStorage.setItem(AUDIT_KEY, JSON.stringify(loaded.map((l) => ({ file: l.file, a: l.a, fromStore: l.fromStore }))));
   } catch {
     /* private window, or full. The session still holds in this tab. */
   }
@@ -206,7 +221,7 @@ function restoreSession(rubric: Rubric): void {
   try {
     const raw = localStorage.getItem(AUDIT_KEY);
     if (!raw) return;
-    const rows = JSON.parse(raw) as { file: string; a: Assessment }[];
+    const rows = JSON.parse(raw) as { file: string; a: Assessment; fromStore?: boolean }[];
     for (const row of rows) {
       if (row?.a?.fileType !== 'gc-arch-assessment') continue;
       /**
@@ -217,11 +232,23 @@ function restoreSession(rubric: Rubric): void {
        * they arrived from.
        */
       if (row.a.meta?.appVersion === DEMO_MARK) continue;
+      /**
+       * An audit belongs to the person who wrote it, and this browser is not that person.
+       *
+       * Reported after signing in as somebody else: a question said "you: 3" about a score
+       * another account had given. The audit was restored out of this browser's own key with no
+       * regard for who is signed in, and the screen labels the audit it holds as yours. It is
+       * one document per assessor in the store now, so the right copy is read back by address;
+       * what is held here for somebody else is dropped rather than relabelled.
+       */
+      const holder = row.a.audit?.reviewer ?? '';
+      if (holder && holder !== (currentUser()?.email ?? '')) delete row.a.audit;
       const own = rubricFor(BUILTIN as unknown as Rubric, row.a.rubric);
       const use = own ?? rubric;
       const r = score(use, row.a);
       loaded.push({ file: row.file, a: row.a, rubric: use, substituted: !own,
-        lost: own ? 0 : lostAnswers(use, row.a), r, fs: flags(use, row.a, r) });
+        lost: own ? 0 : lostAnswers(use, row.a), r, fs: flags(use, row.a, r),
+        fromStore: row.fromStore });
     }
   } catch {
     /* a half-written record is not worth failing the page over */
@@ -295,7 +322,7 @@ function absorb(rubric: Rubric, answer: PoolAnswer): void {
     const r = score(use, a);
     const row: Loaded = {
       file: a.initiative?.name?.trim() || a.ref || rec.id,
-      a, rubric: use, substituted: !own, r, fs: flags(use, a, r),
+      a, rubric: use, substituted: !own, r, fs: flags(use, a, r), fromStore: true,
     };
     /**
      * A submission is no longer a thing that stops moving. A submitter keeps working after
@@ -318,7 +345,29 @@ function absorb(rubric: Rubric, answer: PoolAnswer): void {
     loaded.push(row);
     added++;
   }
-  if (added) keepSession();
+  /**
+   * A row the store no longer has.
+   *
+   * The session list is written to this browser and restored on every load, so a record an
+   * admin deleted came back for ever: it sat in the worklist, it was counted as something
+   * somebody had opened from a file, and pressing delete on it answered that there was no such
+   * submission, about a row on screen. Both were reported in the same sitting.
+   *
+   * Nothing audited is thrown away. A row with an audit on it stays and says what happened, so
+   * an assessor can take a copy of their own work before it goes. A row with nothing on it goes
+   * quietly, because it is a stale copy of somebody else's record and nobody is owed a window
+   * about it.
+   */
+  const inPool = new Set(answer.records.map((rec) => rec.assessment?.id).filter(Boolean));
+  let dropped = 0;
+  for (let i = loaded.length - 1; i >= 0; i--) {
+    const l = loaded[i];
+    if (!l.fromStore || !l.a.id || inPool.has(l.a.id)) continue;
+    if (Object.keys(l.a.audit?.perQuestion ?? {}).length) { l.goneFromStore = true; continue; }
+    loaded.splice(i, 1);
+    dropped++;
+  }
+  if (added || dropped) keepSession();
   poolNow = { state: 'ok', found: answer.records.length };
 }
 
@@ -443,7 +492,7 @@ export function renderReview(root: HTMLElement, rubric: Rubric): void {
    * whatever was opened from a file. Two numbers with no relation stated is a puzzle, so the
    * sentence states it and the numbers only appear when they differ.
    */
-  const fromFiles = Math.max(0, loaded.length - (poolNow.state === 'ok' ? poolNow.found : 0));
+  const fromFiles = loaded.filter((l) => !l.fromStore).length;
   const where = poolNow.state !== 'ok'
     ? `${loaded.length} open, read from files in this browser.`
     : fromFiles === 0
@@ -593,13 +642,41 @@ function paintList(rubric: Rubric, root: HTMLElement) {
       el('th', {}, ['Department']), el('th', {}, ['Marking']),
       el('th', {}, ['Code and set']),
       el('th', {}, ['Stage']), el('th', {}, ['Score']), el('th', {}, ['Routing']),
-      el('th', {}, ['Must ask']), el('th', {}, ['Evidence']), el('th', {}, ['Complete']), el('th', {}, ['']),
+      el('th', {}, ['Must ask']), el('th', {}, ['Evidence']), el('th', {}, ['Complete']),
+      // Its own column, because "has anybody looked at this" is a fact about the row and was
+      // reading as a tag stuck on the state the department set.
+      el('th', { title: 'Who has written an audit on this submission' }, ['Audited']),
+      el('th', {}, ['']),
     ])]),
   ]);
   const tb = el('tbody', {});
   for (const l of rows) {
     const highs = l.fs.filter((f) => f.severity === 'high').length;
-    tb.appendChild(el('tr', {}, [
+    /**
+     * The row opens the submission, and the button that used to is gone.
+     *
+     * A worklist where the only way in is a small button at the far right makes somebody cross
+     * eleven columns to act on what they have already read. Clicking anywhere that is not
+     * itself a control opens it, the keyboard opens it, and Open is still in the row menu for
+     * anybody who looks there first.
+     */
+    const openThis = (e: Event) => {
+      if ((e.target as HTMLElement).closest('button, a, summary, input, label, details')) return;
+      openDetail(l.rubric, root, l);
+    };
+    tb.appendChild(el('tr', {
+      class: 'row-open',
+      tabindex: 0,
+      role: 'link',
+      title: `Open ${l.a.initiative?.name || l.file}`,
+      onclick: openThis,
+      onkeydown: (e: Event) => {
+        const k = (e as KeyboardEvent).key;
+        if (k !== 'Enter' && k !== ' ') return;
+        e.preventDefault();
+        openDetail(l.rubric, root, l);
+      },
+    }, [
       el('td', {}, [
         l.a.initiative?.name || l.file,
         // A submitter keeps working after they say it is ready, so a row can be newer than the
@@ -620,26 +697,6 @@ function paintList(rubric: Rubric, root: HTMLElement) {
               title: `Marked ready to review on ${new Date(l.a.meta.submittedAt).toLocaleString()}`,
             }, ['Ready'])
           : el('span', { class: 'muted', title: 'Nobody has said this one is finished' }, ['Draft']),
-        /**
-         * Whether anybody has audited it, and whether that anybody is you.
-         *
-         * Reported as: I assessed one of the questions and nothing on this list says so. Your
-         * own mark comes first and in words, because the question somebody actually has when
-         * they open this screen is "did I already look at this one".
-         */
-        l.auditedByMe
-          ? el('span', {
-              class: 'badge tag',
-              title: (l.auditedBy ?? []).length > 1
-                ? `Audited by you and ${(l.auditedBy ?? []).length - 1} other${(l.auditedBy ?? []).length === 2 ? '' : 's'}: ${(l.auditedBy ?? []).join(', ')}`
-                : 'You have written an audit on this one',
-            }, [(l.auditedBy ?? []).length > 1 ? `Audited by you, +${(l.auditedBy ?? []).length - 1}` : 'Audited by you'])
-          : (l.auditedBy ?? []).length
-            ? el('span', {
-                class: 'badge badge-soft tag',
-                title: `Audited by ${(l.auditedBy ?? []).join(', ')}. You have written nothing on this one.`,
-              }, [`Audited by ${(l.auditedBy ?? []).length}`])
-            : null,
       ]),
       el('td', {}, [l.a.initiative?.department ?? '--']),
       el('td', { class: 'small' }, [l.a.initiative?.classification || 'unmarked']),
@@ -674,12 +731,17 @@ function paintList(rubric: Rubric, root: HTMLElement) {
       el('td', { class: 'small' }, [`${Math.round(l.r.completeness * 100)}%`]),
       // The detail reads the set this submission was answered against, so the questions and
       // weights on screen are the ones the department actually answered.
+      el('td', { class: 'small' }, [auditedCell(l)]),
       el('td', {}, [
         el('div', { class: 'row-acts' }, [
-          el('button', { class: 'ghost small', onclick: () => openDetail(l.rubric, root, l) }, ['Open']),
           el('details', { class: 'set-menu row-menu' }, [
             el('summary', { class: 'set-menu-btn', 'aria-label': 'More actions', title: 'More actions' }, ['\u22EF']),
             el('div', { class: 'set-menu-pop' }, [
+              el('button', {
+                class: 'menu-item',
+                onclick: () => openDetail(l.rubric, root, l),
+              }, ['Open this submission']),
+              el('div', { class: 'menu-sep' }),
               l.a.id
                 /**
                  * Copying says it copied, and the menu goes.
@@ -780,10 +842,13 @@ function paintList(rubric: Rubric, root: HTMLElement) {
        * finished with. Deleting a record from the store is an admin's act, in Settings, one
        * assessment at a time, and it asks for the code.
        */
-      el('button', {
-        class: 'ghost small',
-        onclick: () => { forgetPool(); repaint(); },
-      }, ['Check the pool again']),
+      /**
+       * There is one of these on this screen and there were two.
+       *
+       * "Check the pool again" sat on this toolbar and "Check the store again" sat on the line
+       * above the table, doing the same thing in different words, which reads as two features.
+       * The one on the source line stays, because that line is what it is about.
+       */
     ]),
     el('div', { class: 'table-wrap' }, [table]),
   ]));
@@ -823,6 +888,38 @@ function openDetail(rubric: Rubric, root: HTMLElement, l: Loaded) {
   root.appendChild(el('section', { class: 'card tight actions' }, [
     el('button', { class: 'ghost', onclick: () => renderReview(root, rubric) }, ['Back to the list']),
     el('span', { class: 'muted small' }, [l.file]),
+  ]));
+
+  /**
+   * The heading of this view goes at the top of it.
+   *
+   * It had drifted below the version trail, so opening a submission led with who saved it last
+   * and how many saves there had been, and the name of the initiative and its score came after.
+   * Reported as: why did this move, it is the heading of the view.
+   */
+  root.appendChild(el('section', { class: 'card headline' }, [
+    el('div', { class: `bigscore ${tone(r.overall)}` }, [
+      el('span', { class: 'num' }, [r.overall === null ? '--' : r.overall.toFixed(1)]),
+      el('span', { class: 'outof' }, ['self-scored']),
+    ]),
+    el('div', { class: 'headline-text' }, [
+      el('h1', {}, [a.initiative.name || l.file]),
+      el('p', { class: 'muted small' }, [
+        [a.initiative.department, a.initiative.contact,
+         rubric.lifecycleStages.find((x) => x.id === a.initiative.lifecycleStage)?.label]
+          .filter(Boolean).join('  ·  '),
+      ]),
+      el('div', { class: `marking-inline ${a.initiative.classification ? '' : 'unmarked'}` }, [
+        a.initiative.classification ? `Marked ${a.initiative.classification}` : 'This submission is unmarked',
+      ]),
+      a.initiative.summary ? el('p', { class: 'small' }, [a.initiative.summary]) : null,
+      r.maturity ? el('div', { class: 'maturity' }, [
+        el('strong', {}, [r.maturity.label]), el('div', { class: 'small' }, [r.maturity.detail]),
+      ]) : null,
+      r.band ? el('div', { class: `band ${r.band.tone}` }, [
+        el('strong', {}, [r.band.label]), el('div', { class: 'small' }, [r.band.routing]),
+      ]) : null,
+    ]),
   ]));
 
   /**
@@ -869,7 +966,10 @@ function openDetail(rubric: Rubric, root: HTMLElement, l: Loaded) {
       const table = el('table', { class: 'trail-table' }, [
         el('thead', {}, [el('tr', {}, [
           el('th', {}, ['When']), el('th', {}, ['Who']), el('th', {}, ['What']),
-          el('th', {}, ['Score']), el('th', {}, ['Answered']),
+          el('th', {}, ['Score']),
+          // "Answered" read as something an assessor had done. It is the department's own
+          // progress at that save: how many of the 176 they had filled in by then.
+          el('th', { title: 'How many of the questions the department had filled in at that save' }, ['Answers filled in']),
         ])]),
       ]);
       const tbody = el('tbody', {});
@@ -956,30 +1056,6 @@ function openDetail(rubric: Rubric, root: HTMLElement, l: Loaded) {
     }
   }
 
-  root.appendChild(el('section', { class: 'card headline' }, [
-    el('div', { class: `bigscore ${tone(r.overall)}` }, [
-      el('span', { class: 'num' }, [r.overall === null ? '--' : r.overall.toFixed(1)]),
-      el('span', { class: 'outof' }, ['self-scored']),
-    ]),
-    el('div', { class: 'headline-text' }, [
-      el('h1', {}, [a.initiative.name || l.file]),
-      el('p', { class: 'muted small' }, [
-        [a.initiative.department, a.initiative.contact,
-         rubric.lifecycleStages.find((x) => x.id === a.initiative.lifecycleStage)?.label]
-          .filter(Boolean).join('  ·  '),
-      ]),
-      el('div', { class: `marking-inline ${a.initiative.classification ? '' : 'unmarked'}` }, [
-        a.initiative.classification ? `Marked ${a.initiative.classification}` : 'This submission is unmarked',
-      ]),
-      a.initiative.summary ? el('p', { class: 'small' }, [a.initiative.summary]) : null,
-      r.maturity ? el('div', { class: 'maturity' }, [
-        el('strong', {}, [r.maturity.label]), el('div', { class: 'small' }, [r.maturity.detail]),
-      ]) : null,
-      r.band ? el('div', { class: `band ${r.band.tone}` }, [
-        el('strong', {}, [r.band.label]), el('div', { class: 'small' }, [r.band.routing]),
-      ]) : null,
-    ]),
-  ]));
 
   root.appendChild(el('section', { class: 'card' }, [
     el('div', { class: 'kpi-row' }, [
@@ -1210,6 +1286,26 @@ function flagCard(f: Flag): HTMLElement {
     flagTitle(f),
     el('div', { class: 'small' }, [f.detail]),
     f.challenge ? el('div', { class: 'small challenge' }, [f.challenge]) : null,
+  ]);
+}
+
+/**
+ * Who has audited this submission, for its own column.
+ *
+ * Asked for as a column rather than a tag beside the state, and the two are different facts:
+ * the state is what the department said about itself, and this is what assessors have done
+ * since. Nobody having looked is said in words, because an empty cell reads as a cell that has
+ * not loaded.
+ */
+function auditedCell(l: Loaded): HTMLElement {
+  const who = l.auditedBy ?? [];
+  if (!who.length) return el('span', { class: 'muted', title: 'Nobody has written an audit on this one' }, ['Nobody yet']);
+  const title = `Audited by ${who.join(', ')}`;
+  if (!l.auditedByMe) return el('span', { class: 'audited-who', title }, [who.join(', ')]);
+  const others = who.length - 1;
+  return el('span', { class: 'audited-who audited-mine', title }, [
+    el('b', {}, ['You']),
+    others ? `, and ${others} other${others === 1 ? '' : 's'}` : '',
   ]);
 }
 
