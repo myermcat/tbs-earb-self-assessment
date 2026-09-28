@@ -115,10 +115,10 @@ export const items = [
     why: "He was demonstrated it. The question of how he gets his own account is the Google sign-in item below.",
   },
   {
-    id: "check-whether-google-sign", track: "admin", section: "a-signin", kind: "feature",
-    status: "next", priority: "high", owner: "ours", golive: true, size: "hours",
-    t: "Check whether Google sign-in works for anybody but us",
-    why: "Two minutes, and until it is done we do not know whether any assessor can sign in.\n\nWhen somebody presses Sign in with Google, Google decides whether to let them through before the tool is involved at all. That decision is one setting: Google Cloud console, project tbs-earb-self-assessment, Google Auth Platform, Audience.\n\nIf it says External and In production, anybody with a Google account can sign in and this is closed. If it says Testing, only addresses typed into the Test users list on that page can, and everybody else gets Google’s own Access blocked page and never comes back to the tool. If it says Internal, only addresses in the same Google Workspace can.\n\nThe only evidence on file is that Mariia got through once, and she owns the project, which proves nothing about anybody else. Google is the only sign-in button in the tool, so this one setting gates every assessor account.\n\nThe old wording sent you to the Firebase console, under Authentication, which does not show this setting at all.",
+    id: "check-whether-google-sign", track: "admin", section: "a-done", kind: "feature",
+    status: "done", priority: "high", owner: "ours", golive: false,
+    t: "Google sign-in works for anybody, not only us",
+    why: "Checked on 28 September in the Google Cloud console for project tbs-earb-self-assessment, under Google Auth Platform, Audience. It reads External and In production, so any Google account can sign in and nobody has to be added to a list of test users first.\n\nThe page also shows a cap of 100 users over the project lifetime. That cap applies only to an application asking for sensitive or restricted permissions, and this one asks for an address and a name, so it does not bite.\n\nWhat this does not settle is whether an assessor wants to use a personal Google account for government work. That is the Microsoft item.",
   },
   {
     id: "put-real-submission-pool", track: "engine", section: "e-assessor", kind: "feature",
@@ -1072,10 +1072,10 @@ export const items = [
     why: "One page: which accounts exist, what each one holds, what has to be transferred, and in what order, so that somebody who was not here can pick it up. Today that page does not exist, and the knowledge is in one head and in this backlog.",
   },
   {
-    id: "phone-signin-retype", track: "engine", section: "e-broken", kind: "bug", status: "next",
-    priority: "high", owner: "ours", golive: false, size: "hours",
+    id: "phone-signin-retype", track: "engine", section: "e-done", kind: "bug", status: "done",
+    priority: "high", owner: "ours", golive: false,
     t: "A sign-in link opened on a phone makes you retype the address, and one wrong character refuses it",
-    why: "Reported from a phone on 27 September: the link opened in Safari, the address was typed, and the answer was a refusal that printed the service’s own code.\n\nWhat happens and why. The address a link was sent to is remembered in the browser that asked for it. A phone never asked, so it has nothing to remember, and the screen has to ask. Firebase refuses to finish without it, deliberately, because a link that signed somebody in on its own would sign in whoever opened the mail.\n\nWhat was ruled out on 28 September, by asking the service directly with four generated links and no mail sent: it is not capitalisation. The service accepted the address typed exactly, with the first letter capitalised, and in full capitals, and refused only a genuinely different address. The whole flow was then driven on the live page from a browser that had never asked, and it signed in. So the code is right and the refusal means the two addresses really did differ, by a dot, an alias, or the link having been issued for the other mailbox.\n\nThe fix is to stop asking. The address can travel in the link’s return address, so the screen can say which address the link was sent to and offer it already filled in. It must still take a press, not sign somebody in on arrival: otherwise a crafted link could sign you in as somebody else, which is the reason Firebase asks in the first place.",
+    why: "Reported from a phone on 27 September: the link opened in Safari, the address was typed, and the answer was a refusal that printed the service’s own code.\n\nWhat happens and why. The address a link was sent to is remembered in the browser that asked for it. A phone never asked, so it has nothing to remember, and the screen has to ask. Firebase refuses to finish without it, deliberately, because a link that signed somebody in on its own would sign in whoever opened the mail.\n\nWhat was ruled out on 28 September, by asking the service directly with four generated links and no mail sent: it is not capitalisation. The service accepted the address typed exactly, with the first letter capitalised, and in full capitals, and refused only a genuinely different address. The whole flow was then driven on the live page from a browser that had never asked, and it signed in. So the code is right and the refusal means the two addresses really did differ, by a dot, an alias, or the link having been issued for the other mailbox.\n\nThe fix is to stop asking. The address can travel in the link’s return address, so the screen can say which address the link was sent to and offer it already filled in. It must still take a press, not sign somebody in on arrival: otherwise a crafted link could sign you in as somebody else, which is the reason Firebase asks in the first place.\n\nLanded on 28 September. The link now carries the address it was issued for, the screen names it, and the button says which account the press would enter. Proved first that capitalisation was not the cause: four generated links, no mail sent, and the service accepted the address typed exactly, capitalised and in full capitals, refusing only a genuinely different one.",
   },
   {
     id: "duplicate-questions", track: "questions", section: "q-broken", kind: "bug",
@@ -1201,5 +1201,11 @@ export const items = [
     status: "done", priority: "low", owner: "ours", golive: false, seen: true,
     t: "How does the dashboard stay current?",
     why: "By storing nothing. It recalculates each record from its answers as the page draws, so there is no roll-up that can go stale.",
+  },
+  {
+    id: "link-generator-without-sending", track: "admin", section: "a-done", kind: "chore",
+    status: "done", priority: "medium", owner: "ours", golive: false,
+    t: "Make a sign-in link without sending any mail",
+    why: "Built on 28 September, and it takes the cost out of every sign-in experiment from here on. Sending a link is capped at five a day for the whole project; generating one is a different operation with a limit of 20,000 a day and it posts nothing.\n\nSo a link can be made on a laptop and pasted into an ordinary message from a government mailbox to a government mailbox, which is the delivery profile most likely to arrive, and the day’s five stay untouched.\n\nIt needs a service-account key, which can act as the whole project, so it refuses to read one from inside this repository at all: the repository is public and a key committed by accident cannot be un-published.",
   },
 ];
