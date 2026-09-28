@@ -103,7 +103,16 @@ const reply = await fetch(`${IDENTITY}/projects/${key.project_id}/accounts:sendO
   body: JSON.stringify({
     requestType: 'EMAIL_SIGNIN',
     email,
-    continueUrl: RETURN_TO,
+    /**
+     * The address rides back on the return address, the same way it does when the tool sends the
+     * link itself. Without it a generated link lands on a screen that has to ask which address it
+     * went to, which is the screen that produced an unexplainable refusal on a phone: the person
+     * typed an address, it did not match, and nothing said what the right one was.
+     *
+     * It opens nothing on its own. The one-time code only works for the address it was minted
+     * for, and the screen still waits to be pressed, with the address on the button.
+     */
+    continueUrl: `${RETURN_TO}${RETURN_TO.includes('?') ? '&' : '?'}e=${encodeURIComponent(email)}`,
     canHandleCodeInApp: true,
     returnOobLink: true,
   }),
