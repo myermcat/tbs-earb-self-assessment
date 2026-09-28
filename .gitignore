@@ -33,3 +33,13 @@ deploy/.firebase/
 # Left behind by the Firestore emulator when npm run test:rules runs.
 firestore-debug.log
 firebase-debug.log
+
+# A Google service-account key. It is a real credential: it signs as the Firebase Admin SDK and
+# can read and write the whole store. One was downloaded on 28 September and landed in this
+# folder, untracked but not ignored, in a repository that is public. These lines exist so that
+# `git add -A` cannot publish the next one. Keys belong OUTSIDE this folder entirely, which is
+# why deploy/make-signin-link.mjs refuses to read one from inside it.
+*-[0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f].json
+*service-account*.json
+*serviceaccount*.json
+*-key.json
