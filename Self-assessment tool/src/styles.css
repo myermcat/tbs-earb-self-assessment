@@ -1,5 +1,4 @@
-/* ==========================================================================================
-   GC EA self-assessment
+/* ===================================================================================   GC EA self-assessment
    One stylesheet, inlined into the built file. No web fonts, no CDN - the page has to work
    with the network cable out, so everything here is self-contained.
    ========================================================================================== */
@@ -2171,6 +2170,16 @@ dialog.confirm.shake { animation: cf-shake .34s cubic-bezier(.36, .07, .19, .97)
 .res-toolbar .filelabel input[type="file"] { position: absolute; width: 1px; height: 1px;
   opacity: 0; pointer-events: none; }
 
+/* The whole row opens the submission. The cursor and the hover are the only things saying so,
+   so both have to be there: a row that acts like a link and looks like a cell is a row people
+   do not click. */
+tr.row-open { cursor: pointer; }
+tr.row-open:hover td { background: var(--surface-2); }
+tr.row-open:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+/* Controls inside it keep their own cursor, because they do something else. */
+tr.row-open button, tr.row-open summary, tr.row-open label { cursor: pointer; }
+.audited-who { display: inline-block; max-width: 14rem; overflow-wrap: anywhere; }
+.audited-mine b { color: var(--accent); }
 /* The language link on a stripped-down screen, where the header carries nothing. */
 .card-lang { margin: 1rem 0 0; text-align: center; font-size: .85rem; }
 .card-lang .lang-link { color: var(--accent); }
