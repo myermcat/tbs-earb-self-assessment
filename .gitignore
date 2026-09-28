@@ -33,3 +33,6 @@ deploy/.firebase/
 # Left behind by the Firestore emulator when npm run test:rules runs.
 firestore-debug.log
 firebase-debug.log
+
+# Belt and braces: a key saved with this shape, which the link generator suggests against.
+deploy/*.json.key
