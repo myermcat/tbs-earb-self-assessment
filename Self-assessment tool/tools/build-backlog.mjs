@@ -79,6 +79,19 @@ const RANK = { high: 0, medium: 1, low: 2 };
         wrong.push(`${i.id} is '${i.status}' under a finished parent, ${p.id}.`);
       }
     }
+    /**
+     * And a heading may not disagree with what is under it.
+     *
+     * Reported: if it is done, why is it not in Done. Because the row showed the state of the
+     * furthest-along thing beneath it, which was done, while its own field still said waiting,
+     * and the Done archive gathers by the field. So the page said one thing and the file said
+     * another, and the item sat in the open list wearing a Done badge.
+     */
+    if (hasKids.has(i.id) && i.status !== 'done'
+        && items.filter((k) => k.parent === i.id).every((k) => k.status === 'done')) {
+      wrong.push(`${i.id}: everything under it is done, so it is done. `
+        + 'A heading that says Done and sits in the open list is the page disagreeing with the file.');
+    }
     if (i.status !== 'wait' && i.owes) wrong.push(`${i.id}: owes is for waiting items only`);
   }
   const doing = items.filter((i) => i.status === 'doing');
@@ -187,12 +200,12 @@ background:var(--surface-2);border-radius:0 6px 6px 0}
    sideways. Reported as: they look like a mishmash and I cannot trace them. */
 /* One column per kind of mark, each a fixed width, so Next sits under Next all the way down and
    an item with an owner does not shift every other row's state sideways. */
-.marks{display:grid;grid-template-columns:5.6rem 4.8rem 5rem;gap:.3rem;
+.marks{display:grid;grid-template-columns:4.9rem 3.4rem 4.8rem 5rem;gap:.3rem;
 align-items:baseline;justify-items:start}
 .marks .cell{display:flex;gap:.25rem;min-width:0}
 .plain{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:.4rem .9rem;
 align-items:start;padding:.6rem .6rem .6rem 1.5rem}
-@media(max-width:820px){.marks{grid-template-columns:auto auto auto;justify-items:end}}
+@media(max-width:820px){.marks{grid-template-columns:auto auto auto auto;justify-items:end}}
 
 .chip{font-size:.63rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;
 border:1px solid;border-radius:999px;padding:.07rem .42rem;white-space:nowrap}
@@ -314,7 +327,7 @@ const statusOf = (i) => {
  * an empty cell holds its place, so Next is under Next all the way down and adding an owner
  * moves nothing.
  */
-const CELLS = ['flag', 'state', 'who'];
+const CELLS = ['golive', 'flag', 'state', 'who'];
 function chips(i, tabId) {
   const st = statusOf(i);
   const cell = {
@@ -325,16 +338,20 @@ function chips(i, tabId) {
     state: STATUS[st] ? `<span class="chip st-${st}">${STATUS[st]}</span>` : '',
     who: i.owner && i.owner !== 'ours' && st !== 'done'
       ? `<span class="chip who" title="Whose work this is once it is unblocked">${esc(i.owner)}</span>` : '',
+    golive: '',
   };
   /**
-   * The Go live mark, everywhere except the tab that is made of it.
+   * The Go live mark has a column to itself, everywhere except the tab that is made of it.
    *
-   * Asked: we have a To go live tab and items outside it also carry a Go live tag, is that
-   * duplication. It is one record drawn twice, which is the whole arrangement: the tab is a view
-   * over the flag rather than a second list. But inside that tab the flag is on every row and
-   * says nothing, so it is left off there.
+   * It used to share the column with Bug, so a row carrying both pushed its Bug sideways and the
+   * Bugs down a page no longer lined up. Reported exactly that way. A mark that can appear beside
+   * another mark needs its own cell, or the cell stops being a column.
+   *
+   * Left off inside the first tab because every row there carries it and a mark on every row says
+   * nothing. The tab is a view over the flag rather than a second list, which is why one record
+   * can be in both places and still be one edit.
    */
-  if (i.golive && tabId !== 'golive') cell.flag = `<span class="chip k-golive">Go live</span>${cell.flag}`;
+  cell.golive = i.golive && tabId !== 'golive' ? '<span class="chip k-golive">Go live</span>' : '';
   return `<span class="marks">${CELLS.map((k) => `<span class="cell c-${k}">${cell[k]}</span>`).join('')}</span>`;
 }
 
