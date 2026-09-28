@@ -500,14 +500,14 @@ export const items = [
   },
   {
     id: "confirm-answer-type-every", track: "questions", section: "q-behaviour", kind: "feature",
-    status: "wait", priority: "medium", owner: "Dan", golive: false, size: "hours",
+    status: "wait", priority: "medium", owner: "Dan", golive: false, size: "hours", owes: "Dan",
     asked: "2026-09-01", parent: "answer-types-criticality",
     t: "Confirm the answer type for every question",
     why: "Ten are yes/no on our reading of the wording. The other 166 are scored 0 to 10.",
   },
   {
     id: "confirm-no-answers-matter", track: "questions", section: "q-behaviour", kind: "feature",
-    status: "wait", priority: "medium", owner: "Dan", golive: false, size: "hours",
+    status: "wait", priority: "medium", owner: "Dan", golive: false, size: "hours", owes: "Dan",
     asked: "2026-09-01", parent: "answer-types-criticality",
     t: "Confirm which no answers matter most",
     why: "Every no colours its section red today. If some should not, that is his call.",
@@ -515,7 +515,7 @@ export const items = [
   {
     id: "set-per-question-criticality", track: "questions", section: "q-behaviour",
     kind: "feature", status: "wait", priority: "medium", owner: "Dan", golive: false,
-    size: "days", asked: "2026-09-01", parent: "answer-types-criticality",
+    size: "days", owes: "Dan", asked: "2026-09-01", parent: "answer-types-criticality",
     t: "Set per-question criticality",
     why: "Separate from section weight, and nothing in his workbook carries it.",
   },
@@ -527,7 +527,7 @@ export const items = [
   },
   {
     id: "fix-section-weights-total", track: "questions", section: "q-content", kind: "feature",
-    status: "wait", priority: "medium", owner: "Dan", golive: false, size: "hours",
+    status: "wait", priority: "medium", owner: "Dan", golive: false, size: "hours", owes: "Dan",
     asked: "2026-09-01", parent: "content-dan-still-owes",
     t: "Fix the section weights that total 80",
     why: "His error, confirmed in his own words. The tool shares the missing 20 proportionally and shows the normalised share.",
@@ -541,7 +541,7 @@ export const items = [
   },
   {
     id: "bring-dropdown-answers", track: "questions", section: "q-content", kind: "feature",
-    status: "wait", priority: "medium", owner: "Dan", golive: false, size: "weeks",
+    status: "wait", priority: "medium", owner: "Dan", golive: false, size: "weeks", owes: "Dan",
     asked: "2026-08-26", parent: "content-dan-still-owes",
     t: "Bring in the dropdown answers",
     why: "No picklists exist. Needs the 700 or more past assessments, which only he can hand over.",
@@ -973,8 +973,7 @@ export const items = [
   },
   {
     id: "move-tool-canada-ca", track: "admin", section: "a-publish", kind: "feature",
-    status: "wait", priority: "medium", owner: "Nick", golive: true,
-    asked: "2026-09-01",
+    status: "wait", priority: "medium", owner: "Nick", golive: true, asked: "2026-09-01",
     t: "Move the tool into the canada-ca GitHub organisation",
     why: "canada-ca is a GitHub organisation at github.com/canada-ca. It is not the canada.ca website, and nothing here is about publishing to canada.ca.\n\nDan raised it again on 26 September: the tool and this backlog should sit in a Government of Canada place rather than a personal account.\n\nTwo separate moves are tangled in this one line. Publishing the built page into canada-ca/TBS-OCIO-ESP needs no new repository and no transfer: that repository is public, access is already granted, and it already serves a GitHub Pages site. It waits only on Dan clearing the 176 draft questions for public view. Moving the source repository out of a personal account is the other one, and that waits on Nick, who was asked on 1 September and has not answered.",
   },
