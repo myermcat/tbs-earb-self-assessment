@@ -888,11 +888,20 @@ console.log('\nThe published build, signed in\n');
      new RegExp(`Removed by ${ME}`).test(text), text.slice(0, 400));
   ok('and marks the account that is signed in', /\byou\b/.test(text), text.slice(0, 200));
   /**
-   * The one with access is offered removal and the one without is offered it back. A screen
+   * The one with access gets the three dots and the one without is offered it back. A screen
    * that offers both to both is a screen where the state has to be read out of the prose.
    */
-  const acts = [...pane.querySelectorAll('.set-row-act button')].map((b) => b.textContent);
+  const acts = [...pane.querySelectorAll('.set-row-act > *')].map((b) => b.textContent);
   ok('every row carries exactly one control', acts.length === 3, acts.join(' | '));
+  /**
+   * Nothing on this screen takes anything away, and the menu is where that is easiest to break:
+   * removal is one button in the danger zone that does not know who it is about until somebody
+   * types both the name and the address.
+   */
+  const menu = [...pane.querySelectorAll('.set-row-act .set-menu-pop button')].map((b) => b.textContent);
+  ok('the three dots hold the name and a link, and nothing that removes anybody',
+     menu.some((m) => /Edit the name/.test(m)) && menu.some((m) => /Send a sign-in link/.test(m))
+     && !menu.some((m) => /[Rr]emove|[Dd]elete|access away/.test(m)), menu.join(' | '));
   ok('and a removed person is offered their access back, not removal again',
      acts.filter((a) => /put their access back/i.test(a)).length === 1, acts.join(' | '));
 
