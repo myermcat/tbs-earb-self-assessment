@@ -17,6 +17,14 @@
  *
  *   npm run test:rules
  *
+ * ONE THING THAT WILL COST YOU AN HOUR IF NOBODY SAYS IT. A rule that ERRORS is refused with the
+ * same 403 as a rule that DENIES, and the emulator does not tell the two apart. So a refusal you
+ * are certain should be an allow is as likely to be a broken rule as a wrong one. The way it
+ * happens most often is an unbound name inside a rules function: a function that reads $(code)
+ * when the wildcard on the match is called something else compiles, refuses everything, and looks
+ * exactly like a rule that has been written too tightly. Check the wildcard names first. Found on
+ * 28 September, three runs in, while the audit subcollection was being written.
+ *
  * It is not in `npm test`, because it needs a JDK at 21 or above and downloads a 60 MB
  * emulator the first time. .github/workflows/rules.yml runs it whenever the rules or this
  * file change, so nothing goes to the console unchecked.
