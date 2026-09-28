@@ -167,5 +167,62 @@ check('nothing records who set it, so no address reaches a public page',
       await patch('backlog/other-item', { ...PRIO, setBy: str('dan@example.com') },
                   asPerson('dan@example.com')), 'refused');
 
-console.log(failed ? `\n${failed} rules check(s) failed` : '\nthe create rule holds, and so does the backlog');
+
+/**
+ * The audit, as one document per assessor beside the assessment.
+ *
+ * Three decisions are enforced here rather than by the page being polite, and each of them is a
+ * line somebody could otherwise cross with a request written by hand.
+ *
+ * An assessor writes their own audit and nobody else's, so two of them cannot overwrite each
+ * other and EARB sees both readings. The department reads what was said about it, because a
+ * score with a reason nobody can read is a score with no appeal. And nothing in this
+ * subcollection is reachable by somebody holding only the access code: the code opens the
+ * assessment, and an assessor's working notes about a department are not part of it.
+ */
+{
+  // Roles are written by an admin, and there is no admin yet, so the emulator's owner token
+  // seeds them. It bypasses the rules, which is what it is for and the only thing it is used
+  // for here: every check below runs as an ordinary person.
+  const AS_OWNER = { authorization: 'Bearer owner' };
+  await patch('roles/asr1@example.com', { role: str('assessor') }, AS_OWNER);
+  await patch('roles/asr2@example.com', { role: str('assessor') }, AS_OWNER);
+  await patch('assessments/AUDITTEST234', { ...REAL, ownerEmail: str('dept@example.com') }, AS_OWNER);
+
+  const auditOf = (who) => ({
+    reviewer: str(who),
+    reviewedAt: str('2026-09-28T00:00:00Z'),
+    perQuestion: map({}),
+  });
+  const at = (who) => `assessments/AUDITTEST234/audit/${who}`;
+
+  check('an assessor writes their own audit',
+        await patch(at('asr1@example.com'), auditOf('asr1@example.com'), asPerson('asr1@example.com')), 'allowed');
+  check('and may come back and change it',
+        await patch(at('asr1@example.com'), { ...auditOf('asr1@example.com'), overallNote: str('second look') },
+                    asPerson('asr1@example.com')), 'allowed');
+  check('a second assessor writes their own, and both stand',
+        await patch(at('asr2@example.com'), auditOf('asr2@example.com'), asPerson('asr2@example.com')), 'allowed');
+  check('neither can write over the other',
+        await patch(at('asr1@example.com'), auditOf('asr1@example.com'), asPerson('asr2@example.com')), 'refused');
+  check('nor sign their own document with somebody else\u2019s name',
+        await patch(at('asr2@example.com'), auditOf('asr1@example.com'), asPerson('asr2@example.com')), 'refused');
+  check('somebody with no role writes no audit at all',
+        await patch(at('nobody@example.com'), auditOf('nobody@example.com'), asPerson('nobody@example.com')), 'refused');
+  check('and neither does somebody signed out',
+        await patch(at('asr1@example.com'), auditOf('asr1@example.com')), 'refused');
+
+  check('an assessor reads the audits on a submission',
+        await read('assessments/AUDITTEST234/audit', asPerson('asr1@example.com')), 'allowed');
+  check('the department reads what was said about its own assessment',
+        await read('assessments/AUDITTEST234/audit', asPerson('dept@example.com')), 'allowed');
+  check('a signed-in stranger reads none of it',
+        await read('assessments/AUDITTEST234/audit', asPerson('passerby@example.com')), 'refused');
+  check('and holding the code opens the assessment and not the audit on it',
+        await read('assessments/AUDITTEST234/audit'), 'refused');
+  check('the assessment itself still opens on its name alone',
+        await read('assessments/AUDITTEST234'), 'opens');
+}
+
+console.log(failed ? `\n${failed} rules check(s) failed` : '\nthe create rule holds, the backlog holds, and an audit is one assessor\u2019s own');
 process.exit(failed ? 1 : 0);

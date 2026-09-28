@@ -1,4 +1,4 @@
-import type { Assessment } from './types';
+import type { Assessment, AuditEntry } from './types';
 import { storeKey } from './keys';
 
 /**
@@ -1101,6 +1101,92 @@ export function changedPaths(base: Record<string, unknown>, next: Record<string,
     if (!same(wasAnswers[id], nowAnswers[id])) paths.push(fieldPath('answers', id));
   }
   return paths;
+}
+
+/* ------------------------------------------------------------------------------------------
+   The audit, as documents beside the assessment.
+   ------------------------------------------------------------------------------------------ */
+
+/**
+ * One assessor's audit of one submission, as its own document.
+ *
+ * Everything an assessor typed used to live in a field inside the assessment and never left
+ * their browser, because no rule permits an assessor to write an assessment and no code tried.
+ * Two facts follow from moving it out here, and both are what was wanted rather than what was
+ * convenient.
+ *
+ * The submission is never written by an assessor at all. Not restricted, not filtered: they
+ * have no write on that document and do not need one, so nothing an assessor does can reach a
+ * department's answers even by mistake.
+ *
+ * And two assessors cannot overwrite each other, because they are not writing the same thing.
+ * The document is named with the assessor's own address, the rules refuse a write to any other
+ * name, and EARB reads every opinion side by side rather than one score of record. Dan's board
+ * decides in the room; the tool's job is to put both readings in front of it.
+ */
+export interface AssessorAudit {
+  /** The address this audit belongs to, which is also the document's name. */
+  reviewer: string;
+  /** What they are called, for a screen that has to name somebody. Unverified, like every name. */
+  reviewerName?: string;
+  reviewedAt: string;
+  updatedAt?: string;
+  perQuestion: Record<string, AuditEntry>;
+  overallNote?: string;
+}
+
+function auditRoot(code: string): string {
+  return `${docsRoot()}/assessments/${encodeURIComponent(code)}/audit`;
+}
+
+/**
+ * Every audit written against one submission, oldest address first.
+ *
+ * Read by an assessor and by the department the assessment belongs to. A submitter seeing what
+ * was said about them is the point rather than a leak: an assessment comes back with reasons on
+ * it, and a reason nobody can read is a score with no appeal.
+ */
+export async function listAudits(code: string): Promise<AssessorAudit[]> {
+  const reply = await authorized(`${auditRoot(code)}?pageSize=${PAGE_SIZE}`);
+  // Nothing has been written against this one yet, which Firestore reports as an empty body
+  // rather than as an error.
+  if (reply.status === 404) return [];
+  if (reply.status !== 200 || !isRecord(reply.body)) throw new Error(problemFrom(reply));
+  const docs = Array.isArray(reply.body.documents) ? reply.body.documents : [];
+  const out: AssessorAudit[] = [];
+  for (const doc of docs) {
+    if (!isRecord(doc)) continue;
+    const data = fromFields(doc.fields);
+    if (!isRecord(data)) continue;
+    const name = text(doc.name);
+    const reviewer = name.slice(name.lastIndexOf('/') + 1);
+    out.push({ ...(data as unknown as AssessorAudit), reviewer: decodeURIComponent(reviewer) });
+  }
+  return out.sort((x, y) => x.reviewer.localeCompare(y.reviewer));
+}
+
+/**
+ * Write this assessor's own audit, under their own address.
+ *
+ * The whole document goes every time, with no field mask, and that is right here where it is
+ * wrong on an assessment: nobody else writes this document, so there is nothing of anybody
+ * else's to leave alone. The rules refuse a write to a name that is not the caller's, so an
+ * assessor cannot reach another's even by asking.
+ */
+export async function putAudit(code: string, audit: AssessorAudit): Promise<void> {
+  const me = currentUser();
+  if (!me) throw new Error('Sign in before writing an audit.');
+  const body: Record<string, unknown> = {
+    ...audit,
+    reviewer: me.email,
+    updatedAt: new Date().toISOString(),
+    reviewedAt: audit.reviewedAt || new Date().toISOString(),
+  };
+  const reply = await authorized(`${auditRoot(code)}/${encodeURIComponent(me.email)}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ fields: toFields(body) }),
+  });
+  if (reply.status !== 200) throw new Error(problemFrom(reply));
 }
 
 /**

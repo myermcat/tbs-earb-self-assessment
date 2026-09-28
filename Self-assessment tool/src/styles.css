@@ -2152,3 +2152,11 @@ dialog.confirm.shake { animation: cf-shake .34s cubic-bezier(.36, .07, .19, .97)
   padding: .4rem 1.15rem; border-bottom: 1px solid #3f1f66; }
 .demo-banner strong { margin-right: .4rem; text-transform: uppercase; letter-spacing: .06em;
   font-size: .74rem; }
+
+/* Another assessor's reading of the same question. Quieter than the controls below it, because
+   it is somebody else's work and not a thing to act on, and separated by a rail so two opinions
+   never read as one. */
+.other-audit { margin: .5rem 0; padding: .45rem .7rem; border-left: 3px solid var(--line-2);
+  background: var(--surface-2); border-radius: 0 var(--radius-sm) var(--radius-sm) 0; }
+.other-head { display: flex; align-items: center; gap: .4rem; flex-wrap: wrap; }
+.audit-where { color: var(--ink-2); margin-top: .4rem; }
