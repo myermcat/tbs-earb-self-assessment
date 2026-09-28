@@ -881,12 +881,23 @@ function header(bare = false): HTMLElement {
 }
 
 function footer(): HTMLElement {
-  // With a store configured, the first thing the page says about itself is what it is. An
-  // unowned prototype with no end date is the objection; saying so first is the answer.
+  /**
+   * What the footer says now, and what it stopped saying.
+   *
+   * It used to open with "Prototype. Unclassified only, and not an official EARB decision." Two
+   * of those three were defensive rather than useful, and one of them had stopped being true:
+   * the tool takes a marking on an assessment and the pool holds a Protected B record today, so
+   * a line on every screen saying unclassified only was contradicting the screen above it. What
+   * belongs in the tool is a rule, and it is stated where the rules are, in Settings and in the
+   * pledge that takes over the screen when somebody picks a marking above unclassified.
+   *
+   * What is left is the part a person actually needs from a footer: where the thing they send
+   * ends up, and a way to read more.
+   */
   if (isHosted()) {
     return el('footer', { class: 'sitefoot' }, [
       el('span', { class: 'proto' }, [
-          `Prototype. Unclassified only, and not an official EARB decision. What you send is kept at ${endpointHost()}. `,
+          `What you send is kept at ${endpointHost()}. `,
         ]),
       el('button', { class: 'linkish', onclick: () => openSettings('build') }, ['Where this goes']),
       el('span', {}, [`  \u00b7  rubric ${rubric.version}  \u00b7  v${APP_VERSION}${BUILT ? `  \u00b7  built ${BUILT} UTC` : ''}`]),
