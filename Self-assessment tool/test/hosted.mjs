@@ -1278,6 +1278,30 @@ console.log('\nThe published build, signed in\n');
   const j = await boot({ side: 'assess' });
   const field = j.doc.querySelector('input.signin-email');
   const ask = [...j.doc.querySelectorAll('.signin-other button')].find((b) => /Email me a link/.test(b.textContent));
+
+  /**
+   * The phone keyboard, which is the one that got this wrong.
+   *
+   * iOS capitalises the first letter and corrects a word it does not know, and a work address
+   * is exactly a word it does not know. The service compares what is typed against the address
+   * the link was issued for, so a capital nobody pressed comes back as the tool refusing the
+   * person's own address. jsdom has no keyboard, so what is checked is the instruction to it.
+   */
+  ok('the address field tells a phone keyboard to leave it alone',
+     field.getAttribute('autocapitalize') === 'none' && field.getAttribute('autocorrect') === 'off',
+     `${field.getAttribute('autocapitalize')} / ${field.getAttribute('autocorrect')}`);
+
+  field.value = 'Dan.Weekes-Hall@TBS-SCT.GC.CA';
+  ask.click();
+  await new Promise((r) => setTimeout(r, 60));
+  {
+    const first = j.seen.find((c) => /accounts:sendOobCode/.test(c.href));
+    ok('and what goes to the service is lower case, the way the service holds it',
+       JSON.parse(first?.body ?? '{}').email === 'dan.weekes-hall@tbs-sct.gc.ca',
+       JSON.parse(first?.body ?? '{}').email);
+  }
+  j.seen.length = 0;
+
   field.value = 'dan.weekes-hall@tbs-sct.gc.ca';
   ask.click();
   await new Promise((r) => setTimeout(r, 60));

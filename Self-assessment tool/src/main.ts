@@ -1121,13 +1121,19 @@ function renderLinkArrival(root: HTMLElement) {
   const problem = lastSignInProblem();
   const field = el('input', {
     type: 'email', class: 'signin-email', autocomplete: 'email', inputmode: 'email',
+    // A phone keyboard capitalises the first letter and corrects what it does not recognise,
+    // and a work address is exactly what it does not recognise. The service compares what is
+    // typed against the address the link was issued for and refuses anything else, so a
+    // capital letter the person never pressed reads to them as the tool rejecting their own
+    // address. type=email is not enough on its own; these three are what turn it off.
+    autocapitalize: 'none', autocorrect: 'off', spellcheck: 'false',
     placeholder: 'prenom.nom@tbs-sct.gc.ca',
   }) as HTMLInputElement;
   const go = el('button', { class: 'primary' }, [t('Sign in on this device', 'Se connecter sur cet appareil')]);
   const say = el('p', { class: 'signer-advice' });
 
   go.addEventListener('click', () => {
-    const address = field.value.trim();
+    const address = field.value.trim().toLowerCase();
     if (!field.checkValidity() || !address) {
       say.textContent = t('That is not an address a link can be sent to.',
         'Ce n\u2019est pas une adresse à laquelle un lien peut être envoyé.');
@@ -1305,6 +1311,12 @@ function emailLinkBlock(): HTMLElement {
   const state = el('div', {});
   const field = el('input', {
     type: 'email', class: 'signin-email', autocomplete: 'email', inputmode: 'email',
+    // A phone keyboard capitalises the first letter and corrects what it does not recognise,
+    // and a work address is exactly what it does not recognise. The service compares what is
+    // typed against the address the link was issued for and refuses anything else, so a
+    // capital letter the person never pressed reads to them as the tool rejecting their own
+    // address. type=email is not enough on its own; these three are what turn it off.
+    autocapitalize: 'none', autocorrect: 'off', spellcheck: 'false',
     placeholder: 'prenom.nom@tbs-sct.gc.ca',
   }) as HTMLInputElement;
   const go = el('button', { class: 'ghost' }, [t('Email me a link', 'M\u2019envoyer un lien')]);
@@ -1336,7 +1348,7 @@ function emailLinkBlock(): HTMLElement {
   }
 
   go.addEventListener('click', () => {
-    const address = field.value.trim();
+    const address = field.value.trim().toLowerCase();
     // The browser's own check, asked for before anything is sent, because the only way to find
     // out otherwise is that no mail arrives.
     if (!field.checkValidity() || !address) {
