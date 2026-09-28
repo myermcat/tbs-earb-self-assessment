@@ -29,16 +29,15 @@
  *              answer. It used to be a property of the section, which works for two people and
  *              stops working the moment three of them share 'ours'.
  *  - owes      who owes us the answer, on a 'wait' item, and nothing on any other.
- *  - asked     the date somebody was ACTUALLY ASKED. Not the date the item was written down.
- *  - since     the date it went on the list, for a 'wait' item nobody has actually asked yet.
- *              A 'wait' needs one or the other and the build stops without either.
+ *  - owes      who owes us the answer, on a 'wait' item, and nothing on any other.
  *
- *              THESE ARE TWO FIELDS BECAUSE THE PAGE WAS LYING. Every waiting item said "asked
- *              N days ago", and for nine of them the date was the commit that first wrote the
- *              item down, because that was the only evidence there was. Reported, correctly, as:
- *              we never asked him for anything. A thing nobody has asked for is a different
- *              problem from a thing somebody has ignored for a month, and the page now says
- *              which it is looking at.
+ *              THERE IS NO DATE FIELD ANY MORE. There were two, and the page turned them into
+ *              lines reading "Dan owes it, asked 27 days". Reported: are you going to maintain
+ *              that every day, and we did not ask anyone yet and Dan owes us nothing so far.
+ *              Both fair. The dates came from commits rather than from anybody being asked, so
+ *              the page was counting days since a thing that had not happened. If a date matters
+ *              to an item, it is a fact about that item and it belongs in `why`, in a sentence,
+ *              where it can say what actually happened.
  *  - size      'hours' | 'days' | 'weeks', required on anything next or doing. Three values and
  *              not an estimate, because an estimate is a thing you have to stop and think about
  *              and so it never gets written.
@@ -133,7 +132,7 @@ export const items = [
   {
     id: "each-assessor-sees-pool", track: "engine", section: "e-assessor", kind: "question",
     status: "wait", priority: "medium", owner: "ours", golive: false, size: "days",
-    owes: "Dan or Chris", since: "2026-09-03",
+    owes: "Dan or Chris",
     t: "What each assessor sees of the pool",
     why: "Everything, for now. Chris says departments know who their assessor is, so they could pick one at submission, and an assessor could hand a file on. Until that is decided, every assessor sees the whole pool, and a My assessments tab is the filter to add once the rule exists.\n\nThis used to be written twice, here and in a separate list of open questions. It is one record now, and it is marked as a question.",
   },
@@ -448,7 +447,7 @@ export const items = [
     id: "assessor-s-review-saved", track: "engine", section: "e-broken", kind: "bug",
     status: "next", priority: "high", owner: "ours", golive: true, size: "days",
     t: "An assessor’s review is never saved anywhere but their own laptop",
-    why: "The worst thing on this list. An assessor’s scores, verdicts and notes live in memory and in one key in their own browser, and the only button that does anything with them writes a file to their own laptop. views-review.ts makes no network call at all.\n\nWhat that costs a person: the department never sees the review. A second assessor cannot see the first one’s work. Clearing the browser, or picking up a different machine, loses all of it. And the portfolio tile that counts audited records reads the audit off the record, so it is permanently zero.\n\nThe decision to make first: the rules already allow an assessor to write a subcollection under the assessment, and nothing writes there. Taking that route needs no rules change and no republish, and it is about a day: a save, a read when the pool is listed, a change so the audited state comes from what was read, and a test. The other route, keeping the audit as a field of the assessment, needs the rules widened to let an assessor update somebody else’s document, which is more work and more risk. Take the subcollection.\n\nOne line of the code says \"the audit is in the store\", which is false, and goes in the same change.",
+    why: "The worst thing on this list. An assessor’s scores, verdicts and notes live in memory and in one key in their own browser, and the only button that does anything with them writes a file to their own laptop. views-review.ts makes no network call at all.\n\nWhat that costs a person: the department never sees the review. A second assessor cannot see the first one’s work. Clearing the browser, or picking up a different machine, loses all of it. And the portfolio tile that counts audited records reads the audit off the record, so it is permanently zero.\n\nThe decision to make first: the rules already allow an assessor to write a subcollection under the assessment, and nothing writes there. Taking that route needs no rules change and no republish, and it is about a day: a save, a read when the pool is listed, a change so the audited state comes from what was read, and a test. The other route, keeping the audit as a field of the assessment, needs the rules widened to let an assessor update somebody else’s document, which is more work and more risk. Take the subcollection.\n\nOne line of the code says \"the audit is in the store\", which is false, and goes in the same change.\n\nTHE SHAPE IS DECIDED, on 28 September, and passed on by the session building it rather than witnessed here. One audit document per assessor, beside the submission. An assessor may edit their own and nobody else’s. EARB sees every assessor’s opinion side by side, rather than one score of record, which is the part that had never been settled: the old design had a single audit on the assessment and no answer for two assessors disagreeing. And the department can read what was written about its own submission.\n\nThat resolves the field-or-subcollection question by making it neither: a document per assessor is a subcollection keyed by who wrote it, so an assessor writing their own needs no rule that lets anybody write anybody else’s, and nothing has to widen the update rule on the assessment itself.\n\nAND THE RULES DO HAVE TO CHANGE, which this item said twice that they did not. Corrected on 28 September by the session building it, and checked here against deploy/firestore.rules rather than taken on trust. Two lines fail the decisions above.\n\nallow create, update: if isAssessor() lets any assessor write an entry under any name, so one assessor can overwrite another’s audit. An assessor editing their own and nobody else’s needs the document named by the assessor’s address and the write tied to it.\n\nallow get, list: if isOwner() || isAssessor() does not do what it looks like. isOwner() compares ownerEmail on the document being read, and an audit document has no ownerEmail, so it is always false and the department cannot read the audits written about it. Letting them read it needs a look at the parent assessment.\n\nSo it is a rules change and a republish, small but real, and both belong in the same piece of work rather than after it.",
   },
   {
     id: "nothing-tests-signing-google", track: "engine", section: "e-broken", kind: "bug",
@@ -498,41 +497,41 @@ export const items = [
   },
   {
     id: "answer-types-criticality", track: "questions", section: "q-behaviour", kind: "feature",
-    status: "wait", priority: "medium", owner: "Dan", golive: false, asked: "2026-09-01",
+    status: "wait", priority: "medium", owner: "Dan", golive: false,
     t: "Answer types and criticality",
     why: "The shape of the questions, which Dan called the biggest remaining piece. Our reading is in the tool and labelled provisional.",
   },
   {
     id: "confirm-answer-type-every", track: "questions", section: "q-behaviour", kind: "feature",
     status: "wait", priority: "medium", owner: "Dan", golive: false, size: "hours", owes: "Dan",
-    asked: "2026-09-01", parent: "answer-types-criticality",
+    parent: "answer-types-criticality",
     t: "Confirm the answer type for every question",
     why: "Ten are yes/no on our reading of the wording. The other 166 are scored 0 to 10.",
   },
   {
     id: "confirm-no-answers-matter", track: "questions", section: "q-behaviour", kind: "feature",
     status: "wait", priority: "medium", owner: "Dan", golive: false, size: "hours", owes: "Dan",
-    asked: "2026-09-01", parent: "answer-types-criticality",
+    parent: "answer-types-criticality",
     t: "Confirm which no answers matter most",
     why: "Every no colours its section red today. If some should not, that is his call.",
   },
   {
     id: "set-per-question-criticality", track: "questions", section: "q-behaviour",
     kind: "feature", status: "wait", priority: "medium", owner: "Dan", golive: false,
-    size: "days", owes: "Dan", asked: "2026-09-01", parent: "answer-types-criticality",
+    size: "days", owes: "Dan", parent: "answer-types-criticality",
     t: "Set per-question criticality",
     why: "Separate from section weight, and nothing in his workbook carries it.",
   },
   {
     id: "content-dan-still-owes", track: "questions", section: "q-content", kind: "feature",
-    status: "wait", priority: "medium", owner: "Dan", golive: false, since: "2026-09-01",
+    status: "wait", priority: "medium", owner: "Dan", golive: false,
     t: "Content Dan still owes",
     why: "None of this is ours to write.",
   },
   {
     id: "fix-section-weights-total", track: "questions", section: "q-content", kind: "feature",
     status: "wait", priority: "medium", owner: "Dan", golive: false, size: "hours", owes: "Dan",
-    asked: "2026-09-01", parent: "content-dan-still-owes",
+    parent: "content-dan-still-owes",
     t: "Fix the section weights that total 80",
     why: "His error, confirmed in his own words. The tool shares the missing 20 proportionally and shows the normalised share.",
   },
@@ -546,7 +545,7 @@ export const items = [
   {
     id: "bring-dropdown-answers", track: "questions", section: "q-content", kind: "feature",
     status: "wait", priority: "medium", owner: "Dan", golive: false, size: "weeks", owes: "Dan",
-    asked: "2026-08-26", parent: "content-dan-still-owes",
+    parent: "content-dan-still-owes",
     t: "Bring in the dropdown answers",
     why: "No picklists exist. Needs the 700 or more past assessments, which only he can hand over.",
   },
@@ -777,7 +776,7 @@ export const items = [
   },
   {
     id: "who-the-assessor-is", track: "engine", section: "e-assessor", kind: "feature",
-    status: "wait", priority: "medium", owner: "ours", golive: false, since: "2026-09-01",
+    status: "wait", priority: "medium", owner: "ours", golive: false,
     t: "Who the assessor is",
     why: "Their name goes against a number somebody may dispute.",
   },
@@ -877,7 +876,7 @@ export const items = [
   },
   {
     id: "admin-actions", track: "engine", section: "e-admin", kind: "feature", status: "wait",
-    priority: "low", owner: "ours", golive: false, owes: "Dan", since: "2026-09-01",
+    priority: "low", owner: "ours", golive: false, owes: "Dan",
     t: "Admin-only actions",
     why: "Nobody has decided whether admin is a role. Listed so the roles matrix is complete.",
   },
@@ -951,14 +950,14 @@ export const items = [
   {
     id: "sign-work-microsoft-account", track: "admin", section: "a-signin", kind: "feature",
     status: "later", priority: "medium", owner: "ours", golive: false, size: "days",
-    parent: "assessor-sign",
+    parent: "internal-gc-sign-in",
     t: "Sign in with a work Microsoft account",
     why: "The final goal, and the blocker is a measurement nobody has taken rather than a decision from TBS. Three things settled on 24 September. One, registration needs nobody’s advance permission: an application registered once as multi-tenant lets people from any Microsoft directory sign in, the other organisation is never asked beforehand, and it costs nothing. The September note saying TBS must register it was wrong about that. Two, what is true is narrower and it is ours: the store refuses any identity without a verified address, and Firebase has an open report since August 2024 that it reports a Microsoft address as unverified. Three, and this is the part that changes the answer, that report is about an address signing in for the first time, where Microsoft creates the account. An address that has already signed in once by emailed link already exists with a verified address, and Firebase with one account per address does not make a second. The link shipped first, so that is the case our three assessors will actually meet. Nobody has measured either case. Measuring costs an application registration in any directory somebody already has, which Entra lets an ordinary user make by default, and then one real sign-in with the token read back. If the answer is that the address comes back verified, the build is a button, a provider enabled in the console and two redirect addresses. If it comes back unverified, the choice is between asking TBS for a single-tenant registration, which keeps the rules intact because TBS controls the addresses, and softening the rule, which would mean trusting every directory administrator in the world with a claim they are free to set, over a store holding pre-decisional departmental work. Do not soften the rule.",
   },
   {
     id: "ask-security-already-assessed", track: "admin", section: "a-signin", kind: "feature",
     status: "next", priority: "low", owner: "ours", golive: false, size: "hours",
-    parent: "assessor-sign",
+    parent: "internal-gc-sign-in",
     t: "Ask IT Security what they have already assessed",
     why: "The question under the other three, and nobody has asked it. Nick said what they would prefer depends on what IT Security has assessed, and that this is corporate and not his group. The useful ask is for the list of assessed services, because the list decides the destination, where a ruling on Firestore only closes a door. He named Robin Sidhu for the identity side and was explicit that it is a separate conversation from which third-party services are authorised. Asking IMTD for an Azure registration before this is a request that fails twice. Commitment: none, it is one message.",
   },
@@ -977,14 +976,14 @@ export const items = [
   },
   {
     id: "move-tool-canada-ca", track: "admin", section: "a-publish", kind: "feature",
-    status: "wait", priority: "medium", owner: "Nick", golive: true, asked: "2026-09-01",
+    status: "next", priority: "medium", owner: "Nick", golive: true,
     t: "Move the tool into the canada-ca GitHub organisation",
     why: "canada-ca is a GitHub organisation at github.com/canada-ca. It is not the canada.ca website, and nothing here is about publishing to canada.ca.\n\nDan raised it again on 26 September: the tool and this backlog should sit in a Government of Canada place rather than a personal account.\n\nTwo separate moves are tangled in this one line. Publishing the built page into canada-ca/TBS-OCIO-ESP needs no new repository and no transfer: that repository is public, access is already granted, and it already serves a GitHub Pages site. It waits only on Dan clearing the 176 draft questions for public view. Moving the source repository out of a personal account is the other one, and that waits on Nick, who was asked on 1 September and has not answered.",
   },
   {
     id: "publish-built-page-canada", track: "admin", section: "a-publish", kind: "feature",
     status: "wait", priority: "medium", owner: "ours", golive: false, size: "hours", owes: "Dan",
-    since: "2026-09-03", parent: "move-tool-canada-ca",
+    parent: "move-tool-canada-ca",
     t: "Publish the built page into canada-ca/TBS-OCIO-ESP",
     why: "One commit, once Dan says the 176 draft questions can be public. The repository is public, access is already granted, and it already serves a Pages site.",
   },
@@ -1003,7 +1002,7 @@ export const items = [
   {
     id: "nick-owes-answer-moves", track: "admin", section: "a-publish", kind: "question",
     status: "wait", priority: "low", owner: "Nick", golive: false, size: "hours", owes: "Nick",
-    asked: "2026-09-01", parent: "move-tool-canada-ca",
+    parent: "move-tool-canada-ca",
     t: "Nick owes an answer on who moves the repository",
     why: "Open an issue on canada-ca/welcome is the route he named. Whether he moves it or you do is the part still unanswered.",
   },
@@ -1016,7 +1015,7 @@ export const items = [
   },
   {
     id: "notifications", track: "admin", section: "a-process", kind: "feature", status: "wait",
-    priority: "low", owner: "ours", golive: false, since: "2026-09-01",
+    priority: "low", owner: "ours", golive: false,
     t: "Notifications",
     why: "GC Notify is the sanctioned service and is already in Dan’s own rubric at application question Q33. What triggers one is his decision and he has not made it.",
   },
@@ -1029,7 +1028,7 @@ export const items = [
   {
     id: "decide-triggers", track: "admin", section: "a-process", kind: "feature", status: "wait",
     priority: "medium", owner: "Dan", golive: false, size: "hours", owes: "Dan",
-    since: "2026-09-01", parent: "notifications",
+    parent: "notifications",
     t: "Decide the triggers",
     why: "Submission, assignment, a changed score and a reminder are four different decisions.",
   },
@@ -1108,35 +1107,19 @@ export const items = [
   {
     id: "q-may-write-prototype", track: "admin", section: "a-signin", kind: "question",
     status: "wait", priority: "medium", owner: "ours", golive: false, size: "hours",
-    owes: "ours, then Dan", since: "2026-09-03",
+    owes: "ours, then Dan",
     t: "Who may write to the prototype store",
     why: "Meanwhile: Anybody who reads the page source. Fine for unclassified drafts, and the reason the real one needs the departmental sign-in",
   },
   {
-    id: "q-may-edit-stored", track: "admin", section: "a-signin", kind: "question",
-    status: "wait", priority: "medium", owner: "ours", golive: false, size: "days", owes: "Dan",
-    asked: "2026-09-01",
-    t: "Who may edit a stored assessment, and how it is checked",
-    why: "Blocks: Real authentication. Meanwhile: Mockup screen, everything labelled unverified",
-  },
-  {
-    id: "q-verifying-assessor-s", track: "admin", section: "a-signin", kind: "question",
-    status: "wait", priority: "medium", owner: "ours", golive: false, size: "weeks", owes: "Dan",
-    asked: "2026-09-01",
-    t: "Verifying an assessor’s identity",
-    why: "Blocks: Real sign-in. Meanwhile: Typed name, labelled unverified on every change it records",
-  },
-  {
     id: "q-admin-role-assessor", track: "engine", section: "e-admin", kind: "question",
     status: "wait", priority: "medium", owner: "ours", golive: false, size: "days", owes: "Dan",
-    asked: "2026-09-01",
     t: "Is admin a role, or an assessor with more buttons?",
     why: "Blocks: The admin-only actions. Meanwhile: The dashboard is built; the actions are listed and marked unbuilt",
   },
   {
     id: "q-production-intake-should", track: "admin", section: "a-publish", kind: "question",
     status: "wait", priority: "medium", owner: "ours", golive: false, size: "weeks", owes: "TBS",
-    asked: "2026-09-01",
     t: "What the production intake should be",
     why: "Blocks: Production only. Meanwhile: The prototype answer is an Azure Function plus one CSP line",
   },
@@ -1227,13 +1210,35 @@ export const items = [
   {
     id: "ask-cyber-security-about-sign-in", track: "admin", section: "a-signin", kind: "chore",
     status: "next", priority: "high", owner: "Dan", golive: true, size: "hours",
+    parent: "internal-gc-sign-in",
     t: "Tell TBS Cyber Security what we are signing people in with",
-    why: "This is owed now, whatever happens with anything else, and nobody has done it. The Treasury Board Guideline on Cloud Authentication says an organization must contact the TBS Cyber Security Division before using a bespoke cloud authentication solution. Google sign-in plus a Firebase email link is exactly that.\n\nIt has to come from Dan rather than from us, because it is a departmental conversation and the address it goes to is zztbscybers@tbs-sct.gc.ca.\n\nTwo questions in one message. One: we run an internal tool for TBS staff and for assessors in other departments, signing in with Google and a one-time email link, and is that acceptable for a prototype. Two: is there a Government of Canada sign-in for that internal audience we should be planning toward, and what is it called this year.\n\nThe second question matters because the internal service has a name that keeps changing. The ICAM framework names GCpass. Shared Services Canada described delivering cross-department single sign-on for six departments in September 2025 and building a government-wide sign-in foundation for public servants for 2026-27, without naming it GCpass. So the capability is real and current and the name is uncertain, which is a reason to ask rather than to design around it.",
+    why: "This is owed now, whatever happens with anything else, and nobody has done it. The Treasury Board Guideline on Cloud Authentication says an organization must contact the TBS Cyber Security Division before using a bespoke cloud authentication solution. Google sign-in plus a Firebase email link is exactly that.\n\nIt has to come from Dan rather than from us, because it is a departmental conversation and the address it goes to is zztbscybers@tbs-sct.gc.ca.\n\nTwo questions in one message. One: we run an internal tool for TBS staff and for assessors in other departments, signing in with Google and a one-time email link, and is that acceptable for a prototype. Two: is there a Government of Canada sign-in for that internal audience we should be planning toward, and what is it called this year.\n\nThe second question matters because the internal service has a name that keeps changing. The ICAM framework names GCpass. Shared Services Canada described delivering cross-department single sign-on for six departments in September 2025 and building a government-wide sign-in foundation for public servants for 2026-27, without naming it GCpass. So the capability is real and current and the name is uncertain, which is a reason to ask rather than to design around it.\n\nCORRECTED on 28 September, because the first version of this said to email zztbscybers directly. The published instruments do not work that way. The Directive on Identity Management, the Policy on Government Security and the Directive on Security Management all carry the same two lines: an individual in a department contacts their own departmental security management group, and only that group writes to the Treasury Board Secretariat. The Guideline on Cloud Authentication says organizations must contact the TBS Cyber Security Division, and means organizations.\n\nSo the first move is finding TBS’s own internal IT security contact, which the intranet has and the open web does not, and the message goes from Dan. Name the colleague who already used a Government of Canada sign-in service in it, because that is a precedent their own department has already approved.",
   },
   {
     id: "canada-login-is-for-the-public", track: "admin", section: "a-signin", kind: "question",
-    status: "done", priority: "low", owner: "ours", golive: false,
-    t: "The Canada sign-in service Dan mentioned is for the public, not for staff",
-    why: "Asked on 28 September: Dan said there is a Canada log in service we could potentially use.\n\nHe meant Sign In Canada, or CanadaLogin at login.canada.ca which is replacing it. That is the sign-in on a Canada Revenue Agency or Service Canada page, and it is the front door for the public.\n\nThe government’s own architecture says so. The GC ICAM framework defines internal users as public servants and contractors and external users as members of the public and businesses, and states that internal needs are served by a different service, named there as GCpass. Sign In Canada describes its own job as serving programs’ external clients. This tool is on the internal side for both groups it serves.\n\nIt would also not solve the problem we have. CanadaLogin holds a self-asserted name, address, phone and language, so it proves somebody controls an email address and nothing more, which is what our one-time link already proves. It would never say that a person is an architect at a named department, so the assessor list stays hand-kept either way.\n\nAnd it is closing to newcomers. Sign In Canada stopped onboarding applications on 31 July 2023, and everything on it has to move to CanadaLogin by 30 December 2026.\n\nOne thing checked and corrected, because it would have sent us building the wrong thing: a page with no server is NOT the blocker. Firebase, upgraded to Google Cloud Identity Platform, accepts an outside sign-in provider and keeps the secret in Google’s own configuration while the page only opens a popup. Firebase is the server. The blockers are the audience and the fact that onboarding is a department-to-department agreement with a privacy assessment and an authority to operate behind it.\n\nDo not send anybody a login.canada.ca link at the moment. The site was rebuilt on 23 September and every address on it, including its own home page, returns not found.",
+    status: "later", priority: "low", owner: "Dan", golive: false, size: "weeks",
+    parent: "internal-gc-sign-in",
+    t: "Find out how the department already uses CanadaLogin",
+    why: "Dan said somebody else in the department had used a Canada sign-in service. He was right and the first answer here was wrong, so this item is what replaces it.\n\nWhat was wrong: this said CanadaLogin is for the public and not for public servants. Its own list of participating services, published on 23 September, names seven and two of them are the Treasury Board Secretariat’s: the ATIP Online Request Service, which is for anybody filing a request, and the ATIP Online Management Tools, which is staff only. That second one is ATIP practitioners inside federal institutions signing in through the same service with a credential created for work. So a department can run a staff-facing tool on it, and this department already does. That is almost certainly what Dan heard about, and it is the precedent to point at.\n\nWhat CanadaLogin is: the successor to Sign In Canada, built by the Canadian Digital Service, which as of 3 September is part of Digital Transformation Canada. Sign In Canada stopped taking new applications on 31 July 2023 and its remaining departments move across by 30 December 2026. Replaced rather than retired: the capability is not going anywhere, it is changing hands and name.\n\nWhy it is later and not next. There is no self-serve sign-up: the partner portal is not due until somewhere between October 2026 and March 2027, so onboarding today is a hands-on conversation. The terms of use ask for a departmental agreement, privacy authority, a Protected B security assessment and an authority to operate. None of that fits a co-op term.\n\nWhat to copy in the meantime, which is free. ATIP Online pairs an outside sign-in that proves somebody controls a mailbox with a code or a list issued by a named person, and that is what grants access to the department’s data. That is exactly what this tool does already, so the hand-kept assessor list is not a weakness to apologise for: it is the pattern a real government service uses.\n\nAnd one more place to ask, which came out of the same check: GC Digital Talent, run by the Public Service Commission, is on that list and verifies a Government of Canada work address to unlock the tools meant for employees. That is the nearest thing anybody has built to the question this tool has.",
+  },
+  {
+    id: "internal-gc-sign-in", track: "admin", section: "a-signin", kind: "feature",
+    status: "next", priority: "medium", owner: "ours", golive: false, size: "weeks",
+    t: "Signing in with a Government of Canada credential instead of a personal one",
+    why: "The end state, and everything under here is a piece of it. Today an assessor signs in with a personal Google account or a one-time link to their mailbox. Neither is a work credential, and neither can tell the tool anything about the person beyond the fact that they can read that inbox.\n\nNothing here is a this-term job. Every route runs through a named person inside a department, and the published rules say who: an individual asks their own departmental security group, and that group writes to the Treasury Board Secretariat. Not HR, and not us directly.\n\nOne thing worth knowing before any of it starts, because it will come up in the room and it is funny: the Guideline on Cloud Authentication says exceptions to using an approved Government of Canada authentication service are assessed through the GC Enterprise Architecture Review Board. The tool being built for EARB would itself be an EARB matter.\n\nTWO QUESTIONS THAT USED TO SIT BESIDE THIS ONE AS STUBS, folded in on 28 September because they are this item and not neighbours of it.\n\nVerifying an assessor’s identity. Today the tool takes a typed name and labels it unverified on everything it records. A work credential is what would change that, which is what this item is. Until then the label is the honest answer and it stays.\n\nWho may edit a stored assessment, and how that is checked. The store already answers the second half: the rules compare the signed-in address against the record. What is unsettled is the first half, and it is a policy question rather than a technical one, so it moves when this does.",
+  },
+  {
+    id: "send-the-link-through-gc-notify", track: "admin", section: "a-signin", kind: "feature",
+    status: "next", priority: "medium", owner: "ours", golive: false, size: "days",
+    parent: "mail-from-a-domain-we-own",
+    t: "Send the sign-in link through GC Notify, from a government address",
+    why: "The real fix for mail that a departmental filter eats, and it is free. GC Notify is run by the Canadian Digital Service for federal public servants, there is no set-up fee and no procurement, and what it sends arrives from notification.canada.ca carrying the Government of Canada wordmark. That is the opposite end of the scale from noreply at a firebaseapp.com address with no DMARC record.\n\nRegistering is ours and it needs nobody. The form asks for a full name, a government email address only you can access rather than a shared inbox, a phone number for the two-factor sign-in, and a password. No manager, no departmental agreement. A new service starts in trial mode, which sends fifty a day and only to yourself, your team and addresses you put on a safelist, which is enough to test the whole thing; going live is a request in the settings.\n\nFIREBASE CANNOT BE POINTED AT IT, and this is the part worth understanding rather than retrying. Firebase’s custom mail setting asks for four things: a host, a port, a username and a password. GC Notify publishes none of them, because it has no mail server to connect to. It has a web interface you post a message to. The word SMTP does not appear on any of its fourteen documentation pages. Those four boxes will never be filled.\n\nIt still works, in a different shape. Something that is not the browser mints the link, the way deploy/make-signin-link.mjs already does, and then posts it to GC Notify as a value dropped into a template. The page finishes the sign-in when somebody clicks.\n\nWhat it costs is the thing to weigh: the tool stops being a page with nothing behind it. The key that mints links and the key that sends mail can neither of them sit in a page a browser downloads, so this needs a small piece of code running somewhere, and something to keep two secrets in. That is the first server this project would have.",
+  },
+  {
+    id: "register-for-gc-notify", track: "admin", section: "a-signin", kind: "chore",
+    status: "next", priority: "medium", owner: "ours", golive: false, size: "hours",
+    parent: "send-the-link-through-gc-notify",
+    t: "Register for GC Notify, which needs nobody",
+    why: "Half an hour, and it unblocks the rest of that item. The form at notification.canada.ca/register asks for a full name, a government email address only you can access rather than a shared inbox, a phone number for the two-factor sign-in, and a password. No manager, no departmental agreement, no procurement.\n\nA new service starts in trial mode: fifty messages a day, and only to yourself, your team and addresses you put on a safelist. That is enough to send yourself a sign-in link from a canada.ca address and find out whether a departmental filter still eats it, which is the question that has been open for a week. Going live is a request in the settings afterwards.\n\nOne thing worth a sentence to a supervisor before going live, even though the form never asks: whether a co-op student should own a service that sends mail branded as the Government of Canada.",
   },
 ];

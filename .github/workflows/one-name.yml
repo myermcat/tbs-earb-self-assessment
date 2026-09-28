@@ -1,0 +1,37 @@
+# Refuses a pull request whose commits carry a Claude trailer.
+#
+# WHY THIS IS A CHECK AND NOT A NOTE. The rule is that commits here carry one name, Mariia's, and
+# no Co-Authored-By: Claude line. It was asked for on 12 August 2026, confirmed on 3 September
+# after four commits picked the trailer up, and broken again on 28 September across a dozen more.
+# Both times it was written down and both times a session-level instruction won anyway.
+#
+# Asked, fairly: it was already written down, so how does writing it down again change anything.
+# It does not. This does. A written rule depends on somebody reading it; a failing check does not.
+name: One name on the commits
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  one-name:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: No Claude trailer in any commit on this branch
+        run: |
+          base="origin/${{ github.base_ref }}"
+          bad=$(git log --format='%H %s%n%b' "$base..HEAD" | grep -inE 'Co-Authored-By: *Claude|Generated with \[?Claude' || true)
+          if [ -n "$bad" ]; then
+            echo "These commits carry a trailer this repository does not use:"
+            echo "$bad"
+            echo
+            echo "Commits here carry one name and it is Mariia's. See CLAUDE.md."
+            echo "Rewrite the messages with: git rebase -i $base"
+            exit 1
+          fi
+          echo "Every commit on this branch carries one name."
