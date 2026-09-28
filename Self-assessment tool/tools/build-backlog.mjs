@@ -68,6 +68,12 @@ const RANK = { high: 0, medium: 1, low: 2 };
     if (i.status === 'wait' && !/^\d{4}-\d{2}-\d{2}$/.test(i.asked ?? '')) {
       wrong.push(`${i.id}: waiting on ${i.owes || 'somebody'} since when? asked must be a date.`);
     }
+    // A leaf that waits on nobody in particular is the oldest kind of rot: five of these had
+    // been sitting for a month and the page had nobody to chase. A heading is excused, because
+    // the items under it name the person.
+    if (i.status === 'wait' && !i.owes && !hasKids.has(i.id)) {
+      wrong.push(`${i.id}: waiting on whom? owes must name somebody.`);
+    }
     if (i.status !== 'wait' && i.owes) wrong.push(`${i.id}: owes is for waiting items only`);
     if (!hasKids.has(i.id) && (i.status === 'next' || i.status === 'doing') && !SIZE[i.size]) {
       wrong.push(`${i.id}: size must be hours, days or weeks.`);
@@ -229,6 +235,16 @@ function rowsIn(sectionId, trackId) {
 }
 
 const isGroup = (i) => items.some((k) => k.parent === i.id);
+/**
+ * The longest-unanswered thing under a heading, so a group that has been sitting for a month
+ * says so without being opened. Folding the detail away is the point of this page; folding away
+ * the fact that nobody has replied since 26 August is how the rot got in.
+ */
+function oldestChase(i) {
+  const under = (x) => items.filter((k) => k.parent === x.id).flatMap((k) => [k, ...under(k)]);
+  const waiting = under(i).filter((k) => k.owes && k.asked).sort((a, b) => a.asked.localeCompare(b.asked));
+  return waiting[0] ? { owes: waiting[0].owes, asked: waiting[0].asked } : null;
+}
 /** A heading takes the state of the furthest-along thing under it. */
 const statusOf = (i) => {
   if (!isGroup(i)) return i.status;
@@ -250,10 +266,11 @@ function chips(i) {
    * because this page is read weeks after it is built and a number baked in at build time would
    * be the one thing on the page that quietly stops being true.
    */
-  if (i.owes && i.asked) {
-    out.push(`<span class="stale" data-asked="${esc(i.asked)}">${esc(i.owes)} owes it</span>`);
-  } else if (i.owes) {
-    out.push(`<span class="stale">${esc(i.owes)} owes it</span>`);
+  const chase = i.owes ? { owes: i.owes, asked: i.asked } : oldestChase(i);
+  if (chase && chase.asked) {
+    out.push(`<span class="stale" data-asked="${esc(chase.asked)}">${esc(chase.owes)} owes it</span>`);
+  } else if (chase) {
+    out.push(`<span class="stale">${esc(chase.owes)} owes it</span>`);
   }
   return out.join('');
 }
@@ -440,8 +457,10 @@ const SCRIPT = `<script>
     document.querySelectorAll('.stale[data-asked]').forEach(function (el) {
       var days = Math.floor((today - new Date(el.dataset.asked + 'T00:00:00')) / 86400000);
       if (!isFinite(days) || days < 0) return;
-      el.textContent = el.textContent + ', ' + (days === 0 ? 'asked today'
-        : days === 1 ? 'asked yesterday' : 'asked ' + days + ' days ago');
+      var group = el.closest('.row') && el.closest('.row').dataset.group === 'true';
+      el.textContent = el.textContent + ', ' + (group ? 'longest ' : 'asked ')
+        + (days === 0 ? 'today' : days === 1 ? 'yesterday' : days + ' days');
+      el.title = 'Asked on ' + el.dataset.asked;
       el.dataset.daysOver = days >= 28 ? '28' : days >= 14 ? '14' : '0';
     });
   }());
