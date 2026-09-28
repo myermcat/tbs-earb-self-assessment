@@ -1208,4 +1208,10 @@ export const items = [
     t: "Make a sign-in link without sending any mail",
     why: "Built on 28 September, and it takes the cost out of every sign-in experiment from here on. Sending a link is capped at five a day for the whole project; generating one is a different operation with a limit of 20,000 a day and it posts nothing.\n\nSo a link can be made on a laptop and pasted into an ordinary message from a government mailbox to a government mailbox, which is the delivery profile most likely to arrive, and the day’s five stay untouched.\n\nIt needs a service-account key, which can act as the whole project, so it refuses to read one from inside this repository at all: the repository is public and a key committed by accident cannot be un-published.",
   },
+  {
+    id: "expired-session-dead-end", track: "engine", section: "e-broken", kind: "bug",
+    status: "next", priority: "high", owner: "ours", golive: true, size: "hours",
+    t: "A session that goes bad leaves the assessor on a screen with no way to sign in",
+    why: "Found on 28 September while testing the Google sign-in. An account was deleted in the console while a browser still held its session. Reloading the assessor page then drew the submissions screen, carrying a panel that read \"Sign in to see the pool\", and nothing anywhere on it to sign in with.\n\nWhy it happens: the door in front of the assessor screens opens as soon as a name is known, and the name is taken from whatever session the browser is holding at that moment. A session whose token can no longer be refreshed still carries a name, so the door opens, the store then refuses to list anything, and the screen that results asks for a sign-in it does not offer.\n\nWho it reaches: anybody whose access is taken away in the danger zone, anybody whose account is removed, and anybody whose sign-in simply stops refreshing. None of those is unusual, and what they get is a screen they cannot leave without knowing to clear their browser.\n\nThe fix is to open the door on a session the store still accepts rather than on a name being present, and to put the way back on the refusal screen either way.",
+  },
 ];
