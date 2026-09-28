@@ -211,6 +211,15 @@ li { margin-bottom: .22rem; }
 .signin-link-row { display: flex; gap: .4rem; flex-wrap: wrap; align-items: stretch; }
 .signin-link-row .signin-email { flex: 1 1 14rem; min-width: 0; }
 .signin-link-row button { flex: 0 0 auto; }
+/* The blocks on this card were touching: the button sat directly on the box under it, so the
+   two read as one control. Reported from a screenshot. */
+.card.signin .signin-link-row { margin: .9rem 0 0; }
+.card.signin .warn-line { margin: .55rem 0 0; color: var(--warn); }
+.card.signin .signer-advice { margin: .55rem 0 0; }
+.card.signin .card.warn { margin-top: 1.1rem; }
+.card.signin > p + .card.warn { margin-top: 1.1rem; }
+/* And a long address must wrap rather than run off the card. */
+.card.signin strong, .card.signin button { overflow-wrap: anywhere; }
 
 .side-badge { font-size: .68rem; font-weight: 700; letter-spacing: .09em; text-transform: uppercase;
   color: var(--accent); border: 1px solid var(--accent-line); background: var(--accent-soft);

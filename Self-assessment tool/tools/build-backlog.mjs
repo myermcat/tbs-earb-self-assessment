@@ -65,9 +65,12 @@ const RANK = { high: 0, medium: 1, low: 2 };
      * weeks. A 'next' with no size is an item nobody can plan a week around. Neither is asked of
      * a heading, which carries no work of its own.
      */
-    if (i.status === 'wait' && !/^\d{4}-\d{2}-\d{2}$/.test(i.asked ?? '')) {
-      wrong.push(`${i.id}: waiting on ${i.owes || 'somebody'} since when? asked must be a date.`);
+    const day = /^\d{4}-\d{2}-\d{2}$/;
+    if (i.status === 'wait' && !day.test(i.asked ?? '') && !day.test(i.since ?? '')) {
+      wrong.push(`${i.id}: waiting on ${i.owes || 'somebody'} since when? `
+        + `asked must be the date somebody was actually asked, or since the date it went on the list.`);
     }
+    if (i.asked && i.since) wrong.push(`${i.id}: asked and since are the same field twice. Pick one.`);
     // A leaf that waits on nobody in particular is the oldest kind of rot: five of these had
     // been sitting for a month and the page had nobody to chase. A heading is excused, because
     // the items under it name the person.
@@ -150,19 +153,38 @@ h2 .c{font-family:var(--mono);font-size:.75rem;color:var(--ink-3);font-weight:50
 .row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:.6rem;align-items:start;
 border-top:1px solid var(--line);padding:.1rem .55rem .1rem 0}
 .row:first-child{border-top:0}
-.row[data-priority=high]{box-shadow:2px 0 0 var(--hot) inset}
+/* The red edge marks a high priority, and it stays put when the row is hovered. It used to be
+   painted by the row and covered by the hover, so pointing at an item took its mark away. */
+.row[data-priority=high]{box-shadow:3px 0 0 var(--hot) inset}
 .item{min-width:0}
 .item>summary{cursor:pointer;list-style:none;display:flex;flex-wrap:wrap;align-items:baseline;
-gap:.4rem .5rem;padding:.55rem .6rem .55rem .85rem}
+gap:.4rem .9rem;padding:.6rem .6rem .6rem 1.5rem;position:relative;border-radius:0 6px 6px 0}
 .item>summary::-webkit-details-marker{display:none}
-.item>summary::before{content:'\\25B8';color:var(--ink-3);font-size:.7rem;margin-left:-.5rem;width:.7rem}
+/* Bigger, and clear of the red edge. It was a 0.7rem triangle sitting on top of the mark. */
+.item>summary::before{content:'\\25B8';color:var(--ink-3);font-size:.9rem;line-height:1;
+position:absolute;left:.62rem;top:.62rem}
 .item[open]>summary::before{content:'\\25BE'}
 .item>summary:hover{background:var(--surface-2)}
-.item .t{font-weight:640;font-size:.93rem;flex:1 1 22rem;min-width:0}
-.why{padding:.1rem .8rem .8rem 1.55rem;color:var(--ink-2);font-size:.86rem;max-width:74ch;white-space:pre-wrap}
-.kids{margin:.2rem 0 .8rem 1.4rem;border-left:2px solid var(--line);padding-left:.3rem}
+.item>summary:hover::before{color:var(--ink-2)}
+.item .t{font-weight:640;font-size:.93rem;flex:1 1 20rem;min-width:0}
+
+/* An opened item: its own block, set in from the title, with air under it so it does not run
+   into the next row. Blank lines in the note become paragraph gaps. */
+.why{margin:.1rem .8rem 1rem 1.5rem;padding:.55rem 0 .1rem .9rem;border-left:2px solid var(--line);
+color:var(--ink-2);font-size:.86rem;max-width:72ch;white-space:pre-wrap;line-height:1.62}
+.kids{margin:.1rem 0 1rem 1.5rem;border-left:2px solid var(--line-2);padding-left:.2rem;
+background:var(--surface-2);border-radius:0 6px 6px 0}
 .kids .row{border-top:1px solid var(--line)}
 .kids .row:first-child{border-top:0}
+
+/* One column per kind of mark, so a row with an owner does not push every other row's state
+   sideways. Reported as: they look like a mishmash and I cannot trace them. */
+.marks{display:grid;grid-template-columns:5.6rem 4.8rem 3.6rem 5.2rem minmax(9rem,auto);
+gap:.3rem;align-items:baseline;justify-items:start;flex:0 0 auto}
+.marks .cell{display:flex;gap:.25rem;min-width:0}
+.marks .c-chase{justify-self:end;text-align:right}
+@media(max-width:1100px){.marks{grid-template-columns:5.6rem 4.8rem 3.6rem 5.2rem}
+.marks .c-chase{grid-column:1/-1;justify-self:start;text-align:left;margin-top:.15rem}}
 
 .chip{font-size:.63rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;
 border:1px solid;border-radius:999px;padding:.07rem .42rem;white-space:nowrap}
@@ -178,7 +200,10 @@ border:1px solid;border-radius:999px;padding:.07rem .42rem;white-space:nowrap}
 .who{color:var(--ink-2);border-color:var(--line-2);background:var(--surface-2)}
 /* How long somebody has owed us an answer. It goes amber at a fortnight and red at a month,
    because the thing this page kept failing to say is that nobody has replied since. */
-.stale{font-size:.72rem;color:var(--warn);white-space:nowrap}
+/* One weight for the whole sentence. It used to be a bold name followed by unbold words, which
+   reads as two things rather than one. */
+.stale{font-size:.72rem;color:var(--warn);white-space:nowrap;font-weight:600}
+.stale[data-kind="since"]{color:var(--ink-3);font-weight:500}
 .stale[data-days-over="14"]{font-weight:700}
 .stale[data-days-over="28"]{color:var(--hot);font-weight:700}
 
@@ -213,6 +238,19 @@ gap:.3rem;align-items:baseline}
 .foot a{color:var(--accent)}
 .empty{color:var(--ink-3);font-size:.86rem;padding:.9rem;background:var(--surface);
 border:1px dashed var(--line-2);border-radius:10px}
+/* Done is an archive: one control, shut, and it looks like a heading rather than a row. */
+.archive{margin:2rem 0 0;scroll-margin-top:calc(var(--head) + .8rem)}
+.archive>summary{cursor:pointer;list-style:none;display:flex;gap:.55rem;align-items:baseline;
+padding:.45rem 0}
+.archive>summary::-webkit-details-marker{display:none}
+.archive>summary::before{content:'\\25B8';color:var(--ink-3);font-size:.85rem}
+.archive[open]>summary::before{content:'\\25BE'}
+.arch-t{font-size:1.02rem;font-weight:650}
+.arch-note{font-size:.78rem;color:var(--ink-3)}
+.archive>summary:hover .arch-t{color:var(--accent)}
+/* What the marks mean, said once at the top of every tab instead of nowhere. */
+.key{font-size:.76rem;color:var(--ink-3);margin:-.9rem 0 1.5rem;display:flex;gap:.9rem;flex-wrap:wrap}
+.key b{font-weight:600;color:var(--ink-2)}
 @media(max-width:820px){
   .pane{grid-template-columns:minmax(0,1fr);gap:0}
   .side{position:static;max-height:none;padding:.9rem 0 0;display:flex;flex-wrap:wrap;gap:.3rem}
@@ -235,16 +273,39 @@ function rowsIn(sectionId, trackId) {
 }
 
 const isGroup = (i) => items.some((k) => k.parent === i.id);
+
 /**
- * The longest-unanswered thing under a heading, so a group that has been sitting for a month
- * says so without being opened. Folding the detail away is the point of this page; folding away
- * the fact that nobody has replied since 26 August is how the rot got in.
+ * How long somebody has been waiting, and whether anybody has actually been asked.
+ *
+ * Two fields, because the page was stating an inference as a fact. Every waiting row said
+ * "asked N days ago", and for nine of them the date was the commit that first wrote the item
+ * down, which was the only evidence there was. Reported, correctly, as: we never asked him for
+ * anything. So `asked` is a real ask and `since` is the day it went on the list, and the row
+ * says which one it is looking at.
  */
-function oldestChase(i) {
+function chaseOf(i) {
+  // A heading with no name of its own borrows the name from whichever item under it has been
+  // waiting longest, because "somebody owes it" names nobody to chase.
+  const named = (x) => x.owes || (x.owner && x.owner !== 'ours' ? x.owner : '');
+  if (i.owes || i.asked || i.since) {
+    return { who: named(i), asked: i.asked, since: i.since };
+  }
   const under = (x) => items.filter((k) => k.parent === x.id).flatMap((k) => [k, ...under(k)]);
-  const waiting = under(i).filter((k) => k.owes && k.asked).sort((a, b) => a.asked.localeCompare(b.asked));
-  return waiting[0] ? { owes: waiting[0].owes, asked: waiting[0].asked } : null;
+  const waiting = under(i).filter((k) => k.owes && (k.asked || k.since))
+    .sort((a, b) => (a.asked || a.since).localeCompare(b.asked || b.since));
+  return waiting[0] ? { who: named(waiting[0]), asked: waiting[0].asked, since: waiting[0].since } : null;
 }
+
+function chaseChip(c, group) {
+  const when = c.asked || c.since || '';
+  const kind = c.asked ? 'asked' : 'since';
+  const lead = c.asked
+    ? (c.who ? `${esc(c.who)} owes it` : 'waiting on an answer')
+    : (c.who ? `nobody has asked ${esc(c.who)}` : 'nobody has been asked');
+  return `<span class="stale" data-when="${esc(when)}" data-kind="${kind}"`
+    + `${group ? ' data-group="1"' : ''}>${lead}</span>`;
+}
+
 /** A heading takes the state of the furthest-along thing under it. */
 const statusOf = (i) => {
   if (!isGroup(i)) return i.status;
@@ -252,27 +313,32 @@ const statusOf = (i) => {
   return FROM_KIDS.find((st) => kids.includes(st)) ?? i.status;
 };
 
+/**
+ * The marks on a row, each in a column of its own.
+ *
+ * Reported as: the first item's Next is on the very right, the second is second from the right,
+ * so they look like a mishmash and cannot be traced down the page. They were a flex row, so a
+ * row with one more mark pushed every other mark sideways. Each kind now has its own cell and
+ * an empty cell holds its place, so Next is under Next all the way down and adding an owner
+ * moves nothing.
+ */
+const CELLS = ['flag', 'state', 'size', 'who', 'chase'];
 function chips(i) {
-  const out = [];
-  if (i.kind === 'bug') out.push('<span class="chip k-bug">Bug</span>');
-  if (i.kind === 'question') out.push('<span class="chip k-question">Question</span>');
-  if (i.golive) out.push('<span class="chip k-golive">Go live</span>');
   const st = statusOf(i);
-  out.push(`<span class="chip st-${st}">${STATUS[st]}</span>`);
-  if (!isGroup(i) && SIZE[i.size] && st !== 'done') out.push(`<span class="chip sz">${SIZE[i.size]}</span>`);
-  if (i.owner && i.owner !== 'ours' && st !== 'done') out.push(`<span class="chip who">${esc(i.owner)}</span>`);
-  /**
-   * How long it has been. Written as a date and turned into a count of days in the browser,
-   * because this page is read weeks after it is built and a number baked in at build time would
-   * be the one thing on the page that quietly stops being true.
-   */
-  const chase = i.owes ? { owes: i.owes, asked: i.asked } : oldestChase(i);
-  if (chase && chase.asked) {
-    out.push(`<span class="stale" data-asked="${esc(chase.asked)}">${esc(chase.owes)} owes it</span>`);
-  } else if (chase) {
-    out.push(`<span class="stale">${esc(chase.owes)} owes it</span>`);
-  }
-  return out.join('');
+  const cell = {
+    flag: i.kind === 'bug' ? '<span class="chip k-bug">Bug</span>'
+      : i.kind === 'question' ? '<span class="chip k-question">Question</span>' : '',
+    state: `<span class="chip st-${st}">${STATUS[st]}</span>`,
+    size: !isGroup(i) && SIZE[i.size] && st !== 'done'
+      ? `<span class="chip sz" title="Roughly how long the work is: hours, days or weeks">${SIZE[i.size]}</span>` : '',
+    who: i.owner && i.owner !== 'ours' && st !== 'done'
+      ? `<span class="chip who" title="Whose work this is once it is unblocked">${esc(i.owner)}</span>` : '',
+    chase: '',
+  };
+  if (i.golive) cell.flag = `<span class="chip k-golive">Go live</span>${cell.flag}`;
+  const c = st === 'done' ? null : chaseOf(i);
+  if (c) cell.chase = chaseChip(c, isGroup(i));
+  return `<span class="marks">${CELLS.map((k) => `<span class="cell c-${k}">${cell[k]}</span>`).join('')}</span>`;
 }
 
 function prio(i) {
@@ -301,9 +367,17 @@ const panes = tracks.map((tr) => {
    * grouping it by the same sections as everywhere else put two headings called Broken on one
    * page, which tells a reader nothing about which is which.
    */
+  /**
+   * The first tab is one list and not a map of the other three.
+   *
+   * It used to put headings on it called The questions, The engine and Administrative, which are
+   * the names of the tabs across the top. Reported as: you have tabs of the questions, engine and
+   * administrative, and then the same names inside the first tab, and it is so confusing. They
+   * are gone: one heading, everything under it, sorted by priority.
+   */
   const drawn = tr.id === 'golive'
-    ? tracks.filter((t) => t.id !== 'golive')
-      .map((t) => ({ s: { id: t.id, title: t.title }, rows: items.filter((i) => i.golive && i.track === t.id).sort(order) }))
+    ? [{ s: { id: 'path', title: 'Blocks going live' },
+         rows: items.filter((i) => i.golive && i.status !== 'done').sort(order) }]
       .filter((x) => x.rows.length)
     : sections.filter((s) => s.track === tr.id)
       .map((s) => ({ s, rows: rowsIn(s.id, tr.id) })).filter((x) => x.rows.length);
@@ -311,14 +385,30 @@ const panes = tracks.map((tr) => {
     `<a href="#s-${esc(tr.id)}-${esc(s.id)}" data-sec="s-${esc(tr.id)}-${esc(s.id)}">`
     + `<span>${esc(s.title)}</span><span class="c">${rows.length}</span></a>`).join('');
   const body = drawn.length
-    ? drawn.map(({ s, rows }) => [
-      `<h2 id="s-${esc(tr.id)}-${esc(s.id)}">${esc(s.title)} <span class="c">${rows.length}</span></h2>`,
-      '<div class="card">', rows.map((i) => row(i)).join(''), '</div>',
-    ].join('')).join('')
+    ? drawn.map(({ s, rows }) => {
+      const head = `<h2 id="s-${esc(tr.id)}-${esc(s.id)}">${esc(s.title)} <span class="c">${rows.length}</span></h2>`;
+      const card = `<div class="card">${rows.map((i) => row(i)).join('')}</div>`;
+      /**
+       * Done is an archive and it is the longest list on the page. Asked for directly: we want
+       * the whole heading toggled, and closed by default. So the heading is the control.
+       */
+      if (!/-done$/.test(s.id)) return head + card;
+      return `<details class="archive" id="s-${esc(tr.id)}-${esc(s.id)}">`
+        + `<summary><span class="arch-t">${esc(s.title)}</span>`
+        + `<span class="c">${rows.length}</span>`
+        + '<span class="arch-note">kept for good, newest first</span></summary>'
+        + card + '</details>';
+    }).join('')
     : '<p class="empty">Nothing here yet.</p>';
   return `<section class="pane" data-track="${esc(tr.id)}" hidden>
 <nav class="side"><div class="lead">${esc(tr.title)}</div>${nav}</nav>
-<main><p class="tab-hint">${esc(tr.hint)}</p>${body}</main>
+<main><p class="tab-hint">${esc(tr.hint)}</p>
+<p class="key"><span><b>Bug</b> broken, not missing</span>
+<span><b>Hours / Days / Weeks</b> roughly how long the work is</span>
+<span><b>A name</b> whose work it is</span>
+<span><b>owes it</b> somebody was asked and has not answered</span>
+<span><b>nobody has asked</b> it is on the list and the question has never gone out</span></p>
+${body}</main>
 </section>`;
 }).join('\n');
 
@@ -350,6 +440,40 @@ const SCRIPT = `<script>
     } catch (e) { return null; }
   }
 
+  /**
+   * A sign-in lasts an hour, and this page held one for as long as it happened to be there.
+   *
+   * Reported: I set an item to medium, it jumped back to high, and it was still high after a
+   * reload. The token had run out, the write came back refused, the page put the old value back,
+   * and nothing was ever stored. The tool refreshes its own token and this page did not, so it
+   * worked for an hour after a sign-in and then silently stopped.
+   *
+   * Nothing new is trusted: the refresh token is already in this browser, put there by the tool,
+   * and the key is the one the published page carries.
+   */
+  function fresh() {
+    var s = session();
+    if (!s) return Promise.resolve(null);
+    if (s.expiresAt && Date.now() < s.expiresAt - 60000) return Promise.resolve(s);
+    if (!s.refreshToken || !cfg) return Promise.resolve(null);
+    return fetch('https://securetoken.googleapis.com/v1/token?key=' + encodeURIComponent(cfg.apiKey), {
+      method: 'POST',
+      headers: { 'content-type': 'application/x-www-form-urlencoded' },
+      body: 'grant_type=refresh_token&refresh_token=' + encodeURIComponent(s.refreshToken),
+    }).then(function (r) { return r.ok ? r.json() : null; }).then(function (b) {
+      if (!b || !b.id_token) return null;
+      var next = {
+        email: s.email,
+        idToken: b.id_token,
+        refreshToken: b.refresh_token || s.refreshToken,
+        expiresAt: Date.now() + (Number(b.expires_in) || 3600) * 1000,
+      };
+      // Written back where the tool keeps it, so both pages get the benefit of one refresh.
+      try { localStorage.setItem(SESSION, JSON.stringify(next)); } catch (e) { /* this load only */ }
+      return next;
+    }).catch(function () { return null; });
+  }
+
   // ------------------------------------------------------------------ the tabs
   var tabs = [].slice.call(document.querySelectorAll('.tab'));
   var panes = [].slice.call(document.querySelectorAll('.pane'));
@@ -361,12 +485,13 @@ const SCRIPT = `<script>
     if (tab) tab.textContent = String(open);
     // Section counts include what is folded inside an item, for the same reason: a heading that
     // says three over a group holding seven pieces of work is a heading that misleads.
-    [].slice.call(p.querySelectorAll('main h2')).forEach(function (h) {
+    [].slice.call(p.querySelectorAll('main h2, main details.archive > summary')).forEach(function (h) {
       var card = h.nextElementSibling;
+      var id = h.id || (h.parentElement && h.parentElement.id);
       var n = card ? card.querySelectorAll('.row:not([data-group=true])').length : 0;
       var c = h.querySelector('.c');
       if (c) c.textContent = String(n);
-      var link = p.querySelector('.side a[data-sec="' + h.id + '"] .c');
+      var link = p.querySelector('.side a[data-sec="' + id + '"] .c');
       if (link) link.textContent = String(n);
     });
   });
@@ -374,7 +499,11 @@ const SCRIPT = `<script>
     tabs.forEach(function (t) { t.setAttribute('aria-selected', String(t.dataset.track === id)); });
     panes.forEach(function (p) { p.hidden = p.dataset.track !== id; });
     try { localStorage.setItem('earb-backlog-tab', id); } catch (e) { /* not important enough to fail on */ }
-    if (location.hash !== '#' + id) history.replaceState(null, '', '#' + id);
+    // Guarded: a page opened from a file, or inside a wrapper that rewrote its address, throws
+    // here, and the tabs are worth more than the address bar.
+    try {
+      if (location.hash !== '#' + id) history.replaceState(null, '', '#' + id);
+    } catch (e) { /* the tab still switched */ }
     count();
   }
   tabs.forEach(function (t) { t.addEventListener('click', function () { show(t.dataset.track); }); });
@@ -454,13 +583,20 @@ const SCRIPT = `<script>
    */
   (function stale() {
     var today = new Date();
-    document.querySelectorAll('.stale[data-asked]').forEach(function (el) {
-      var days = Math.floor((today - new Date(el.dataset.asked + 'T00:00:00')) / 86400000);
+    document.querySelectorAll('.stale[data-when]').forEach(function (el) {
+      var when = el.dataset.when;
+      if (!when) return;
+      var days = Math.floor((today - new Date(when + 'T00:00:00')) / 86400000);
       if (!isFinite(days) || days < 0) return;
-      var group = el.closest('.row') && el.closest('.row').dataset.group === 'true';
-      el.textContent = el.textContent + ', ' + (group ? 'longest ' : 'asked ')
-        + (days === 0 ? 'today' : days === 1 ? 'yesterday' : days + ' days');
-      el.title = 'Asked on ' + el.dataset.asked;
+      var span = days === 0 ? 'today' : days === 1 ? '1 day' : days + ' days';
+      var asked = el.dataset.kind === 'asked';
+      // "oldest here" on a heading, because the number belongs to one item underneath it and
+      // not to the group. "longest 27 days" said neither of those things.
+      var lead = el.dataset.group ? (asked ? 'oldest here ' : 'on the list ')
+        : (asked ? 'asked ' : 'on the list ');
+      el.textContent = el.textContent + ', ' + lead + span;
+      el.title = asked ? 'Asked on ' + when
+        : 'Nobody has been asked. This is the day it went on the list, ' + when + '.';
       el.dataset.daysOver = days >= 28 ? '28' : days >= 14 ? '14' : '0';
     });
   }());
@@ -493,24 +629,30 @@ const SCRIPT = `<script>
   function tell(msg) { if (say) say.textContent = msg; }
 
   function save(id, p) {
-    var s = session();
-    if (!cfg || !s) {
-      tell('Sign in on the tool to change priorities, and this page will pick it up.');
+    if (!cfg) {
+      tell('This copy has no store behind it, so priorities cannot be shared from here.');
       return Promise.resolve(false);
     }
-    return fetch(BASE + '/' + encodeURIComponent(id) + '?updateMask.fieldPaths=priority&updateMask.fieldPaths=setAt', {
-      method: 'PATCH',
-      headers: { authorization: 'Bearer ' + s.idToken, 'content-type': 'application/json' },
-      body: JSON.stringify({ fields: {
-        priority: { stringValue: p },
-        setAt: { stringValue: new Date().toISOString() },
-      } }),
-    }).then(function (r) {
-      if (r.ok) { tell('Saved for everybody, as ' + s.email + '.'); return true; }
-      return r.json().catch(function () { return {}; }).then(function (b) {
-        tell('That did not save: ' + ((b.error && b.error.message) || r.status)
-          + '. Your session may have run out; sign in on the tool again.');
+    return fresh().then(function (s) {
+      if (!s) {
+        tell('Sign in on the tool to change priorities, and this page will pick it up.');
         return false;
+      }
+      return fetch(BASE + '/' + encodeURIComponent(id)
+        + '?updateMask.fieldPaths=priority&updateMask.fieldPaths=setAt', {
+        method: 'PATCH',
+        headers: { authorization: 'Bearer ' + s.idToken, 'content-type': 'application/json' },
+        body: JSON.stringify({ fields: {
+          priority: { stringValue: p },
+          setAt: { stringValue: new Date().toISOString() },
+        } }),
+      }).then(function (r) {
+        if (r.ok) { tell('Saved for everybody, as ' + s.email + '.'); return true; }
+        return r.json().catch(function () { return {}; }).then(function (b) {
+          tell('That did not save: ' + ((b.error && b.error.message) || r.status)
+            + '. Sign in on the tool again and try once more.');
+          return false;
+        });
       });
     }).catch(function (e) { tell('That did not save: ' + e.message); return false; });
   }

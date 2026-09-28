@@ -1406,7 +1406,7 @@ console.log('\nThe published build, signed in\n');
   });
   const card = j.doc.querySelector('#app')?.textContent ?? '';
   ok('a browser that never asked is told which address the link went to',
-     /link was sent to\s*dan\.weekes-hall@tbs-sct\.gc\.ca/.test(card.replace(/\s+/g, ' ')),
+     /link says it was sent to\s*dan\.weekes-hall@tbs-sct\.gc\.ca/.test(card.replace(/\s+/g, ' ')),
      card.replace(/\s+/g, ' ').slice(0, 200));
   ok('and the field is filled with it, so nobody retypes it on a phone',
      j.doc.querySelector('input.signin-email')?.value === 'dan.weekes-hall@tbs-sct.gc.ca',
@@ -1420,6 +1420,17 @@ console.log('\nThe published build, signed in\n');
    * in as its owner, and a button reading "sign in on this device" is a press made without
    * looking.
    */
+  /**
+   * The card states a claim as a claim. Four reviewers agreed the old wording vouched for an
+   * address that came out of a URL, which is the difference between naming the account somebody
+   * is about to enter and telling them it is theirs.
+   */
+  ok('the card says the link CLAIMS the address, rather than asserting it',
+     /link says it was sent to/.test(card.replace(/\s+/g, ' ')),
+     card.replace(/\s+/g, ' ').slice(0, 200));
+  ok('and warns that the address came from the link and not from this browser',
+     /comes from the link itself, not from this browser/.test(card.replace(/\s+/g, ' ')),
+     card.replace(/\s+/g, ' ').slice(0, 260));
   ok('and the button names the account the press would enter',
      /Sign in as dan\.weekes-hall@tbs-sct\.gc\.ca/.test(
        [...j.doc.querySelectorAll('button')].map((b) => b.textContent).join(' | ')),

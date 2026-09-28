@@ -1170,6 +1170,27 @@ function renderLinkArrival(root: HTMLElement) {
       ? t(`Sign in as ${named}`, `Se connecter en tant que ${named}`)
       : t('Sign in on this device', 'Se connecter sur cet appareil'),
   ]);
+  /**
+   * The address came out of the link, and the link came from wherever it came from.
+   *
+   * Four reviewers went at this design on 28 September and agreed on one thing: the card was
+   * stating the address as a fact, in bold, when it is a claim made by a URL. That is the
+   * difference between naming the account somebody is about to enter and vouching for it.
+   *
+   * The attack it opens is not reading anybody's work. It is somebody sending their own valid
+   * link, under an address that reads like yours at a glance, and your press putting you into
+   * their account: from then on what you save is stamped with their address, and the rules
+   * freeze that, so the record cannot be taken back without an assessor deleting it. A signed-in
+   * assessor loses their own session to the same press.
+   *
+   * So the card says who is claiming what, and says it before the button rather than after.
+   */
+  const caution = named
+    ? el('p', { class: 'small warn-line' }, [
+        t('Check that address. It comes from the link itself, not from this browser, so a link somebody else sent you will name their address here.',
+          'Vérifiez cette adresse. Elle provient du lien lui-même et non de ce navigateur : un lien envoyé par quelqu\u2019un d\u2019autre affichera son adresse ici.'),
+      ])
+    : null;
   const say = el('p', { class: 'signer-advice' });
 
   /**
@@ -1201,8 +1222,8 @@ function renderLinkArrival(root: HTMLElement) {
     el('div', { class: 'head-row' }, [el('h1', {}, [t('Finish signing in', 'Terminer la connexion')])]),
     el('p', { class: 'muted' }, named
       ? [
-        t('This browser did not ask for that link, so it cannot finish on its own. The link was sent to ',
-          'Ce navigateur n\u2019a pas demandé ce lien, il ne peut donc pas terminer seul. Le lien a été envoyé à '),
+        t('This browser did not ask for that link, so it cannot finish on its own. The link says it was sent to ',
+          'Ce navigateur n\u2019a pas demandé ce lien, il ne peut donc pas terminer seul. Le lien indique qu\u2019il a été envoyé à '),
         el('strong', {}, [named]),
         t('. Sign in as that address, or change it if it is not the one you meant.',
           '. Connectez-vous avec cette adresse, ou modifiez-la si ce n\u2019est pas celle que vous vouliez.'),
@@ -1221,6 +1242,7 @@ function renderLinkArrival(root: HTMLElement) {
         ])
       : null,
     el('div', { class: 'signin-link-row' }, [field, go]),
+    caution,
     say,
     /**
      * Said before the button, because it is the thing somebody would not think of: the session
