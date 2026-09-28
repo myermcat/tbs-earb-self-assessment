@@ -1827,5 +1827,43 @@ console.log('\nThe published build, signed in\n');
   dom.window.close();
 }
 
+/* --------------------------------------------------------------------------------------- */
+/**
+ * Whether the list says anybody has audited these.
+ *
+ * Reported as: I assessed one of the questions, and nothing in the list of submissions says I
+ * did. The audits are documents beside each assessment, so a screen that reads assessments
+ * learns nothing about them without asking, and it was not asking.
+ */
+{
+  const mine = submission('AB12', 'Licensing Renewal');
+  const theirs = submission('CD34', 'Benefits Payment');
+  const audited = (who, name) => ({
+    reviewer: who, reviewerName: name, reviewedAt: '2026-09-28T00:00:00.000Z',
+    perQuestion: { 'B-Q1': { auditedScore: 7, verdict: 'agree', note: 'Fine.' } },
+  });
+  const { doc, dom } = await boot({
+    session: live, side: 'assess', role: 'assessor',
+    listAnswer: { documents: [asDoc(mine), asDoc(theirs)] },
+    audits: { [mine.id]: [audited(ME, 'Mariia')], [theirs.id]: [audited('nick@tbs-sct.gc.ca', 'Nick')] },
+  });
+  await new Promise((r) => setTimeout(r, 150));
+  const said = body(doc);
+  ok('the list says which one you have audited', /Audited by you/.test(said), said.slice(0, 260));
+  ok('and which one somebody else has', /Audited by 1/.test(said), said.slice(0, 260));
+  ok('and the two are told apart, because the question is whether you already looked',
+     said.indexOf('Audited by you') !== said.indexOf('Audited by 1'));
+
+  /**
+   * And the two counts read as one sentence.
+   *
+   * "2 from the pool" beside "3 submissions open" invited the question it was asked: why does
+   * it say two when I can see three. They count different things and the screen said neither.
+   */
+  ok('the source line explains itself', /from the shared store/.test(said), said.slice(0, 200));
+  ok('and the button says what it asks again', /Check the store again/.test(said), said.slice(0, 200));
+  dom.window.close();
+}
+
 console.log(fails ? `\n${fails} hosted check(s) failed\n` : '\nall hosted checks passed\n');
 process.exit(fails ? 1 : 0);

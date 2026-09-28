@@ -2160,3 +2160,13 @@ dialog.confirm.shake { animation: cf-shake .34s cubic-bezier(.36, .07, .19, .97)
   background: var(--surface-2); border-radius: 0 var(--radius-sm) var(--radius-sm) 0; }
 .other-head { display: flex; align-items: center; gap: .4rem; flex-wrap: wrap; }
 .audit-where { color: var(--ink-2); margin-top: .4rem; }
+
+/* The source line on its own, once there is a list under it. The drop target is still the whole
+   card, so dragging a file onto it works with nothing on screen saying it must. */
+.dropzone-tight { padding: .5rem .8rem; }
+.dropzone-tight .pool-in { margin: 0; }
+/* The file control on the toolbar hides its own input: a bare file input prints a button and a
+   filename the browser chooses the words for, in the middle of a row of our own. */
+.res-toolbar .filelabel { display: inline-flex; align-items: center; gap: .4rem; cursor: pointer; }
+.res-toolbar .filelabel input[type="file"] { position: absolute; width: 1px; height: 1px;
+  opacity: 0; pointer-events: none; }

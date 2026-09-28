@@ -319,13 +319,23 @@ export async function putRecord(a: Assessment): Promise<{ ok: true } | { ok: fal
  * before it calls anything. Without a Firestore build there is nowhere to delete from, and
  * saying so beats a button that appears to work.
  */
-export async function deleteRecord(id: string): Promise<{ ok: true } | { ok: false; problem: string }> {
+export async function deleteRecord(id: string): Promise<{ ok: true; already?: boolean } | { ok: false; problem: string }> {
   if (!isConfigured()) return { ok: false, problem: 'This build has no shared store to delete from.' };
   try {
     await deleteAssessment(id);
     return { ok: true };
   } catch (err) {
-    return { ok: false, problem: `Not deleted: ${(err as Error).message}` };
+    /**
+     * Gone already is not a failure, and reporting it as one sent somebody looking.
+     *
+     * A list read when the page loaded is a list as it was then. A record deleted since, by an
+     * admin on another machine or by this one on an earlier visit, is still on screen, and
+     * asking to delete it answered "no such submission in the store" about a row sitting right
+     * there. The row is what is wrong, so the row goes and the window says so.
+     */
+    const why = (err as Error).message;
+    if (/NOT_FOUND|404/i.test(why)) return { ok: true, already: true };
+    return { ok: false, problem: `Not deleted: ${why}` };
   }
 }
 

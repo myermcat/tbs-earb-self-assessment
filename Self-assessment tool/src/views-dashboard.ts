@@ -184,7 +184,10 @@ function paint(
     el('thead', {}, [el('tr', {}, [
       el('th', {}, ['Initiative']), el('th', {}, ['Department']), el('th', {}, ['Stage']),
       el('th', {}, ['Score']), el('th', {}, ['Band']), el('th', {}, ['Answered']),
-      el('th', {}, ['No']), el('th', {}, ['State']), el('th', {}, ['Updated']), el('th', {}, ['']),
+      // "No" was the whole heading over a count of red flags, which reads as a yes-or-no column
+      // and answers a question nobody asked.
+      el('th', { title: 'Answers scored high with nothing behind them' }, ['Red flags']),
+      el('th', {}, ['State']), el('th', {}, ['Updated']), el('th', {}, ['']),
     ])]),
   ]);
   const body = el('tbody', {});
@@ -305,17 +308,22 @@ function paint(
         el('b', {}, ['Question sets. ']),
         'Built. Settings holds every set this browser knows, marks the active one, and takes a new one. Adding a set keeps the old ones, and deleting one asks twice.',
       ]),
-      el('li', {}, [el('b', {}, ['Clear out test submissions. ']), 'Raised at TBS and parked.']),
+      /**
+       * What this line was: "Clear out test submissions. Raised at TBS and parked." Nobody
+       * reading it could tell what had been raised, with whom, or what parked meant. It was
+       * about removing many records at once, which nothing here does: they go one at a time,
+       * and each one makes you type its code out.
+       */
+      el('li', {}, [
+        el('b', {}, ['Clear out test submissions in one go. ']),
+        'Not built. A prototype fills up with them, and today each is deleted on its own row, which asks you to type its code out first.',
+      ]),
     ]),
     el('p', { class: 'small muted' }, [
       'Open question for TBS: is this a separate role, or an assessor with more buttons?',
     ]),
   ]));
 
-  // The backlog lives in Settings, under This build. A pointer is enough here.
-  root.appendChild(el('p', { class: 'small muted' }, [
-    'What is being built, and what is waiting on somebody, is in Settings under This build.',
-  ]));
 }
 
 function barRow(label: string, sub: string, v: number | null): HTMLElement {

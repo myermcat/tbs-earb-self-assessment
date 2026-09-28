@@ -46,6 +46,10 @@ interface Loaded {
   others?: AssessorAudit[];
   /** Whether the audits for this one have been fetched, so an empty list means empty. */
   auditsRead?: boolean;
+  /** Everybody who has written an audit against this one, for the list to say so. */
+  auditedBy?: string[];
+  /** Whether this assessor is one of them, which is the thing they look for first. */
+  auditedByMe?: boolean;
 }
 
 /**
@@ -78,6 +82,38 @@ function auditWhere(l: Loaded): string {
 }
 let auditSave: AuditSave = { state: 'off' };
 const auditTimers = new Map<string, ReturnType<typeof setTimeout>>();
+
+/**
+ * Whether anybody has audited the submissions on this list, and who.
+ *
+ * Reported as: I assessed one of the questions, and nothing in the list says I did. The audits
+ * are documents beside each assessment now, so a list that reads assessments learns nothing
+ * about them without asking, and it was not asking.
+ *
+ * One request per row, made once per session and in parallel. That is the honest cost of the
+ * shape: the state lives per assessor and cannot be read off the assessment without putting a
+ * marker back on it, which is the thing the subcollection exists to avoid. At the size this
+ * runs it is a handful of requests; the day a pool holds a hundred, one collection-group query
+ * replaces all of them and that is a decision with an index behind it.
+ */
+let listAuditsRead = false;
+async function readListAudits(after: () => void): Promise<void> {
+  if (listAuditsRead || !isHosted() || !currentUser()) return;
+  const rows = loaded.filter((l) => l.a.id);
+  if (!rows.length) return;
+  listAuditsRead = true;
+  const me = currentUser()?.email ?? '';
+  await Promise.all(rows.map(async (l) => {
+    try {
+      const all = await listAudits(l.a.id!);
+      l.auditedBy = all.map((x) => x.reviewerName?.trim() || x.reviewer);
+      l.auditedByMe = all.some((x) => x.reviewer === me);
+    } catch {
+      /* Refused or offline. The row says nothing rather than saying nobody has looked. */
+    }
+  }));
+  after();
+}
 
 /** Read every audit on this submission, and adopt this assessor's own as the one being edited. */
 async function readAudits(l: Loaded): Promise<void> {
@@ -243,7 +279,7 @@ let poolNow: Pool = { state: 'idle' };
 let asked = false;
 
 /** Ask again after signing in, after a delete, or when the assessor presses Check again. */
-export function forgetPool(): void { asked = false; poolNow = { state: 'idle' }; }
+export function forgetPool(): void { asked = false; poolNow = { state: 'idle' }; listAuditsRead = false; }
 
 function absorb(rubric: Rubric, answer: PoolAnswer): void {
   if (answer.state !== 'ok') {
@@ -368,6 +404,9 @@ export function renderReview(root: HTMLElement, rubric: Rubric): void {
   clear(root);
   restoreSession(rubric);
   askPool(rubric);
+  // Whether anybody has audited these, which the list could not say before: the audits are
+  // documents beside each assessment, so the list has to ask for them.
+  void readListAudits(() => renderReview(root, rubric));
   // With nothing loaded this screen is one card, and it centres. A toggle, because clear()
   // empties children and leaves classes, and loading a file re-enters here.
   root.classList.toggle('body-empty', loaded.length === 0);
@@ -380,7 +419,14 @@ export function renderReview(root: HTMLElement, rubric: Rubric): void {
   const pool = poolState();
 
   const again = isHosted()
-    ? el('button', { class: 'ghost small', onclick: () => { forgetPool(); repaint(); } }, ['Check again'])
+    ? el('button', {
+        class: 'ghost small',
+        // The pool is read once and the answer kept for the session, so a submission sent while
+        // this page was open never appears on its own. Reloading works because it starts the
+        // session over; this is the same thing without losing whatever was opened from a file.
+        title: 'Ask the store for submissions again, without losing anything opened from a file',
+        onclick: () => { forgetPool(); repaint(); },
+      }, ['Check the store again'])
     : null;
 
   /**
@@ -388,16 +434,26 @@ export function renderReview(root: HTMLElement, rubric: Rubric): void {
    * that nothing is assigned to them contradicts the list directly underneath, so what is left
    * is one line saying where they came from and a way to ask again.
    */
+  /**
+   * Where these came from, in one sentence rather than two numbers side by side.
+   *
+   * It read "2 from the pool" beside "3 submissions open", which invites exactly the question
+   * it was asked: why does it say two when I can see three. They count different things. The
+   * first is what the store handed over, the second is what is on this page, and the gap is
+   * whatever was opened from a file. Two numbers with no relation stated is a puzzle, so the
+   * sentence states it and the numbers only appear when they differ.
+   */
+  const fromFiles = Math.max(0, loaded.length - (poolNow.state === 'ok' ? poolNow.found : 0));
+  const where = poolNow.state !== 'ok'
+    ? `${loaded.length} open, read from files in this browser.`
+    : fromFiles === 0
+      ? `${loaded.length} from the shared store.`
+      : `${loaded.length} open: ${poolNow.found} from the shared store and ${fromFiles} opened from files here.`;
+
   const head = loaded.length
     ? el('div', { class: 'pool-in' }, [
-        el('span', { class: 'badge' }, [
-          poolNow.state === 'ok'
-            ? `${poolNow.found} from the pool`
-            : 'From files',
-        ]),
-        el('span', { class: 'muted small' }, [
-          `${loaded.length} submission${loaded.length === 1 ? '' : 's'} open.`,
-        ]),
+        el('span', { class: 'badge' }, [poolNow.state === 'ok' ? 'Shared store' : 'From files']),
+        el('span', { class: 'muted small' }, [where]),
         again,
       ])
     : el('div', { class: 'pool-out' }, [
@@ -412,21 +468,20 @@ export function renderReview(root: HTMLElement, rubric: Rubric): void {
         ]),
       ]);
 
-  const drop = el('section', { class: 'card dropzone' }, [
+  /**
+   * The file loader shrinks once there is anything on the page.
+   *
+   * It is the way in when there is no store and nothing else to look at, and a heading, a
+   * paragraph and a drop zone are right for that. With submissions already listed it is a
+   * thing you do occasionally, and it was still taking a block the size of the empty state.
+   */
+  const drop = el('section', { class: `card dropzone ${loaded.length ? 'dropzone-tight' : ''}` }, [
     head,
-    el('h3', { class: 'pool-alt-h' }, [
-      loaded.length ? 'Load more from files' : 'Load submissions from files instead',
-    ]),
-    el('p', { class: 'muted small' }, [
+    loaded.length ? null : el('h3', { class: 'pool-alt-h' }, ['Load submissions from files instead']),
+    loaded.length ? null : el('p', { class: 'muted small' }, [
       'Drop the .json files people sent you, or pick them. They are read here in your browser, and nothing is uploaded.',
     ]),
-    el('input', {
-      type: 'file', accept: '.json', multiple: true,
-      onchange: async (e: Event) => {
-        const input = e.target as HTMLInputElement;
-        if (input.files) await ingest(rubric, input.files, root);
-      },
-    }),
+    loaded.length ? null : fileInput(rubric, root),
   ]);
 
   drop.addEventListener('dragover', (e) => { e.preventDefault(); drop.classList.add('over'); });
@@ -439,6 +494,17 @@ export function renderReview(root: HTMLElement, rubric: Rubric): void {
 
   root.appendChild(drop);
   if (loaded.length) paintList(rubric, root);
+}
+
+/** The one file control, wherever it is put. */
+function fileInput(rubric: Rubric, root: HTMLElement): HTMLElement {
+  return el('input', {
+    type: 'file', accept: '.json', multiple: true,
+    onchange: async (e: Event) => {
+      const input = e.target as HTMLInputElement;
+      if (input.files) await ingest(rubric, input.files, root);
+    },
+  });
 }
 
 async function ingest(rubric: Rubric, files: FileList, root: HTMLElement) {
@@ -554,6 +620,26 @@ function paintList(rubric: Rubric, root: HTMLElement) {
               title: `Marked ready to review on ${new Date(l.a.meta.submittedAt).toLocaleString()}`,
             }, ['Ready'])
           : el('span', { class: 'muted', title: 'Nobody has said this one is finished' }, ['Draft']),
+        /**
+         * Whether anybody has audited it, and whether that anybody is you.
+         *
+         * Reported as: I assessed one of the questions and nothing on this list says so. Your
+         * own mark comes first and in words, because the question somebody actually has when
+         * they open this screen is "did I already look at this one".
+         */
+        l.auditedByMe
+          ? el('span', {
+              class: 'badge tag',
+              title: (l.auditedBy ?? []).length > 1
+                ? `Audited by you and ${(l.auditedBy ?? []).length - 1} other${(l.auditedBy ?? []).length === 2 ? '' : 's'}: ${(l.auditedBy ?? []).join(', ')}`
+                : 'You have written an audit on this one',
+            }, [(l.auditedBy ?? []).length > 1 ? `Audited by you, +${(l.auditedBy ?? []).length - 1}` : 'Audited by you'])
+          : (l.auditedBy ?? []).length
+            ? el('span', {
+                class: 'badge badge-soft tag',
+                title: `Audited by ${(l.auditedBy ?? []).join(', ')}. You have written nothing on this one.`,
+              }, [`Audited by ${(l.auditedBy ?? []).length}`])
+            : null,
       ]),
       el('td', {}, [l.a.initiative?.department ?? '--']),
       el('td', { class: 'small' }, [l.a.initiative?.classification || 'unmarked']),
@@ -595,11 +681,34 @@ function paintList(rubric: Rubric, root: HTMLElement) {
             el('summary', { class: 'set-menu-btn', 'aria-label': 'More actions', title: 'More actions' }, ['\u22EF']),
             el('div', { class: 'set-menu-pop' }, [
               l.a.id
+                /**
+                 * Copying says it copied, and the menu goes.
+                 *
+                 * Reported as: I click it and nothing changes, maybe it copied, and the menu is
+                 * still sitting open. Both halves of that are the control's fault. A copy is
+                 * silent by nature, so the only evidence it happened has to be put on the
+                 * screen, and a menu that stays open after its item has been used reads as an
+                 * item that did not work.
+                 */
                 ? el('button', {
                     class: 'menu-item',
-                    onclick: () => {
+                    onclick: (e: Event) => {
                       const code = formatCode(l.a.id ?? '');
-                      try { void navigator.clipboard?.writeText(code); } catch { /* no clipboard here */ }
+                      const item = e.currentTarget as HTMLElement;
+                      const done = (said: string) => {
+                        item.textContent = said;
+                        window.setTimeout(() => {
+                          (item.closest('details') as HTMLDetailsElement | null)?.removeAttribute('open');
+                          item.textContent = `Copy the access code (${code})`;
+                        }, 900);
+                      };
+                      try {
+                        const write = navigator.clipboard?.writeText(code);
+                        if (write) void write.then(() => done(`Copied ${code}`), () => done('Press the keys to copy it'));
+                        else done('Press the keys to copy it');
+                      } catch {
+                        done('Press the keys to copy it');
+                      }
                     },
                   }, [`Copy the access code (${formatCode(l.a.id ?? '')})`])
                 : null,
@@ -648,6 +757,17 @@ function paintList(rubric: Rubric, root: HTMLElement) {
         html: `${ICON_DOWN}<span>Export as CSV</span>`,
         onclick: () => askExportCsv(rubric),
       }),
+      /**
+       * Opening a file, beside the export rather than under its own heading.
+       *
+       * With nothing on the page it is the way in and it gets the block. With a list on the
+       * page it is a thing done occasionally, and it was still taking the room of an empty
+       * state directly above the work.
+       */
+      el('label', { class: 'filelabel ghost small btn-icon', title: 'Read .json submissions people sent you. They are read in this browser and nothing is uploaded.' }, [
+        el('span', {}, ['Open files']),
+        fileInput(rubric, root),
+      ]),
       el('span', { class: 'spacer' }),
       /**
        * Checking the pool again, and nothing else.
