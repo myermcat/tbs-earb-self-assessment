@@ -520,7 +520,23 @@ export async function sendSignInLink(email: string): Promise<boolean> {
          * is a link back to Firebase's own page, so the person reads their mail, clicks, and
          * never returns to the tool.
          */
-        continueUrl: returnAddress(),
+        /**
+         * The address the link was issued for, riding back on the return address.
+         *
+         * Reported from a phone: the link opened in Safari, which had never asked for it and so
+         * had nothing remembered, the screen asked which address it went to, and what came back
+         * was a refusal. Proved on 28 September by asking the service directly with four
+         * generated links: it is not capitalisation, and the whole flow works. The refusal means
+         * the two addresses really did differ, which nobody can correct without being told what
+         * the right one was.
+         *
+         * THIS IS NOT A WAY IN. The one-time code still has to match this address, so a link
+         * carrying somebody else's does not open anything. What it does buy is the one thing a
+         * crafted link could do with it: offer to sign you in as an address that is not yours.
+         * That is why the screen fills the field and still waits to be pressed, naming the
+         * address in front of the person, and never signs anybody in on arrival.
+         */
+        continueUrl: `${returnAddress()}?e=${encodeURIComponent(email)}`,
         canHandleCodeInApp: true,
       },
     );
@@ -583,15 +599,30 @@ export function arrivedOnSignInLink(): boolean {
  */
 let heldLinkCode = '';
 
+/**
+ * The address the link says it was issued for, when it says so.
+ *
+ * A suggestion and never a decision. It fills the field so nobody has to retype an address from
+ * memory, and the screen still waits for a press, because a link that signed somebody in on
+ * arrival would sign in whoever opened the mail. Empty for a link made before this existed.
+ */
+let linkAddressHint = '';
+
+/** The address a link names, for filling the field in. Never used without somebody pressing. */
+export function addressTheLinkNames(): string { return linkAddressHint; }
+
 /** Whether this page is holding a link that needs an address before it can finish. */
 export function linkNeedsAddress(): boolean { return heldLinkCode !== ''; }
 
 /** Give up on the held link and go back to the ordinary screen. */
-export function forgetLinkCode(): void { heldLinkCode = ''; }
+export function forgetLinkCode(): void { heldLinkCode = ''; linkAddressHint = ''; }
 
 export async function finishSignInLink(): Promise<boolean> {
   if (!CONFIG || !arrivedOnSignInLink()) return false;
-  const oobCode = new URLSearchParams(window.location.search).get('oobCode') ?? '';
+  const asked = new URLSearchParams(window.location.search);
+  const oobCode = asked.get('oobCode') ?? '';
+  // Read before scrubAddress() takes the query away, and held as a suggestion and nothing more.
+  linkAddressHint = asked.get('e') ?? '';
   // First thing and before any await. A one-time code in the address bar reaches history, a
   // bookmark and anything somebody pastes into a ticket.
   scrubAddress();

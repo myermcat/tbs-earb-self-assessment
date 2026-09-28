@@ -27,8 +27,8 @@ import { endpointHost, goneFromStore, isHosted, listRecords, putRecord,
   saveOnlineNow, savedOnline, showWhereItStands } from './store';
 import { canSignIn, CODE_LENGTH, currentUser, formatCode, forgetRole, getAssessment, grantsAccess, looksLikeCode, pageAddress, tidyCode, isConfigured as firebaseConfigured, knownRole, lastSignInProblem,
   loadRole, resumeSignIn, signInWithGoogle, signOut,
-  finishSignInLink, finishSignInLinkWith, forgetLinkCode, linkEmailWaiting, linkNeedsAddress,
-  sendSignInLink } from './firebase';
+  addressTheLinkNames, finishSignInLink, finishSignInLinkWith, forgetLinkCode, linkEmailWaiting,
+  linkNeedsAddress, sendSignInLink } from './firebase';
 import { t } from './i18n';
 import { answeredCount, APP_VERSION, autosave, blankAssessment, clearDraft, download, ensureRef,
   hasWork, loadDraft, readJsonFiles, saveAssessmentFile, slug } from './storage';
@@ -1139,8 +1139,40 @@ function renderLinkArrival(root: HTMLElement) {
     autocapitalize: 'none', autocorrect: 'off', spellcheck: 'false',
     placeholder: 'prenom.nom@tbs-sct.gc.ca',
   }) as HTMLInputElement;
-  const go = el('button', { class: 'primary' }, [t('Sign in on this device', 'Se connecter sur cet appareil')]);
+  /**
+   * The address the link names, filled in and named on the button.
+   *
+   * Asked directly: does carrying the address in the link break the security of it. It does not
+   * open anything, because the one-time code only works for the address it was minted for, so a
+   * link naming somebody else's address signs nobody in. The one thing it could do is offer to
+   * sign you in AS somebody else, which is what Firebase asks for the address to prevent: their
+   * crafted link, their address, your press, and your work saves into their account.
+   *
+   * So the press is what carries the consent, and the button says whose account it is. A
+   * prefilled field under a button reading "sign in on this device" is a press somebody makes
+   * without looking; a button reading "sign in as dan@..." is not.
+   */
+  const named = addressTheLinkNames();
+  if (named) field.value = named;
+  const go = el('button', { class: 'primary' }, [
+    named
+      ? t(`Sign in as ${named}`, `Se connecter en tant que ${named}`)
+      : t('Sign in on this device', 'Se connecter sur cet appareil'),
+  ]);
   const say = el('p', { class: 'signer-advice' });
+
+  /**
+   * And if the address is edited, the button stops naming the old one. A button that still says
+   * somebody else's address after you have typed yours is worse than a button that says nothing.
+   */
+  if (named) {
+    field.addEventListener('input', () => {
+      const now = field.value.trim();
+      go.textContent = now && now !== named
+        ? t(`Sign in as ${now}`, `Se connecter en tant que ${now}`)
+        : t(`Sign in as ${named}`, `Se connecter en tant que ${named}`);
+    });
+  }
 
   go.addEventListener('click', () => {
     const address = field.value.trim().toLowerCase();
@@ -1156,10 +1188,18 @@ function renderLinkArrival(root: HTMLElement) {
 
   root.appendChild(el('section', { class: 'card signin' }, [
     el('div', { class: 'head-row' }, [el('h1', {}, [t('Finish signing in', 'Terminer la connexion')])]),
-    el('p', { class: 'muted' }, [
-      t('This browser did not ask for that link, so it does not know which address the link went to. Type that address and the sign-in finishes here.',
-        'Ce navigateur n\u2019a pas demandé ce lien, il ne sait donc pas à quelle adresse il a été envoyé. Saisissez cette adresse et la connexion se terminera ici.'),
-    ]),
+    el('p', { class: 'muted' }, named
+      ? [
+        t('This browser did not ask for that link, so it cannot finish on its own. The link was sent to ',
+          'Ce navigateur n\u2019a pas demandé ce lien, il ne peut donc pas terminer seul. Le lien a été envoyé à '),
+        el('strong', {}, [named]),
+        t('. Sign in as that address, or change it if it is not the one you meant.',
+          '. Connectez-vous avec cette adresse, ou modifiez-la si ce n\u2019est pas celle que vous vouliez.'),
+      ]
+      : [
+        t('This browser did not ask for that link, so it does not know which address the link went to. Type that address and the sign-in finishes here.',
+          'Ce navigateur n\u2019a pas demandé ce lien, il ne sait donc pas à quelle adresse il a été envoyé. Saisissez cette adresse et la connexion se terminera ici.'),
+      ]),
     problem
       ? el('div', { class: 'card warn tight' }, [
           /** Reported as: "That did not finish" -- that what? */
