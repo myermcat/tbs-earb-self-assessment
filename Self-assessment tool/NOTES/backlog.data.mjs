@@ -1276,6 +1276,12 @@ export const items = [
     why: "Asked for on 1 October: always say EARB rather than Enterprise Architecture. It is the name in the rubric file, so it reaches the header, the tab title, every email subject the tool writes and the printed one-pager from one line.",
   },
   {
+    id: "no-link-to-one-question", track: "engine", section: "e-assessor",
+    kind: "feature", status: "open", priority: "medium", owner: "ours", golive: false,
+    t: "There is no way to send somebody one question",
+    why: "Found on 1 October in the seam between the address and the third tab, and the hole that was there is fixed; this is what the scenario was really asking for.\n\nAn assessor reads a note another assessor left on one question and wants to ask them about it. What they have to send is an address for a tab: a list of every question somebody else has written on, which for the colleague receiving it is a list that reads differently, because a tab called Audited by others never includes the reader\u2019s own work. The colleague opens it and has to find the question again by hand, in a list of 176, knowing only that it is one of the ones they wrote on.\n\nWhat it wants is the question in the address, assessor/CODE/QID or similar, opening the submission with that question in view and marked. That also answers the ordinary case nobody has raised yet, which is an assessor wanting to point at a question for any reason at all: a disagreement, a request for evidence, a note to themselves.\n\nNot started. It needs the question ids to be in the address grammar and a decision about what the screen does when it arrives: scroll to it, open whichever tab contains it, or show that one question on its own.",
+  },
+  {
     id: "other-assessors-work-is-not-visible", track: "engine", section: "e-assessor",
     kind: "bug", status: "done", priority: "high", owner: "ours", golive: false,
     t: "An assessor cannot see what the other assessors wrote",
