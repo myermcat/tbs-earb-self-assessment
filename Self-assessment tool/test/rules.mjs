@@ -232,5 +232,51 @@ check('nothing records who set it, so no address reaches a public page',
         await read('assessments/AUDITTEST234'), 'opens');
 }
 
+/**
+ * Who may ask for the whole pool.
+ *
+ * `allow get: if true` on an assessment is deliberate and is not a hole: a record opens on its
+ * twelve-character name because that is how a department hands one to a colleague who has no
+ * account. Knowing the code is the permission. So one submitter reading another’s assessment
+ * is not what this file defends against, and an item saying otherwise was wrong.
+ *
+ * What a code must never buy is the list. `allow list: if isAssessor()` is the whole barrier,
+ * and it has to be, because no rule can be written that lets a query through on what it filters
+ * on: a rule reads a query’s limit, its offset and its ordering, and nothing else. One line
+ * stands between an account and every submission TBS holds, and until now nothing ran it.
+ */
+{
+  // Seeded again rather than leant on from the block above, so this one stands by itself.
+  const AS_OWNER = { authorization: 'Bearer owner' };
+  await patch('roles/asr1@example.com', { role: str('assessor') }, AS_OWNER);
+  await patch('roles/asr2@example.com', { role: str('assessor') }, AS_OWNER);
+
+  check('an assessor asks for the pool and gets it',
+        await read('assessments', asPerson('asr1@example.com')), 'allowed');
+  check('an account with no role does not, however it asks',
+        await read('assessments', asPerson('passerby@example.com')), 'refused');
+  check('and neither does somebody signed out',
+        await read('assessments'), 'refused');
+  check('while one record still opens on its name alone, which is the point',
+        await read('assessments/ABCDEFGHJKMN'), 'allowed');
+
+  /**
+   * The roles collection, which is the other half of the same barrier. isAssessor() reads it on
+   * every request above, so a rule that leaks it hands an attacker the list of accounts worth
+   * attacking — every assessor at TBS, by address.
+   *
+   * These four were written because a mutation aimed at the assessments list hit this block by
+   * accident and nothing went red. Nothing had ever run it.
+   */
+  check('somebody reads their own role, which is how the page knows what to show',
+        await read('roles/asr1@example.com', asPerson('asr1@example.com')), 'allowed');
+  check('and not anybody else\u2019s, assessor or not',
+        await read('roles/asr2@example.com', asPerson('asr1@example.com')), 'refused');
+  check('an assessor may list who else is one',
+        await read('roles', asPerson('asr1@example.com')), 'allowed');
+  check('nobody signed out reads a role or the list of them',
+        await read('roles', {}), 'refused');
+}
+
 console.log(failed ? `\n${failed} rules check(s) failed` : '\nthe create rule holds, the backlog holds, and an audit is one assessor\u2019s own');
 process.exit(failed ? 1 : 0);
