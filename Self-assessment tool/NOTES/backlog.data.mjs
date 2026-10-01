@@ -64,14 +64,10 @@ export const updated = '2026-10-01';
 
 /** The tabs, across the top. Dan's three, and the critical path he asked for on top of them. */
 export const tracks = [
-  { id: 'golive', title: 'To go live',
-    hint: 'Everything that has to be true before a real department fills this in and a real assessor reads it. Dan asked for this list on 26 September and nothing on it is confirmed: it is what we think blocks going live until he says otherwise. Every item here also sits in the tab it belongs to.' },
-  { id: 'questions', title: 'The questions',
-    hint: 'The question set: what is asked, in what order, in which language, and what each answer is worth. The content is Dan\u2019s and most of this tab waits on him.' },
-  { id: 'engine', title: 'The engine',
-    hint: 'The tool that carries the questions: the screens a submitter and an assessor use, the scoring, and the saving. All of it is ours to build.' },
-  { id: 'admin', title: 'Administrative',
-    hint: 'Everything that is neither the questions nor the engine: where the tool is published, who owns the accounts it runs on, who may sign in, and what people do around it.' },
+  { id: 'golive', title: 'To go live' },
+  { id: 'questions', title: 'The questions' },
+  { id: 'engine', title: 'The engine' },
+  { id: 'admin', title: 'Administrative' },
 ];
 
 /**
