@@ -1,7 +1,7 @@
 import { classRank, type Assessment, type AuditEntry, type Rubric } from './types';
 import { refOf } from './storage';
 import { el, clear, tone, bar } from './dom';
-import { allQuestionScores, score, triageOrder, type QuestionScore, type Result } from './scoring';
+import { allQuestionScores, score, triageOrder, type QuestionScore, type Result, type SectionScore } from './scoring';
 import { t } from './i18n';
 import { flags, type Flag } from './flags';
 import { csvHeader, csvRow, toCsv } from './csv';
@@ -470,10 +470,53 @@ let auditor = '';
 let lastAgree: { section: string; agreed: number; kept: number } | null = null;
 export function setAuditor(name: string): void { auditor = name; }
 
+/**
+ * Where the assessor was, so a reload puts them back.
+ *
+ * Reported as: when I am in an assessment and reload the page, it sends me to the pool view, I
+ * want to stay exactly where I was. An assessor reads one submission for twenty minutes and
+ * reloads for all the ordinary reasons; coming back to a list and finding the row again is a
+ * tax on every one of those.
+ */
+const WHERE_KEY = storeKey('assessor-open');
+
+function rememberWhere(code: string | undefined, full: boolean): void {
+  try {
+    if (!code) localStorage.removeItem(WHERE_KEY);
+    else localStorage.setItem(WHERE_KEY, JSON.stringify({ code, full }));
+  } catch { /* private window. Opening on the list is no hardship. */ }
+}
+
+function whereWas(): { code: string; full: boolean } | null {
+  try {
+    const raw = localStorage.getItem(WHERE_KEY);
+    if (!raw) return null;
+    const v = JSON.parse(raw) as { code?: string; full?: boolean };
+    return v?.code ? { code: v.code, full: !!v.full } : null;
+  } catch {
+    return null;
+  }
+}
+
 export function renderReview(root: HTMLElement, rubric: Rubric): void {
   clear(root);
   restoreSession(rubric);
   askPool(rubric);
+  /**
+   * Back to the submission that was open, before anything of the list is drawn.
+   *
+   * The pool answers after the first paint, so this is tried again on the redraw that follows
+   * it: a record only in the store is not here to be found the first time through.
+   */
+  const back = whereWas();
+  if (back) {
+    const row = loaded.find((l) => l.a.id === back.code);
+    if (row) {
+      if (back.full) openFull(row.rubric, root, row);
+      else openDetail(row.rubric, root, row);
+      return;
+    }
+  }
   // Whether anybody has audited these, which the list could not say before: the audits are
   // documents beside each assessment, so the list has to ask for them.
   void readListAudits(() => renderReview(root, rubric));
@@ -761,7 +804,11 @@ function paintList(rubric: Rubric, root: HTMLElement) {
               el('button', {
                 class: 'menu-item',
                 onclick: () => openDetail(l.rubric, root, l),
-              }, ['Open this submission']),
+              }, ['Open what needs you']),
+              el('button', {
+                class: 'menu-item',
+                onclick: () => openFull(l.rubric, root, l),
+              }, ['Open the full submission']),
               el('div', { class: 'menu-sep' }),
               l.a.id
                 /**
@@ -876,6 +923,151 @@ function paintList(rubric: Rubric, root: HTMLElement) {
 }
 
 /**
+ * One section's heading, with the control Dan asked for by name.
+ *
+ * A section an assessor has read and has nothing to say about should take one click, not one
+ * per question, and it must touch no score. It is here rather than inside either screen
+ * because both of them show sections now: the triage folds the unflagged ones and the full
+ * view lays all of them out, and a control that existed on only one of those would be a
+ * control people could not find.
+ */
+function sectionHead(
+  sec: SectionScore,
+  a: Assessment,
+  audit: NonNullable<Assessment['audit']>,
+  repaint: () => void,
+): HTMLElement {
+  return el('h4', { class: 'section-head' }, [
+    sec.section.label,
+    el('span', { class: 'muted small' }, [`${sec.weight}% of this domain`]),
+    el('span', { class: `pill small ${tone(sec.score)}` }, [sec.score === null ? '--' : sec.score.toFixed(1)]),
+    el('button', {
+      class: 'ghost small',
+      title: 'Mark every question in this section as agreed. Changes no scores.',
+      onclick: () => {
+        let agreed = 0;
+        let kept = 0;
+        for (const qs of sec.questions) {
+          const e = (audit.perQuestion[qs.question.id] ??= { auditedScore: null, verdict: '', note: '' });
+          // A score the assessor has already changed is not one they agree with, and neither
+          // is a question they have already judged some other way.
+          if (typeof e.auditedScore === 'number' && e.auditedScore !== (a.answers[qs.question.id]?.score ?? null)) {
+            kept++;
+            continue;
+          }
+          if (e.verdict && e.verdict !== 'agree') { kept++; continue; }
+          e.verdict = 'agree';
+          e.by = auditor || 'unnamed';
+          e.at = new Date().toISOString();
+          agreed++;
+        }
+        lastAgree = { section: sec.section.id, agreed, kept };
+        keepSession();
+        repaint();
+      },
+    }, ['Agree with all']),
+    lastAgree && lastAgree.section === sec.section.id
+      ? el('span', { class: 'small muted' }, [
+          `${lastAgree.agreed} marked as agreed`,
+          lastAgree.kept ? `, ${lastAgree.kept} left as you scored ${lastAgree.kept === 1 ? 'it' : 'them'}` : '',
+        ])
+      : null,
+  ]);
+}
+
+/**
+ * The submission as the department wrote it, with the audit controls on each question.
+ *
+ * Asked for twice and in the same words both times: everything that is not flagged arrives as
+ * one flat scroll of about 150 questions, and what is wanted is the submitter's own layout.
+ * Her decision on the three ways it could go was the third: this is a SEPARATE screen reached
+ * from the triage, and the triage keeps its shape. The screen somebody is shown on opening a
+ * submission still answers "which handful do I have to argue with"; this one answers "what did
+ * they actually say", and both are real questions.
+ *
+ * Nothing here is a second rendering of a question. It is auditRow, the same block the triage
+ * uses, laid out by domain and section instead of by severity, so the two screens cannot drift
+ * apart: a change to how a question reads reaches both.
+ */
+function openFull(rubric: Rubric, root: HTMLElement, l: Loaded): void {
+  clear(root);
+  rememberWhere(l.a.id, true);
+  const { a, r, fs } = l;
+  const audit = (a.audit ??= { reviewer: '', reviewedAt: new Date().toISOString(), perQuestion: {}, overallNote: '' });
+  const repaint = () => {
+    const at = window.scrollY;
+    openFull(rubric, root, l);
+    window.scrollTo({ top: at });
+  };
+  if (!l.auditsRead) void readAudits(l).then(repaint);
+
+  const byQuestion = new Map<string, Flag[]>();
+  for (const f of fs) {
+    if (!f.questionId) continue;
+    byQuestion.set(f.questionId, [...(byQuestion.get(f.questionId) ?? []), f]);
+  }
+  const questionOf = new Map(allQuestionScores(r).map((qs) => [qs.question.id, qs]));
+
+  root.appendChild(el('section', { class: 'card tight actions' }, [
+    el('button', {
+      class: 'ghost',
+      onclick: () => openDetail(rubric, root, l),
+    }, ['Back to what needs you']),
+    el('span', { class: 'muted small' }, [a.initiative?.name || l.file]),
+  ]));
+
+  /**
+   * What needs arguing with, at the top, as a line rather than a screen.
+   *
+   * The triage is the other view and this one does not repeat it. What it owes somebody who
+   * came here first is the count, so they know whether to go and look.
+   */
+  const highs = fs.filter((f) => f.severity === 'high').length;
+  root.appendChild(el('section', { class: 'card tight' }, [
+    el('p', { class: 'small' }, [
+      highs
+        ? `${highs} answer${highs === 1 ? '' : 's'} on this submission need arguing with. `
+        : 'Nothing on this submission is flagged as anomalous. ',
+      el('button', { class: 'linkish', onclick: () => openDetail(rubric, root, l) }, ['Open what needs you']),
+    ]),
+    el('p', { class: 'small muted' }, [
+      'Everything below is the assessment as the department filled it in, in their own order. Score any question here and it is kept the same as it would be there.',
+    ]),
+  ]));
+
+  for (const d of r.domains) {
+    const box = el('section', { class: 'card' }, [
+      el('h2', {}, [
+        d.domain.label,
+        el('span', { class: `pill small ${tone(d.score)}` }, [d.score === null ? '--' : d.score.toFixed(1)]),
+      ]),
+    ]);
+    for (const sec of d.sections) {
+      const rows = el('div', {});
+      let flaggedHere = 0;
+      for (const qs of sec.questions) {
+        const qflags = byQuestion.get(qs.question.id) ?? [];
+        if (qflags.length) flaggedHere++;
+        rows.appendChild(auditRow(rubric, a, qs, audit, qflags, repaint, qflags.length > 0, l));
+      }
+      box.appendChild(section(`full:${sec.section.id}`, { class: 'full-section', open: true }, [
+        el('summary', { class: 'section-summary' }, [
+          el('span', { class: 'section-title' }, [sec.section.label]),
+          el('span', { class: 'muted small' }, [`${sec.questions.length} questions`]),
+          flaggedHere
+            ? el('span', { class: 'badge badge-warn tiny' }, [`${flaggedHere} flagged`])
+            : null,
+        ]),
+        sectionHead(sec, a, audit, repaint),
+        rows,
+      ]));
+    }
+    root.appendChild(box);
+  }
+  void questionOf;
+}
+
+/**
  * The assessor's page, ordered the way the work actually goes: the anomalies first, with the
  * scoring controls sitting inside each one so nothing has to be looked up, and the remaining
  * questions folded away until somebody wants them. Reading 176 answers is the job this is
@@ -883,6 +1075,7 @@ function paintList(rubric: Rubric, root: HTMLElement) {
  */
 function openDetail(rubric: Rubric, root: HTMLElement, l: Loaded) {
   clear(root);
+  rememberWhere(l.a.id, false);
   const { a, r, fs } = l;
   const audit = (a.audit ??= { reviewer: '', reviewedAt: new Date().toISOString(), perQuestion: {}, overallNote: '' });
   const byQuestion = new Map<string, Flag[]>();
@@ -896,7 +1089,19 @@ function openDetail(rubric: Rubric, root: HTMLElement, l: Loaded) {
   // still one question to look at: count it once, and show it once, inside the aggregate.
   const needLook = new Set([...byQuestion.keys(), ...inAggregate]);
   const questionOf = new Map(allQuestionScores(r).map((qs) => [qs.question.id, qs]));
-  const repaint = () => openDetail(rubric, root, l);
+  /**
+   * A redraw leaves the page where it was.
+   *
+   * Reported as: when I click on numbers, it moves my screen somewhere. The screen is rebuilt
+   * from nothing on a score, so the document gets shorter or taller for a moment and the
+   * browser keeps the same offset against a different page. Putting the offset back after the
+   * rebuild is the whole of it.
+   */
+  const repaint = () => {
+    const at = window.scrollY;
+    openDetail(rubric, root, l);
+    window.scrollTo({ top: at });
+  };
   // Other people's audits arrive after the page does. Nothing waits on them: the screen draws
   // with this assessor's own work and redraws when the rest lands.
   if (!l.auditsRead) void readAudits(l).then(repaint);
@@ -907,7 +1112,10 @@ function openDetail(rubric: Rubric, root: HTMLElement, l: Loaded) {
   const evidenceCount = Object.values(a.answers).reduce((n, x) => n + (x.evidence ?? []).length, 0);
 
   root.appendChild(el('section', { class: 'card tight actions' }, [
-    el('button', { class: 'ghost', onclick: () => renderReview(root, rubric) }, ['Back to the list']),
+    el('button', {
+      class: 'ghost',
+      onclick: () => { rememberWhere(undefined, false); renderReview(root, rubric); },
+    }, ['Back to the list']),
     el('span', { class: 'muted small' }, [l.file]),
   ]));
 
@@ -1164,44 +1372,7 @@ function openDetail(rubric: Rubric, root: HTMLElement, l: Loaded) {
     for (const sec of d.sections) {
       const rows = sec.questions.filter((qs) => !byQuestion.has(qs.question.id) && !inAggregate.has(qs.question.id));
       if (!rows.length) continue;
-      domainRows.push(el('h4', { class: 'section-head' }, [
-        sec.section.label,
-        el('span', { class: 'muted small' }, [`${sec.weight}% of this domain`]),
-        el('span', { class: `pill small ${tone(sec.score)}` }, [sec.score === null ? '--' : sec.score.toFixed(1)]),
-        // Dan asked for this by name: a section an assessor has read and has nothing to say
-        // about should take one click, not one per question. It touches no score.
-        el('button', {
-          class: 'ghost small',
-          title: 'Mark every question in this section as agreed. Changes no scores.',
-          onclick: () => {
-            let agreed = 0;
-            let kept = 0;
-            for (const qs of sec.questions) {
-              const e = (audit.perQuestion[qs.question.id] ??= { auditedScore: null, verdict: '', note: '' });
-              // A score the assessor has already changed is not one they agree with, and
-              // neither is a question they have already judged some other way.
-              if (typeof e.auditedScore === 'number' && e.auditedScore !== (a.answers[qs.question.id]?.score ?? null)) {
-                kept++;
-                continue;
-              }
-              if (e.verdict && e.verdict !== 'agree') { kept++; continue; }
-              e.verdict = 'agree';
-              e.by = auditor || 'unnamed';
-              e.at = new Date().toISOString();
-              agreed++;
-            }
-            lastAgree = { section: sec.section.id, agreed, kept };
-            keepSession();
-            repaint();
-          },
-        }, ['Agree with all']),
-        lastAgree && lastAgree.section === sec.section.id
-          ? el('span', { class: 'small muted' }, [
-              `${lastAgree.agreed} marked as agreed`,
-              lastAgree.kept ? `, ${lastAgree.kept} left as you scored ${lastAgree.kept === 1 ? 'it' : 'them'}` : '',
-            ])
-          : null,
-      ]));
+      domainRows.push(sectionHead(sec, a, audit, repaint));
       for (const qs of rows) {
         domainRows.push(auditRow(rubric, a, qs, audit, [], repaint, false, l));
         restCount++;
@@ -1214,14 +1385,28 @@ function openDetail(rubric: Rubric, root: HTMLElement, l: Loaded) {
     ]));
     for (const n of domainRows) rest.appendChild(n);
   }
-  restBox.appendChild(section('rest', {}, [
-    el('summary', { class: 'section-summary' }, [
-      el('span', { class: 'section-title' }, [`Everything else`]),
-      el('span', { class: 'muted small' }, [`${restCount} questions with nothing flagged`]),
+  /**
+   * The rest of the assessment is a screen, not a fold.
+   *
+   * "Everything else" put about 150 questions behind one triangle, in no order anybody chose,
+   * and reaching the one you wanted meant scrolling past the rest. Reported as uncomfortable
+   * twice, and the answer both times was the same: show it the way the submitter wrote it.
+   * That is its own screen now, and this is the door to it.
+   */
+  restBox.appendChild(el('div', { class: 'rest-door' }, [
+    el('div', {}, [
+      el('h2', {}, ['The rest of the assessment']),
+      el('p', { class: 'muted small' }, [
+        `${restCount} questions with nothing flagged. They open as the department filled them in, by domain and section, with the same controls on each one.`,
+      ]),
     ]),
-    rest,
+    el('button', {
+      class: 'primary',
+      onclick: () => openFull(rubric, root, l),
+    }, ['Open the full submission']),
   ]));
   root.appendChild(restBox);
+  void rest;
 
   // ---- 4. sign off ---------------------------------------------------------------------
   root.appendChild(el('section', { class: 'card' }, [

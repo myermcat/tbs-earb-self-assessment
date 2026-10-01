@@ -1817,10 +1817,18 @@ console.log('\nThe published build, signed in\n');
   const row = doc.querySelector('.triage tbody tr.row-open');
   ok('the row itself opens the submission', !!row);
   ok('and the menu still offers it in words',
-     [...doc.querySelectorAll('.row-acts .menu-item')].some((b) => /Open this submission/.test(b.textContent)),
+     [...doc.querySelectorAll('.row-acts .menu-item')].some((b) => /Open what needs you/.test(b.textContent)),
      [...doc.querySelectorAll('.row-acts .menu-item')].map((b) => b.textContent).join(' | '));
   row.dispatchEvent(new dom.window.MouseEvent('click', { bubbles: true }));
   await new Promise((r) => setTimeout(r, 120));
+
+  /**
+   * On the full view, because the question this fixture audits is not flagged and the screen an
+   * assessor opens on carries only what is.
+   */
+  [...doc.querySelectorAll('button')].find((b) => /Open the full submission/.test(b.textContent))
+    ?.dispatchEvent(new dom.window.MouseEvent('click', { bubbles: true }));
+  await new Promise((r) => setTimeout(r, 60));
 
   ok('opening one reads the audits written against it',
      seen.some((x) => /\/assessments\/[^/]+\/audit/.test(x.href) && x.method === 'GET'),
@@ -1830,11 +1838,19 @@ console.log('\nThe published build, signed in\n');
      /Nick/.test(said) && /The evidence covers it/.test(said), said.slice(0, 200));
   ok('and their score is shown as theirs rather than merged into one number',
      !!doc.querySelector('.other-audit'), String(doc.querySelectorAll('.other-audit').length));
+  // The sign-off card is on the screen that signs off, so this one is asked there.
+  [...doc.querySelectorAll('button')].find((b) => /Back to what needs you/.test(b.textContent))
+    ?.dispatchEvent(new dom.window.MouseEvent('click', { bubbles: true }));
+  await new Promise((r) => setTimeout(r, 40));
   ok('the page says where this assessor\u2019s own audit lives',
-     /saved in the store, under your own name/.test(said), said.slice(-260));
+     /saved in the store, under your own name/.test(body(doc)), body(doc).slice(-260));
 
   // Scoring a question sends this assessor's own audit, under this assessor's own address.
   const before = seen.length;
+  // Back to the full view, where every question is, to score the one this fixture audits.
+  [...doc.querySelectorAll('button')].find((b) => /Open the full submission/.test(b.textContent))
+    ?.dispatchEvent(new dom.window.MouseEvent('click', { bubbles: true }));
+  await new Promise((r) => setTimeout(r, 60));
   // Eleven buttons, the way the submitter picks a rung, rather than a number spinner.
   const six = [...doc.querySelectorAll('.audit-controls .audit-score .score-btn')]
     .find((b) => b.textContent === '6');

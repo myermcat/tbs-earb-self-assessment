@@ -2196,3 +2196,18 @@ tr.row-open button, tr.row-open summary, tr.row-open label { cursor: pointer; }
 .audit-delta { margin-left: .2rem; }
 .audit-line select, .audit-line input[type="text"] { min-width: 10rem; }
 .audit-line input[type="text"] { flex: 1 1 14rem; }
+
+/* One rail per question, not two.
+   A flagged question drew its own rail and the finding inside it drew a second one directly
+   beside it, so every flagged question arrived with a pair of coloured lines down its left and
+   nothing saying they meant different things. Reported as: it has the red line for each
+   question twice, it is confusing. The finding keeps its severity on its dot and its title,
+   which is where it was already carried. */
+.audit-row .flag { border-left: 0; padding-left: 0; background: transparent; }
+.audit-row .flag .flag-title { color: var(--sev); }
+
+/* The door to the full submission, where a fold holding 150 questions used to be. */
+.rest-door { display: flex; align-items: center; justify-content: space-between; gap: 1rem;
+  flex-wrap: wrap; }
+.rest-door h2 { margin: 0 0 .2rem; }
+.full-section { margin: .4rem 0; }

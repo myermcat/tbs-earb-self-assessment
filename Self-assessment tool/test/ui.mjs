@@ -1574,39 +1574,65 @@ ok('triage row names the initiative', q('table.triage tbody tr').textContent.inc
 
 byText('button', 'Open').click();
 ok('detail view opens', view().includes('Audit these'));
-ok("assessor sees the submitter's own words",
-   view().includes('They said') && view().includes('owned by the platform team'));
+
+/**
+ * The full submission, which is its own screen.
+ *
+ * Asked for twice: everything not flagged used to arrive as one flat scroll of about 150
+ * questions behind a triangle. It opens in the department's own order now, by domain and
+ * section, with the same controls on every question.
+ */
+{
+  byText('button', 'Open the full submission').click();
+  const allQids = new Set(qa('.audit-row .qid').map((n) => n.textContent));
+  ok('the full view holds every question', allQids.size === TOTAL, `${allQids.size} vs ${TOTAL}`);
+  ok('laid out by domain', qa('.card h2').length >= 4, String(qa('.card h2').length));
+  ok('and by section inside it', qa('.full-section').length > 10, String(qa('.full-section').length));
+  ok('with a way back to what needs you', !!byText('button', 'Back to what needs you'));
+  ok('and it says what is flagged without repeating the list',
+     view().includes('need arguing with') || view().includes('Nothing on this submission is flagged'));
+  ok("assessor sees the submitter's own words",
+     view().includes('They said') && view().includes('owned by the platform team'));
+  ok('assessor sees the evidence reference and its classification',
+     view().includes('Current-state architecture diagram') && view().includes('Protected B'));
+  ok('the assessor is told where the evidence is', view().includes('Current-state architecture diagram'));
+  byText('button', 'Back to what needs you').click();
+  ok('and coming back lands on what needs you', view().includes('Audit these'));
+}
+
 ok('assessor is told where a justification is missing', view().includes('No justification given'));
-ok('assessor sees the evidence reference and its classification',
-   view().includes('Current-state architecture diagram') && view().includes('Protected B'));
 // Anomalies first: only the flagged questions are on the page until the assessor asks for
 // the rest. This is the whole point of the reviewer side.
 {
   const flaggedRows = qa('.audit-row.flagged').length;
-  // A question can belong to two findings and appear under both, so count questions, not rows.
-  const allQids = new Set(qa('.audit-row .qid').map((n) => n.textContent));
   ok('flagged questions are surfaced on their own', flaggedRows > 0, String(flaggedRows));
   ok('the flagged set is a small fraction of 176', flaggedRows < 40, String(flaggedRows));
-  ok('every question is on the page, the unflagged ones folded away',
-     allQids.size === TOTAL, `${allQids.size} vs ${TOTAL}`);
-  ok('the fold says how many are behind it', view().includes('nothing flagged'));
+  ok('and the screen somebody opens on is only those', qa('.audit-row').length < 40,
+     String(qa('.audit-row').length));
+  ok('the rest is a door rather than a fold', view().includes('The rest of the assessment'));
+  ok('which says how many are behind it', view().includes('nothing flagged'));
   ok('a KPI row summarises the submission', qa('.kpi').length === 5, String(qa('.kpi').length));
 }
+
 ok('a challenge question is drafted for the assessor, with no AI and no key involved',
    qa('.challenge').length > 0 && qa('.challenge')[0].textContent.includes('?'),
    qa('.challenge')[0]?.textContent?.slice(0, 70));
 ok('the marking is shown as handling information, not as an anomaly',
    view().includes('Marked Protected B') && !view().includes('Evidence marked Protected B'));
-// The assessor sees where the evidence lives, which is a link or a note that it was emailed.
-ok('the assessor is told where the evidence is',
-   view().includes('Current-state architecture diagram'));
-
 ok('the audit is attributed to whoever signed in, and says it is unverified',
    view().includes('Auditing as') && view().includes('unverified'));
 
 // Agree-with-all: Dan asked for it by name. It marks a whole section as agreed and touches
 // no score.
 {
+  /**
+   * Agree-with-all lives where the sections are, which is the full view.
+   *
+   * It used to sit inside the fold that held every unflagged question. That fold is a screen
+   * of its own now, so the control went with the sections rather than staying on a screen that
+   * no longer has any.
+   */
+  byText('button', 'Open the full submission').click();
   // The scores as the assessor left them, so "touches no score" is actually checked.
   // The score is eleven buttons now, the way the submitter picks one, so what is on the page
   // is which button is pressed rather than what is typed in a box.
@@ -1619,11 +1645,19 @@ ok('the audit is attributed to whoever signed in, and says it is unverified',
   btn.click();
   ok('and it says how many it marked', view().includes('marked as agreed'));
   ok('while changing no score', nums() === before, `${before} -> ${nums()}`);
+  byText('button', 'Back to what needs you').click();
 }
 
-// Re-score one specific question so the delta is checkable.
+/**
+ * Re-score one specific question so the delta is checkable.
+ *
+ * In the full view, because the first question of the first section is not flagged and the
+ * screen somebody opens on now carries only what is. Scoring it there and coming back is how
+ * an assessor would actually do it.
+ */
 const targetQid = rubric.domains[0].sections[0].questions[0].id;
 const rowOf = (qid) => q(`.audit-row[data-qid="${qid}"]`);
+byText('button', 'Open the full submission').click();
 const targetRow = rowOf(targetQid);
 ok('every question is addressable by its rubric id', !!targetRow, targetQid);
 const pick = (row, v) => [...row.querySelectorAll('.audit-controls .score-btn')]
@@ -1631,12 +1665,6 @@ const pick = (row, v) => [...row.querySelectorAll('.audit-controls .score-btn')]
 pick(targetRow, 4).click();
 ok('changing a score marks that line as changed',
    !!q(`.audit-row.changed[data-qid="${targetQid}"]`));
-ok('the change is summarised for the assessor', view().includes('What you changed'));
-ok('the delta is shown with direction', view().includes('They said 7, you scored 4'));
-
-// A changed number has to be justified, and until it is, the file cannot be saved.
-ok('saving is blocked while a changed score has no reason',
-   !byText('button', 'Save the audited file') && view().includes('need a reason'));
 {
   /**
    * The row survives a score change now.
@@ -1659,7 +1687,6 @@ ok('saving is blocked while a changed score has no reason',
   fire(noteField, 'input');
   fire(noteField, 'change');
 }
-ok('with a reason, saving is offered again', !!byText('button', 'Save the audited file'));
 
 // The exchange: it says it was edited, and by whom, before anyone opens anything.
 {
@@ -1668,6 +1695,15 @@ ok('with a reason, saving is offered again', !!byText('button', 'Save the audite
      !!ex && ex.textContent.includes('Edited') && ex.textContent.includes('Allison'),
      ex?.textContent);
 }
+
+/**
+ * Back on the screen that signs off, which is where a changed score is summarised and where
+ * the file is saved.
+ */
+byText('button', 'Back to what needs you').click();
+ok('the change is summarised for the assessor', view().includes('What you changed'));
+ok('the delta is shown with direction', view().includes('They said 7, you scored 4'));
+ok('with a reason, saving is offered again', !!byText('button', 'Save the audited file'));
 
 byText('button', 'Save the audited file').click();
 const audited = JSON.parse(await text(saved[saved.length - 1]));
