@@ -13,7 +13,7 @@ import { deleteSubmission } from './danger-submission';
 import { handOff, renderResults } from './views-results';
 import { forgetOpenSubmission, forgetPool, openedThisSession, renderReview, setAuditor } from './views-review';
 import { renderDashboard } from './views-dashboard';
-import { addToLibrary, canRemove, currentId, currentRubric, libraryList, removeFromLibrary,
+import { canRemove, currentId, currentRubric, libraryList, removeFromLibrary,
   setCurrentId } from './library';
 import { closeMenusOnOutsideClick, closeOnOutsideClick, confirmStep, openDialog } from './confirm';
 import { saveBadge } from './save-badge';
@@ -31,7 +31,7 @@ import { canSignIn, CODE_LENGTH, currentUser, formatCode, forgetRole, getAssessm
   linkNeedsAddress, sendSignInLink } from './firebase';
 import { t } from './i18n';
 import { answeredCount, APP_VERSION, autosave, blankAssessment, clearDraft, download, ensureRef,
-  hasWork, loadDraft, readJsonFiles, saveAssessmentFile, slug } from './storage';
+  hasWork, loadDraft, saveAssessmentFile, slug } from './storage';
 import { bannerFor, evidenceNote } from './marking';
 import BUILTIN from '../rubric/rubric.v1-dan.json';
 import { storeKey } from './keys';
@@ -1695,27 +1695,40 @@ function paneQuestions(pane: HTMLElement) {
    * most destructive control in the tool and the only one that asked nothing. It now goes
    * through the same confirmation as a discard.
    */
-  const picker = el('label', { class: 'filelabel' }, [
-    'Add a question set',
-    el('input', {
-      type: 'file', accept: '.json', hidden: true,
-      onchange: async (e: Event) => {
-        const input = e.target as HTMLInputElement;
-        const f = input.files;
-        if (!f?.length) return;
-        const [item] = await readJsonFiles(f);
-        input.value = '';
-        const v = validate(item.data);
-        if (!v.ok) { alert(`That question set will not load:\n\n- ${v.problems.join('\n- ')}`); return; }
-
-        // Adding is not activating. Nothing that anybody is answering changes here.
-        const added = addToLibrary(v.rubric, new Date().toISOString(), assessorName.trim() || undefined);
-        if (!added.ok) { alert(added.problem); return; }
-        settingsPane = 'questions';
-        go('settings');
-      },
-    }),
-  ]);
+  /**
+   * TAKEN OUT ON 1 OCTOBER 2026, AND KEPT HERE BECAUSE IT IS COMING BACK.
+   *
+   * Asked for in these words: the app should not be able to deal with files for now, comment it
+   * out, and put it back when I say. So this is commented rather than deleted, and it is not dead
+   * code for somebody to tidy away.
+   *
+   * What it did: took a .json question set off the machine, validated it, and put it in this
+   * browser's library. Adding was never activating, so nothing anybody was answering changed
+   * here. Everything it needs still exists: validate() in src/rubric.ts, addToLibrary() in
+   * src/library.ts, readJsonFiles() in src/storage.ts. Uncommenting this block and restoring the
+   * two imports is the whole of putting it back.
+   *
+   * const picker = el('label', { class: 'filelabel' }, [
+   *   'Add a question set',
+   *   el('input', {
+   *     type: 'file', accept: '.json', hidden: true,
+   *     onchange: async (e: Event) => {
+   *       const input = e.target as HTMLInputElement;
+   *       const f = input.files;
+   *       if (!f?.length) return;
+   *       const [item] = await readJsonFiles(f);
+   *       input.value = '';
+   *       const v = validate(item.data);
+   *       if (!v.ok) { alert(`That question set will not load: ${v.problems.join(', ')}`); return; }
+   *       const added = addToLibrary(v.rubric, new Date().toISOString(), assessorName.trim() || undefined);
+   *       if (!added.ok) { alert(added.problem); return; }
+   *       settingsPane = 'questions';
+   *       go('settings');
+   *     },
+   *   }),
+   * ]);
+   */
+  const picker: HTMLElement | null = null;
 
   if (side !== 'assess') return;
 
