@@ -11,6 +11,7 @@
  */
 import { readFile, writeFile } from 'node:fs/promises';
 import { readdirSync } from 'node:fs';
+import { compareIds, describeDrift, gist, saveLock } from './rubric-lock.mjs';
 
 // One level further out since 28 September: the source material is no longer inside the
 // repository, so a recorded meeting or a spreadsheet cannot be published by a stray git add.
@@ -429,26 +430,46 @@ const rubric = {
  * quietly point at a different question. New ids are fine, and disappearing ones are noted.
  */
 const LOCK = 'rubric/rubric-ids.lock.json';
-const gist = (t) => t.replace(/\s+/g, ' ').trim().slice(0, 70);
 const current = {};
 for (const d of domains) for (const sec of d.sections) for (const q of sec.questions) current[q.id] = gist(q.text);
 
 let previous = null;
 try { previous = JSON.parse(await readFile(LOCK, 'utf8')); } catch { /* first run */ }
 
+/**
+ * Ids whose meaning has been changed on purpose, named one by one.
+ *
+ *   EARB_IDS_APPROVED=B-Q3,B-Q7 node tools/import-rubric.mjs
+ *
+ * By name rather than by flag, so approving one change cannot wave through a second one that
+ * happened to arrive in the same workbook.
+ */
+const approved = new Set(
+  (process.env.EARB_IDS_APPROVED ?? '').split(',').map((s) => s.trim()).filter(Boolean),
+);
+
+const lock = compareIds(previous ?? {}, current, approved);
 if (previous) {
-  for (const [id, was] of Object.entries(previous)) {
-    if (!(id in current)) { warnings.push(`Question ${id} has disappeared. Old exports have a ${id} column with no question behind it.`); continue; }
-    if (current[id] !== was) {
-      warnings.push(
-        `Question ${id} now means something different.\n      was: "${was}"\n      now: "${current[id]}"\n      ` +
-        `Ids are column names in every CSV already exported. Add a new question rather than repointing this id, ` +
-        `or delete ${LOCK} deliberately if the change is intended.`,
-      );
-    }
+  for (const id of lock.gone) {
+    warnings.push(`Question ${id} has disappeared. Old exports have a ${id} column with no question behind it.`);
   }
-  const added = Object.keys(current).filter((id) => !(id in previous));
-  if (added.length) console.log(`  ${added.length} new question id(s): ${added.slice(0, 6).join(', ')}${added.length > 6 ? '...' : ''}`);
+  for (const w of lock.waved) {
+    console.log(`  ${w.id} was approved to change meaning:\n      was: "${w.was}"\n      now: "${w.now}"`);
+  }
+  if (lock.added.length) console.log(`  ${lock.added.length} new question id(s): ${lock.added.slice(0, 6).join(', ')}${lock.added.length > 6 ? '...' : ''}`);
+}
+
+/**
+ * A changed meaning stops the import, the way a mistyped category does.
+ *
+ * It used to warn and carry on, and then the same run rewrote the lock at the end, so the drift
+ * was absorbed into the record and the second run was silent. The exit is here, before anything
+ * is written; saveLock() refuses as well, so taking this exit out would not be enough to let a
+ * lock record a meaning nobody approved.
+ */
+if (lock.drifted.length) {
+  console.error('\n' + describeDrift(lock.drifted, LOCK) + '\n');
+  process.exit(1);
 }
 
 /**
@@ -495,7 +516,7 @@ if (!allFromColumn && fromColumn.size) {
 }
 
 rubric.importWarnings = warnings;
-await writeFile(LOCK, JSON.stringify(current, null, 2) + '\n');
+await saveLock(LOCK, current, lock);
 await writeFile(OUT, JSON.stringify(rubric, null, 2) + '\n');
 
 const nq = domains.reduce((s, d) => s + d.sections.reduce((t, x) => t + x.questions.length, 0), 0);
