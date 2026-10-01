@@ -93,10 +93,14 @@ background:var(--surface-2);border-radius:0 6px 6px 0}
 
 /* One column per kind of mark, so a row with an owner does not push every other row's state
    sideways. Reported as: they look like a mishmash and I cannot trace them. */
-/* One column per kind of mark, each a fixed width, so Next sits under Next all the way down and
-   an item with an owner does not shift every other row's state sideways. */
-.marks{display:grid;grid-template-columns:4.9rem 3.4rem 4.8rem 5rem;gap:.3rem;
-align-items:baseline;justify-items:start}
+/* One column per kind of mark, so a mark sits under the same mark all the way down the page and
+   an item with an owner does not shift every other row's state sideways.
+   EVERY WIDTH HERE IS THE LONGEST LABEL THAT COLUMN CAN HOLD, measured in a browser rather than
+   estimated: Go live 61px, Question 75px, Waiting 66px, the longest owner 44px. A column sized
+   for Bug cut Question in half and dropped the column beside it on top, which is what happens
+   when the width is guessed from the short label. Changing a label means checking these. */
+.marks{display:grid;gap:.3rem;align-items:baseline;justify-items:start;
+grid-template-columns:4.4rem 5.2rem 4.6rem 3.4rem}
 .marks .cell{display:flex;gap:.25rem;min-width:0}
 .plain{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:.4rem .9rem;
 align-items:start;padding:.6rem .6rem .6rem 1.5rem}
