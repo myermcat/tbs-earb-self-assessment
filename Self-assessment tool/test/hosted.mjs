@@ -58,7 +58,7 @@ const asDoc = (a) => ({ name: `projects/p/databases/(default)/documents/assessme
  * One page, booted with whatever storage and whatever store answer a case needs.
  * `listAnswer` decides what the assessments list does: a page of documents, or a refusal.
  */
-async function boot({ session = null, side = null, listAnswer = { documents: [] }, role = null, hash = '', url = null, draft = null, people = null, audit = null, audits = null, oobRefusal = null, linkEmail = null, linkMintedFor = null, library = null } = {}) {
+async function boot({ session = null, side = null, listAnswer = { documents: [] }, role = null, hash = '', url = null, draft = null, people = null, audit = null, audits = null, openAt = null, oobRefusal = null, linkEmail = null, linkMintedFor = null, library = null } = {}) {
   const seen = [];
   const dom = new JSDOM(html, {
     runScripts: 'dangerously',
@@ -74,6 +74,7 @@ async function boot({ session = null, side = null, listAnswer = { documents: [] 
         // The assessor's own saved session. A real browser has this because /assessor/ and /
         // are one origin and one localStorage.
         if (audit) w.localStorage.setItem('gc-arch-assessment:audit-session', JSON.stringify(audit));
+        if (openAt) w.localStorage.setItem('gc-arch-assessment:assessor-open', JSON.stringify(openAt));
         // The address a link was asked for at. Firebase refuses to finish without it.
         if (linkEmail) w.localStorage.setItem('gc-arch-assessment:signin-email', linkEmail);
         // A second question set sitting in the browser, which is what the assessor's Question
@@ -706,6 +707,9 @@ console.log('\nThe published build, signed in\n');
    * screen was never asserted on, which is how the two disagreed in one product.
    */
   {
+    // Signing off is part of assessing, so it is behind the door with the rest of it.
+    doc.querySelector('.assess-door')?.dispatchEvent(new dom.window.MouseEvent('click', { bubbles: true }));
+    await new Promise((r) => setTimeout(r, 40));
     const signOff = [...doc.querySelectorAll('.card')]
       .find((c) => /Auditing as/.test(c.textContent));
     ok('the sign-off card names who is auditing', !!signOff, signOff?.textContent?.slice(0, 60));
@@ -1829,7 +1833,9 @@ console.log('\nThe published build, signed in\n');
    * On the full view, because the question this fixture audits is not flagged and the screen an
    * assessor opens on carries only what is.
    */
-  [...doc.querySelectorAll('button')].find((b) => /Open the full submission/.test(b.textContent))
+  doc.querySelector('.assess-door')?.dispatchEvent(new dom.window.MouseEvent('click', { bubbles: true }));
+  await new Promise((r) => setTimeout(r, 40));
+  [...doc.querySelectorAll('.assess-tabs .tab')].find((b) => /All the questions/.test(b.textContent))
     ?.dispatchEvent(new dom.window.MouseEvent('click', { bubbles: true }));
   await new Promise((r) => setTimeout(r, 60));
 
@@ -1841,19 +1847,14 @@ console.log('\nThe published build, signed in\n');
      /Nick/.test(said) && /The evidence covers it/.test(said), said.slice(0, 200));
   ok('and their score is shown as theirs rather than merged into one number',
      !!doc.querySelector('.other-audit'), String(doc.querySelectorAll('.other-audit').length));
-  // The sign-off card is on the screen that signs off, so this one is asked there.
-  [...doc.querySelectorAll('button')].find((b) => /Back to what needs you/.test(b.textContent))
-    ?.dispatchEvent(new dom.window.MouseEvent('click', { bubbles: true }));
+  // The sign-off card sits under both tabs of the assessment, so it is already on screen.
   await new Promise((r) => setTimeout(r, 40));
   ok('the page says where this assessor\u2019s own audit lives',
      /saved in the store, under your own name/.test(body(doc)), body(doc).slice(-260));
 
   // Scoring a question sends this assessor's own audit, under this assessor's own address.
   const before = seen.length;
-  // Back to the full view, where every question is, to score the one this fixture audits.
-  [...doc.querySelectorAll('button')].find((b) => /Open the full submission/.test(b.textContent))
-    ?.dispatchEvent(new dom.window.MouseEvent('click', { bubbles: true }));
-  await new Promise((r) => setTimeout(r, 60));
+
   // Eleven buttons, the way the submitter picks a rung, rather than a number spinner.
   const six = [...doc.querySelectorAll('.audit-controls .audit-score .score-btn')]
     .find((b) => b.textContent === '6');
@@ -1964,6 +1965,42 @@ console.log('\nThe published build, signed in\n');
      j.dom.window.localStorage.getItem('gc-arch-assessment:rubric-current') === 'other-set',
      j.dom.window.localStorage.getItem('gc-arch-assessment:rubric-current'));
   j.dom.window.close();
+}
+
+/* --------------------------------------------------------------------------------------- */
+/**
+ * A reload puts the assessor back where they were.
+ *
+ * Reported twice: when I am in an assessment and reload the page, it sends me to the pool
+ * view, I want to stay exactly where I was. An assessor reads one submission for twenty
+ * minutes and reloads for all the ordinary reasons.
+ */
+{
+  const one = submission('AB12', 'Licensing Renewal');
+  for (const [where, expect] of [['overview', 'Who saved this'], ['needs', 'Audit these'], ['all', 'All the questions']]) {
+    const { doc, dom } = await boot({
+      session: live, side: 'assess', role: 'assessor',
+      listAnswer: { documents: [asDoc(one)] },
+      openAt: { code: one.id, depth: where },
+    });
+    await new Promise((r) => setTimeout(r, 120));
+    const said = body(doc);
+    ok(`a reload inside ${where} comes back to it`, said.includes(expect), said.slice(0, 120));
+    ok(`and not to the list`, !/submissions, ready first/.test(said), said.slice(0, 120));
+    dom.window.close();
+  }
+
+  // The key the first version of this wrote, so a browser holding one is not sent to the list
+  // for having an older shape in it.
+  const { doc, dom } = await boot({
+    session: live, side: 'assess', role: 'assessor',
+    listAnswer: { documents: [asDoc(one)] },
+    openAt: { code: one.id, full: true },
+  });
+  await new Promise((r) => setTimeout(r, 120));
+  ok('and the key the earlier version wrote still works', body(doc).includes('All the questions'),
+     body(doc).slice(0, 120));
+  dom.window.close();
 }
 
 console.log(fails ? `\n${fails} hosted check(s) failed\n` : '\nall hosted checks passed\n');

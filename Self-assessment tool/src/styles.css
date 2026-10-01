@@ -2211,3 +2211,18 @@ tr.row-open button, tr.row-open summary, tr.row-open label { cursor: pointer; }
   flex-wrap: wrap; }
 .rest-door h2 { margin: 0 0 .2rem; }
 .full-section { margin: .4rem 0; }
+
+/* The door into the assessment: a block you press, directly under the summary of the thing
+   being assessed. It is a button that looks like a card on purpose, because the thing it does
+   is open a screen and not submit a form. */
+.assess-door { display: flex; align-items: center; justify-content: space-between; gap: 1rem;
+  width: 100%; text-align: left; cursor: pointer; border: 1px solid var(--accent-line);
+  background: var(--surface); }
+.assess-door:hover { border-color: var(--accent); background: var(--surface-2); }
+.assess-door h2 { margin: 0 0 .15rem; color: var(--accent); }
+.assess-go { font-size: 1.6rem; color: var(--accent); line-height: 1; }
+.assess-tabs { display: flex; gap: .3rem; }
+.assess-tabs .tab { padding: .4rem .8rem; border-radius: var(--radius-sm); background: none;
+  border: 1px solid transparent; color: var(--ink-2); cursor: pointer; }
+.assess-tabs .tab.on { background: var(--surface-2); border-color: var(--line);
+  color: var(--ink); font-weight: 600; }
