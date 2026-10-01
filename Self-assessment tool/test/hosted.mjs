@@ -58,7 +58,7 @@ const asDoc = (a) => ({ name: `projects/p/databases/(default)/documents/assessme
  * One page, booted with whatever storage and whatever store answer a case needs.
  * `listAnswer` decides what the assessments list does: a page of documents, or a refusal.
  */
-async function boot({ session = null, side = null, listAnswer = { documents: [] }, role = null, hash = '', url = null, draft = null, people = null, audit = null, audits = null, oobRefusal = null, linkEmail = null, linkMintedFor = null } = {}) {
+async function boot({ session = null, side = null, listAnswer = { documents: [] }, role = null, hash = '', url = null, draft = null, people = null, audit = null, audits = null, oobRefusal = null, linkEmail = null, linkMintedFor = null, library = null } = {}) {
   const seen = [];
   const dom = new JSDOM(html, {
     runScripts: 'dangerously',
@@ -76,6 +76,9 @@ async function boot({ session = null, side = null, listAnswer = { documents: [] 
         if (audit) w.localStorage.setItem('gc-arch-assessment:audit-session', JSON.stringify(audit));
         // The address a link was asked for at. Firebase refuses to finish without it.
         if (linkEmail) w.localStorage.setItem('gc-arch-assessment:signin-email', linkEmail);
+        // A second question set sitting in the browser, which is what the assessor's Question
+        // set pane lists and what Make active acts on.
+        if (library) w.localStorage.setItem('gc-arch-assessment:rubric-library', JSON.stringify(library));
       } catch { /* no storage on this origin */ }
       w.scrollTo = () => {};
       w.alert = () => {};
@@ -1912,5 +1915,57 @@ console.log('\nThe published build, signed in\n');
   dom.window.close();
 }
 
+{
+  /**
+   * Making a question set active must not touch the submitter's work.
+   *
+   * The two pages are one origin and one browser store, so this used to call clearDraft() and
+   * delete the draft the submitter's page writes: somebody halfway through 176 questions lost
+   * all of it, in a tab they were not looking at, and the guard in front of destructive acts
+   * never fired because the assessor page boots with a blank assessment and the guard measured
+   * that. No window, no undo, no message at either end.
+   *
+   * This is the test that was missing. Nothing in the suite asserted anything about activating a
+   * set, which is how three leftover lines survived from 3 September.
+   */
+  const other = {
+    fileType: 'gc-arch-rubric', id: 'other-set', version: '2.0', title: 'A second set',
+    scale: rubric.scale, bands: rubric.bands, stages: rubric.stages,
+    domains: rubric.domains, topics: rubric.topics,
+  };
+  const j = await boot({
+    side: 'assess',
+    hash: '#assessor/settings/questions',
+    session: { email: ME, idToken: 't', refreshToken: 'r', expiresAt: Date.now() + 3600000 },
+    role: 'assessor',
+    draft: { fileType: 'gc-arch-assessment', formatVersion: 1, id: 'DRAFTCODE123',
+      rubric: { id: rubric.id, version: rubric.version, title: rubric.title },
+      initiative: { name: 'Half finished', department: 'TBS', contact: '', lifecycleStage: '',
+        summary: '', classification: '' },
+      answers: { a: { score: 4 } },
+      meta: { createdAt: '2026-09-01T00:00:00Z', updatedAt: '2026-09-01T00:00:00Z', appVersion: 'x' } },
+    library: [{ id: 'other-set', rubric: other, addedAt: '2026-09-28T00:00:00Z' }],
+  });
+  await new Promise((r) => setTimeout(r, 80));
+
+  const before = j.dom.window.localStorage.getItem('gc-arch-assessment:draft');
+  ok('the draft is in the browser before anything is pressed', !!before);
+
+  const make = [...j.doc.querySelectorAll('button')].find((b) => /Make active/.test(b.textContent));
+  ok('the assessor has a Make active button to press', !!make,
+     [...j.doc.querySelectorAll('button')].map((b) => b.textContent).join(' | ').slice(0, 180));
+  make?.click();
+  await new Promise((r) => setTimeout(r, 80));
+
+  const after = j.dom.window.localStorage.getItem('gc-arch-assessment:draft');
+  ok('and the submitter\u2019s draft is still there afterwards', after === before,
+     `before ${before ? before.length : 0} chars, after ${after ? after.length : 0}`);
+  ok('while the set that was pressed is the active one now',
+     j.dom.window.localStorage.getItem('gc-arch-assessment:rubric-current') === 'other-set',
+     j.dom.window.localStorage.getItem('gc-arch-assessment:rubric-current'));
+  j.dom.window.close();
+}
+
 console.log(fails ? `\n${fails} hosted check(s) failed\n` : '\nall hosted checks passed\n');
 process.exit(fails ? 1 : 0);
+

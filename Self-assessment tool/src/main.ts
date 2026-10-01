@@ -1730,16 +1730,33 @@ function paneQuestions(pane: HTMLElement) {
     const isCurrent = entry.id === cur;
     const removable = canRemove(BUILTIN as unknown as Rubric, entry.id);
 
+    /**
+     * Making a set active, which is an assessor's act and touches nothing of anybody else's.
+     *
+     * IT USED TO DELETE THE SUBMITTER'S DRAFT. Both pages are served from one address, so they
+     * share one browser store, and this called clearDraft(), which removes the name the
+     * submitter's page writes. Somebody halfway through 176 questions lost all of it, in a tab
+     * they were not looking at, with no message and no undo.
+     *
+     * And nothing stopped it. The guard in front of destructive acts measures the assessment in
+     * memory, and the assessor page boots with a blank one on purpose, so the guard scored the
+     * risk as nothing and went straight through without a window. Reproduced on a build of the
+     * published assessor page before this was changed: draft present, button pressed, draft
+     * gone, no dialog.
+     *
+     * Those three lines are left over from when this picker was on the submitter's side too.
+     * The gate above, side !== 'assess', went in on 3 September and nobody came back for them.
+     *
+     * One thing this leaves open, deliberately, rather than guessing at it: the active set is
+     * also a shared name, so a draft answered against the old set can now sit in a browser whose
+     * active set is a different one. Nothing compares the two. The submitter's page is where
+     * that question belongs, because it is the only screen with the person who owns the work in
+     * front of it.
+     */
     const activate = () => {
-      const swap = () => {
-        setCurrentId(entry.id);
-        rubric = entry.rubric;
-        clearDraft();
-        assessment = blankAssessment(rubric);
-        resetOverviewToFirstGap(rubric, assessment);
-        go('settings');
-      };
-      guardDraft({ current: assessment, act: 'switch', onCommit: swap, after: () => paint() });
+      setCurrentId(entry.id);
+      rubric = entry.rubric;
+      go('settings');
     };
 
     const remove = () => confirmStep({
