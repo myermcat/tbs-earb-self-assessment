@@ -967,6 +967,43 @@ export function isCode(raw: string): boolean {
   return raw.length === CODE_LENGTH && [...raw].every((c) => ID_ALPHABET.includes(c));
 }
 
+/**
+ * HOW MUCH OF A CODE GOES IN THE ADDRESS BAR, AND WHY NOT ALL OF IT.
+ *
+ * A submission needs an address or the Back button cannot come out of one. The obvious address
+ * is the whole code, and it is the wrong one: the rules grant `get` on the code alone, so the
+ * address bar would hold a working key to a department's assessment. It would sit in history,
+ * in a screen share, and in anything anybody pastes into a ticket, and a code cannot be taken
+ * back.
+ *
+ * So the address carries the opening six characters: enough to name one submission out of
+ * anything TBS will hold, and not enough to open one.
+ *
+ * Four would not be enough to name one. The chance that some two assessments share their first
+ * four is about 4% once there are 300 of them and 38% at a thousand, which is a collision this
+ * tool would meet. At six it is 0.004% and 0.05%. What is left to guess is 32^6, about a
+ * billion, against a store that rate-limits.
+ *
+ * So the address opens a submission only for somebody who can already list the pool, which is
+ * an assessor. A stranger handed the link gets the list and no account to see it with. The chip
+ * on the row and the reference in evidence email subjects still show four; this is the same
+ * code, further along.
+ */
+export const ADDRESS_CHARS = 6;
+
+/** The part of a code that names a submission in the address. */
+export function addressOf(code: string): string {
+  return code.slice(0, ADDRESS_CHARS);
+}
+
+/**
+ * Whether a piece of a hash is one of those. Matched by shape, so a mistyped address opens the
+ * list rather than a submission that is not there and a screen explaining itself.
+ */
+export function isAddressSegment(raw: string): boolean {
+  return raw.length === ADDRESS_CHARS && [...raw].every((c) => ID_ALPHABET.includes(c));
+}
+
 /** Whether this is a complete code. It says nothing about whether a record exists. */
 export function looksLikeCode(raw: string): boolean {
   const clean = tidyCode(raw);
