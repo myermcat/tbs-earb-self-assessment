@@ -155,7 +155,6 @@ border-left:2px solid transparent}
 font-weight:700;margin:.2rem .5rem .45rem}
 
 main{padding:1.2rem 0 3rem;min-width:0}
-.tab-hint{color:var(--ink-2);font-size:.9rem;margin:0 0 1.5rem;max-width:74ch}
 h2{font-size:1.02rem;margin:2rem 0 .55rem;scroll-margin-top:calc(var(--head) + .8rem);
 display:flex;gap:.55rem;align-items:baseline}
 h2:first-of-type{margin-top:0}
@@ -280,9 +279,6 @@ padding:.45rem 0}
 display:flex;gap:.45rem;align-items:baseline}
 .arch-sec .c{font-family:var(--mono);font-size:.72rem;color:var(--ink-3);font-weight:500}
 .archive>summary:hover .arch-t{color:var(--accent)}
-/* What the marks mean, said once at the top of every tab instead of nowhere. */
-.key{font-size:.72rem;color:var(--ink-3);margin:-1rem 0 1.4rem;display:flex;gap:.85rem;flex-wrap:wrap}
-.key b{font-weight:600;color:var(--ink-2)}
 @media(max-width:820px){
   .pane{grid-template-columns:minmax(0,1fr);gap:0}
   .side{position:static;max-height:none;padding:.9rem 0 0;display:flex;flex-wrap:wrap;gap:.3rem}
@@ -460,12 +456,7 @@ const panes = tracks.map((tr) => {
     : '<p class="empty">Nothing here yet.</p>';
   return `<section class="pane" data-track="${esc(tr.id)}" hidden>
 <nav class="side"><div class="lead">${esc(tr.title)}</div>${nav}</nav>
-<main><p class="tab-hint">${esc(tr.hint)}</p>
-<p class="key"><span><b>Bug</b> broken, not missing</span>
-<span><b>Waiting</b> blocked on somebody outside</span>
-<span><b>A name</b> whose work it is</span>
-<span><b>H M L</b> how much it matters, and anybody signed in can change it</span></p>
-${body}</main>
+<main>${body}</main>
 </section>`;
 }).join('\n');
 
