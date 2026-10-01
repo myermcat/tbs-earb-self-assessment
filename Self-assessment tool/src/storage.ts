@@ -1,5 +1,5 @@
 import type { Assessment, Rubric } from './types';
-import { newDocId } from './firebase';
+import { forgetBases, newDocId } from './firebase';
 import { DEMO_MARK, isDemoBuild, storeKey } from './keys';
 
 /**
@@ -187,12 +187,20 @@ export function loadDraft(): Assessment | null {
   }
 }
 
+/**
+ * Empty the browser, which is what three screens have been promising.
+ *
+ * It used to remove one name. Every online save also writes a whole second copy of the document
+ * under a name of its own, so discarding left the answers on the machine while the window said
+ * they had been erased. Both go now.
+ */
 export function clearDraft(): void {
   try {
     localStorage.removeItem(KEY);
   } catch {
     /* ignore */
   }
+  forgetBases();
 }
 
 export function download(filename: string, text: string, mime = 'application/json'): void {

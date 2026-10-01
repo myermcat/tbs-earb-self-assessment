@@ -1061,6 +1061,37 @@ function keepBase(id: string, doc: Record<string, unknown>): void {
 }
 
 /**
+ * Throw away every copy of a document this browser was keeping to compare against.
+ *
+ * Discarding an assessment used to remove one name and leave these behind, so three screens
+ * saying the browser had been emptied were all wrong: an online save writes a whole second copy
+ * of the document under a name of its own, and nothing ever took one away. The answers somebody
+ * believed they had just destroyed were still on the machine, under a name nobody had told them
+ * about.
+ *
+ * The match is on the exact prefix and the list of names is taken before anything is removed,
+ * because removing from localStorage while walking it skips entries. A looser match would reach
+ * the draft itself, which is one name along, or the demonstration page's own copies.
+ *
+ * What it costs: a saved record whose base is gone is compared against the store instead, which
+ * is one extra read on the next save of that record. That path already exists for the first save
+ * from any browser, so this makes it more common rather than new.
+ */
+export function forgetBases(): void {
+  try {
+    const prefix = `${BASE_KEY}:`;
+    const names: string[] = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const name = localStorage.key(i);
+      if (name && name.startsWith(prefix)) names.push(name);
+    }
+    for (const name of names) localStorage.removeItem(name);
+  } catch {
+    /* No storage to clear. */
+  }
+}
+
+/**
  * A field path as Firestore's updateMask spells it.
  *
  * A segment that is not a plain identifier has to be quoted in backticks, and an answer id is
