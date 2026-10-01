@@ -2322,6 +2322,31 @@ console.log('\nSigning in with Google\n');
     .find((tr) => /Audited and gone/.test(tr.textContent));
   ok('and its state says the store no longer has it',
      /Not in the store/.test(goneRow?.textContent ?? ''), goneRow?.textContent?.slice(0, 120));
+
+  /**
+   * And a record the store did hand over is never called missing from it.
+   *
+   * Reported as: it says Mariia's best app is not in the store, how is that possible if it is.
+   * Rows are matched on the reference as well as the id, and the two can disagree, because a
+   * record made before codes were readable was written back under a new name and this browser
+   * can still hold the old one. Judging afterwards by id alone called a record the store had
+   * just handed over missing from it.
+   */
+  const renamed = submission('AB12', 'Licensing Renewal');
+  renamed.id = 'NEWNAME23456';
+  const old = JSON.parse(JSON.stringify(renamed));
+  old.id = 'oldMixedCaseName20ch';
+  const two = await boot({
+    session: live, side: 'assess', role: 'assessor',
+    listAnswer: { documents: [asDoc(renamed)] },
+    auditSession: [{ file: old.initiative.name, a: old }],
+  });
+  await new Promise((r) => setTimeout(r, 160));
+  const row = two.doc.querySelector('.triage tbody tr');
+  ok('a record the store handed over is still listed', !!row, two.doc.body.textContent.slice(0, 80));
+  ok('and is not called missing from it', !/Not in the store/.test(row?.textContent ?? ''),
+     row?.textContent?.slice(0, 140));
+  two.dom.window.close();
   dom.window.close();
 }
 

@@ -330,6 +330,9 @@ function absorb(rubric: Rubric, answer: PoolAnswer): void {
     return;
   }
   let added = 0;
+  // Which rows the store accounted for in this answer, by identity rather than by name, so a
+  // row it handed over cannot be judged missing from it afterwards.
+  const seen = new Set<Loaded>();
   for (const rec of answer.records) {
     const a = rec.assessment;
     if (a?.fileType !== 'gc-arch-assessment') continue;
@@ -349,16 +352,32 @@ function absorb(rubric: Rubric, answer: PoolAnswer): void {
     const held = loaded.findIndex((l) => (a.ref && l.a.ref === a.ref) || (a.id && l.a.id === a.id));
     if (held >= 0) {
       const mine = loaded[held];
+      /**
+       * Matched to something the store handed over, whatever name this browser had for it.
+       *
+       * A row is matched on the reference as well as the id, and the two can disagree: a record
+       * made before codes were readable was written back under a new name, so this browser can
+       * hold the old one. Judging afterwards by id alone then called a record the store had
+       * just handed over missing from it, and the row for an assessment sitting in the pool
+       * said Not in the store. The store's name is the true one, so the row takes it.
+       */
+      seen.add(mine);
+      mine.fromStore = true;
+      mine.goneFromStore = false;
+      if (a.id && mine.a.id !== a.id) mine.a.id = a.id;
       const theirs = a.meta?.updatedAt ?? '';
       const ours = mine.a.meta?.updatedAt ?? '';
       if (!(theirs > ours)) continue;
       if (mine.a.audit && !row.a.audit) row.a.audit = mine.a.audit;
       row.changed = true;
       loaded[held] = row;
+      seen.delete(mine);
+      seen.add(row);
       added++;
       continue;
     }
     loaded.push(row);
+    seen.add(row);
     added++;
   }
   /**
@@ -374,10 +393,10 @@ function absorb(rubric: Rubric, answer: PoolAnswer): void {
    * quietly, because it is a stale copy of somebody else's record and nobody is owed a window
    * about it.
    */
-  const inPool = new Set(answer.records.map((rec) => rec.assessment?.id).filter(Boolean));
   let dropped = 0;
   for (let i = loaded.length - 1; i >= 0; i--) {
     const l = loaded[i];
+    if (seen.has(l)) continue;
     /**
      * Sessions written before rows remembered where they came from have no flag on them, and
      * the first version of this test skipped them, so the record this was reported about went
@@ -386,7 +405,7 @@ function absorb(rubric: Rubric, answer: PoolAnswer): void {
      * somebody named after the initiative. That file reappears once more and is then marked.
      */
     const came = l.fromStore ?? !/\.json$/i.test(l.file);
-    if (!came || !l.a.id || inPool.has(l.a.id)) continue;
+    if (!came || !l.a.id) continue;
     if (Object.keys(l.a.audit?.perQuestion ?? {}).length) { l.goneFromStore = true; continue; }
     loaded.splice(i, 1);
     dropped++;
