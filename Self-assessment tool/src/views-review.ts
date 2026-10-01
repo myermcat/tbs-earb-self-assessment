@@ -756,7 +756,10 @@ function paintList(rubric: Rubric, root: HTMLElement) {
         el('span', { class: 'th-sub' }, ['self-marked by submitter']), 'State',
       ]),
       el('th', {}, ['Department']), el('th', {}, ['Marking']),
-      el('th', {}, ['Code and set']),
+      el('th', {
+        title: 'Evidence emails quote it in their subject line, so searching for it finds '
+          + 'everything sent about this assessment. It is the start of the twelve-character code.',
+      }, ['Code and set']),
       el('th', {}, ['Stage']), el('th', {}, ['Score']), el('th', {}, ['Routing']),
       el('th', {}, ['Must ask']), el('th', {}, ['Evidence']), el('th', {}, ['Complete']),
       // Its own column, because "has anybody looked at this" is a fact about the row and was
@@ -820,10 +823,7 @@ function paintList(rubric: Rubric, root: HTMLElement) {
       // is not a thing anybody has.
       el('td', { class: 'small mono' }, [
         l.a.id
-          ? el('div', {}, [el('span', {
-              class: 'ref-chip mono',
-              title: `The first four characters of this assessment's code, which is what its email subjects quote. The whole code is in the row menu.`,
-            }, [refOf(l.a)])])
+          ? el('div', {}, [el('span', { class: 'ref-chip mono' }, [refOf(l.a)])])
           : null,
         el('div', { class: 'dim' }, [
           l.a.rubric.version,
