@@ -1218,6 +1218,42 @@ code.mark-subject { display: block; margin: .25rem 0; }
   color: color-mix(in srgb, var(--ink-3) 72%, var(--surface)); }
 /* A heading may wrap onto two lines. A button in a cell may not: "Open" broke in half. */
 .triage th { white-space: normal; line-height: 1.15; vertical-align: bottom; }
+
+/* ---- a note on a column heading -------------------------------------------------------- *
+ *
+ * Drawn here rather than left to the browser's title tooltip, which waits a second, shows
+ * nothing on a touch screen, and cannot be reached from the keyboard.
+ *
+ * The dotted underline is the only sign a heading has a note at all. Without it a reader has
+ * to hover every column to find out, which is the same as not having one.
+ *
+ * Fixed, not absolute: the table scrolls sideways on a narrow screen and a note inside that
+ * scroller is cut off at its edge. views-review.ts sets left and top when it opens.
+ */
+th.has-note { position: relative; cursor: help; }
+th.has-note .note-word { border-bottom: 1px dotted var(--line-2); }
+th.has-note:hover .note-word,
+th.has-note:focus-visible .note-word { border-bottom-color: var(--accent); }
+th.has-note:focus { outline: none; }
+th.has-note:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.note-pop {
+  position: fixed; left: 0; top: 0; z-index: 60;
+  width: 15rem; max-width: calc(100vw - 1rem);
+  /* A heading is uppercase and letter-spaced; a sentence read at that size is not. */
+  font-weight: 400; font-size: .76rem; line-height: 1.4;
+  text-transform: none; letter-spacing: 0; text-align: left; white-space: normal;
+  color: var(--surface); background: var(--ink);
+  padding: .45rem .55rem; border-radius: 6px;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, .22);
+  opacity: 0; visibility: hidden; transition: opacity .12s ease;
+  pointer-events: none;
+}
+.note-pop.on { opacity: 1; visibility: visible; }
+
+@media (prefers-reduced-motion: reduce) { .note-pop { transition: none; } }
+/* Printing a tooltip prints a black box over the row under it. */
+@media print { .note-pop { display: none; } }
 .triage .row-acts { display: flex; gap: .3rem; align-items: center; justify-content: flex-end; }
 .triage .row-acts button { white-space: nowrap; }
 /* A tag sitting against the word beside it reads as part of it. */
