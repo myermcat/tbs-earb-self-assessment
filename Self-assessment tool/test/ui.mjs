@@ -1573,7 +1573,26 @@ ok('the assessor session is kept in this browser',
 ok('triage row names the initiative', q('table.triage tbody tr').textContent.includes('Nexus'));
 
 byText('button', 'Open').click();
-ok('detail view opens', view().includes('Audit these'));
+/**
+ * Opening a submission lands on the submission, and assessing it is a block you press.
+ *
+ * Her shape: the first screen is a looking glass over the whole thing and everything to do
+ * with assessing it sits behind one door, with no sentence anywhere explaining the job.
+ */
+ok('opening a submission lands on the submission', view().includes('Who saved this'));
+ok('and the assessment is a block, not a sentence', !!q('.assess-door'));
+ok('which carries the numbers that matter', /to argue with/.test(q('.assess-door').textContent),
+   q('.assess-door')?.textContent);
+ok('and nothing on it explains what an assessor is for',
+   !view().includes('read the answers that do not add up'));
+q('.assess-door').click();
+ok('pressing it opens what needs you', view().includes('Audit these'));
+ok('with two tabs over one piece of work', qa('.assess-tabs .tab').length === 2,
+   qa('.assess-tabs .tab').map((t) => t.textContent).join(' | '));
+byText('button', 'Back to the submission').click();
+ok('a KPI row summarises the submission', qa('.kpi').length === 5, String(qa('.kpi').length));
+ok('and the back button goes one step, to the submission', !!q('.assess-door'));
+q('.assess-door').click();
 
 /**
  * The full submission, which is its own screen.
@@ -1583,20 +1602,18 @@ ok('detail view opens', view().includes('Audit these'));
  * section, with the same controls on every question.
  */
 {
-  byText('button', 'Open the full submission').click();
+  byText('.assess-tabs .tab', 'All the questions').click();
   const allQids = new Set(qa('.audit-row .qid').map((n) => n.textContent));
   ok('the full view holds every question', allQids.size === TOTAL, `${allQids.size} vs ${TOTAL}`);
   ok('laid out by domain', qa('.card h2').length >= 4, String(qa('.card h2').length));
   ok('and by section inside it', qa('.full-section').length > 10, String(qa('.full-section').length));
-  ok('with a way back to what needs you', !!byText('button', 'Back to what needs you'));
-  ok('and it says what is flagged without repeating the list',
-     view().includes('need arguing with') || view().includes('Nothing on this submission is flagged'));
+  ok('with a way back to what needs you', !!byText('.assess-tabs .tab', 'What needs you'));
   ok("assessor sees the submitter's own words",
      view().includes('They said') && view().includes('owned by the platform team'));
   ok('assessor sees the evidence reference and its classification',
      view().includes('Current-state architecture diagram') && view().includes('Protected B'));
   ok('the assessor is told where the evidence is', view().includes('Current-state architecture diagram'));
-  byText('button', 'Back to what needs you').click();
+  byText('.assess-tabs .tab', 'What needs you').click();
   ok('and coming back lands on what needs you', view().includes('Audit these'));
 }
 
@@ -1609,9 +1626,7 @@ ok('assessor is told where a justification is missing', view().includes('No just
   ok('the flagged set is a small fraction of 176', flaggedRows < 40, String(flaggedRows));
   ok('and the screen somebody opens on is only those', qa('.audit-row').length < 40,
      String(qa('.audit-row').length));
-  ok('the rest is a door rather than a fold', view().includes('The rest of the assessment'));
-  ok('which says how many are behind it', view().includes('nothing flagged'));
-  ok('a KPI row summarises the submission', qa('.kpi').length === 5, String(qa('.kpi').length));
+  ok('the anomalies are what this tab is', view().includes('Audit these'));
 }
 
 ok('a challenge question is drafted for the assessor, with no AI and no key involved',
@@ -1632,7 +1647,7 @@ ok('the audit is attributed to whoever signed in, and says it is unverified',
    * of its own now, so the control went with the sections rather than staying on a screen that
    * no longer has any.
    */
-  byText('button', 'Open the full submission').click();
+  byText('.assess-tabs .tab', 'All the questions').click();
   // The scores as the assessor left them, so "touches no score" is actually checked.
   // The score is eleven buttons now, the way the submitter picks one, so what is on the page
   // is which button is pressed rather than what is typed in a box.
@@ -1645,7 +1660,7 @@ ok('the audit is attributed to whoever signed in, and says it is unverified',
   btn.click();
   ok('and it says how many it marked', view().includes('marked as agreed'));
   ok('while changing no score', nums() === before, `${before} -> ${nums()}`);
-  byText('button', 'Back to what needs you').click();
+  byText('.assess-tabs .tab', 'What needs you').click();
 }
 
 /**
@@ -1657,7 +1672,7 @@ ok('the audit is attributed to whoever signed in, and says it is unverified',
  */
 const targetQid = rubric.domains[0].sections[0].questions[0].id;
 const rowOf = (qid) => q(`.audit-row[data-qid="${qid}"]`);
-byText('button', 'Open the full submission').click();
+byText('.assess-tabs .tab', 'All the questions').click();
 const targetRow = rowOf(targetQid);
 ok('every question is addressable by its rubric id', !!targetRow, targetQid);
 const pick = (row, v) => [...row.querySelectorAll('.audit-controls .score-btn')]
@@ -1700,11 +1715,19 @@ ok('changing a score marks that line as changed',
  * Back on the screen that signs off, which is where a changed score is summarised and where
  * the file is saved.
  */
-byText('button', 'Back to what needs you').click();
-ok('the change is summarised for the assessor', view().includes('What you changed'));
-ok('the delta is shown with direction', view().includes('They said 7, you scored 4'));
 ok('with a reason, saving is offered again', !!byText('button', 'Save the audited file'));
 
+/**
+ * What the assessor changed stays on the submission, which is the one part of the audit she
+ * asked to keep on the front: it is the record of what has already been decided about the
+ * thing, and it belongs with the summary of the thing.
+ */
+byText('button', 'Back to the submission').click();
+ok('the change is summarised on the submission', view().includes('What you changed'));
+ok('the delta is shown with direction', view().includes('They said 7, you scored 4'));
+
+// Saving the audited file is part of assessing, so it is in there with the rest of it.
+q('.assess-door').click();
 byText('button', 'Save the audited file').click();
 const audited = JSON.parse(await text(saved[saved.length - 1]));
 ok('audited file records the reviewer', audited.audit.reviewer === 'Allison', String(audited.audit?.reviewer));
