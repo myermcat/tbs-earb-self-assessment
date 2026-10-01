@@ -1235,6 +1235,12 @@ export const items = [
     why: "Reported as: when I click on the name of the tool it should send me to the assessor screen home. It already did, and the screen put the open submission straight back over it, because what brings somebody back after a reload cannot tell a reload from somebody asking to leave.\n\nDone on 1 October. The acts that mean leave say so: going to the submissions list, from the name of the tool or from the Submissions tab, lets go of the open one. A reload still comes back to it. Gated in test/hosted.mjs, which boots with a submission remembered, presses the name, and asserts the list is what arrives.",
   },
   {
+    id: "assessor-side-takes-no-files", track: "engine", section: "e-assessor",
+    kind: "chore", status: "done", priority: "medium", owner: "ours", golive: false,
+    t: "The assessor side stops reading files",
+    why: "Her words on 1 October: the app should not be able to deal with files, comment it out for now, and put it back if I ask. This was the drop zone and the picker on the submissions screen, which read the .json submissions people emailed each other. It is how the assessor side worked before there was a store, and the store is the pool now, so a second way in is a second place a submission can come from and a second thing to explain.\n\nCommented and not deleted, with the date and the reason on it, so putting it back is reading rather than writing. The import it used went quiet with it, and the empty state no longer offers a route that is not there: a build with no store says there is nothing to fetch and nothing to read, rather than pointing at a file picker.\n\nOne thing it took with it, flagged by the session doing the other half: that drop zone was how test/ui.mjs got a submission onto the assessor screen at all, because that suite builds with no store, and about twenty assertions sat downstream of it. The suite now seeds the session key the assessor side writes on every change and restores on every load, which is the road a real assessor\u2019s submission travels on their second visit, rather than a hook that exists for the test.",
+  },
+  {
     id: "assessor-cannot-tell-what-to-assess", track: "engine", section: "e-assessor",
     kind: "bug", status: "done", priority: "high", owner: "ours", golive: false,
     t: "An assessor opens a submission and cannot tell what they are supposed to assess, or where",
