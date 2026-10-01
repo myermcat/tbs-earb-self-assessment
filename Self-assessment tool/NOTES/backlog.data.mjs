@@ -1246,6 +1246,18 @@ export const items = [
     why: "Her words on 1 October: the app should not be able to deal with files, comment it out for now, and put it back if I ask. This was the drop zone and the picker on the submissions screen, which read the .json submissions people emailed each other. It is how the assessor side worked before there was a store, and the store is the pool now, so a second way in is a second place a submission can come from and a second thing to explain.\n\nCommented and not deleted, with the date and the reason on it, so putting it back is reading rather than writing. The import it used went quiet with it, and the empty state no longer offers a route that is not there: a build with no store says there is nothing to fetch and nothing to read, rather than pointing at a file picker.\n\nOne thing it took with it, flagged by the session doing the other half: that drop zone was how test/ui.mjs got a submission onto the assessor screen at all, because that suite builds with no store, and about twenty assertions sat downstream of it. The suite now seeds the session key the assessor side writes on every change and restores on every load, which is the road a real assessor\u2019s submission travels on their second visit, rather than a hook that exists for the test.",
   },
   {
+    id: "assessor-screens-explain-themselves", track: "engine", section: "e-assessor",
+    kind: "chore", status: "done", priority: "medium", owner: "ours", golive: false,
+    t: "The assessor screens stop explaining themselves",
+    why: "Done on 1 October, against the rule added to CLAUDE.md the same day. The sign-off card said where an audit went, who could read it and who could not change it; it says Saved. The empty pool explained what a shared pool is for; it is a heading and a badge. The submissions list explained its own sort order and what the State column means; the columns say that. A tooltip explained what checking the store again does that reloading does not.\n\nThe store\u2019s own words are kept where a request was refused, because that is a fact about what happened rather than an account of why the screen looks as it does.",
+  },
+  {
+    id: "row-for-a-deleted-record-marked", track: "engine", section: "e-broken",
+    kind: "bug", status: "done", priority: "medium", owner: "ours", golive: false,
+    t: "A row kept after its record left the store looked like any other",
+    why: "Reported a third time: the Legacy code check row is still there. The drop itself is right and now has a test in the shape it was reported in, a session with no flag on it, named by its initiative, holding an id the pool does not return: that row goes.\n\nWhat was missing is the case where it is kept on purpose. A row carrying this assessor\u2019s own audit is never dropped, and nothing on it said so, so a record removed from the store sat in the list looking exactly like the ones that are still there. Its state now says Not in the store.\n\nThe other way a row survives is a browser that has not fetched the build with the fix in it.",
+  },
+  {
     id: "assessor-cannot-tell-what-to-assess", track: "engine", section: "e-assessor",
     kind: "bug", status: "done", priority: "high", owner: "ours", golive: false,
     t: "An assessor opens a submission and cannot tell what they are supposed to assess, or where",

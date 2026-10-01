@@ -80,18 +80,20 @@ interface Loaded {
  */
 type AuditSave = { state: 'off' | 'saved' | 'saving' | 'failed'; problem?: string };
 
-/** What the screen says about where this audit is, which is the whole of the fix in one line. */
+/**
+ * Where this audit is, in as few words as the state needs.
+ *
+ * It used to say where the audit went, who could read it, who could not change it and what the
+ * other assessors had done, which is the page explaining its own design. A save state is a
+ * state: four words when it is saved, the store's own words when it is not.
+ */
 function auditWhere(l: Loaded): string {
-  if (!isHosted()) return 'This build has no store, so your audit stays in this browser and leaves as a file.';
-  if (!currentUser()) return 'Sign in to save your audit. Until you do it stays in this browser and leaves as a file.';
-  if (!l.a.id) return 'This submission has never been online, so there is nowhere to put an audit of it yet.';
-  const others = (l.others ?? []).length;
-  const alongside = others === 0 ? ''
-    : others === 1 ? ' One other assessor has written on this submission, and their reading is under each question.'
-    : ` ${others} other assessors have written on this submission, and their readings are under each question.`;
-  if (auditSave.state === 'saving') return `Saving your audit.${alongside}`;
-  if (auditSave.state === 'failed') return `Your audit is not saved: ${auditSave.problem ?? 'the store refused it'}. It is still in this browser.`;
-  return `Your audit is saved in the store, under your own name, where the department can read it and no other assessor can change it.${alongside}`;
+  if (!isHosted()) return 'Kept in this browser';
+  if (!currentUser()) return 'Not saved: sign in';
+  if (!l.a.id) return 'Kept in this browser';
+  if (auditSave.state === 'saving') return 'Saving';
+  if (auditSave.state === 'failed') return `Not saved: ${auditSave.problem ?? 'the store refused it'}`;
+  return 'Saved';
 }
 let auditSave: AuditSave = { state: 'off' };
 const auditTimers = new Map<string, ReturnType<typeof setTimeout>>();
@@ -412,10 +414,7 @@ function poolState(): { title: string; detail: string; badge: string; tone: stri
   if (!isHosted()) {
     return {
       title: 'No shared pool yet',
-      // What this screen can offer somebody changed on 1 October, when reading a file came out
-      // of it. There is no second way to work on a build with no store, and saying so is better
-      // than an empty screen that looks as though it is still loading.
-      detail: 'Submissions arrive in one place that you and the departments both see. This copy of the tool has no store behind it, so there is nothing to fetch and nothing to read here.',
+      detail: '',
       badge: 'Not hosted yet',
       tone: 'badge-warn',
     };
@@ -423,7 +422,7 @@ function poolState(): { title: string; detail: string; badge: string; tone: stri
   if (typeof navigator !== 'undefined' && navigator.onLine === false) {
     return {
       title: 'Cannot reach the pool',
-      detail: 'This machine is offline. Your submissions are still there and will appear when the connection is back.',
+      detail: '',
       badge: 'Offline',
       tone: 'badge-warn',
     };
@@ -431,7 +430,7 @@ function poolState(): { title: string; detail: string; badge: string; tone: stri
   if (poolNow.state === 'loading') {
     return {
       title: 'Looking in the pool',
-      detail: 'Asking the store what it has for you.',
+      detail: '',
       badge: 'Checking',
       tone: '',
     };
@@ -439,7 +438,7 @@ function poolState(): { title: string; detail: string; badge: string; tone: stri
   if (poolNow.state === 'anonymous') {
     return {
       title: 'Sign in to see the pool',
-      detail: 'The store only answers somebody it knows. Files you were sent still open here without signing in.',
+      detail: '',
       badge: 'Not signed in',
       tone: 'badge-warn',
     };
@@ -447,7 +446,8 @@ function poolState(): { title: string; detail: string; badge: string; tone: stri
   if (poolNow.state === 'refused') {
     return {
       title: 'Your account cannot read the pool',
-      detail: `Signing in worked. The store then refused to list submissions for this address, which is what it does until an admin grants you the assessor role. The store's words: ${poolNow.problem}`,
+      // The store's own words, which are a fact about what happened and not an account of why.
+      detail: poolNow.problem,
       badge: 'No access',
       tone: 'badge-warn',
     };
@@ -455,7 +455,7 @@ function poolState(): { title: string; detail: string; badge: string; tone: stri
   if (poolNow.state === 'failed') {
     return {
       title: 'The pool did not answer',
-      detail: `Something went wrong reaching the store: ${poolNow.problem}`,
+      detail: poolNow.problem,
       badge: 'Unreachable',
       tone: 'badge-warn',
     };
@@ -557,7 +557,6 @@ export function renderReview(root: HTMLElement, rubric: Rubric): void {
         // The pool is read once and the answer kept for the session, so a submission sent while
         // this page was open never appears on its own. Reloading works because it starts the
         // session over; this is the same thing without losing whatever was opened from a file.
-        title: 'Ask the store for submissions again, without losing anything opened from a file',
         onclick: () => { forgetPool(); repaint(); },
       }, ['Check the store again'])
     : null;
@@ -593,7 +592,7 @@ export function renderReview(root: HTMLElement, rubric: Rubric): void {
         el('div', { class: 'pool-art', html: SAD_CAT }),
         el('div', {}, [
           el('h2', {}, [pool.title]),
-          el('p', { class: 'muted' }, [pool.detail]),
+          pool.detail ? el('p', { class: 'muted' }, [pool.detail]) : null,
           el('div', { class: 'actions' }, [
             el('span', { class: `badge ${pool.tone}` }, [pool.badge]),
             again,
@@ -798,6 +797,12 @@ function paintList(rubric: Rubric, root: HTMLElement) {
               title: `Marked ready to review on ${new Date(l.a.meta.submittedAt).toLocaleString()}`,
             }, ['Ready'])
           : el('span', { class: 'muted', title: 'Nobody has said this one is finished' }, ['Draft']),
+        // A row kept because this assessor has work on it, after the store stopped having the
+        // record. Without this the row is a submission that will not go away and nothing on it
+        // differs from the ones that are really there.
+        l.goneFromStore
+          ? el('span', { class: 'badge badge-warn tag', title: 'Removed from the shared store. Your audit is still here.' }, ['Not in the store'])
+          : null,
       ]),
       el('td', {}, [l.a.initiative?.department ?? '--']),
       el('td', { class: 'small' }, [l.a.initiative?.classification || 'unmarked']),
@@ -901,13 +906,6 @@ function paintList(rubric: Rubric, root: HTMLElement) {
       `${loaded.length} submission${loaded.length === 1 ? '' : 's'}, ready first then weakest`,
       `${loaded.length} soumission${loaded.length === 1 ? '' : 's'}, les prêtes d’abord puis les plus faibles`,
     )]),
-    el('p', { class: 'muted small' }, [
-      t('Ready ones come first, lowest score first inside each group. A submission with no score yet goes to the end of its group. ',
-        'Les prêtes viennent en premier, la note la plus basse d’abord dans chaque groupe. Une soumission sans note va à la fin de son groupe. '),
-      el('b', {}, [t('State is self-marked: ', 'L’état est déclaré par le ministère : ')]),
-      t('the department says when its own assessment is ready, and a draft is somebody still working.',
-        'le ministère indique quand sa propre évaluation est prête, et une ébauche est un travail en cours.'),
-    ]),
     /**
      * The toolbar. It goes above the table, where it reads as belonging to it.
      *

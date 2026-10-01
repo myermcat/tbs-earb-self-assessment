@@ -60,7 +60,7 @@ const asDoc = (a) => ({ name: `projects/p/databases/(default)/documents/assessme
  * One page, booted with whatever storage and whatever store answer a case needs.
  * `listAnswer` decides what the assessments list does: a page of documents, or a refusal.
  */
-async function boot({ session = null, side = null, listAnswer = { documents: [] }, role = null, hash = '', url = null, draft = null, people = null, audit = null, audits = null, openAt = null, oobRefusal = null, linkEmail = null, linkMintedFor = null, library = null,
+async function boot({ session = null, side = null, listAnswer = { documents: [] }, role = null, hash = '', url = null, draft = null, people = null, audit = null, audits = null, auditSession = null, openAt = null, oobRefusal = null, linkEmail = null, linkMintedFor = null, library = null,
                      pending = null, authUri = GOOGLE_SENDS_YOU_HERE, idpRefusal = null } = {}) {
   const seen = [];
   /**
@@ -98,6 +98,7 @@ async function boot({ session = null, side = null, listAnswer = { documents: [] 
         // The assessor's own saved session. A real browser has this because /assessor/ and /
         // are one origin and one localStorage.
         if (audit) w.localStorage.setItem('gc-arch-assessment:audit-session', JSON.stringify(audit));
+        if (auditSession) w.localStorage.setItem('gc-arch-assessment:audit-session', JSON.stringify(auditSession));
         if (openAt) w.localStorage.setItem('gc-arch-assessment:assessor-open', JSON.stringify(openAt));
         // The address a link was asked for at. Firebase refuses to finish without it.
         if (linkEmail) w.localStorage.setItem('gc-arch-assessment:signin-email', linkEmail);
@@ -1902,8 +1903,10 @@ console.log('\nThe published build, signed in\n');
      !!doc.querySelector('.other-audit'), String(doc.querySelectorAll('.other-audit').length));
   // The sign-off card sits under both tabs of the assessment, so it is already on screen.
   await new Promise((r) => setTimeout(r, 40));
-  ok('the page says where this assessor\u2019s own audit lives',
-     /saved in the store, under your own name/.test(body(doc)), body(doc).slice(-260));
+  // A state, not an account of where it went and who may read it.
+  ok('the page says where this assessor\u2019s own audit is',
+     /Saved/.test(doc.querySelector('.audit-where')?.textContent ?? ''),
+     doc.querySelector('.audit-where')?.textContent);
 
   // Scoring a question sends this assessor's own audit, under this assessor's own address.
   const before = seen.length;
@@ -2278,6 +2281,49 @@ console.log('\nSigning in with Google\n');
   j.dom.window.close();
 }
 
+
+/* --------------------------------------------------------------------------------------- */
+/**
+ * A row for a record the store no longer has, in the exact shape it was reported in.
+ *
+ * Reported three times. The session list is written to this browser and restored on every load,
+ * so a record an admin deleted came back for ever. The first fix only covered rows that
+ * remembered arriving from the store; the second told sessions written before that flag apart
+ * by name. This is the reported case itself: a session with no flag on it, named by its
+ * initiative rather than a filename, holding an id the pool does not return.
+ */
+{
+  const kept = submission('AB12', 'Licensing Renewal');
+  const gone = submission('ZZ99', 'Legacy code check');
+  const audited = submission('YY88', 'Audited and gone');
+  // This assessor's own audit. One written by somebody else is not kept, because a browser
+  // holds one audit and it belongs to whoever is signed in.
+  audited.audit = { reviewer: ME, reviewedAt: 'z', perQuestion: { 'B-Q1': { auditedScore: 4, verdict: 'adjust', note: 'x' } } };
+
+  const { doc, dom } = await boot({
+    session: live, side: 'assess', role: 'assessor',
+    listAnswer: { documents: [asDoc(kept)] },
+    // Three rows in the browser, one of which the store still has.
+    auditSession: [
+      { file: kept.initiative.name, a: kept },
+      { file: gone.initiative.name, a: gone },
+      { file: audited.initiative.name, a: audited },
+    ],
+  });
+  await new Promise((r) => setTimeout(r, 160));
+  const names = [...doc.querySelectorAll('.triage tbody tr')]
+    .map((tr) => tr.children[0]?.textContent?.trim() ?? '');
+  ok('a row the store no longer has is dropped', !names.some((n) => /Legacy code check/.test(n)),
+     names.join(' | '));
+  ok('and the one it still has stays', names.some((n) => /Licensing Renewal/.test(n)), names.join(' | '));
+  ok('and one carrying this assessor\u2019s own audit is kept',
+     names.some((n) => /Audited and gone/.test(n)), names.join(' | '));
+  const goneRow = [...doc.querySelectorAll('.triage tbody tr')]
+    .find((tr) => /Audited and gone/.test(tr.textContent));
+  ok('and its state says the store no longer has it',
+     /Not in the store/.test(goneRow?.textContent ?? ''), goneRow?.textContent?.slice(0, 120));
+  dom.window.close();
+}
 
 console.log(fails ? `\n${fails} hosted check(s) failed\n` : '\nall hosted checks passed\n');
 process.exit(fails ? 1 : 0);
