@@ -11,7 +11,7 @@
  * it does not recognise fails the suite rather than escaping.
  */
 import { readFile } from 'node:fs/promises';
-import { JSDOM } from 'jsdom';
+import { JSDOM, VirtualConsole } from 'jsdom';
 
 let fails = 0;
 const ok = (name, cond, extra = '') => {
@@ -24,6 +24,8 @@ const rubric = JSON.parse(await readFile('rubric/rubric.v1-dan.json', 'utf8'));
 const SESSION = 'gc-arch-assessment:firebase-session';
 const SIDE = 'gc-arch-assessment:side';
 const DRAFT = 'gc-arch-assessment:draft';
+// A redirect sign-in that has started and not finished, held for one tab.
+const PENDING = 'gc-arch-assessment:firebase-signin';
 const ME = 'assessor@tbs-sct.gc.ca';
 
 /** One submission, in the shape Firestore hands back. Enough of it to score and to name. */
@@ -58,9 +60,31 @@ const asDoc = (a) => ({ name: `projects/p/databases/(default)/documents/assessme
  * One page, booted with whatever storage and whatever store answer a case needs.
  * `listAnswer` decides what the assessments list does: a page of documents, or a refusal.
  */
-async function boot({ session = null, side = null, listAnswer = { documents: [] }, role = null, hash = '', url = null, draft = null, people = null, audit = null, audits = null, openAt = null, oobRefusal = null, linkEmail = null, linkMintedFor = null, library = null } = {}) {
+async function boot({ session = null, side = null, listAnswer = { documents: [] }, role = null, hash = '', url = null, draft = null, people = null, audit = null, audits = null, openAt = null, oobRefusal = null, linkEmail = null, linkMintedFor = null, library = null,
+                     pending = null, authUri = GOOGLE_SENDS_YOU_HERE, idpRefusal = null } = {}) {
   const seen = [];
+  /**
+   * Where the page tried to send the browser.
+   *
+   * jsdom will not navigate and will not let `location.assign` be replaced, so the only
+   * evidence that a redirect sign-in started is the error jsdom raises in its place. It
+   * carries no address, so what this proves is that the browser was sent somewhere and not
+   * where to; the address itself is checked in the request that produced it.
+   *
+   * It is caught rather than printed because a suite that prints "Not implemented" beside a
+   * passing check teaches whoever reads it to ignore that line.
+   */
+  const navigated = [];
+  const virtualConsole = new VirtualConsole();
+  // Everything the page logs still reaches the terminal. jsdom's own errors are taken by hand
+  // below rather than forwarded, because exactly one kind of them is expected here.
+  virtualConsole.forwardTo(console, { jsdomErrors: 'none' });
+  virtualConsole.on('jsdomError', (e) => {
+    if (/navigation to another Document/.test(e.message)) navigated.push(e.message);
+    else console.error(e.type === 'unhandled-exception' ? e.cause?.stack ?? e.message : e.message);
+  });
   const dom = new JSDOM(html, {
+    virtualConsole,
     runScripts: 'dangerously',
     url: url ?? `https://example.gc.ca/tool/${hash}`,
     pretendToBeVisual: true,
@@ -80,6 +104,10 @@ async function boot({ session = null, side = null, listAnswer = { documents: [] 
         // A second question set sitting in the browser, which is what the assessor's Question
         // set pane lists and what Make active acts on.
         if (library) w.localStorage.setItem('gc-arch-assessment:rubric-library', JSON.stringify(library));
+        // A redirect sign-in half finished: what startSignIn() left behind in THIS tab before
+        // sending the browser to the provider. Per tab on purpose, so closing the tab abandons
+        // the attempt and leaves nothing on the machine.
+        if (pending) w.sessionStorage.setItem('gc-arch-assessment:firebase-signin', JSON.stringify(pending));
       } catch { /* no storage on this origin */ }
       w.scrollTo = () => {};
       w.alert = () => {};
@@ -114,6 +142,27 @@ async function boot({ session = null, side = null, listAnswer = { documents: [] 
                 refreshToken: 'seeded-refresh', expiresIn: '3600', localId: 'uid' }
             : { error: { code: 400, message: 'INVALID_OOB_CODE : Invalid oobCode.' } };
           return { ok: right, status: right ? 200 : 400,
+            headers: { get: () => 'application/json' },
+            json: async () => body, text: async () => JSON.stringify(body) };
+        }
+        /**
+         * Signing in with Google is three steps and two calls. createAuthUri says where to send
+         * the person; the provider sends them back here with an answer in the address; and
+         * signInWithIdp turns that answer into a token. Nothing of ours runs in between, which
+         * is why the sessionId has to survive the round trip.
+         */
+        if (/accounts:createAuthUri/.test(href)) {
+          const body = { authUri, sessionId: 'SESSION-HELD-FOR-THIS-TAB' };
+          return { ok: true, status: 200,
+            headers: { get: () => 'application/json' },
+            json: async () => body, text: async () => JSON.stringify(body) };
+        }
+        if (/accounts:signInWithIdp/.test(href)) {
+          const body = idpRefusal
+            ? { error: { code: 400, message: idpRefusal } }
+            : { email: 'dan.weekes-hall@tbs-sct.gc.ca', idToken: 'seeded-by-google',
+                refreshToken: 'seeded-refresh', expiresIn: '3600', localId: 'uid' };
+          return { ok: !idpRefusal, status: idpRefusal ? 400 : 200,
             headers: { get: () => 'application/json' },
             json: async () => body, text: async () => JSON.stringify(body) };
         }
@@ -172,8 +221,12 @@ async function boot({ session = null, side = null, listAnswer = { documents: [] 
   });
   // Two turns: one for the boot paint, one for the pool answer and the repaint it asks for.
   await new Promise((r) => setTimeout(r, 120));
-  return { dom, doc: dom.window.document, seen };
+  return { dom, doc: dom.window.document, seen, navigated };
 }
+
+/** What the real createAuthUri answers with, near enough to recognise in a failure. */
+const GOOGLE_SENDS_YOU_HERE =
+  'https://accounts.google.com/o/oauth2/auth?client_id=1234.apps.googleusercontent.com&response_type=code';
 
 const live = { email: ME, idToken: 'seeded', refreshToken: 'seeded-refresh', expiresAt: Date.now() + 3600e3 };
 // The bundle is an inline script inside <body>, so body.textContent carries every string
@@ -2086,6 +2139,145 @@ console.log('\nThe published build, signed in\n');
   ok('and the submission is not put back over it', !said.includes('Audit these'), said.slice(0, 140));
   dom.window.close();
 }
+
+
+/* --------------------------------------------------------------------------------------- *
+ *
+ * Signing in with Google, which nothing tested and which is the route every assessor will use.
+ *
+ * Four calls carry it and no test mentioned any of them. The only assertion anywhere was that
+ * the button is on the screen, which is why a redirect mismatch shipped in September and sat
+ * there: the button was on the screen the whole time.
+ *
+ * There is no popup and no SDK. The browser is sent to Google and comes back to a fresh load of
+ * this same page with an answer in the address, so the two halves below are two page loads and
+ * have to be tested as two. The only thing joining them is a sessionId held for the tab.
+ * ----------------------------------------------------------------------------------------- */
+
+console.log('\nSigning in with Google\n');
+
+{
+  // The first half: the press, and the request it makes.
+  const j = await boot({ side: 'assess' });
+  const google = [...j.doc.querySelectorAll('.signin-providers button')]
+    .find((b) => /Continue with Google/.test(b.textContent));
+  ok('the Google button is live on a page with an address', google?.disabled === false);
+  google?.click();
+  await new Promise((r) => setTimeout(r, 80));
+
+  const asked = j.seen.find((c) => /accounts:createAuthUri/.test(c.href));
+  ok('pressing it asks the service where to send the browser', !!asked,
+     j.seen.map((c) => c.href).join(' | ').slice(0, 200));
+  const sent = JSON.parse(asked?.body ?? '{}');
+  ok('and names Google as the provider', sent.providerId === 'google.com', sent.providerId);
+  /**
+   * This one line is the September break and the only part of the request that can cause it.
+   * The provider returns to continueUri, it has to be on the project's authorised domains, and
+   * it has to be this page with no query and no fragment. Anything on the end is a mismatch,
+   * and a mismatch is refused by Google with a screen nobody here can read.
+   */
+  ok('and returns to this page, with no query and no fragment',
+     sent.continueUri === 'https://example.gc.ca/tool/', sent.continueUri);
+  ok('and asks for the code flow, the one that needs no popup',
+     sent.authFlowType === 'CODE_FLOW', sent.authFlowType);
+
+  ok('what has to survive the round trip is held for this tab',
+     JSON.parse(j.dom.window.sessionStorage.getItem(PENDING) ?? '{}').sessionId === 'SESSION-HELD-FOR-THIS-TAB',
+     j.dom.window.sessionStorage.getItem(PENDING));
+  ok('and the provider it was started for, so the failure can name it',
+     JSON.parse(j.dom.window.sessionStorage.getItem(PENDING) ?? '{}').providerId === 'google.com');
+  // Per tab, so closing the tab abandons the attempt. In localStorage it would outlive the
+  // browser window and sit on a shared machine until something cleared it.
+  ok('and nothing durable is written to the machine', !j.dom.window.localStorage.getItem(PENDING));
+  ok('the browser is then sent to the provider', j.navigated.length === 1, String(j.navigated.length));
+  ok('and nobody is signed in on the way out', !j.dom.window.localStorage.getItem(SESSION));
+  j.dom.window.close();
+}
+
+{
+  // The second half: the same page, loaded again, with Google's answer in the address.
+  const j = await boot({
+    side: 'assess',
+    pending: { providerId: 'google.com', sessionId: 'SESSION-HELD-FOR-THIS-TAB' },
+    url: 'https://example.gc.ca/tool/?code=ANSWER-FROM-GOOGLE&scope=email+profile',
+  });
+  const traded = j.seen.find((c) => /accounts:signInWithIdp/.test(c.href));
+  ok('coming back from the provider trades the answer for a session', !!traded,
+     j.seen.map((c) => c.href).join(' | ').slice(0, 200));
+  const sent = JSON.parse(traded?.body ?? '{}');
+  // The service reads the answer out of the address itself, so the whole address goes.
+  ok('and sends the address it came back to, answer and all',
+     /[?&]code=ANSWER-FROM-GOOGLE/.test(sent.requestUri ?? ''), sent.requestUri);
+  ok('and the sessionId the tab was holding, which is the only thing joining the two calls',
+     sent.sessionId === 'SESSION-HELD-FOR-THIS-TAB', sent.sessionId);
+  ok('and asks for a token it can keep', sent.returnSecureToken === true, String(sent.returnSecureToken));
+
+  ok('the person is signed in afterwards',
+     /dan\.weekes-hall@tbs-sct\.gc\.ca/.test(j.dom.window.localStorage.getItem(SESSION) ?? ''),
+     (j.dom.window.localStorage.getItem(SESSION) ?? '').slice(0, 90));
+  ok('and the screen is no longer the sign-in screen',
+     !/Continue with Google/.test(body(j.doc)), body(j.doc).slice(0, 90));
+  /**
+   * The answer in the address is a credential. An address bar goes into history, into a
+   * bookmark and into anything somebody pastes into a ticket, so it comes out as soon as it is
+   * spent. This is the same reason the link code is scrubbed, and it is checked the same way.
+   */
+  ok('and the spent answer is out of the address', !/code=/.test(j.dom.window.location.href),
+     j.dom.window.location.href);
+  ok('and the half-finished attempt is let go', !j.dom.window.sessionStorage.getItem(PENDING));
+  ok('and the browser is not sent anywhere else', j.navigated.length === 0, String(j.navigated.length));
+  j.dom.window.close();
+}
+
+{
+  /**
+   * The exchange refused. This is what a redirect mismatch actually looks like when it reaches
+   * us, and the whole of the September defect was that it reached nobody: every caller was
+   * `void signInWithGoogle()`, so a refusal went into a promise nothing was reading and the
+   * screen simply stayed as it was.
+   */
+  const j = await boot({
+    side: 'assess',
+    pending: { providerId: 'google.com', sessionId: 'SESSION-HELD-FOR-THIS-TAB' },
+    url: 'https://example.gc.ca/tool/?code=ANSWER-FROM-GOOGLE',
+    idpRefusal: 'INVALID_IDP_RESPONSE : redirect_uri_mismatch',
+  });
+  const view = body(j.doc);
+  ok('a refused exchange signs nobody in', !j.dom.window.localStorage.getItem(SESSION));
+  ok('and says on the screen that it did not go through',
+     /did not go through/.test(view), view.slice(0, 200));
+  ok('and names the provider, so the person knows which account to try instead',
+     /google\.com/.test(view), view.slice(0, 200));
+  ok('and carries what the service said, because redirect_uri_mismatch is ours to fix',
+     /redirect_uri_mismatch/.test(view), view.slice(0, 260));
+  ok('the spent answer comes out of the address even when the exchange failed',
+     !/code=/.test(j.dom.window.location.href), j.dom.window.location.href);
+  // A sessionId is good once. Left behind, the next load would spend a dead one and fail again
+  // for a reason that has nothing to do with the real problem.
+  ok('and the dead attempt is not left behind to be retried',
+     !j.dom.window.sessionStorage.getItem(PENDING));
+  j.dom.window.close();
+}
+
+{
+  /**
+   * The service answered, and answered with nothing to go on. Not a refusal, so nothing throws:
+   * a 200 with no authUri used to send the browser to `undefined`.
+   */
+  const j = await boot({ side: 'assess', authUri: '' });
+  const google = [...j.doc.querySelectorAll('.signin-providers button')]
+    .find((b) => /Continue with Google/.test(b.textContent));
+  google?.click();
+  await new Promise((r) => setTimeout(r, 80));
+  ok('an answer with no address sends the browser nowhere', j.navigated.length === 0,
+     String(j.navigated.length));
+  ok('and the screen says so rather than going quiet',
+     /gave no address to send you to/.test(body(j.doc)), body(j.doc).slice(0, 200));
+  ok('and nothing is held for a trip that never started',
+     !j.dom.window.sessionStorage.getItem(PENDING));
+  j.dom.window.close();
+}
+
 
 console.log(fails ? `\n${fails} hosted check(s) failed\n` : '\nall hosted checks passed\n');
 process.exit(fails ? 1 : 0);
