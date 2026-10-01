@@ -1264,6 +1264,24 @@ export const items = [
     why: "Reported four times, and the last three were the same cause: a row carrying this assessor\u2019s own audit was kept on purpose after the record left the store. That rule was mine rather than anybody\u2019s requirement, and with no control on the list that removes a row, a row nothing drops is a row that stays for ever. She deleted the record more than once and it kept coming back, which is exactly what it would do. An audit of a record that no longer exists has nothing to be an audit of, so deleted now means gone and the badge that marked the kept ones is gone with it.\n\nThe control that used to remove a row was taken off this list earlier the same day, as asked. I told her to use it without checking that it was still there, which is how the third report became a fourth.\n\nThe earlier part of this item follows.\n\nReported a third time: the Legacy code check row is still there. The drop itself is right and now has a test in the shape it was reported in, a session with no flag on it, named by its initiative, holding an id the pool does not return: that row goes.\n\nWhat was missing is the case where it is kept on purpose. A row carrying this assessor\u2019s own audit is never dropped, and nothing on it said so, so a record removed from the store sat in the list looking exactly like the ones that are still there. Its state now says Not in the store.\n\nThe other way a row survives is a browser that has not fetched the build with the fix in it.",
   },
   {
+    id: "submission-is-one-page", track: "engine", section: "e-assessor",
+    kind: "feature", status: "done", priority: "high", owner: "ours", golive: false,
+    t: "A submission is one page, and the words on it are the same words",
+    why: "Her shape, given on 1 October after using the split version: put the assessment on the same page as the looking glass. Breadcrumbs, then who audited it, then the headline, then by category, then the counters with complete first, then the questions as two tabs. No separate screen and no door between them.\n\nAnd the words. The list column said audited, one block said who saved this, another said assessed, and a tab said what needs you, which she could not read as anything in particular. One word for one thing: audited everywhere an assessor has written something, saved versions at the foot for what a department does to its own answers, and the tabs are Flagged questions and All questions, which say what is behind them.\n\nThe list lost the line explaining its own sort order and the line saying where its rows came from. Ready and draft are told apart by a rule between the groups and the drafts set back, which is what the sentence was describing. The heading is Submissions with the count beside it, the way the portfolio heading reads.\n\nStill open and not done here: the browser back button, which goes to whatever was open before this screen rather than to the list, because a submission has no address of its own. That needs a route and it is its own item.",
+  },
+  {
+    id: "earb-not-enterprise-architecture", track: "engine", section: "e-assessor",
+    kind: "chore", status: "done", priority: "low", owner: "ours", golive: false,
+    t: "The tool is called the GC EARB self-assessment",
+    why: "Asked for on 1 October: always say EARB rather than Enterprise Architecture. It is the name in the rubric file, so it reaches the header, the tab title, every email subject the tool writes and the printed one-pager from one line.",
+  },
+  {
+    id: "submission-has-no-address", track: "engine", section: "e-assessor",
+    kind: "bug", status: "open", priority: "medium", owner: "ours", golive: false,
+    t: "The browser back button does not come back to the list",
+    why: "Reported on 1 October: in a submission, the browser back arrow went to Settings, which is where the assessor had been before opening the list.\n\nA submission is not in the address. The hash carries the side and the screen, so every submission is the same entry as the list it was opened from, and back goes to whatever came before that. Which submission is open is remembered in the browser instead, which covers a reload and not the history.\n\nWhat it needs is a route of its own, assessor/CODE, parsed on the way in and pushed on the way out. That also gives a submission a link somebody can send, which nothing in the tool has today.",
+  },
+  {
     id: "assessor-cannot-tell-what-to-assess", track: "engine", section: "e-assessor",
     kind: "bug", status: "done", priority: "high", owner: "ours", golive: false,
     t: "An assessor opens a submission and cannot tell what they are supposed to assess, or where",

@@ -356,7 +356,7 @@ const rubric = {
   id: 'gc-ea-assessment',
   version: '1.0-dan',
   status: 'draft',
-  title: 'GC Enterprise Architecture self-assessment',
+  title: 'GC EARB self-assessment',
   provenance:
     'Imported by tools/import-rubric.mjs from the TBS GC_EA_Assessment_Tool workbook (6 sheets). Questions, section names, section weights, domain weights and the 0-10 ladder all come from it unchanged. Added by us and marked as such: lifecycle stages, the stage rule on "Defining the Current State" sections, and the routing bands.',
   dlgBaseUrl: 'https://myermcat.github.io/digital-lifecycle-guide',

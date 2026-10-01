@@ -1603,20 +1603,25 @@ byText('button', 'Open').click();
  * Her shape: the first screen is a looking glass over the whole thing and everything to do
  * with assessing it sits behind one door, with no sentence anywhere explaining the job.
  */
-ok('opening a submission lands on the submission', view().includes('Who saved this'));
-ok('and the assessment is a block, not a sentence', !!q('.assess-door'));
-ok('which carries the numbers that matter', /to argue with/.test(q('.assess-door').textContent),
-   q('.assess-door')?.textContent);
-ok('and nothing on it explains what an assessor is for',
-   !view().includes('read the answers that do not add up'));
-q('.assess-door').click();
-ok('pressing it opens what needs you', view().includes('Audit these'));
-ok('with two tabs over one piece of work', qa('.assess-tabs .tab').length === 2,
-   qa('.assess-tabs .tab').map((t) => t.textContent).join(' | '));
-byText('button', 'Back to the submission').click();
+/**
+ * A submission is one page. The looking glass and the assessment are not two screens with a
+ * door between them: the assessment is the questions on the same page as everything else.
+ */
+ok('a breadcrumb says where you are', !!q('.crumbs') && /Submissions/.test(q('.crumbs').textContent),
+   q('.crumbs')?.textContent);
+ok('who audited it is the first thing on the page',
+   !!q('.audited-by') && /audited this/.test(q('.audited-by').textContent),
+   q('.audited-by')?.textContent);
 ok('a KPI row summarises the submission', qa('.kpi').length === 5, String(qa('.kpi').length));
-ok('and the back button goes one step, to the submission', !!q('.assess-door'));
-q('.assess-door').click();
+ok('and how much of it is filled in comes first',
+   qa('.kpi')[0]?.textContent?.includes('complete'), qa('.kpi')[0]?.textContent);
+ok('the questions are on the same page', view().includes('Audit these'));
+ok('with two tabs over them', qa('.assess-tabs .tab').length === 2,
+   qa('.assess-tabs .tab').map((t) => t.textContent).join(' | '));
+ok('named for what they hold',
+   qa('.assess-tabs .tab').map((t) => t.textContent).join('|') === 'Flagged questions|All questions',
+   qa('.assess-tabs .tab').map((t) => t.textContent).join('|'));
+ok('and saving is at the foot, under its own word', view().includes('Saved versions'));
 
 /**
  * The full submission, which is its own screen.
@@ -1626,18 +1631,18 @@ q('.assess-door').click();
  * section, with the same controls on every question.
  */
 {
-  byText('.assess-tabs .tab', 'All the questions').click();
+  byText('.assess-tabs .tab', 'All questions').click();
   const allQids = new Set(qa('.audit-row .qid').map((n) => n.textContent));
   ok('the full view holds every question', allQids.size === TOTAL, `${allQids.size} vs ${TOTAL}`);
   ok('laid out by domain', qa('.card h2').length >= 4, String(qa('.card h2').length));
   ok('and by section inside it', qa('.full-section').length > 10, String(qa('.full-section').length));
-  ok('with a way back to what needs you', !!byText('.assess-tabs .tab', 'What needs you'));
+  ok('with a way back to the flagged ones', !!byText('.assess-tabs .tab', 'Flagged questions'));
   ok("assessor sees the submitter's own words",
      view().includes('They said') && view().includes('owned by the platform team'));
   ok('assessor sees the evidence reference and its classification',
      view().includes('Current-state architecture diagram') && view().includes('Protected B'));
   ok('the assessor is told where the evidence is', view().includes('Current-state architecture diagram'));
-  byText('.assess-tabs .tab', 'What needs you').click();
+  byText('.assess-tabs .tab', 'Flagged questions').click();
   ok('and coming back lands on what needs you', view().includes('Audit these'));
 }
 
@@ -1671,7 +1676,7 @@ ok('the audit is attributed to whoever signed in, and says it is unverified',
    * of its own now, so the control went with the sections rather than staying on a screen that
    * no longer has any.
    */
-  byText('.assess-tabs .tab', 'All the questions').click();
+  byText('.assess-tabs .tab', 'All questions').click();
   // The scores as the assessor left them, so "touches no score" is actually checked.
   // The score is eleven buttons now, the way the submitter picks one, so what is on the page
   // is which button is pressed rather than what is typed in a box.
@@ -1684,7 +1689,7 @@ ok('the audit is attributed to whoever signed in, and says it is unverified',
   btn.click();
   ok('and it says how many it marked', view().includes('marked as agreed'));
   ok('while changing no score', nums() === before, `${before} -> ${nums()}`);
-  byText('.assess-tabs .tab', 'What needs you').click();
+  byText('.assess-tabs .tab', 'Flagged questions').click();
 }
 
 /**
@@ -1696,7 +1701,7 @@ ok('the audit is attributed to whoever signed in, and says it is unverified',
  */
 const targetQid = rubric.domains[0].sections[0].questions[0].id;
 const rowOf = (qid) => q(`.audit-row[data-qid="${qid}"]`);
-byText('.assess-tabs .tab', 'All the questions').click();
+byText('.assess-tabs .tab', 'All questions').click();
 const targetRow = rowOf(targetQid);
 ok('every question is addressable by its rubric id', !!targetRow, targetQid);
 const pick = (row, v) => [...row.querySelectorAll('.audit-controls .score-btn')]
@@ -1746,12 +1751,9 @@ ok('with a reason, saving is offered again', !!byText('button', 'Save the audite
  * asked to keep on the front: it is the record of what has already been decided about the
  * thing, and it belongs with the summary of the thing.
  */
-byText('button', 'Back to the submission').click();
-ok('the change is summarised on the submission', view().includes('What you changed'));
+ok('the change is summarised on the same page', view().includes('What you changed'));
 ok('the delta is shown with direction', view().includes('They said 7, you scored 4'));
 
-// Saving the audited file is part of assessing, so it is in there with the rest of it.
-q('.assess-door').click();
 byText('button', 'Save the audited file').click();
 const audited = JSON.parse(await text(saved[saved.length - 1]));
 ok('audited file records the reviewer', audited.audit.reviewer === 'Allison', String(audited.audit?.reviewer));
