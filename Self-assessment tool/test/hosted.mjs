@@ -2003,6 +2003,64 @@ console.log('\nThe published build, signed in\n');
   dom.window.close();
 }
 
+{
+  /**
+   * Discarding empties the browser, which is what three screens promise.
+   *
+   * It used to remove one name. Every online save also writes a whole second copy of the document
+   * under a name of its own, and nothing ever removed one, so the answers somebody had just been
+   * told were erased were still on the machine under a name nobody had mentioned.
+   *
+   * Driven here rather than in test/ui.mjs because that suite builds with no store, so no online
+   * save ever runs and no second copy is ever written: the assertion there could never have
+   * caught this.
+   */
+  const BASE = 'gc-arch-assessment:online-base';
+  const j = await boot({
+    session: { email: ME, idToken: 't', refreshToken: 'r', expiresAt: Date.now() + 3600000 },
+    hash: '#settings/danger',
+    draft: {
+      fileType: 'gc-arch-assessment', formatVersion: 1, id: 'DISCARDTEST1',
+      rubric: { id: rubric.id, version: rubric.version, title: rubric.title },
+      initiative: { name: 'Something', department: 'TBS', contact: '', lifecycleStage: '',
+        summary: '', classification: 'Unclassified' },
+      answers: { 'B-Q1': { score: 3 } },
+      meta: { createdAt: '2026-09-01T00:00:00Z', updatedAt: '2026-09-01T00:00:00Z', appVersion: 'x' },
+    },
+  });
+  // The copy an online save leaves behind, written the way src/firebase.ts writes it.
+  j.dom.window.localStorage.setItem(`${BASE}:DISCARDTEST1`, JSON.stringify({ fields: {} }));
+  j.dom.window.localStorage.setItem(`${BASE}:SOMEONEELSE`, JSON.stringify({ fields: {} }));
+  await new Promise((r) => setTimeout(r, 60));
+
+  const names = () => Object.keys(j.dom.window.localStorage).filter((k) => k.startsWith(`${BASE}:`));
+  ok('the browser is holding copies an online save left behind', names().length === 2, names().join());
+
+  const discard = [...j.doc.querySelectorAll('button')]
+    .find((b) => /Discard this assessment/i.test(b.textContent));
+  ok('the settings screen offers to discard', !!discard, discard?.textContent);
+  discard?.click();
+  await new Promise((r) => setTimeout(r, 60));
+  const win = [...j.doc.querySelectorAll('dialog.confirm')].pop();
+  ok('and the window asks before anything goes', !!win);
+  // The record has a code, so the window asks for a tick first: this is the last moment that code
+  // is on screen before the only copy of it leaves the browser.
+  const tick = win?.querySelector('input[type=checkbox]');
+  if (tick) { tick.checked = true; tick.dispatchEvent(new j.dom.window.Event('change', { bubbles: true })); }
+  // The window also offers to save online first. This is the other door, the one that destroys.
+  const commit = [...(win?.querySelectorAll('button') ?? [])]
+    .find((b) => /^Go ahead without saving$/.test(b.textContent.trim()));
+  ok('and offers a way through without saving first', !!commit,
+     [...(win?.querySelectorAll('button') ?? [])].map((b) => b.textContent).join(' | '));
+  commit?.click();
+  await new Promise((r) => setTimeout(r, 100));
+
+  ok('and after discarding the browser is actually empty',
+     names().length === 0 && !j.dom.window.localStorage.getItem('gc-arch-assessment:draft'),
+     `${names().length} copies left, draft ${j.dom.window.localStorage.getItem('gc-arch-assessment:draft') ? 'still there' : 'gone'}`);
+  j.dom.window.close();
+}
+
 console.log(fails ? `\n${fails} hosted check(s) failed\n` : '\nall hosted checks passed\n');
 process.exit(fails ? 1 : 0);
 
