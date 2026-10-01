@@ -241,14 +241,14 @@ export const items = [
     why: "She asked where to save online. There is nowhere, and the badge says so on hover, so \"draft saved\" cannot be read as the whole story.",
   },
   {
-    id: "library-question-sets", track: "engine", section: "e-done", kind: "feature",
+    id: "library-question-sets", track: "questions", section: "q-content", kind: "feature",
     status: "done", priority: "low", owner: "ours", golive: false,
     t: "A library of question sets",
     why: "Sets accumulate. Settings lists every one this browser holds and marks the one in use. Adding one changes nothing on its own, and each row has a menu: preview the questions, make it active, delete it, and who added it. Deleting is two steps and refused only on the set in use and on the last remaining set.",
   },
   {
-    id: "each-submission-scored-against", track: "engine", section: "e-done", kind: "feature",
-    status: "done", priority: "low", owner: "ours", golive: false,
+    id: "each-submission-scored-against", track: "questions", section: "q-content",
+    kind: "feature", status: "done", priority: "low", owner: "ours", golive: false,
     t: "Each submission is scored against its own question set",
     why: "Twenty submissions answered against set 1 are untouched when set 2 becomes active, but the assessor page used to recompute them with whichever set was active and print a one-line notice. It now uses the set they were answered against when this browser holds it, names that set on every row, and says what it did. CSV export writes one file per set, because the columns are question ids.",
   },
@@ -355,7 +355,7 @@ export const items = [
     why: "Add evidence created a row with no marking, and the save gate demanded one immediately. An empty row is nothing to mark. A classified row no longer offers attaching at all, and a row already recorded as emailed does not offer it either.",
   },
   {
-    id: "question-ids-lose-letter", track: "engine", section: "e-done", kind: "feature",
+    id: "question-ids-lose-letter", track: "questions", section: "q-content", kind: "feature",
     status: "done", priority: "low", owner: "ours", golive: false,
     t: "Question ids lose a letter",
     why: "BU-Q1 is now B-Q1. The four domain initials are distinct, so the second letter carried nothing. Cheap today because no real submission exists; expensive once ids are column names in somebody exported spreadsheet.",
@@ -367,8 +367,8 @@ export const items = [
     why: "An audit found twenty destructive actions and eleven of them destroyed something with no prompt at all. Every one now asks, keeps a copy where it can, or leaves the work alone.",
   },
   {
-    id: "applicable-hides-scale-keeps", track: "engine", section: "e-done", kind: "feature",
-    status: "done", priority: "low", owner: "ours", golive: false,
+    id: "applicable-hides-scale-keeps", track: "questions", section: "q-behaviour",
+    kind: "feature", status: "done", priority: "low", owner: "ours", golive: false,
     t: "Not applicable hides the scale and keeps the score",
     why: "The eleven descriptions explain a score, and a question that does not apply has none. Ticking the box also used to erase the score, and unticking did not give it back.",
   },
@@ -566,13 +566,13 @@ export const items = [
     why: "Dan called the back and forth before a board date the real value GC EARB adds, and said on 21 September that he cannot prove that value because nothing captures it. It is also why the endorsement rate is 100 per cent: an initiative that would fail is reworked or abandoned before it ever reaches the board. Recording each round would make it visible. What a round looks like as data is the open question, and nobody has answered it.",
   },
   {
-    id: "question-mechanics", track: "engine", section: "e-storage", kind: "feature",
+    id: "question-mechanics", track: "questions", section: "q-behaviour", kind: "feature",
     status: "done", priority: "low", owner: "ours", golive: false,
     t: "Question mechanics",
     why: "What the instrument can carry.",
   },
   {
-    id: "multiple-answer-types", track: "engine", section: "e-storage", kind: "feature",
+    id: "multiple-answer-types", track: "questions", section: "q-behaviour", kind: "feature",
     status: "done", priority: "low", owner: "ours", golive: false, parent: "question-mechanics",
     t: "Multiple answer types",
     why: "A type field with scale as the default, so nothing existing breaks.",
@@ -584,13 +584,13 @@ export const items = [
     why: "The question, its section, its rail row and its domain tab, and it stops nothing.",
   },
   {
-    id: "topic-metadata-per-topic", track: "engine", section: "e-storage", kind: "feature",
+    id: "topic-metadata-per-topic", track: "questions", section: "q-behaviour", kind: "feature",
     status: "done", priority: "low", owner: "ours", golive: false, parent: "question-mechanics",
     t: "Topic metadata and per-topic roll-up",
     why: "Security, privacy, cost, data, business and technology, visible without inventing a fifth domain.",
   },
   {
-    id: "two-topic-scoring", track: "engine", section: "e-storage", kind: "feature",
+    id: "two-topic-scoring", track: "questions", section: "q-behaviour", kind: "feature",
     status: "done", priority: "low", owner: "ours", golive: false, parent: "question-mechanics",
     t: "Two-topic scoring",
     why: "Once in the overall, at full weight inside each topic, because the weight genuinely differs by topic.",
@@ -835,7 +835,7 @@ export const items = [
     why: "Already true, and now held true by a test.",
   },
   {
-    id: "load-question-set-moves", track: "engine", section: "e-assessor", kind: "feature",
+    id: "load-question-set-moves", track: "questions", section: "q-content", kind: "feature",
     status: "done", priority: "low", owner: "ours", golive: false,
     t: "Load a question set moves here",
     why: "It belongs to whoever maintains the instrument. A submitter is told where it lives and not handed the control.",
