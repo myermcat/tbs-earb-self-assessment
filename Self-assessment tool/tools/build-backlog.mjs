@@ -545,7 +545,29 @@ const SCRIPT = `<script>
     [].slice.call(p.querySelectorAll('main h2, main details.archive > summary')).forEach(function (h) {
       var card = h.nextElementSibling;
       var id = h.id || (h.parentElement && h.parentElement.id);
-      var n = card ? card.querySelectorAll('.row:not([data-group=true])').length : 0;
+      /**
+       * The number beside a heading is the number of rows under it, and nothing else.
+       *
+       * It used to count everything folded inside those rows as well, on the reasoning that a
+       * heading saying three over a group holding seven pieces of work misleads. Reported, and
+       * fairly: the submitter says ten and has five toggles, are those numbers not automatic. The
+       * number has to be one somebody can check by looking, or it reads as broken. A fold says it
+       * holds more by being a fold.
+       *
+       * It was also counting done children, which are drawn inside an open parent as a record,
+       * so an open section's number included finished work. And it left out the rows that are
+       * headings, which are toggles like any other: Admin screens said zero above one visible
+       * row. A row is a row.
+       */
+      // Done is a fold holding several cards, one per section, so its rows are counted through
+      // the fold rather than off the element after the heading.
+      var arch = h.parentElement && h.parentElement.classList.contains('archive')
+        ? h.parentElement : null;
+      var n = arch
+        ? arch.querySelectorAll('.card > .row').length
+        : (card ? [].slice.call(card.children).filter(function (r) {
+          return r.classList && r.classList.contains('row');
+        }).length : 0);
       var c = h.querySelector('.c');
       if (c) c.textContent = String(n);
       var link = p.querySelector('.side a[data-sec="' + id + '"] .c');
@@ -614,9 +636,11 @@ const SCRIPT = `<script>
         if (link) link.hidden = !left;
         // Under a filter the heading says how many of the section you are looking at, because a
         // count that keeps reporting the whole section is describing rows that are not there.
-        var all = card ? card.querySelectorAll('.row:not([data-group=true])').length : 0;
-        var some = card ? [].slice.call(card.querySelectorAll('.row:not([data-group=true])'))
-          .filter(function (r) { return filter && MATCH[filter](r); }).length : 0;
+        var top = card ? [].slice.call(card.children).filter(function (r) {
+          return r.classList && r.classList.contains('row');
+        }) : [];
+        var all = top.length;
+        var some = top.filter(function (r) { return filter && MATCH[filter](r); }).length;
         var text = filter ? some + ' of ' + all : String(all);
         var c = h.querySelector('.c');
         if (c) c.textContent = text;
