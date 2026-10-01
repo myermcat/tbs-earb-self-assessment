@@ -2513,6 +2513,56 @@ console.log('\nA submission is a place you can go back from\n');
 }
 
 
+/* --------------------------------------------------------------------------------------- */
+/**
+ * What another assessor wrote, where somebody will find it.
+ *
+ * Reported as: I do not see other people's assessments beside mine. It was built and it only
+ * showed on a question somebody else had written on, which is a handful out of 176 and none of
+ * the ones an assessor opens first.
+ */
+{
+  const one = submission('AB12', 'Licensing Renewal');
+  const theirs = {
+    reviewer: 'nick@tbs-sct.gc.ca', reviewerName: 'Nick Allen', reviewedAt: '2026-10-01T00:00:00.000Z',
+    perQuestion: { 'B-Q1': { auditedScore: 8, verdict: 'adjust', note: 'The evidence covers it.' } },
+  };
+  const { doc, dom } = await boot({
+    session: live, side: 'assess', role: 'assessor',
+    listAnswer: { documents: [asDoc(one)] },
+    audits: { [one.id]: [theirs] },
+  });
+  doc.querySelector('.triage tbody tr').dispatchEvent(new dom.window.MouseEvent('click', { bubbles: true }));
+  await new Promise((r) => setTimeout(r, 160));
+
+  const tabs = [...doc.querySelectorAll('.assess-tabs .tab')].map((t) => t.textContent);
+  ok('a tab leads to what the others wrote', tabs.some((t) => /Audited by others/.test(t)), tabs.join(' | '));
+  ok('and says how many questions that is', tabs.some((t) => /\(1\)/.test(t)), tabs.join(' | '));
+
+  [...doc.querySelectorAll('.assess-tabs .tab')].find((t) => /Audited by others/.test(t.textContent))
+    .dispatchEvent(new dom.window.MouseEvent('click', { bubbles: true }));
+  await new Promise((r) => setTimeout(r, 120));
+  const shown = [...doc.querySelectorAll('.audit-row')].map((n) => n.getAttribute('data-qid'));
+  ok('which holds only those questions', shown.length === 1 && shown[0] === 'B-Q1', shown.join(','));
+  ok('with their reading on it', /The evidence covers it/.test(body(doc)), body(doc).slice(0, 160));
+  ok('and the question is marked with who else is on it',
+     !!doc.querySelector('.audit-row .q-faces'),
+     doc.querySelector('.audit-row .q-head')?.textContent?.slice(0, 80));
+
+  // A submission nobody else has touched does not grow a tab onto an empty list.
+  const alone = await boot({
+    session: live, side: 'assess', role: 'assessor',
+    listAnswer: { documents: [asDoc(submission('CD34', 'Fleet Scheduling'))] },
+  });
+  alone.doc.querySelector('.triage tbody tr').dispatchEvent(new alone.dom.window.MouseEvent('click', { bubbles: true }));
+  await new Promise((r) => setTimeout(r, 160));
+  ok('and no tab where nobody else has written',
+     ![...alone.doc.querySelectorAll('.assess-tabs .tab')].some((t) => /Audited by others/.test(t.textContent)),
+     [...alone.doc.querySelectorAll('.assess-tabs .tab')].map((t) => t.textContent).join(' | '));
+  alone.dom.window.close();
+  dom.window.close();
+}
+
 console.log(fails ? `\n${fails} hosted check(s) failed\n` : '\nall hosted checks passed\n');
 process.exit(fails ? 1 : 0);
 

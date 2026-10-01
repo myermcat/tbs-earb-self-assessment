@@ -1059,7 +1059,7 @@ function sectionHead(
  * It is one function because every part of it is computed from the same twenty locals. Three
  * functions would be three copies of that arithmetic.
  */
-export type Depth = 'flagged' | 'all';
+export type Depth = 'flagged' | 'others' | 'all';
 
 function openDetail(rubric: Rubric, root: HTMLElement, l: Loaded, depth: Depth = 'flagged') {
   clear(root);
@@ -1248,6 +1248,22 @@ function openDetail(rubric: Rubric, root: HTMLElement, l: Loaded, depth: Depth =
    * questions is the assessment as the department filled it in. Neither is a better answer than
    * the other, so neither is buried inside the other.
    */
+  /**
+   * Which questions another assessor has already written on.
+   *
+   * Reported as: I do not see other people's assessments beside mine. It was built and it was
+   * nearly invisible, because it only shows on a question somebody else has touched, which on
+   * a real submission is a handful out of 176 and none of the ones an assessor opens first.
+   * Nothing said how many there were or where, so the second reading was somewhere nobody
+   * found, which is the whole point of one document per assessor.
+   */
+  const othersOn = new Set<string>();
+  for (const other of l.others ?? []) {
+    for (const [qid, e] of Object.entries(other.perQuestion ?? {})) {
+      if (typeof e.auditedScore === 'number' || e.verdict || (e.note ?? '').trim()) othersOn.add(qid);
+    }
+  }
+
   const tab = (label: string, to: Depth) => el('button', {
     class: `tab ${depth === to ? 'on' : ''}`,
     'aria-current': depth === to ? 'page' : undefined,
@@ -1260,8 +1276,34 @@ function openDetail(rubric: Rubric, root: HTMLElement, l: Loaded, depth: Depth =
   }, [label]);
   root.appendChild(el('nav', { class: 'card tight assess-tabs', 'aria-label': 'This assessment' }, [
     tab('Flagged questions', 'flagged'),
+    // Only where there is something behind it. A tab onto an empty list is a dead end, and a
+    // dead end with nothing written on it is the worst of both.
+    othersOn.size ? tab(`Audited by others (${othersOn.size})`, 'others') : null,
     tab('All questions', 'all'),
   ]));
+
+  // The questions another assessor has written on, in the order the department answered them.
+  if (depth === 'others') {
+    for (const d of r.domains) {
+      const rows: HTMLElement[] = [];
+      for (const sec of d.sections) {
+        for (const qs of sec.questions) {
+          if (!othersOn.has(qs.question.id)) continue;
+          rows.push(auditRow(rubric, a, qs, audit, byQuestion.get(qs.question.id) ?? [], repaint,
+                             (byQuestion.get(qs.question.id) ?? []).length > 0, l));
+        }
+      }
+      if (!rows.length) continue;
+      const box = el('section', { class: 'card' }, [
+        el('h2', {}, [
+          d.domain.label,
+          el('span', { class: `pill small ${tone(d.score)}` }, [d.score === null ? '--' : d.score.toFixed(1)]),
+        ]),
+      ]);
+      for (const n of rows) box.appendChild(n);
+      root.appendChild(box);
+    }
+  }
 
   if (depth === 'flagged') {
     // ---- 1. the anomalies, with the controls in place ------------------------------------
@@ -1594,6 +1636,19 @@ function auditRow(
             `you: ${entry.auditedScore}`,
           ])
         : null,
+      // Somebody else has written on this one. The same initials as the byline, so the mark
+      // means the same thing wherever it is seen, and the reading itself is below.
+      ...(() => {
+        const mine = (l.others ?? []).filter((x) => {
+          const e = x.perQuestion?.[q.id];
+          return e && (typeof e.auditedScore === 'number' || e.verdict || (e.note ?? '').trim());
+        });
+        if (!mine.length) return [];
+        return [el('span', {
+          class: 'faces q-faces',
+          title: `Also audited by ${mine.map((x) => x.reviewerName?.trim() || x.reviewer).join(', ')}`,
+        }, mine.map((x) => el('span', { class: 'face' }, [initialsFor(x.reviewerName?.trim() || x.reviewer)])))];
+      })(),
     ]),
 
     ...qflags.map((f) => el('div', { class: `flag sev-${f.severity}` }, [

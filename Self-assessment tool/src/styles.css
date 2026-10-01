@@ -2301,3 +2301,7 @@ tr.row-open button, tr.row-open summary, tr.row-open label { cursor: pointer; }
 
 /* A score beside a heading is a separate thing from the heading, and it was touching it. */
 .body-review h2 > .pill, .body-admin h2 > .pill { margin-left: .6rem; vertical-align: .05em; }
+
+/* The same initials on a question as on the byline, so the mark means one thing. */
+.q-faces { margin-left: auto; }
+.q-faces .face { width: 1.3rem; height: 1.3rem; font-size: .58rem; }
