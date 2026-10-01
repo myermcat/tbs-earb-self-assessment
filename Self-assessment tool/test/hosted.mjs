@@ -1986,7 +1986,7 @@ console.log('\nThe published build, signed in\n');
     await new Promise((r) => setTimeout(r, 120));
     const said = body(doc);
     ok(`a reload inside ${where} comes back to it`, said.includes(expect), said.slice(0, 120));
-    ok(`and not to the list`, !/submissions, ready first/.test(said), said.slice(0, 120));
+    ok(`and not to the list`, !/submissions?, ready first/.test(said), said.slice(0, 120));
     dom.window.close();
   }
 
@@ -2059,6 +2059,32 @@ console.log('\nThe published build, signed in\n');
      names().length === 0 && !j.dom.window.localStorage.getItem('gc-arch-assessment:draft'),
      `${names().length} copies left, draft ${j.dom.window.localStorage.getItem('gc-arch-assessment:draft') ? 'still there' : 'gone'}`);
   j.dom.window.close();
+}
+
+/* --------------------------------------------------------------------------------------- */
+/**
+ * Asking for the list gets the list, even with a submission open.
+ *
+ * Reported as: clicking the name of the tool should send me to the assessor home. It did go
+ * there and the screen put the open submission straight back, because the thing that brings
+ * somebody back after a reload cannot tell a reload from somebody asking to leave.
+ */
+{
+  const one = submission('AB12', 'Licensing Renewal');
+  const { doc, dom } = await boot({
+    session: live, side: 'assess', role: 'assessor',
+    listAnswer: { documents: [asDoc(one)] },
+    openAt: { code: one.id, depth: 'needs' },
+  });
+  await new Promise((r) => setTimeout(r, 120));
+  ok('a reload is still put back where it was', body(doc).includes('Audit these'), body(doc).slice(0, 90));
+
+  doc.querySelector('.brand').dispatchEvent(new dom.window.MouseEvent('click', { bubbles: true }));
+  await new Promise((r) => setTimeout(r, 80));
+  const said = body(doc);
+  ok('the name of the tool goes to the list', /submissions?, ready first/.test(said), said.slice(0, 140));
+  ok('and the submission is not put back over it', !said.includes('Audit these'), said.slice(0, 140));
+  dom.window.close();
 }
 
 console.log(fails ? `\n${fails} hosted check(s) failed\n` : '\nall hosted checks passed\n');

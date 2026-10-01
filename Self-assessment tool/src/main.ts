@@ -11,7 +11,7 @@ import { panePeople } from './views-people';
 import { takeAccessAway } from './danger-people';
 import { deleteSubmission } from './danger-submission';
 import { handOff, renderResults } from './views-results';
-import { forgetPool, openedThisSession, renderReview, setAuditor } from './views-review';
+import { forgetOpenSubmission, forgetPool, openedThisSession, renderReview, setAuditor } from './views-review';
 import { renderDashboard } from './views-dashboard';
 import { canRemove, currentId, currentRubric, libraryList, removeFromLibrary,
   setCurrentId } from './library';
@@ -205,6 +205,9 @@ function pushRoute(): void {
 }
 
 function go(next: Mode) {
+  // Going to the submissions list is an act, and a reload is not. Only this knows the
+  // difference, so this is where the open submission is let go of.
+  if (next === 'review') forgetOpenSubmission();
   mode = next;
   const owner = SIDE_OF[next];
   if (owner && owner !== side) setSide(owner, false);
