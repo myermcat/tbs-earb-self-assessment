@@ -1609,9 +1609,11 @@ byText('button', 'Open').click();
  */
 ok('a breadcrumb says where you are', !!q('.crumbs') && /Submissions/.test(q('.crumbs').textContent),
    q('.crumbs')?.textContent);
-ok('who audited it is the first thing on the page',
-   !!q('.audited-by') && /audited this/.test(q('.audited-by').textContent),
-   q('.audited-by')?.textContent);
+// Who has touched it, on the byline under its name, the way every tool shows it.
+ok('who audited it is on the byline, under the name',
+   !!q('.headline .byline'), q('.headline')?.textContent?.slice(0, 80));
+ok('and the breadcrumb is a path rather than a panel',
+   !q('.crumbs')?.classList.contains('card'), q('.crumbs')?.className);
 ok('a KPI row summarises the submission', qa('.kpi').length === 5, String(qa('.kpi').length));
 ok('and how much of it is filled in comes first',
    qa('.kpi')[0]?.textContent?.includes('complete'), qa('.kpi')[0]?.textContent);

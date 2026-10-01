@@ -1205,7 +1205,16 @@ code.mark-subject { display: block; margin: .25rem 0; }
  * new number, and the three declarations under it take the table's own floor from 1173px to
  * 413px so it fits here and on a 1024px laptop.
  */
-.body-review, .body-admin { padding-bottom: 3rem; max-width: min(1200px, 100%); }
+/**
+ * The assessor's page is one width, whatever is on it.
+ *
+ * Reported as: flagged questions spans the screen, all questions does not, and opening a
+ * section makes the block wider. All three are the same thing. The shell is a column flex and
+ * this element centres itself with auto side margins, and an auto margin on the cross axis
+ * turns stretching off: the page was sized to its own content and every change of content
+ * changed its width. An explicit width under the cap centres a box of a fixed size instead.
+ */
+.body-review, .body-admin { padding-bottom: 3rem; width: 100%; max-width: min(1200px, 100%); }
 /* A badge that cannot wrap is a column that cannot shrink. */
 .triage .badge { white-space: normal; margin-left: 0; }
 .triage td { overflow-wrap: anywhere; }
@@ -2268,10 +2277,27 @@ tr.row-open button, tr.row-open summary, tr.row-open label { cursor: pointer; }
 .triage tbody tr.group-break td { border-top: 2px solid var(--line-2); }
 .triage tbody tr.is-draft td:first-child { color: var(--ink-2); }
 /* Where you are, as a path. */
-.crumbs { display: flex; align-items: center; gap: .45rem; font-size: .9rem; }
-.crumb-sep { color: var(--ink-3); }
-.crumb-here { color: var(--ink); font-weight: 600; }
+/* A path, not a panel. It sits above the page the way a breadcrumb does everywhere else, on
+   one baseline, with the current place in plain weight rather than shouting. */
+.crumbs { display: flex; align-items: baseline; gap: .4rem; font-size: .85rem;
+  padding: 0; border: 0; background: none; box-shadow: none; }
+.crumbs .linkish { font-size: inherit; line-height: 1.2; padding: 0; color: var(--ink-3); }
+.crumbs .linkish:hover { color: var(--accent); }
+.crumb-sep { color: var(--ink-3); line-height: 1.2; }
+.crumb-here { color: var(--ink-2); line-height: 1.2; }
 /* Who has audited this, above everything else on the submission. */
-.audited-by p { margin: 0; }
-.audited-by.none-yet p { color: var(--ink-3); }
+/* Who has touched this, as a byline under the title rather than a block of its own. */
+.byline { display: flex; align-items: center; gap: .45rem; margin: .35rem 0 0;
+  font-size: .85rem; color: var(--ink-2); }
+.byline .faces { display: inline-flex; }
+.byline .face { width: 1.5rem; height: 1.5rem; border-radius: 999px; display: inline-flex;
+  align-items: center; justify-content: center; font-size: .64rem; font-weight: 700;
+  background: var(--surface-2); color: var(--ink-2); border: 1px solid var(--line);
+  margin-left: -.35rem; }
+.byline .face:first-child { margin-left: 0; }
+.byline .face.mine { background: var(--accent); color: #fff; border-color: var(--accent); }
+.byline.none-yet { color: var(--ink-3); }
 .count-beside { font-weight: 400; }
+
+/* A score beside a heading is a separate thing from the heading, and it was touching it. */
+.body-review h2 > .pill, .body-admin h2 > .pill { margin-left: .6rem; vertical-align: .05em; }

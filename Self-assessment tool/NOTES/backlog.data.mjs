@@ -1276,6 +1276,12 @@ export const items = [
     why: "Asked for on 1 October: always say EARB rather than Enterprise Architecture. It is the name in the rubric file, so it reaches the header, the tab title, every email subject the tool writes and the printed one-pager from one line.",
   },
   {
+    id: "other-assessors-work-is-not-visible", track: "engine", section: "e-assessor",
+    kind: "bug", status: "open", priority: "high", owner: "ours", golive: false,
+    t: "An assessor cannot see what the other assessors wrote",
+    why: "Reported on 1 October: I do not see other people\u2019s assessments beside mine, or it is not obvious, and either way it should be worked on.\n\nIt is built and it is nearly invisible. Another assessor\u2019s score, verdict and reason appear under a question, below the exchange and above the controls, in a quieter block. Three things stop that being found. It only shows on a question that somebody else has actually written on, which on a real submission is a handful out of 176 and none of the ones an assessor happens to open first. Nothing at the top of the submission says how many questions another assessor has touched or which ones. And the byline that names them is a fact about the whole submission, so it does not lead anywhere.\n\nWhat would answer it, none of it designed: the flagged tab is one filter over the questions and there could be another for questions somebody else has audited; a disagreement between two assessors is the thing a board actually needs and nothing counts them; and the byline could be the way in rather than a label.\n\nThe reason it matters more than it looks: the whole point of one document per assessor is that two readings stand side by side. If the second reading is somewhere nobody finds, the tool has the property and not the benefit.",
+  },
+  {
     id: "submission-has-no-address", track: "engine", section: "e-assessor",
     kind: "bug", status: "open", priority: "medium", owner: "ours", golive: false,
     t: "The browser back button does not come back to the list",
