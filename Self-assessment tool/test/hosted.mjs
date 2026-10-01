@@ -1835,10 +1835,11 @@ console.log('\nThe published build, signed in\n');
 
   // Scoring a question sends this assessor's own audit, under this assessor's own address.
   const before = seen.length;
-  const box = doc.querySelector('.audit-controls input[type=number]');
-  ok('there is somewhere to put a score', !!box);
-  box.value = '6';
-  box.dispatchEvent(new dom.window.Event('change', { bubbles: true }));
+  // Eleven buttons, the way the submitter picks a rung, rather than a number spinner.
+  const six = [...doc.querySelectorAll('.audit-controls .audit-score .score-btn')]
+    .find((b) => b.textContent === '6');
+  ok('there is somewhere to put a score', !!six);
+  six.dispatchEvent(new dom.window.MouseEvent('click', { bubbles: true }));
   await new Promise((r) => setTimeout(r, 1600));
   const wrote = seen.slice(before).filter((x) => x.method === 'PATCH' && /\/audit\//.test(x.href));
   ok('scoring sends the audit to the store', wrote.length === 1,

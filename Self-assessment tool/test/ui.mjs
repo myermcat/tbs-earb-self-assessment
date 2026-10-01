@@ -1608,7 +1608,10 @@ ok('the audit is attributed to whoever signed in, and says it is unverified',
 // no score.
 {
   // The scores as the assessor left them, so "touches no score" is actually checked.
-  const nums = () => qa('.audit-controls input[type=number]').map((i) => i.value).join(',');
+  // The score is eleven buttons now, the way the submitter picks one, so what is on the page
+  // is which button is pressed rather than what is typed in a box.
+  const nums = () => qa('.audit-controls .audit-score').map((row) =>
+    row.querySelector('.score-btn.on')?.textContent ?? '').join(',');
   const before = nums();
   ok('there are scores on the page to leave alone', before.length > 0);
   const btn = byText('.section-head button', 'Agree with all');
@@ -1623,10 +1626,9 @@ const targetQid = rubric.domains[0].sections[0].questions[0].id;
 const rowOf = (qid) => q(`.audit-row[data-qid="${qid}"]`);
 const targetRow = rowOf(targetQid);
 ok('every question is addressable by its rubric id', !!targetRow, targetQid);
-const targetInput = targetRow.querySelector('.audit-controls input[type=number]');
-targetInput.value = '4';
-fire(targetInput, 'input');
-fire(targetInput, 'change');
+const pick = (row, v) => [...row.querySelectorAll('.audit-controls .score-btn')]
+  .find((b) => b.textContent === String(v));
+pick(targetRow, 4).click();
 ok('changing a score marks that line as changed',
    !!q(`.audit-row.changed[data-qid="${targetQid}"]`));
 ok('the change is summarised for the assessor', view().includes('What you changed'));
@@ -1636,7 +1638,21 @@ ok('the delta is shown with direction', view().includes('They said 7, you scored
 ok('saving is blocked while a changed score has no reason',
    !byText('button', 'Save the audited file') && view().includes('need a reason'));
 {
-  // The view repaints on a score change, so the row has to be looked up again.
+  /**
+   * The row survives a score change now.
+   *
+   * Every control used to repaint the whole screen, which closed the section the assessor was
+   * working inside and threw away the node they were holding. Nothing here repaints: the score
+   * buttons redraw themselves and the rest of the page is left alone.
+   */
+  /**
+   * The section the assessor is working inside stays open across the redraw.
+   *
+   * Reported as: I press the score and the whole thing closes. The screen still redraws,
+   * because what counts as a changed line and whether the file can be saved are computed from
+   * the audit; what changed is that the open sections are remembered.
+   */
+  ok('the section stays open after a score is given', !!rowOf(targetQid), targetQid);
   const noteField = rowOf(targetQid).querySelector('.audit-controls input[type=text]');
   ok('the missing reason is marked on the field itself', noteField.classList.contains('needs-marking'));
   noteField.value = 'Their evidence covers one region, not the estate.';

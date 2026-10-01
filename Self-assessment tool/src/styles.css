@@ -2183,3 +2183,16 @@ tr.row-open button, tr.row-open summary, tr.row-open label { cursor: pointer; }
 /* The language link on a stripped-down screen, where the header carries nothing. */
 .card-lang { margin: 1rem 0 0; text-align: center; font-size: .85rem; }
 .card-lang .lang-link { color: var(--accent); }
+
+/* The assessor's score row. The same eleven buttons the submitter picks from, because an
+   assessor disagreeing with a rung should be choosing a rung and not typing an integer into a
+   spinner. The department's own pick is ringed, so the two readings are visible at once. */
+.audit-controls { display: grid; gap: .5rem; }
+.audit-line { display: flex; align-items: center; gap: .5rem; flex-wrap: wrap; }
+.audit-label { min-width: 5.2rem; color: var(--ink-2); }
+.audit-score { display: flex; gap: .2rem; flex-wrap: wrap; }
+.audit-score .score-btn.theirs { box-shadow: 0 0 0 2px var(--line-2) inset; }
+.audit-score .audit-clear { width: auto; padding: 0 .5rem; font-size: .78rem; }
+.audit-delta { margin-left: .2rem; }
+.audit-line select, .audit-line input[type="text"] { min-width: 10rem; }
+.audit-line input[type="text"] { flex: 1 1 14rem; }
