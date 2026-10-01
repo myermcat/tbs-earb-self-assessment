@@ -480,6 +480,19 @@ export function setAuditor(name: string): void { auditor = name; }
  */
 const WHERE_KEY = storeKey('assessor-open');
 
+/**
+ * Asking for the list means the list, even when a submission was open.
+ *
+ * Reported as: clicking the name of the tool should send me to the assessor home. It did go
+ * there, and the screen put the open submission straight back, because remembering where
+ * somebody was cannot tell the difference between a reload and somebody asking to leave. The
+ * two acts are different and only the page knows which one happened, so the ones that mean
+ * leave say so.
+ */
+export function forgetOpenSubmission(): void {
+  rememberWhere(undefined, 'overview');
+}
+
 function rememberWhere(code: string | undefined, depth: Depth): void {
   try {
     if (!code) localStorage.removeItem(WHERE_KEY);
