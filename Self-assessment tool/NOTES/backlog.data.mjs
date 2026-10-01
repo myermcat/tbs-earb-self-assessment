@@ -1252,6 +1252,12 @@ export const items = [
     why: "Done on 1 October, against the rule added to CLAUDE.md the same day. The sign-off card said where an audit went, who could read it and who could not change it; it says Saved. The empty pool explained what a shared pool is for; it is a heading and a badge. The submissions list explained its own sort order and what the State column means; the columns say that. A tooltip explained what checking the store again does that reloading does not.\n\nThe store\u2019s own words are kept where a request was refused, because that is a fact about what happened rather than an account of why the screen looks as it does.",
   },
   {
+    id: "record-in-the-store-called-missing", track: "engine", section: "e-broken",
+    kind: "bug", status: "done", priority: "high", owner: "ours", golive: false,
+    t: "A record sitting in the store was marked as not being in it",
+    why: "Reported as: it says Mariia\u2019s best app is not in the store, how is that possible if it is.\n\nRows are matched to what the store hands over on the reference as well as on the id, and the two can disagree. A record made before codes were readable is written back under a new name on its next save, so a browser can still hold the old one. The match found it by reference and left the row alone, and the test that ran afterwards asked only whether the row\u2019s id was among the ids the store returned. It was not, so a record the store had just handed over was marked missing from it.\n\nDone on 1 October. The rows the store accounted for are collected as it is read, by identity rather than by name, so none of them can be judged missing afterwards; a matched row takes the store\u2019s name for the record, because that is the true one.",
+  },
+  {
     id: "row-for-a-deleted-record-marked", track: "engine", section: "e-broken",
     kind: "bug", status: "done", priority: "medium", owner: "ours", golive: false,
     t: "A row kept after its record left the store looked like any other",
