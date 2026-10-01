@@ -1479,8 +1479,11 @@ ok('the real route is shown but not wired',
 }
 // The screen says why there is nothing from the shared store, and leaves a way to work.
 ok('the empty pool explains itself', view().includes('No shared pool yet'));
-ok('and offers the file route as the alternative',
-   view().includes('Load submissions from files instead'));
+// And offers nothing else, because there is nothing else. The file route came out on
+// 1 October: the store is the pool, and a second way in is a second place a submission can
+// come from and a second thing to explain.
+ok('and offers no way to put a file in', !q('.dropzone input[type=file]')
+   && !view().includes('Load submissions from files instead'));
 ok('with a picture that belongs to the page rather than a request',
    !!q('.pool-art svg') && q('.pool-art svg').innerHTML.includes('currentColor'));
 ok('and an empty screen centres its one card', !!q('main.body-empty'));
@@ -1575,18 +1578,22 @@ ok('and an empty screen centres its one card', !!q('main.body-empty'));
   byText('.tab', 'Submissions').click();
 }
 
-const fileInput = q('.dropzone input[type=file]');
-Object.defineProperty(fileInput, 'files', {
-  value: [{ name: 'nexus-self-assessment.json', text: async () => JSON.stringify(savedJson) }],
-  configurable: true,
-});
-fire(fileInput, 'change');
+/**
+ * A submission on the assessor's screen, without a file.
+ *
+ * This suite builds with no store, and reading a file was how a submission got here. That came
+ * out on 1 October, so the session this browser keeps is used instead: the assessor side
+ * writes its open list there on every change and restores it on every load, which is the same
+ * road a real assessor's submission travels on the second visit.
+ */
+window.localStorage.setItem('gc-arch-assessment:audit-session', JSON.stringify([
+  { file: 'nexus-self-assessment.json', a: savedJson },
+]));
+byText('.tab', 'Submissions').click();
 await new Promise((r) => setTimeout(r, 100));
 
 ok('submission appears in the triage list', !!q('table.triage tbody tr'));
-// The assessor's side keeps its work in the browser now, the way the submitter's always has.
-ok('the assessor session is kept in this browser',
-   !!window.localStorage.getItem('gc-arch-assessment:audit-session'));
+ok('restored from the session this browser keeps', !!q('table.triage tbody tr'));
 ok('triage row names the initiative', q('table.triage tbody tr').textContent.includes('Nexus'));
 
 byText('button', 'Open').click();

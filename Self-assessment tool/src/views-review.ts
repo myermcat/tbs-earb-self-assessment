@@ -5,7 +5,8 @@ import { allQuestionScores, score, triageOrder, type QuestionScore, type Result,
 import { t } from './i18n';
 import { flags, type Flag } from './flags';
 import { csvHeader, csvRow, toCsv } from './csv';
-import { download, readJsonFiles, slug } from './storage';
+// readJsonFiles went quiet with the drop zone on 1 October and comes back with it.
+import { download, slug } from './storage';
 import { humanSize, openAttachment } from './attach';
 import { rubricFor } from './library';
 import { confirmStep } from './confirm';
@@ -411,7 +412,10 @@ function poolState(): { title: string; detail: string; badge: string; tone: stri
   if (!isHosted()) {
     return {
       title: 'No shared pool yet',
-      detail: 'Submissions are meant to arrive in one place that you and the departments both see. That store is not built, so there is nothing to fetch.',
+      // What this screen can offer somebody changed on 1 October, when reading a file came out
+      // of it. There is no second way to work on a build with no store, and saying so is better
+      // than an empty screen that looks as though it is still loading.
+      detail: 'Submissions arrive in one place that you and the departments both see. This copy of the tool has no store behind it, so there is nothing to fetch and nothing to read here.',
       badge: 'Not hosted yet',
       tone: 'badge-warn',
     };
@@ -598,89 +602,106 @@ export function renderReview(root: HTMLElement, rubric: Rubric): void {
       ]);
 
   /**
-   * The file loader shrinks once there is anything on the page.
+   * TAKEN OUT ON 1 OCTOBER, AND COMING BACK ON REQUEST.
    *
-   * It is the way in when there is no store and nothing else to look at, and a heading, a
-   * paragraph and a drop zone are right for that. With submissions already listed it is a
-   * thing you do occasionally, and it was still taking a block the size of the empty state.
+   * Her words: the app should not be able to deal with files, comment it out for now, and put
+   * it back if I ask. This was the drop zone and the picker that read .json submissions people
+   * had emailed each other, which is how the assessor side worked before there was a store.
+   * The store is the pool now, so a second way in is a second place a submission can come from
+   * and a second thing to explain.
+   *
+   * It is commented and not deleted so that putting it back is reading rather than writing.
+   * The heading and the paragraph went with it; what is left is the line saying where these
+   * came from, which is about the store.
+   *
+   *   const drop = el('section', { class: `card dropzone ${loaded.length ? 'dropzone-tight' : ''}` }, [
+   *     head,
+   *     loaded.length ? null : el('h3', { class: 'pool-alt-h' }, ['Load submissions from files instead']),
+   *     loaded.length ? null : el('p', { class: 'muted small' }, [
+   *       'Drop the .json files people sent you, or pick them. They are read here in your browser, and nothing is uploaded.',
+   *     ]),
+   *     loaded.length ? null : fileInput(rubric, root),
+   *   ]);
+   *   drop.addEventListener('dragover', (e) => { e.preventDefault(); drop.classList.add('over'); });
+   *   drop.addEventListener('dragleave', () => drop.classList.remove('over'));
+   *   drop.addEventListener('drop', async (e) => {
+   *     e.preventDefault();
+   *     drop.classList.remove('over');
+   *     if (e.dataTransfer?.files) await ingest(rubric, e.dataTransfer.files, root);
+   *   });
    */
-  const drop = el('section', { class: `card dropzone ${loaded.length ? 'dropzone-tight' : ''}` }, [
-    head,
-    loaded.length ? null : el('h3', { class: 'pool-alt-h' }, ['Load submissions from files instead']),
-    loaded.length ? null : el('p', { class: 'muted small' }, [
-      'Drop the .json files people sent you, or pick them. They are read here in your browser, and nothing is uploaded.',
-    ]),
-    loaded.length ? null : fileInput(rubric, root),
-  ]);
-
-  drop.addEventListener('dragover', (e) => { e.preventDefault(); drop.classList.add('over'); });
-  drop.addEventListener('dragleave', () => drop.classList.remove('over'));
-  drop.addEventListener('drop', async (e) => {
-    e.preventDefault();
-    drop.classList.remove('over');
-    if (e.dataTransfer?.files) await ingest(rubric, e.dataTransfer.files, root);
-  });
+  const drop = el('section', { class: `card ${loaded.length ? 'dropzone-tight' : ''}` }, [head]);
 
   root.appendChild(drop);
   if (loaded.length) paintList(rubric, root);
 }
 
-/** The one file control, wherever it is put. */
-function fileInput(rubric: Rubric, root: HTMLElement): HTMLElement {
-  return el('input', {
-    type: 'file', accept: '.json', multiple: true,
-    onchange: async (e: Event) => {
-      const input = e.target as HTMLInputElement;
-      if (input.files) await ingest(rubric, input.files, root);
-    },
-  });
-}
-
-async function ingest(rubric: Rubric, files: FileList, root: HTMLElement) {
-  const read = await readJsonFiles(files);
-  const problems: string[] = [];
-  for (const item of read) {
-    const a = item.data as Assessment;
-    if (item.error || a?.fileType !== 'gc-arch-assessment') {
-      problems.push(`${item.file}: not a self-assessment file`);
-      continue;
-    }
-    /**
-     * Score a submission against the set it was answered against. Recomputing a two-year-old
-     * assessment with today's weights produces a number that was never anybody's score, and
-     * the old behaviour did exactly that behind a one-line notice.
-     */
-    const own = rubricFor(BUILTIN as unknown as Rubric, a.rubric);
-    const use = own ?? rubric;
-    const substituted = !own;
-    if (a.rubric.version !== rubric.version && own) {
-      problems.push(`${item.file}: answered against ${a.rubric.version}. That set is in your library, so the scores here were worked out with it.`);
-    } else if (substituted) {
-      const lost = lostAnswers(use, a);
-      problems.push(
-        `${item.file}: answered against ${a.rubric.version}, which this browser does not have. Scored with ${use.version} instead`
-        + (lost ? `, and ${lost} answer${lost === 1 ? '' : 's'} do not exist in it.` : '.')
-        + ' Add that set in Settings to see its real scores.',
-      );
-    }
-    const r = score(use, a);
-    const had = loaded.find((l) => l.file === item.file);
-    if (had && Object.keys(had.a.audit?.perQuestion ?? {}).length) {
-      problems.push(`${item.file}: this file was already open and has been replaced by the version you just picked. The scores and notes you had typed against the old one are gone.`);
-    }
-    loaded = loaded.filter((l) => l.file !== item.file);
-    loaded.push({ file: item.file, a, rubric: use, substituted,
-      lost: substituted ? lostAnswers(use, a) : 0, r, fs: flags(use, a, r) });
-    keepSession();
-  }
-  renderReview(root, rubric);
-  if (problems.length) {
-    root.appendChild(el('section', { class: 'card warn' }, [
-      el('strong', {}, ['Notes on the files you loaded']),
-      el('ul', {}, problems.map((p) => el('li', {}, [p]))),
-    ]));
-  }
-}
+// TAKEN OUT ON 1 OCTOBER, WITH THE DROP ZONE ABOVE, AND COMING BACK ON REQUEST.
+//
+// Reading .json submissions is how the assessor side worked before there was a store, and the
+// store is the pool now. Kept as text rather than deleted so that putting it back is reading
+// rather than writing: every line of both is below, including the messages it printed when a
+// file was the wrong shape or replaced something somebody had already audited.
+//
+// Line comments and not a block, because the code below has block comments of its own and the
+// first of their endings would have closed the wrapper around them.
+//
+// /** The one file control, wherever it is put. */
+// function fileInput(rubric: Rubric, root: HTMLElement): HTMLElement {
+//   return el('input', {
+//     type: 'file', accept: '.json', multiple: true,
+//     onchange: async (e: Event) => {
+//       const input = e.target as HTMLInputElement;
+//       if (input.files) await ingest(rubric, input.files, root);
+//     },
+//   });
+// }
+//
+// async function ingest(rubric: Rubric, files: FileList, root: HTMLElement) {
+//   const read = await readJsonFiles(files);
+//   const problems: string[] = [];
+//   for (const item of read) {
+//     const a = item.data as Assessment;
+//     if (item.error || a?.fileType !== 'gc-arch-assessment') {
+//       problems.push(`${item.file}: not a self-assessment file`);
+//       continue;
+//     }
+//     /**
+//      * Score a submission against the set it was answered against. Recomputing a two-year-old
+//      * assessment with today's weights produces a number that was never anybody's score, and
+//      * the old behaviour did exactly that behind a one-line notice.
+//      */
+//     const own = rubricFor(BUILTIN as unknown as Rubric, a.rubric);
+//     const use = own ?? rubric;
+//     const substituted = !own;
+//     if (a.rubric.version !== rubric.version && own) {
+//       problems.push(`${item.file}: answered against ${a.rubric.version}. That set is in your library, so the scores here were worked out with it.`);
+//     } else if (substituted) {
+//       const lost = lostAnswers(use, a);
+//       problems.push(
+//         `${item.file}: answered against ${a.rubric.version}, which this browser does not have. Scored with ${use.version} instead`
+//         + (lost ? `, and ${lost} answer${lost === 1 ? '' : 's'} do not exist in it.` : '.')
+//         + ' Add that set in Settings to see its real scores.',
+//       );
+//     }
+//     const r = score(use, a);
+//     const had = loaded.find((l) => l.file === item.file);
+//     if (had && Object.keys(had.a.audit?.perQuestion ?? {}).length) {
+//       problems.push(`${item.file}: this file was already open and has been replaced by the version you just picked. The scores and notes you had typed against the old one are gone.`);
+//     }
+//     loaded = loaded.filter((l) => l.file !== item.file);
+//     loaded.push({ file: item.file, a, rubric: use, substituted,
+//       lost: substituted ? lostAnswers(use, a) : 0, r, fs: flags(use, a, r) });
+//     keepSession();
+//   }
+//   renderReview(root, rubric);
+//   if (problems.length) {
+//     root.appendChild(el('section', { class: 'card warn' }, [
+//       el('strong', {}, ['Notes on the files you loaded']),
+//       el('ul', {}, problems.map((p) => el('li', {}, [p]))),
+//     ]));
+//   }
+// }
 
 function paintList(rubric: Rubric, root: HTMLElement) {
   /**
@@ -904,16 +925,13 @@ function paintList(rubric: Rubric, root: HTMLElement) {
         onclick: () => askExportCsv(rubric),
       }),
       /**
-       * Opening a file, beside the export rather than under its own heading.
+       * TAKEN OUT ON 1 OCTOBER WITH THE DROP ZONE, and coming back with it.
        *
-       * With nothing on the page it is the way in and it gets the block. With a list on the
-       * page it is a thing done occasionally, and it was still taking the room of an empty
-       * state directly above the work.
+       *   el('label', { class: 'filelabel ghost small btn-icon', title: 'Read .json submissions people sent you. They are read in this browser and nothing is uploaded.' }, [
+       *     el('span', {}, ['Open files']),
+       *     fileInput(rubric, root),
+       *   ]),
        */
-      el('label', { class: 'filelabel ghost small btn-icon', title: 'Read .json submissions people sent you. They are read in this browser and nothing is uploaded.' }, [
-        el('span', {}, ['Open files']),
-        fileInput(rubric, root),
-      ]),
       el('span', { class: 'spacer' }),
       /**
        * Checking the pool again, and nothing else.
