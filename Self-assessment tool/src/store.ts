@@ -45,7 +45,7 @@ import { markingProblems } from './marking';
 import { score } from './scoring';
 import { validate } from './rubric';
 import BUILTIN from '../rubric/rubric.v1-dan.json';
-import { currentUser, deleteAssessment, getAssessment, isConfigured, listAssessments,
+import { currentUser, deleteAssessment, getAssessment, isConfigured, listAssessments, listAudits,
   putAssessment, storeHost } from './firebase';
 import { hasAccounts, isDemo, nameIsChecked } from './who';
 import { demoAssessments } from './demo-pool';
@@ -89,6 +89,15 @@ export interface StoredRecord {
   source: StoreSource;
   updatedAt: string;
   assessment: Assessment;
+  /**
+   * Who has written an audit against this one, or undefined where nobody asked.
+   *
+   * Undefined and empty are different answers and the screen says different things for them:
+   * empty means the store was asked and nobody has audited it, undefined means it was not
+   * asked, and a screen that cannot tell them apart reports "nobody has looked at this" about
+   * a record it knows nothing about.
+   */
+  auditedBy?: string[];
 }
 
 /**
@@ -110,16 +119,29 @@ export function endpointHost(): string {
   }
 }
 
-/** What the record's own contents say its state is. No status field is stored yet. */
-export function statusOf(a: Assessment): RecordStatus {
+/**
+ * What the record's own contents say its state is. No status field is stored yet.
+ *
+ * Audited is not one of the things a record can say about itself any more, which is why it
+ * takes an argument. An assessor's audit is a document beside the assessment and never a field
+ * inside it, so an assessment carries no trace of having been looked at: the portfolio read
+ * a.audit.reviewedAt, nothing has written that since the audit moved out, and the tile counted
+ * zero for ever while the State column called a fully audited record submitted.
+ *
+ * The caller passes what it read from the subcollection. Where nothing was read, because there
+ * is no store or the read was refused, the answer is what the record itself says and the screen
+ * says nothing about auditing rather than claiming nobody has.
+ */
+export function statusOf(a: Assessment, audited = false): RecordStatus {
   if (a.withdrawnAt) return 'withdrawn';
-  if (a.audit?.reviewedAt) return 'audited';
+  if (audited) return 'audited';
   if (a.meta?.submittedAt) return 'submitted';
   return 'draft';
 }
 
-function recordOf(a: Assessment, source: StoreSource, id: string): StoredRecord {
-  return { id, status: statusOf(a), source, updatedAt: a.meta?.updatedAt ?? '', assessment: a };
+function recordOf(a: Assessment, source: StoreSource, id: string, audited = false): StoredRecord {
+  return { id, status: statusOf(a, audited), source, updatedAt: a.meta?.updatedAt ?? '',
+    assessment: a, auditedBy: audited ? [] : undefined };
 }
 
 /**
@@ -197,6 +219,33 @@ export async function poolRecords(): Promise<PoolAnswer> {
  * assessor opened this session. With a hosted store this becomes one request and the two local
  * sources become a fallback for working offline.
  */
+/**
+ * Who has audited each of these, one request per record, in parallel.
+ *
+ * An audit is a document beside the assessment, so a page that reads assessments learns
+ * nothing about them without asking. One list per record is the honest cost of that shape:
+ * the state lives per assessor and cannot be read off the assessment without putting a marker
+ * back on it, which is the thing the subcollection exists to avoid. Decided with five records
+ * in the pool, so five extra reads on a page that already reads five.
+ *
+ * Caught per record. A refusal on one is that one saying nothing, rather than the page
+ * reporting that nobody has audited anything.
+ */
+async function withAudits(rows: StoredRecord[]): Promise<StoredRecord[]> {
+  if (!isConfigured() || !currentUser()) return rows;
+  await Promise.all(rows.map(async (rec) => {
+    if (!rec.assessment.id) return;
+    try {
+      const all = await listAudits(rec.assessment.id);
+      rec.auditedBy = all.map((x) => x.reviewerName?.trim() || x.reviewer);
+      rec.status = statusOf(rec.assessment, rec.auditedBy.length > 0);
+    } catch {
+      /* Refused or offline. This row says nothing about auditing. */
+    }
+  }));
+  return rows;
+}
+
 export async function listRecords(sessionFiles: Assessment[] = []): Promise<StoredRecord[]> {
   if (isDemo()) {
     return demoAssessments(BUILTIN as unknown as Rubric)
@@ -205,7 +254,7 @@ export async function listRecords(sessionFiles: Assessment[] = []): Promise<Stor
   const out: StoredRecord[] = [];
   if (isConfigured()) {
     const rows = await firestoreRecords();
-    if (rows) return rows;
+    if (rows) return withAudits(rows);
   } else if (ENDPOINT) {
     try {
       const res = await fetch(`${ENDPOINT}/assessments`, { headers: { accept: 'application/json' } });

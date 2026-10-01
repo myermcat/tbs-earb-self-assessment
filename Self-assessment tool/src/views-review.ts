@@ -1021,7 +1021,16 @@ function openDetail(rubric: Rubric, root: HTMLElement, l: Loaded, depth: Depth =
   clear(root);
   rememberWhere(l.a.id, depth);
   const { a, r, fs } = l;
-  const audit = (a.audit ??= { reviewer: '', reviewedAt: new Date().toISOString(), perQuestion: {}, overallNote: '' });
+  /**
+   * Opening a submission is not auditing it.
+   *
+   * This stamped reviewedAt with the time the screen was drawn, so a record somebody had
+   * glanced at claimed to have been reviewed. On a build with no store that is worse than
+   * cosmetic: the portfolio is handed the same objects this screen mutates, so it called a
+   * record audited because an assessor had opened it. The stamp belongs where the work is
+   * written, and scheduleAuditSave already puts it there.
+   */
+  const audit = (a.audit ??= { reviewer: '', reviewedAt: '', perQuestion: {}, overallNote: '' });
   const byQuestion = new Map<string, Flag[]>();
   for (const f of fs) {
     if (!f.questionId) continue;
