@@ -85,7 +85,7 @@ const asDoc = (a) => ({ name: `projects/p/databases/(default)/documents/assessme
  * invisible to the Back button.
  */
 const addressFor = (at) => (at
-  ? `#assessor/${String(at.code).slice(0, 6)}${at.depth === 'all' ? '/all' : ''}`
+  ? `#assessor/${String(at.code).slice(0, 6)}${at.depth && at.depth !== 'flagged' ? `/${at.depth}` : ''}`
   : '');
 
 async function boot({ session = null, side = null, listAnswer = { documents: [] }, role = null, hash = '', url = null, draft = null, people = null, audit = null, audits = null, auditSession = null, openAt = null, oobRefusal = null, linkEmail = null, linkMintedFor = null, library = null,
@@ -2562,6 +2562,52 @@ console.log('\nA submission is a place you can go back from\n');
   alone.dom.window.close();
   dom.window.close();
 }
+
+
+{
+  /**
+   * A link to the third tab, opened by somebody for whom that tab does not exist.
+   *
+   * Audited by others is drawn only where somebody else has written on a question, and whose
+   * work counts as somebody else's depends on who is reading: l.others excludes the reader's
+   * own audit. So the one assessor who is guaranteed NOT to see that tab on a submission is the
+   * assessor who wrote the thing the tab is listing.
+   *
+   * Which is exactly who the link gets sent to. A copies the address from the third tab and
+   * sends it to B to ask about a note; B wrote that note, so for B there is nothing in it.
+   */
+  const one = submission('AB12', 'Licensing Renewal');
+  const byMe = {
+    reviewer: ME, reviewerName: 'Mariia', reviewedAt: '2026-09-28T00:00:00.000Z',
+    perQuestion: { 'B-Q1': { auditedScore: 7, verdict: 'agree', note: 'Fine.' } },
+  };
+  const j = await boot({
+    session: live, side: 'assess', role: 'assessor',
+    listAnswer: { documents: [asDoc(one)] },
+    audits: { [one.id]: [byMe] },
+    openAt: { code: one.id, depth: 'others' },
+  });
+  await new Promise((r) => setTimeout(r, 140));
+
+  const tabs = [...j.doc.querySelectorAll('.assess-tabs .tab')].map((b) => b.textContent.trim());
+  ok('the third tab is not drawn when nobody else has written on it',
+     !tabs.some((t) => /Audited by others/.test(t)), tabs.join(' | '));
+  // The defect: the address asked for a tab that is not there, and the screen drew the tab
+  // strip, nothing under it, and no tab marked as the one you are on.
+  // Before this was answered, the address asked for the third tab, the tab strip drew without
+  // it, the branch behind it found nothing to list, and the reader got a submission with no
+  // tab marked and nothing under the strip at all.
+  const on = [...j.doc.querySelectorAll('.assess-tabs .tab')].filter((b) => b.classList.contains('on'));
+  ok('and the submission opens on the tab everybody has',
+     on.length === 1 && /Flagged questions/.test(on[0].textContent), on.map((b) => b.textContent).join(' | ') || 'none marked');
+  ok('and the rest of the submission is drawn, not an empty strip',
+     /Licensing Renewal/.test(body(j.doc)) && !!j.doc.querySelector('.crumbs'),
+     body(j.doc).slice(0, 120));
+  ok('and the address stops naming a tab that is not there',
+     !j.dom.window.location.hash.includes('/others'), j.dom.window.location.hash);
+  j.dom.window.close();
+}
+
 
 console.log(fails ? `\n${fails} hosted check(s) failed\n` : '\nall hosted checks passed\n');
 process.exit(fails ? 1 : 0);

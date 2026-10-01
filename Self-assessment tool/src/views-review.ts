@@ -1061,8 +1061,25 @@ function sectionHead(
  */
 export type Depth = 'flagged' | 'others' | 'all';
 
-function openDetail(rubric: Rubric, root: HTMLElement, l: Loaded, depth: Depth = 'flagged') {
+function openDetail(rubric: Rubric, root: HTMLElement, l: Loaded, asked: Depth = 'flagged') {
   clear(root);
+  /**
+   * AN ADDRESS CAN ASK FOR A TAB THAT IS NOT THERE.
+   *
+   * Audited by others is drawn only where somebody else has written on a question, and whose
+   * work counts as somebody else's depends on who is reading: l.others leaves out the reader's
+   * own. So the one assessor guaranteed not to see that tab on a submission is the assessor who
+   * wrote the thing it lists — and that is exactly who the link gets sent to. One copies the
+   * address from the third tab to ask a colleague about a note, the colleague wrote the note,
+   * and for them there is nothing in it.
+   *
+   * Before the address carried the depth this could not happen, because the only way to the tab
+   * was pressing it. Now it is asked for, it is answered: the submission opens on the tab
+   * everybody has, and the address is corrected so it stops naming one that is not there.
+   */
+  const hasOthers = (l.others ?? []).some((o) => Object.values(o.perQuestion ?? {})
+    .some((e) => typeof e.auditedScore === 'number' || e.verdict || (e.note ?? '').trim()));
+  const depth: Depth = asked === 'others' && !hasOthers ? 'flagged' : asked;
   // The address is told, and it decides whether this is somewhere new or the same place being
   // repainted. A row with no id yet has no address and simply does not get one.
   putInAddress(l.a.id, depth);
