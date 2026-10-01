@@ -170,7 +170,17 @@ globalThis.fetch = ((url: string, init: RequestInit = {}) => {
 }) as typeof fetch;
 const own = await listRecords();
 ok('a submitter falls back to the one record they own', own.length === 1 && own[0].id === 'MINE', JSON.stringify(own.map((r) => r.id)));
-ok('which took two requests', sent.length === 2, String(sent.length));
+/**
+ * Three requests, and the third is what the portfolio needs.
+ *
+ * The list is refused, the one record this browser owns is fetched by its id, and then the
+ * audits written against it are read, because an audit is a document beside the assessment and
+ * a page that reads assessments learns nothing about them without asking. It was two before
+ * the audits moved out of the assessment, and the portfolio's audited count read zero for ever
+ * as a result.
+ */
+ok('which took three requests, the last of them for the audits',
+   sent.length === 3 && /\/audit/.test(sent[2].url), `${sent.length}: ${sent.map((x) => x.url.split('/documents')[1]).join(' | ')}`);
 
 // Roles.
 globalThis.fetch = ((url: string) => Promise.resolve({
@@ -509,6 +519,63 @@ await wait(0);
      wrote.map((x) => x.url).join(' | '));
   ok('with no mask, because nothing is there to leave alone',
      !wrote[0].url.includes('updateMask'), wrote[0].url);
+}
+
+/* -------------------------------------------------------------------------------------------
+   Whether a record has been audited, which the portfolio could not see.
+
+   statusOf decided it by reading a.audit.reviewedAt off the assessment. Nothing has written
+   that since an audit became a document beside the assessment, so the portfolio's audited tile
+   counted zero for ever and the State column called a fully audited record submitted. The
+   record carries no trace of having been looked at, by design, so the list has to ask.
+   ------------------------------------------------------------------------------------------- */
+{
+  const listed = {
+    documents: [{
+      name: 'projects/p/databases/(default)/documents/assessments/KFRM92TXBQ7H',
+      fields: toFields({
+        fileType: 'gc-arch-assessment', ref: 'QK7M',
+        rubric: { id: 'r', version: '1', title: 't' },
+        initiative: { name: 'Thing', department: 'TBS' },
+        answers: {}, meta: { updatedAt: 'z', submittedAt: 'z' },
+      }),
+    }],
+  };
+  const audits = {
+    documents: [{
+      name: 'projects/p/databases/(default)/documents/assessments/KFRM92TXBQ7H/audit/nick@tbs-sct.gc.ca',
+      fields: toFields({ reviewer: 'nick@tbs-sct.gc.ca', reviewerName: 'Nick', reviewedAt: 'z', perQuestion: {} }),
+    }],
+  };
+  sent.length = 0;
+  globalThis.fetch = ((url: string, init: RequestInit = {}) => {
+    sent.push({ url: String(url), init });
+    const body = /\/audit/.test(String(url)) ? audits : listed;
+    return Promise.resolve({ status: 200, ok: true, text: () => Promise.resolve(JSON.stringify(body)) } as Response);
+  }) as typeof fetch;
+
+  const rows = await listRecords();
+  ok('a record with an audit against it is listed as audited',
+     rows.length === 1 && rows[0].status === 'audited', JSON.stringify(rows.map((x) => x.status)));
+  ok('and says who wrote it, by name where there is one',
+     rows[0]?.auditedBy?.join(',') === 'Nick', JSON.stringify(rows[0]?.auditedBy));
+  ok('which cost one extra request for the one record',
+     sent.filter((x) => /\/audit/.test(x.url)).length === 1,
+     sent.map((x) => x.url.split('/documents')[1]).join(' | '));
+
+  // Nobody has audited this one, which is a different answer from nobody having asked.
+  sent.length = 0;
+  globalThis.fetch = ((url: string, init: RequestInit = {}) => {
+    sent.push({ url: String(url), init });
+    const body = /\/audit/.test(String(url)) ? { documents: [] } : listed;
+    return Promise.resolve({ status: 200, ok: true, text: () => Promise.resolve(JSON.stringify(body)) } as Response);
+  }) as typeof fetch;
+  const none = await listRecords();
+  ok('a record nobody has audited keeps the state the department gave it',
+     none[0]?.status === 'submitted', String(none[0]?.status));
+  ok('and empty is said, rather than left unsaid',
+     Array.isArray(none[0]?.auditedBy) && none[0]!.auditedBy!.length === 0,
+     JSON.stringify(none[0]?.auditedBy));
 }
 
 console.log(fails === 0 ? '\nall wiring checks passed' : `\n${fails} FAILED`);
