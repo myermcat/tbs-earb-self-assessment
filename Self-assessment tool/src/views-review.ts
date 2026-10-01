@@ -179,11 +179,24 @@ function scheduleAuditSave(l: Loaded, after: () => void = () => {}): void {
     // Stamped locally as well as in the document, so a browser that later belongs to somebody
     // else can tell whose work it is holding.
     audit.reviewer = currentUser()?.email ?? '';
+    /**
+     * An entry nobody has filled in is not an audit of that question.
+     *
+     * Opening a submission draws every question and gives each one a blank entry so the
+     * controls have somewhere to write. Saving the map whole put 176 of them in the store, 174
+     * of them empty, which makes "what has this assessor looked at" unanswerable and the
+     * document twenty times the size of the work in it.
+     */
+    const written: Record<string, AuditEntry> = {};
+    for (const [qid, e] of Object.entries(audit.perQuestion)) {
+      const hasScore = typeof e.auditedScore === 'number';
+      if (hasScore || e.verdict || (e.note ?? '').trim() || (e.history ?? []).length) written[qid] = e;
+    }
     void putAudit(code, {
       reviewer: currentUser()?.email ?? '',
       reviewerName: auditor,
       reviewedAt: audit.reviewedAt || new Date().toISOString(),
-      perQuestion: audit.perQuestion,
+      perQuestion: written,
       overallNote: audit.overallNote,
     }).then(
       () => { auditSave = { state: 'saved' }; after(); },
@@ -362,7 +375,15 @@ function absorb(rubric: Rubric, answer: PoolAnswer): void {
   let dropped = 0;
   for (let i = loaded.length - 1; i >= 0; i--) {
     const l = loaded[i];
-    if (!l.fromStore || !l.a.id || inPool.has(l.a.id)) continue;
+    /**
+     * Sessions written before rows remembered where they came from have no flag on them, and
+     * the first version of this test skipped them, so the record this was reported about went
+     * on coming back. A file opened from disk is named by its filename, and a record from the
+     * store is named by its initiative, so the one case that cannot be told apart is a file
+     * somebody named after the initiative. That file reappears once more and is then marked.
+     */
+    const came = l.fromStore ?? !/\.json$/i.test(l.file);
+    if (!came || !l.a.id || inPool.has(l.a.id)) continue;
     if (Object.keys(l.a.audit?.perQuestion ?? {}).length) { l.goneFromStore = true; continue; }
     loaded.splice(i, 1);
     dropped++;
@@ -1035,7 +1056,7 @@ function openDetail(rubric: Rubric, root: HTMLElement, l: Loaded) {
             ]),
           ]);
         }));
-        box.appendChild(el('details', { class: 'cat-open' }, [
+        box.appendChild(section(`cat:${cat.topic.id}`, { class: 'cat-open' }, [
           el('summary', { class: 'bar-row' }, [
             el('div', { class: 'bar-label' }, [
               cat.topic.label,
@@ -1088,7 +1109,7 @@ function openDetail(rubric: Rubric, root: HTMLElement, l: Loaded) {
       flagTitle(f),
       el('div', { class: 'small' }, [f.detail]),
       f.challenge ? el('div', { class: 'small challenge' }, [f.challenge]) : null,
-      el('details', {}, [
+      section(`flag:${f.id ?? f.title}`, {}, [
         el('summary', { class: 'small' }, [`Score these ${f.questionIds.length}`]),
         rows,
       ]),
@@ -1193,7 +1214,7 @@ function openDetail(rubric: Rubric, root: HTMLElement, l: Loaded) {
     ]));
     for (const n of domainRows) rest.appendChild(n);
   }
-  restBox.appendChild(el('details', {}, [
+  restBox.appendChild(section('rest', {}, [
     el('summary', { class: 'section-summary' }, [
       el('span', { class: 'section-title' }, [`Everything else`]),
       el('span', { class: 'muted small' }, [`${restCount} questions with nothing flagged`]),
@@ -1423,37 +1444,157 @@ function auditRow(
           : el('div', { class: 'small muted' }, ['No reason given.']),
       ])),
 
-    el('div', { class: 'audit-controls' }, [
-      el('label', {}, ['Your score ', el('input', {
-        type: 'number', min: 0, max: 10, value: entry.auditedScore ?? '',
-        onchange: (e: Event) => {
-          const v = (e.target as HTMLInputElement).value;
-          const next = v === '' ? null : Number(v);
-          // Compared against the score as it stood when this row was drawn: oninput has
-          // already written the field through, so entry.auditedScore is no baseline.
-          if (next !== standing) {
-            entry.auditedScore = next;
-            entry.by = auditor || 'unnamed';
-            entry.at = new Date().toISOString();
-            (entry.history ??= []).push({
-              by: entry.by, at: entry.at, score: next, note: entry.note ?? '',
-              unverified: !nameIsChecked(),
-            });
-          }
-          keepSession();
-          scheduleAuditSave(l, repaint);
-          repaint();
-        },
-        oninput: (e: Event) => {
-          const v = (e.target as HTMLInputElement).value;
-          entry.auditedScore = v === '' ? null : Number(v);
-        },
-      })]),
+    auditControls(a, q, entry, standing, l, repaint),
+  ]);
+}
+
+/**
+ * Which sections an assessor had open, kept across a redraw.
+ *
+ * Reported as: I press the score and the whole thing closes. Every control redrew the screen,
+ * and an open `details` was derived state with nothing remembering it, so the section somebody
+ * was working inside shut under the cursor with the question half done. The alternative, never
+ * redrawing, loses the things that are computed from the audit: whether the line counts as
+ * changed, the summary of what was changed, and whether the file can be saved yet. So the
+ * screen still redraws and the open sections survive it.
+ */
+const openSections = new Set<string>();
+
+function section(key: string, attrs: Record<string, unknown>, kids: (Node | string | null)[]): HTMLElement {
+  const d = el('details', { ...attrs, open: openSections.has(key) }, kids) as HTMLDetailsElement;
+  d.addEventListener('toggle', () => {
+    if (d.open) openSections.add(key); else openSections.delete(key);
+  });
+  return d;
+}
+
+/**
+ * The controls an assessor scores with.
+ *
+ * Three things were wrong with these and all three were reported in one sitting.
+ *
+ * The score was a number spinner. A submitter picks from eleven rungs with a name and a
+ * sentence against each, and an assessor disagreeing with that pick was typing a bare integer
+ * into a box with up and down arrows. The same row of buttons the submitter uses says what the
+ * numbers mean, shows which one the department chose, and cannot be set to 11.
+ *
+ * Touching any of them collapsed the section. Every control called repaint(), which rebuilds
+ * the whole screen, and an open `details` is derived state: it closed under the cursor, with
+ * the question you were part way through inside it. Nothing here repaints the page any more.
+ * The pieces that have to change on a keystroke change themselves, which is the pattern the
+ * questionnaire has used since the same thing happened there.
+ *
+ * And an empty entry is not an audit. Opening a submission used to write a blank entry for all
+ * 176 questions and save every one of them, so the record of what an assessor had looked at
+ * was a list of everything they had scrolled past.
+ */
+function auditControls(
+  a: Assessment,
+  q: { id: string },
+  entry: AuditEntry,
+  standing: number | null,
+  l: Loaded,
+  repaint: () => void,
+): HTMLElement {
+  const scores = el('div', { class: 'score-row audit-score' });
+  const note = el('input', {
+    type: 'text',
+    placeholder: 'Why? Required for a changed score',
+    value: entry.note ?? '',
+  }) as HTMLInputElement;
+  const delta = el('span', { class: 'audit-delta small' });
+
+  const theirs = a.answers[q.id]?.score ?? null;
+
+  const paintDelta = () => {
+    clear(delta);
+    if (entry.auditedScore === null || entry.auditedScore === undefined) return;
+    if (entry.auditedScore === theirs) { delta.appendChild(el('span', { class: 'muted' }, ['same as theirs'])); return; }
+    const dir = theirs === null ? '' : entry.auditedScore > theirs ? 'up' : 'down';
+    delta.appendChild(el('span', { class: `delta ${dir}` }, [
+      theirs === null ? `you: ${entry.auditedScore}` : `you: ${entry.auditedScore}, they said ${theirs}`,
+    ]));
+  };
+
+  const markNote = () => {
+    note.classList.toggle('needs-marking', needsReason(a, q.id, entry));
+  };
+
+  const choose = (v: number | null) => {
+    if (v !== entry.auditedScore) {
+      entry.auditedScore = v;
+      entry.by = auditor || 'unnamed';
+      entry.at = new Date().toISOString();
+      (entry.history ??= []).push({
+        by: entry.by, at: entry.at, score: v, note: entry.note ?? '',
+        unverified: !nameIsChecked(),
+      });
+    }
+    keepSession();
+    scheduleAuditSave(l);
+    // Whether the line counts as changed, the summary of what was changed and whether the file
+    // can be saved are all computed from the audit, so the screen is redrawn. The sections an
+    // assessor had open survive it.
+    repaint();
+  };
+
+  function paintScores(): void {
+    clear(scores);
+    for (let v = 0; v <= 10; v++) {
+      const on = entry.auditedScore === v;
+      scores.appendChild(el('button', {
+        class: `score-btn v${v} ${on ? 'on' : ''} ${theirs === v ? 'theirs' : ''}`,
+        type: 'button',
+        role: 'radio',
+        'aria-checked': on ? 'true' : 'false',
+        title: theirs === v ? `${v}. The department chose this one` : String(v),
+        onclick: () => choose(on ? null : v),
+      }, [String(v)]));
+    }
+    scores.appendChild(el('button', {
+      class: `score-btn audit-clear ${entry.auditedScore === null || entry.auditedScore === undefined ? 'on' : ''}`,
+      type: 'button',
+      title: 'No score of your own on this question',
+      onclick: () => choose(null),
+    }, ['none']));
+  }
+
+  /**
+   * Typing does not redraw and finishing does.
+   *
+   * Whether the file can be saved depends on this field having something in it, and that is
+   * computed where the screen is built. Redrawing on every keystroke would take the caret with
+   * it; redrawing when the field is left is both correct and invisible.
+   */
+  note.addEventListener('change', () => repaint());
+  note.addEventListener('input', () => {
+    entry.note = note.value;
+    const hist = entry.history ?? [];
+    const last = hist[hist.length - 1];
+    if (last && last.score === entry.auditedScore) last.note = entry.note ?? '';
+    markNote();
+    keepSession();
+    scheduleAuditSave(l);
+  });
+
+  paintScores();
+  paintDelta();
+  markNote();
+  void standing;
+
+  return el('div', { class: 'audit-controls' }, [
+    el('div', { class: 'audit-line' }, [
+      el('span', { class: 'audit-label small' }, ['Your score']),
+      scores,
+      delta,
+    ]),
+    el('div', { class: 'audit-line' }, [
       el('select', {
         onchange: (e: Event) => {
           entry.verdict = (e.target as HTMLSelectElement).value as AuditEntry['verdict'];
           keepSession();
-          scheduleAuditSave(l, repaint);
+          scheduleAuditSave(l);
+          repaint();
         },
       }, [
         el('option', { value: '', selected: entry.verdict === '' }, ['Choose a verdict']),
@@ -1461,24 +1602,7 @@ function auditRow(
         el('option', { value: 'adjust', selected: entry.verdict === 'adjust' }, ['Adjusted']),
         el('option', { value: 'insufficient', selected: entry.verdict === 'insufficient' }, ['Not enough evidence']),
       ]),
-      el('input', {
-        type: 'text',
-        class: needsReason(a, q.id, entry) ? 'needs-marking' : '',
-        placeholder: needsReason(a, q.id, entry) ? 'Why? Required for a changed score' : 'Note',
-        value: entry.note ?? '',
-        oninput: (e: Event) => {
-          entry.note = (e.target as HTMLInputElement).value;
-          // Only the reason for the score as it now stands. Without this test, typing here
-          // rewrote whatever reason happened to be last in the trail, which is the one thing
-          // the trail exists to keep.
-          const hist = entry.history ?? [];
-          const last = hist[hist.length - 1];
-          if (last && last.score === entry.auditedScore) last.note = entry.note ?? '';
-          keepSession();
-          scheduleAuditSave(l);
-        },
-        onchange: () => repaint(),
-      }),
+      note,
     ]),
   ]);
 }
