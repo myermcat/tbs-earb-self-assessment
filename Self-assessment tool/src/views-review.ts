@@ -1134,7 +1134,7 @@ function openDetail(rubric: Rubric, root: HTMLElement, l: Loaded, depth: Depth =
   );
   const evidenceCount = Object.values(a.answers).reduce((n, x) => n + (x.evidence ?? []).length, 0);
 
-  root.appendChild(el('nav', { class: 'card tight crumbs', 'aria-label': 'Where you are' }, [
+  root.appendChild(el('nav', { class: 'crumbs', 'aria-label': 'Where you are' }, [
     el('button', {
       class: 'linkish',
       onclick: () => { rememberWhere(undefined, 'flagged'); renderReview(root, rubric); },
@@ -1142,22 +1142,6 @@ function openDetail(rubric: Rubric, root: HTMLElement, l: Loaded, depth: Depth =
     el('span', { class: 'crumb-sep', 'aria-hidden': true }, ['\u203A']),
     el('span', { class: 'crumb-here' }, [a.initiative?.name || l.file]),
   ]));
-
-  /**
-   * Who has audited this, above everything else on the page.
-   *
-   * One word for one thing. The list column says audited, this says audited, and the trail at
-   * the foot is about saving, which is what a department does to its own answers.
-   */
-  {
-    const mine = Object.keys(audit.perQuestion).length > 0;
-    const who = [...(mine ? ['You'] : []), ...(l.others ?? []).map((x) => x.reviewerName?.trim() || x.reviewer)];
-    root.appendChild(el('section', { class: `card tight audited-by ${who.length ? '' : 'none-yet'}` }, [
-      who.length
-        ? el('p', {}, [el('b', {}, [who.join(', ')]), ' audited this'])
-        : el('p', {}, ['Nobody has audited this yet']),
-    ]));
-  }
 
   /**
    * The heading of this view goes at the top of it.
@@ -1173,6 +1157,26 @@ function openDetail(rubric: Rubric, root: HTMLElement, l: Loaded, depth: Depth =
     ]),
     el('div', { class: 'headline-text' }, [
       el('h1', {}, [a.initiative.name || l.file]),
+      /**
+       * Who has audited this, the way every tool shows who has touched a thing: initials on the
+       * byline under its name. It was a block of its own, which made a sentence out of a fact
+       * and put it above the name of the thing it is about.
+       */
+      (() => {
+        const mine = Object.keys(audit.perQuestion).length > 0;
+        const who = [
+          ...(mine ? [{ name: 'You', mine: true }] : []),
+          ...(l.others ?? []).map((x) => ({ name: x.reviewerName?.trim() || x.reviewer, mine: false })),
+        ];
+        if (!who.length) {
+          return el('p', { class: 'byline none-yet' }, ['Not audited']);
+        }
+        return el('p', { class: 'byline', title: `Audited by ${who.map((x) => x.name).join(', ')}` }, [
+          el('span', { class: 'faces', 'aria-hidden': true }, who.map((x) =>
+            el('span', { class: `face ${x.mine ? 'mine' : ''}` }, [initialsFor(x.name)]))),
+          el('span', {}, [`Audited by ${who.map((x) => x.name).join(', ')}`]),
+        ]);
+      })(),
       el('p', { class: 'muted small' }, [
         [a.initiative.department, a.initiative.contact,
          rubric.lifecycleStages.find((x) => x.id === a.initiative.lifecycleStage)?.label]
@@ -1271,7 +1275,12 @@ function openDetail(rubric: Rubric, root: HTMLElement, l: Loaded, depth: Depth =
   const tab = (label: string, to: Depth) => el('button', {
     class: `tab ${depth === to ? 'on' : ''}`,
     'aria-current': depth === to ? 'page' : undefined,
-    onclick: () => openDetail(rubric, root, l, to),
+    // Changing which questions are shown is not going anywhere, so the page stays where it is.
+    onclick: () => {
+      const at = window.scrollY;
+      openDetail(rubric, root, l, to);
+      window.scrollTo({ top: at });
+    },
   }, [label]);
   root.appendChild(el('nav', { class: 'card tight assess-tabs', 'aria-label': 'This assessment' }, [
     tab('Flagged questions', 'flagged'),
@@ -1563,6 +1572,14 @@ function auditedCell(l: Loaded): HTMLElement {
     el('b', {}, ['You']),
     others ? `, and ${others} other${others === 1 ? '' : 's'}` : '',
   ]);
+}
+
+/** Two letters for a face, from a name or an address. */
+function initialsFor(name: string): string {
+  const base = name.includes('@') ? name.split('@')[0] : name;
+  const parts = base.split(/[\s._-]+/).filter(Boolean);
+  const two = parts.length > 1 ? `${parts[0][0]}${parts[1][0]}` : base.slice(0, 2);
+  return two.toUpperCase() || '??';
 }
 
 /** How a verdict reads when it is somebody else's, where there is no room for a dropdown. */
