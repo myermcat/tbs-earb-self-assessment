@@ -79,6 +79,62 @@ interface Loaded {
 type AuditSave = { state: 'off' | 'saved' | 'saving' | 'failed'; problem?: string };
 
 /**
+ * A column heading that carries a note, the way a spreadsheet cell carries one.
+ *
+ * Drawn by the page rather than handed to the browser's own title tooltip. That one waits about
+ * a second of stationary hovering, shows nothing at all on a touch screen, cannot be reached
+ * from the keyboard, and gives a reader no sign it is there to be looked for. Reported twice as
+ * showing nothing.
+ *
+ * THE NOTE IS NOT INSIDE THE HEADING. One element is shared by every column and it lives on the
+ * body. Putting the sentence inside the cell made it part of that column's name, which a screen
+ * reader then reads out against every cell underneath it, and it put the note inside the
+ * table's sideways scroller, which cuts it off below about 1100px. On the body it is
+ * position:fixed, placed when it opens and clamped to the screen.
+ */
+let columnNote: HTMLElement | null = null;
+function theColumnNote(): HTMLElement {
+  if (!columnNote || !columnNote.isConnected) {
+    columnNote = el('span', { class: 'note-pop', id: 'column-note', role: 'note' }, []);
+    document.body.appendChild(columnNote);
+  }
+  return columnNote;
+}
+
+function noteHead(label: string, note: string, side: 'left' | 'right' = 'left',
+                  before: (Node | null)[] = []): HTMLElement {
+  const head = el('th', {
+    class: 'has-note', tabindex: '0', 'aria-describedby': 'column-note',
+  }, [...before, el('span', { class: 'note-word' }, [label])]);
+
+  const hide = () => theColumnNote().classList.remove('on');
+  const show = () => {
+    const pop = theColumnNote();
+    pop.textContent = note;
+    // Measured while shown, because a hidden element measures nothing.
+    pop.classList.add('on');
+    const h = head.getBoundingClientRect();
+    const w = pop.offsetWidth;
+    const edge = 8;
+    // Hangs from whichever edge was asked for, then is pushed back on screen if that put it
+    // off. The clamp is what makes `side` a preference rather than a promise.
+    const wanted = side === 'right' ? h.right - w : h.left;
+    pop.style.left = `${Math.round(Math.max(edge, Math.min(wanted, window.innerWidth - w - edge)))}px`;
+    pop.style.top = `${Math.round(h.bottom + 6)}px`;
+  };
+
+  head.addEventListener('pointerenter', show);
+  head.addEventListener('pointerleave', hide);
+  head.addEventListener('focus', show);
+  head.addEventListener('blur', hide);
+  // Fixed coordinates go stale the moment anything moves, and this header is sticky, so the
+  // note would sit over the wrong column.
+  window.addEventListener('scroll', hide, { passive: true });
+  window.addEventListener('resize', hide, { passive: true });
+  return head;
+}
+
+/**
  * Where this audit is, in as few words as the state needs.
  *
  * It used to say where the audit went, who could read it, who could not change it and what the
@@ -730,19 +786,18 @@ function paintList(rubric: Rubric, root: HTMLElement) {
       // tool worked out.
       // The qualifier goes above the word, because it is read before it: what follows is what
       // the department said about itself, and not a state the tool worked out.
-      el('th', { title: 'The submitter says this about their own assessment' }, [
-        el('span', { class: 'th-sub' }, ['self-marked by submitter']), 'State',
-      ]),
+      noteHead('State', 'The submitter says this about their own assessment', 'left',
+               [el('span', { class: 'th-sub' }, ['self-marked by submitter'])]),
       el('th', {}, ['Department']), el('th', {}, ['Marking']),
-      el('th', {
-        title: 'Evidence emails quote it in their subject line, so searching for it finds '
-          + 'everything sent about this assessment. It is the start of the twelve-character code.',
-      }, ['Code and set']),
+      noteHead('Code and set',
+               'Evidence emails quote it in their subject line, so searching for it finds '
+               + 'everything sent about this assessment. It is the start of the '
+               + 'twelve-character code.'),
       el('th', {}, ['Stage']), el('th', {}, ['Score']), el('th', {}, ['Routing']),
       el('th', {}, ['Must ask']), el('th', {}, ['Evidence']), el('th', {}, ['Complete']),
       // Its own column, because "has anybody looked at this" is a fact about the row and was
       // reading as a tag stuck on the state the department set.
-      el('th', { title: 'Who has written an audit on this submission' }, ['Audited']),
+      noteHead('Audited', 'Who has written an audit on this submission', 'right'),
       el('th', {}, ['']),
     ])]),
   ]);
@@ -1428,7 +1483,9 @@ function openDetail(rubric: Rubric, root: HTMLElement, l: Loaded, depth: Depth =
           el('th', {}, ['Score']),
           // "Answered" read as something an assessor had done. It is the department's own
           // progress at that save: how many of the 176 they had filled in by then.
-          el('th', { title: 'How many of the questions the department had filled in at that save' }, ['Answers filled in']),
+          noteHead('Answers filled in',
+                   'How many of the questions the department had filled in at that save',
+                   'right'),
         ])]),
       ]);
       const tbody = el('tbody', {});
