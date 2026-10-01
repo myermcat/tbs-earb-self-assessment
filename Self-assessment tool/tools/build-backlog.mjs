@@ -266,9 +266,9 @@ gap:.25rem;align-items:baseline;white-space:nowrap;flex:0 0 auto}
 .foot a{color:var(--accent)}
 .empty{color:var(--ink-3);font-size:.86rem;padding:.9rem;background:var(--surface);
 border:1px dashed var(--line-2);border-radius:10px}
-/* A section whose work is all finished. It keeps its heading; this says so without looking
-   like a row somebody still has to do something about. */
-.settled{color:var(--ink-3);font-size:.86rem;margin:0;padding:.75rem .9rem}
+/* The empty placeholder a finished section leaves behind. It holds the card open and carries
+   no text: it is not a row and there is nothing to say. */
+.settled{margin:0;padding:.85rem}
 /* Done is an archive: one control, shut, and it looks like a heading rather than a row. */
 .archive{margin:2rem 0 0;scroll-margin-top:calc(var(--head) + .8rem)}
 .archive>summary{cursor:pointer;list-style:none;display:flex;gap:.55rem;align-items:baseline;
@@ -444,27 +444,18 @@ const panes = tracks.map((tr) => {
          * nothing to have been done with.
          */
         const settled = !archive && mine.length > 0 && mine.every((i) => i.status === 'done');
-        /**
-         * The number in the note counts what the Done archive will show under this title, and
-         * the archive takes parentless items only. Four children in this file are filed in a
-         * different section from the parent they draw under, so counting everything would print
-         * a number nobody could find below.
-         */
-        return { s, rows, settled, kept: rowsIn(s.id, tr.id).length };
+        return { s, rows, settled };
       }).filter((x) => x.rows.length || x.settled);
   const nav = drawn.map(({ s, rows }) =>
     `<a href="#s-${esc(tr.id)}-${esc(s.id)}" data-sec="s-${esc(tr.id)}-${esc(s.id)}">`
     + `<span>${esc(s.title)}</span><span class="c">${rows.length}</span></a>`).join('');
   const body = drawn.length
-    ? drawn.map(({ s, rows, settled, kept }) => {
+    ? drawn.map(({ s, rows, settled }) => {
       const head = `<h2 id="s-${esc(tr.id)}-${esc(s.id)}">${esc(s.title)} <span class="c">${rows.length}</span></h2>`;
-      // The count stays 0, because every other count on the page means what is still open and
-      // one that meant something else here would be the only one on the page that lied.
+      // Empty, and it says nothing. The heading and its count are the whole message; a
+      // sentence explaining why a section is empty is the page talking about itself.
       const card = settled
-        ? `<div class="card"><p class="settled">${kept === 1
-          ? 'The one item filed here is fixed.'
-          : `All ${kept} items filed here are fixed.`} `
-          + `Kept in Done below, under ${esc(s.title)}.</p></div>`
+        ? '<div class="card"><p class="settled"></p></div>'
         : `<div class="card">${rows.map((i) => row(i, tr.id)).join('')}</div>`;
       /**
        * Done is an archive and it is the longest list on the page. Asked for directly: we want

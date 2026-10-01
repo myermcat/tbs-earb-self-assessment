@@ -85,9 +85,10 @@ console.log('\nThe backlog page\n');
      /<h2 id="s-engine-e-broken">Broken /.test(html));
   ok('and keeps its place in the list down the left',
      html.includes('data-sec="s-engine-e-broken"'));
-  ok('and says where the work went, rather than standing empty',
-     /<p class="settled">All 2 items filed here are fixed\. Kept in Done below, under Broken\.<\/p>/.test(html),
-     (html.match(/<p class="settled">[^<]*/) ?? ['none'])[0]);
+  // Empty on purpose. Asked for in those words: placeholders stay empty, do not explain.
+  ok('and leaves an empty placeholder rather than a sentence about itself',
+     html.includes('<p class="settled"></p>'),
+     (html.match(/<p class="settled">[^<]*/) ?? ['missing'])[0]);
   // Zero, because every other count on this page means what is still open, and one that meant
   // something else here would be the only number on the page that lied.
   ok('and its count still means what every other count on the page means',
@@ -104,39 +105,6 @@ console.log('\nThe backlog page\n');
    */
   ok('a section nobody has ever used is still left out',
      !html.includes('s-engine-e-never'));
-}
-
-/* ---------- the number has to be findable ------------------------------------------------ */
-{
-  /**
-   * The fourth item here is a subitem filed in Broken whose parent lives elsewhere, which four
-   * real items do. It draws under its parent and the archive does not list it, so counting it
-   * would print a number nobody could find below.
-   */
-  const { html } = await build(fixture([
-    item({ id: 'a', track: 'engine', section: 'e-broken', status: 'done' }),
-    item({ id: 'b', track: 'engine', section: 'e-broken', status: 'done' }),
-    item({ id: 'c', track: 'engine', section: 'e-broken', status: 'done' }),
-    item({ id: 'p', track: 'engine', section: 'e-live', status: 'done' }),
-    item({ id: 'kid', track: 'engine', section: 'e-broken', status: 'done', parent: 'p' }),
-    item({ id: 'd', track: 'engine', section: 'e-live' }),
-  ], SECS));
-  const note = (html.match(/<p class="settled">(?:The one|All (\d+))/) ?? [])[1];
-  const arch = (html.match(/<h3 class="arch-sec">Broken <span class="c">(\d+)/) ?? [])[1];
-  // The note sends a reader to the archive, so the two numbers have to be the same number.
-  ok('the count in the note is the count in the archive it points at',
-     note === arch && note === '3', `note ${note}, archive ${arch}`);
-}
-
-/* ---------- one is one, not 1 ------------------------------------------------------------ */
-{
-  const { html } = await build(fixture([
-    item({ id: 'a', track: 'engine', section: 'e-broken', status: 'done' }),
-    item({ id: 'd', track: 'engine', section: 'e-live' }),
-  ], SECS));
-  ok('a section holding one finished thing says so in words',
-     /<p class="settled">The one item filed here is fixed\./.test(html),
-     (html.match(/<p class="settled">[^<]*/) ?? ['none'])[0]);
 }
 
 /* ---------- a subitem counts, even though it does not draw as a row ---------------------- */

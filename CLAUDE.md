@@ -166,6 +166,24 @@ in any project, and it is written up in `Claude Hub/Document house rules.md`.
 
 Document layout follows `Claude Hub/Document house rules.md`.
 
+## Do not explain yourself, or the thing you built
+
+Asked for on 1 October, after a page printed a sentence explaining why one of its sections was
+empty: "no just dont say anything. placeholders stay empty. please dont overexplain yourself or
+things you build, or pages. you like doing that."
+
+**A page never talks about itself.** An empty placeholder stays empty. A heading and its count
+are the whole message. No note saying where something went, why a list is short, what a reader
+should do instead, or that a thing is working as intended. If the interface needs a sentence to
+be understood, the interface is wrong and the sentence is a patch over it.
+
+**The same in replies.** Say what changed and what is left. Do not narrate the reasoning that
+got there, do not justify a choice nobody questioned, and do not restate in prose what a number
+or a diff already says.
+
+This does not touch code comments. The comments in this repository explain *why* a line exists
+to the next person who has to change it, which is a different job, and they stay.
+
 ## The concept case
 
 **Read `../TBS fall (working material)/Concept case/README.md` before changing a word of it.** It lists the claims that were
