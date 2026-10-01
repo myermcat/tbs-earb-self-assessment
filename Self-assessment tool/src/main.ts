@@ -11,7 +11,8 @@ import { panePeople } from './views-people';
 import { takeAccessAway } from './danger-people';
 import { deleteSubmission } from './danger-submission';
 import { handOff, renderResults } from './views-results';
-import { forgetOpenSubmission, forgetPool, openedThisSession, renderReview, setAuditor } from './views-review';
+import type { Depth } from './views-review';
+import { forgetPool, openedThisSession, renderReview, setAddressWriter, setAuditor } from './views-review';
 import { renderDashboard } from './views-dashboard';
 import { canRemove, currentId, currentRubric, libraryList, removeFromLibrary,
   setCurrentId } from './library';
@@ -25,7 +26,7 @@ import { showNewCode } from './views-share';
 import { bootLang, coverage, lang, type Lang, setLang } from './i18n';
 import { endpointHost, goneFromStore, isHosted, listRecords, putRecord,
   saveOnlineNow, savedOnline, showWhereItStands } from './store';
-import { canSignIn, CODE_LENGTH, currentUser, formatCode, forgetRole, getAssessment, grantsAccess, looksLikeCode, pageAddress, tidyCode, isConfigured as firebaseConfigured, knownRole, lastSignInProblem,
+import { addressOf, isAddressSegment, canSignIn, CODE_LENGTH, currentUser, formatCode, forgetRole, getAssessment, grantsAccess, looksLikeCode, pageAddress, tidyCode, isConfigured as firebaseConfigured, knownRole, lastSignInProblem,
   loadRole, resumeSignIn, signInWithGoogle, signOut,
   addressTheLinkNames, finishSignInLink, finishSignInLinkWith, forgetLinkCode, linkEmailWaiting,
   linkNeedsAddress, sendSignInLink } from './firebase';
@@ -67,7 +68,9 @@ const SIDE_OF: Record<Mode, Side | null> = {
  * The stop lives in the hash unprefixed, because that is the shape the questionnaire already
  * pushed and links to those exist.
  */
-interface Route { side: Side; mode: Mode; stop?: string; pane?: SettingsPane }
+interface Route { side: Side; mode: Mode; stop?: string; pane?: SettingsPane;
+  open?: string; depth?: Depth }
+
 
 /**
  * Settings carries its pane in the address.
@@ -81,9 +84,12 @@ const PANES = new Set<string>(['questions', 'answers', 'people', 'docs', 'build'
 function routeToHash(r: Route): string {
   const pane = r.mode === 'settings' && r.pane && r.pane !== 'questions' ? `/${r.pane}` : '';
   if (r.side === 'assess') {
+    // The depth is part of where you are, so it is in the address too. Flagged is the way in
+    // and carries no suffix, the way the default settings pane carries none.
+    const open = r.open ? `/${r.open}${r.depth === 'all' ? '/all' : ''}` : '';
     return r.mode === 'admin' ? '#assessor/admin'
       : r.mode === 'settings' ? `#assessor/settings${pane}`
-      : '#assessor';
+      : `#assessor${open}`;
   }
   if (r.mode === 'home') return '';
   if (r.mode === 'submit') return r.stop ? `#${r.stop}` : '#submit';
@@ -95,6 +101,20 @@ function hashToRoute(hash: string): Route {
   if (!h) return { side: 'submit', mode: 'home' };
   if (h === 'assessor') return { side: 'assess', mode: 'review' };
   if (h === 'assessor/admin') return { side: 'assess', mode: 'admin' };
+  /**
+   * A submission. Matched by the shape of a code rather than by being something this function
+   * does not otherwise recognise: a mistyped address should open the list, not a submission
+   * that is not there and a screen explaining itself.
+   */
+  if (h.startsWith('assessor/')) {
+    const [seg, tail] = h.slice('assessor/'.length).split('/');
+    if (isAddressSegment(seg)) {
+      return { side: 'assess', mode: 'review', open: seg, depth: tail === 'all' ? 'all' : 'flagged' };
+    }
+    // Anything else under the assessor door is the assessor's list, and never the submitter's
+    // questionnaire, which is where the catch-all at the end of this function would send it.
+    if (!h.startsWith('assessor/settings')) return { side: 'assess', mode: 'review' };
+  }
   if (h === 'assessor/settings' || h.startsWith('assessor/settings/')) {
     const pane = h.slice('assessor/settings/'.length);
     return { side: 'assess', mode: 'settings', pane: PANES.has(pane) ? pane as SettingsPane : undefined };
@@ -156,6 +176,14 @@ type SettingsPane = 'questions' | 'answers' | 'people' | 'docs' | 'build' | 'dan
 let settingsPane: SettingsPane = booted.pane ?? 'questions';
 
 /**
+ * Which submission is open, and how much of it. This used to live in localStorage, which could
+ * not tell a reload from somebody asking to leave and was invisible to the Back button. It is
+ * the address now, and the address is the only place it lives.
+ */
+let openCode: string | undefined = booted.open;
+let openDepth: Depth = booted.depth ?? 'flagged';
+
+/**
  * The assessment a discard just threw away, held in this tab and nowhere else. Undo is offered
  * from here. Nothing is written to disk to support it, so "permanently" stays true of the
  * browser's own store, which is what somebody clearing sensitive material cares about.
@@ -192,10 +220,14 @@ function questionCount(r: Rubric): number {
  */
 function pushRoute(): void {
   try {
-    const here: Route = { side, mode, stop: currentStopKey(), pane: settingsPane };
+    const here: Route = { side, mode, stop: currentStopKey(), pane: settingsPane,
+      open: openCode, depth: openDepth };
     const hash = routeToHash(here);
     const url = hash || `${window.location.pathname}${window.location.search}`;
     const was = window.history.state as Partial<Route> | null;
+    // Every repaint of a submission comes back through here — a score click, a verdict, a note
+    // losing focus. Only a change of address is a place somebody can go back to, so an address
+    // that already says this adds nothing to the history.
     if (was?.mode === mode && was?.side === side && was?.pane === settingsPane
         && window.location.hash === hash) return;
     window.history.pushState(here, '', url);
@@ -205,9 +237,9 @@ function pushRoute(): void {
 }
 
 function go(next: Mode) {
-  // Going to the submissions list is an act, and a reload is not. Only this knows the
-  // difference, so this is where the open submission is let go of.
-  if (next === 'review') forgetOpenSubmission();
+  // Asking for the list means the list, even when a submission was open. A reload is not an
+  // act and keeps its address; this is.
+  if (next === 'review') { openCode = undefined; openDepth = 'flagged'; }
   mode = next;
   const owner = SIDE_OF[next];
   if (owner && owner !== side) setSide(owner, false);
@@ -671,7 +703,7 @@ function paint() {
    */
   else if (mode === 'settings') renderSettings(body);
   else if (mode === 'admin') renderAdmin(body);
-  else renderReview(body, rubric);
+  else renderReview(body, rubric, openCode ? { open: openCode, depth: openDepth } : null);
 
   // Header, marking and the domain tabs travel as one sticky block. Separately pinned strips
   // leave a seam that page content shows through.
@@ -1307,6 +1339,9 @@ function renderLinkArrival(root: HTMLElement) {
 function go2home(): void {
   side = 'assess';
   mode = 'review';
+  openCode = undefined;
+  openDepth = 'flagged';
+  pushRoute();
   paint();
 }
 
@@ -2236,6 +2271,40 @@ function openEverythingForPrint(): void {
  * The browser's Back button should walk back through the questionnaire, since that is what a
  * reader expects of anything that looks like 21 pages.
  */
+/**
+ * The assessor's screens tell the address which submission is open, and the address is the only
+ * record of it. pushRoute() already refuses to add an entry for a place the address is at, so a
+ * repaint of an open submission — a score click, a verdict, a note losing focus — changes
+ * nothing, and only a real open is a place Back can come out of.
+ */
+/**
+ * The first entry says where it is.
+ *
+ * A published assessor page opens with no hash at all, so the entry underneath everything said
+ * nothing, and Back out of the first submission somebody opened landed on an empty address —
+ * which this router reads as the submitter's home. An assessor pressing Back was dropped into
+ * the questionnaire, which is the defect test/routes.mjs was written for in the first place.
+ *
+ * Replaces rather than pushes, because arriving somewhere is not a step you can go back from.
+ */
+function settleRoute(): void {
+  try {
+    const here: Route = { side, mode, stop: currentStopKey(), pane: settingsPane,
+      open: openCode, depth: openDepth };
+    const hash = routeToHash(here);
+    if (window.location.hash === hash) return;
+    window.history.replaceState(here, '', hash || `${window.location.pathname}${window.location.search}`);
+  } catch { /* file:// without history support. Navigation is unaffected. */ }
+}
+
+function wireAddress(): void {
+  setAddressWriter((code, depth) => {
+    openCode = code ? addressOf(code) : undefined;
+    openDepth = depth;
+    pushRoute();
+  });
+}
+
 function wireHistory(): void {
   if (typeof window.addEventListener !== 'function') return;
   window.addEventListener('popstate', (e) => {
@@ -2243,10 +2312,13 @@ function wireHistory(): void {
     // is read from the address instead. Both end up as one route.
     const was = (e as PopStateEvent).state as Partial<Route> | null;
     const r: Route = was?.mode && was?.side
-      ? { side: was.side, mode: was.mode, stop: was.stop }
+      ? { side: was.side, mode: was.mode, stop: was.stop, open: was.open, depth: was.depth }
       : hashToRoute(window.location.hash);
     side = r.side;
     mode = r.mode;
+    // Back out of a submission is Back to the list, and the entry it lands on says so.
+    openCode = r.open;
+    openDepth = r.depth ?? 'flagged';
     try { localStorage.setItem(SIDE_KEY, side); } catch { /* storage unavailable */ }
     if (r.stop) setStopKey(r.stop);
     paint();
@@ -2295,6 +2367,8 @@ setLang(bootLang());
 // in module state and a fresh tab has none. The draft itself knows, so ask it.
 showWhereItStands(assessment);
 openEverythingForPrint();
+settleRoute();
+wireAddress();
 wireHistory();
 /*
  * There used to be two listeners here pushing queued writes out as the tab closed, and before

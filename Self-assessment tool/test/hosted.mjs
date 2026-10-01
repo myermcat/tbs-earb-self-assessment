@@ -29,11 +29,30 @@ const PENDING = 'gc-arch-assessment:firebase-signin';
 const ME = 'assessor@tbs-sct.gc.ca';
 
 /** One submission, in the shape Firestore hands back. Enough of it to score and to name. */
+/**
+ * A store id that could actually be one: twelve characters from the code alphabet, which omits
+ * I, O, 0 and 1 so nobody mistakes one for another reading it aloud.
+ *
+ * It used to be `doc-${ref}`, which no code this tool mints could be — lowercase and a hyphen
+ * are not in the alphabet. That was harmless while nothing parsed an id, and stopped being
+ * harmless the day the address started naming a submission by the shape of its code.
+ */
+const ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+function codeFor(ref) {
+  const seed = String(ref).toUpperCase();
+  let out = '';
+  for (let i = 0; i < 12; i++) {
+    const c = seed[i % seed.length];
+    out += ALPHABET.includes(c) ? c : ALPHABET[(c.charCodeAt(0) + i) % ALPHABET.length];
+  }
+  return out;
+}
+
 function submission(ref, name) {
   return {
     fileType: 'gc-arch-assessment',
     ref,
-    id: `doc-${ref}`,
+    id: codeFor(ref),
     rubric: { id: rubric.id, version: rubric.version },
     // Marked, because the export window has to name the marking and the sheet has no column
     // for it, which is the one thing that window exists to say.
@@ -60,6 +79,15 @@ const asDoc = (a) => ({ name: `projects/p/databases/(default)/documents/assessme
  * One page, booted with whatever storage and whatever store answer a case needs.
  * `listAnswer` decides what the assessments list does: a page of documents, or a refusal.
  */
+/**
+ * `openAt: { code, depth }` opens a page whose ADDRESS names that submission, which is where
+ * the open submission has lived since 1 October. It was a localStorage key, and the key was
+ * invisible to the Back button.
+ */
+const addressFor = (at) => (at
+  ? `#assessor/${String(at.code).slice(0, 6)}${at.depth === 'all' ? '/all' : ''}`
+  : '');
+
 async function boot({ session = null, side = null, listAnswer = { documents: [] }, role = null, hash = '', url = null, draft = null, people = null, audit = null, audits = null, auditSession = null, openAt = null, oobRefusal = null, linkEmail = null, linkMintedFor = null, library = null,
                      pending = null, authUri = GOOGLE_SENDS_YOU_HERE, idpRefusal = null } = {}) {
   const seen = [];
@@ -86,7 +114,7 @@ async function boot({ session = null, side = null, listAnswer = { documents: [] 
   const dom = new JSDOM(html, {
     virtualConsole,
     runScripts: 'dangerously',
-    url: url ?? `https://example.gc.ca/tool/${hash}`,
+    url: url ?? `https://example.gc.ca/tool/${openAt ? addressFor(openAt) : hash}`,
     pretendToBeVisual: true,
     beforeParse(w) {
       // A file:// origin is opaque, so jsdom throws on any storage access. That is the same
@@ -99,7 +127,7 @@ async function boot({ session = null, side = null, listAnswer = { documents: [] 
         // are one origin and one localStorage.
         if (audit) w.localStorage.setItem('gc-arch-assessment:audit-session', JSON.stringify(audit));
         if (auditSession) w.localStorage.setItem('gc-arch-assessment:audit-session', JSON.stringify(auditSession));
-        if (openAt) w.localStorage.setItem('gc-arch-assessment:assessor-open', JSON.stringify(openAt));
+        /* which submission is open is the address now, not a key; boot() puts it there */
         // The address a link was asked for at. Firebase refuses to finish without it.
         if (linkEmail) w.localStorage.setItem('gc-arch-assessment:signin-email', linkEmail);
         // A second question set sitting in the browser, which is what the assessor's Question
@@ -1212,7 +1240,7 @@ console.log('\nThe published build, signed in\n');
   ok('the write is a masked patch, so it cannot carry anything but the one field',
      !!patch && /updateMask\.fieldPaths=withdrawnAt/.test(patch.href), patch?.href ?? 'no PATCH sent');
   ok('and it is sent against the record that was chosen',
-     !!patch && /assessments\/doc-AB12\?/.test(patch.href), patch?.href ?? '');
+     !!patch && new RegExp(`assessments/${codeFor('AB12')}\\?`).test(patch.href), patch?.href ?? '');
   dom.window.close();
 }
 
@@ -2051,17 +2079,39 @@ console.log('\nThe published build, signed in\n');
     dom.window.close();
   }
 
-  // The key the first version of this wrote, so a browser holding one is not sent to the list
-  // for having an older shape in it.
+  /**
+   * An address naming a submission this account cannot see. That is what somebody outside TBS
+   * following a link gets, and it has to be the list rather than a screen explaining itself.
+   *
+   * It is also the reason the address carries six characters of the code and not twelve: six
+   * names a submission for somebody who can already list the pool, and opens nothing for
+   * anybody who cannot.
+   */
   const { doc, dom } = await boot({
     session: live, side: 'assess', role: 'assessor',
     listAnswer: { documents: [asDoc(one)] },
-    openAt: { code: one.id, full: true },
+    openAt: { code: 'ZZZZZZZZZZZZ', depth: 'all' },
   });
   await new Promise((r) => setTimeout(r, 120));
-  ok('and the key the earlier version wrote still works', body(doc).includes('All questions'),
-     body(doc).slice(0, 120));
+  ok('an address naming a submission you cannot see stays on the list',
+     !!doc.querySelector('.triage') && !doc.querySelector('.crumbs'), body(doc).slice(0, 120));
   dom.window.close();
+
+  /**
+   * And one that is not the shape of a code at all. The parser matches by shape, so a typo is
+   * the list and never the submitter's questionnaire, which is where every address this router
+   * did not recognise used to go.
+   */
+  const typo = await boot({
+    session: live, side: 'assess', role: 'assessor',
+    listAnswer: { documents: [asDoc(one)] },
+    hash: '#assessor/not-a-code',
+  });
+  await new Promise((r) => setTimeout(r, 120));
+  ok('and a mistyped one opens the list, not the questionnaire',
+     !!typo.doc.querySelector('.triage') && !/Not applicable|About the initiative/.test(body(typo.doc)),
+     body(typo.doc).slice(0, 120));
+  typo.dom.window.close();
 }
 
 {
@@ -2359,6 +2409,109 @@ console.log('\nSigning in with Google\n');
   two.dom.window.close();
   dom.window.close();
 }
+
+
+/* --------------------------------------------------------------------------------------- *
+ *
+ * A submission has an address, so the Back button can come out of one.
+ *
+ * Reported on 1 October: in a submission, the browser back arrow went to Settings, which is
+ * where the assessor had been before they opened the list. A submission was not in the address,
+ * so it was the same history entry as the list it was opened from, and Back stepped over both.
+ * ----------------------------------------------------------------------------------------- */
+
+console.log('\nA submission is a place you can go back from\n');
+
+{
+  const one = submission('AB12', 'Licensing Renewal');
+  const j = await boot({
+    session: live, side: 'assess', role: 'assessor',
+    listAnswer: { documents: [asDoc(one)] },
+  });
+  const w = j.dom.window;
+  const settle = () => new Promise((r) => setTimeout(r, 120));
+
+  // The entry underneath everything has to say where it is, or Back out of the first
+  // submission lands on an empty address, which this router reads as the submitter home.
+  ok('the list is an address before anything is opened', w.location.hash === '#assessor', w.location.hash);
+
+  // Where the assessor was before the list, so there is something behind it to fall through to.
+  const before = w.location.hash;
+
+  j.doc.querySelector('.triage tbody tr')?.dispatchEvent(new w.MouseEvent('click', { bubbles: true }));
+  await settle();
+  ok('opening a submission opens it', !!j.doc.querySelector('.crumbs'), body(j.doc).slice(0, 90));
+  /**
+   * Six characters of the twelve, which is the whole point. Enough to name one submission out
+   * of anything TBS will hold, and not enough to open one: the store grants a read on the code
+   * alone, so a full code here would put a working key in the address bar, in history, and in
+   * every screen share.
+   */
+  ok('and the address names it, by six characters of its code',
+     w.location.hash === `#assessor/${one.id.slice(0, 6)}`, w.location.hash);
+  ok('and not by the whole code, which would open it for anybody',
+     !w.location.hash.includes(one.id), w.location.hash);
+
+  w.history.back();
+  await settle();
+  ok('Back comes out of the submission', w.location.hash === before, w.location.hash);
+  ok('and lands on the list, not on whatever came before it',
+     !!j.doc.querySelector('.triage') && !j.doc.querySelector('.crumbs'), body(j.doc).slice(0, 110));
+  j.dom.window.close();
+}
+
+{
+  // Depth is part of where you are, so it is in the address and Back walks out of it too.
+  const one = submission('AB12', 'Licensing Renewal');
+  const j = await boot({
+    session: live, side: 'assess', role: 'assessor',
+    listAnswer: { documents: [asDoc(one)] },
+    openAt: { code: one.id, depth: 'flagged' },
+  });
+  const w = j.dom.window;
+  const settle = () => new Promise((r) => setTimeout(r, 120));
+  await settle();
+
+  const all = [...j.doc.querySelectorAll('button')].find((b) => /All questions/.test(b.textContent));
+  all?.dispatchEvent(new w.MouseEvent('click', { bubbles: true }));
+  await settle();
+  ok('changing depth changes the address', w.location.hash === `#assessor/${one.id.slice(0, 6)}/all`,
+     w.location.hash);
+
+  w.history.back();
+  await settle();
+  ok('and Back returns to the depth you were at',
+     w.location.hash === `#assessor/${one.id.slice(0, 6)}`, w.location.hash);
+  j.dom.window.close();
+}
+
+{
+  /**
+   * Every repaint of an open submission comes back through the router — a score click, a
+   * verdict, a note losing focus. None of those is a place, so none of them is a history entry,
+   * or Back would walk backwards through an afternoon's typing one keystroke at a time.
+   */
+  const one = submission('AB12', 'Licensing Renewal');
+  const j = await boot({
+    session: live, side: 'assess', role: 'assessor',
+    listAnswer: { documents: [asDoc(one)] },
+    openAt: { code: one.id, depth: 'flagged' },
+  });
+  const w = j.dom.window;
+  const settle = () => new Promise((r) => setTimeout(r, 120));
+  await settle();
+  const deep = w.history.length;
+
+  for (let i = 0; i < 3; i++) {
+    const score = j.doc.querySelector('.cat-q button, .qrow button, button.score');
+    score?.dispatchEvent(new w.MouseEvent('click', { bubbles: true }));
+    await settle();
+  }
+  ok('repainting a submission adds no history', w.history.length === deep,
+     `${deep} before, ${w.history.length} after`);
+  j.dom.window.close();
+}
+
 
 console.log(fails ? `\n${fails} hosted check(s) failed\n` : '\nall hosted checks passed\n');
 process.exit(fails ? 1 : 0);

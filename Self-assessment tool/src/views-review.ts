@@ -12,7 +12,7 @@ import { rubricFor } from './library';
 import { confirmStep } from './confirm';
 import { SAD_CAT } from './cat';
 import { ICON_DOWN } from './icons';
-import { currentUser, formatCode, listAudits, putAudit, type AssessorAudit } from './firebase';
+import { addressOf, currentUser, formatCode, listAudits, putAudit, type AssessorAudit } from './firebase';
 import { isHosted, poolRecords, type PoolAnswer } from './store';
 import { repaint } from './views-submit';
 import { nameIsChecked } from './who';
@@ -547,65 +547,39 @@ let lastAgree: { section: string; agreed: number; kept: number } | null = null;
 export function setAuditor(name: string): void { auditor = name; }
 
 /**
- * Where the assessor was, so a reload puts them back.
+ * WHICH SUBMISSION IS OPEN IS THE ADDRESS, AND NOTHING ELSE.
  *
- * Reported as: when I am in an assessment and reload the page, it sends me to the pool view, I
- * want to stay exactly where I was. An assessor reads one submission for twenty minutes and
- * reloads for all the ordinary reasons; coming back to a list and finding the row again is a
- * tax on every one of those.
- */
-const WHERE_KEY = storeKey('assessor-open');
-
-/**
- * Asking for the list means the list, even when a submission was open.
+ * It used to be a localStorage key, which covered a reload and nothing else. It was invisible
+ * to the Back button, so Back out of a submission went to whatever the assessor had been
+ * looking at before they opened the list — reported on 1 October as Back going to Settings. And
+ * because storage cannot tell a reload from somebody asking to leave, the list had to clear the
+ * key by hand on the way in.
  *
- * Reported as: clicking the name of the tool should send me to the assessor home. It did go
- * there, and the screen put the open submission straight back, because remembering where
- * somebody was cannot tell the difference between a reload and somebody asking to leave. The
- * two acts are different and only the page knows which one happened, so the ones that mean
- * leave say so.
+ * The address answers all three. main.ts owns it; this hands it the code and the depth and lets
+ * it decide whether that is a new place or the same one repainted.
  */
-export function forgetOpenSubmission(): void {
-  rememberWhere(undefined, 'flagged');
+let putInAddress: (code: string | undefined, depth: Depth) => void = () => {};
+export function setAddressWriter(fn: (code: string | undefined, depth: Depth) => void): void {
+  putInAddress = fn;
 }
 
-function rememberWhere(code: string | undefined, depth: Depth): void {
-  try {
-    if (!code) localStorage.removeItem(WHERE_KEY);
-    else localStorage.setItem(WHERE_KEY, JSON.stringify({ code, depth }));
-  } catch { /* private window. Opening on the list is no hardship. */ }
-}
-
-function whereWas(): { code: string; depth: Depth } | null {
-  try {
-    const raw = localStorage.getItem(WHERE_KEY);
-    if (!raw) return null;
-    const v = JSON.parse(raw) as { code?: string; depth?: Depth; full?: boolean };
-    if (!v?.code) return null;
-    // `full` is what the first version of this wrote. A browser holding one is put back where
-    // it was rather than sent to the list for having an older key in it.
-    const depth: Depth = v.depth === 'all' || v.full ? 'all' : 'flagged';
-    return { code: v.code, depth };
-  } catch {
-    return null;
-  }
-}
-
-export function renderReview(root: HTMLElement, rubric: Rubric): void {
+export function renderReview(root: HTMLElement, rubric: Rubric,
+                             at: { open: string; depth: Depth } | null = null): void {
   clear(root);
   restoreSession(rubric);
   askPool(rubric);
   /**
-   * Back to the submission that was open, before anything of the list is drawn.
+   * The submission the address names, before anything of the list is drawn.
    *
    * The pool answers after the first paint, so this is tried again on the redraw that follows
-   * it: a record only in the store is not here to be found the first time through.
+   * it: a record only in the store is not here to be found the first time through. An address
+   * naming a submission nobody can see stays on the list, which is what somebody outside TBS
+   * following a link gets.
    */
-  const back = whereWas();
-  if (back) {
-    const row = loaded.find((l) => l.a.id === back.code);
+  if (at) {
+    const row = loaded.find((l) => l.a.id && addressOf(l.a.id) === at.open);
     if (row) {
-      openDetail(row.rubric, root, row, back.depth);
+      openDetail(row.rubric, root, row, at.depth);
       return;
     }
   }
@@ -1085,11 +1059,13 @@ function sectionHead(
  * It is one function because every part of it is computed from the same twenty locals. Three
  * functions would be three copies of that arithmetic.
  */
-type Depth = 'flagged' | 'all';
+export type Depth = 'flagged' | 'all';
 
 function openDetail(rubric: Rubric, root: HTMLElement, l: Loaded, depth: Depth = 'flagged') {
   clear(root);
-  rememberWhere(l.a.id, depth);
+  // The address is told, and it decides whether this is somewhere new or the same place being
+  // repainted. A row with no id yet has no address and simply does not get one.
+  putInAddress(l.a.id, depth);
   const { a, r, fs } = l;
   /**
    * Opening a submission is not auditing it.
@@ -1137,7 +1113,7 @@ function openDetail(rubric: Rubric, root: HTMLElement, l: Loaded, depth: Depth =
   root.appendChild(el('nav', { class: 'crumbs', 'aria-label': 'Where you are' }, [
     el('button', {
       class: 'linkish',
-      onclick: () => { rememberWhere(undefined, 'flagged'); renderReview(root, rubric); },
+      onclick: () => { putInAddress(undefined, 'flagged'); renderReview(root, rubric); },
     }, ['Submissions']),
     el('span', { class: 'crumb-sep', 'aria-hidden': true }, ['\u203A']),
     el('span', { class: 'crumb-here' }, [a.initiative?.name || l.file]),
