@@ -1487,7 +1487,13 @@ ok('and an empty screen centres its one card', !!q('main.body-empty'));
 {
   // ...and the assessor gets a library of them.
   q('.icon-btn[aria-label="Settings"]').click();
-  ok('the assessor can add a question set', !!byText('.filelabel', 'Add a question set'));
+  /**
+   * The upload is commented out rather than deleted. Asked for on 1 October: the app should not
+   * be able to deal with files for now, and put it back when I say. So the gate is inverted and
+   * says why, which is what keeps somebody from quietly restoring it and keeps somebody else
+   * from deleting the block it is about.
+   */
+  ok('there is no way to put a file into the tool', !byText('.filelabel', 'Add a question set'));
   ok('the sets in this browser are listed', qa('.set-list-row').length >= 1,
      String(qa('.set-list-row').length));
   ok('the active set is marked', !!q('.set-list-row.on') && view().includes('Active'));
@@ -1513,48 +1519,59 @@ ok('and an empty screen centres its one card', !!q('main.body-empty'));
     q('h1').click();
     ok('a click outside closes the menu', q('.set-menu').open === false);
   }
-  // Add a second set, keep the first, then delete the new one. Two steps, both times.
-  {
-    const before = qa('.set-list-row').length;
-    const second = JSON.parse(JSON.stringify(rubric));
-    second.version = '9.9-test';
-    second.title = 'A second question set';
-    const add = q('.filelabel input[type=file]');
-    Object.defineProperty(add, 'files', {
-      value: [{ name: 'second.json', text: async () => JSON.stringify(second) }],
-      configurable: true,
-    });
-    fire(add, 'change');
-    await new Promise((r) => setTimeout(r, 80));
-
-    ok('an added set joins the library and the old one stays',
-       qa('.set-list-row').length === before + 1, String(qa('.set-list-row').length));
-    ok('adding it does not make it active',
-       !q('.set-list-row.on').textContent.includes('A second question set'),
-       q('.set-list-row.on')?.textContent?.slice(0, 60));
-
-    // Now a second set exists, so either can be deleted, and the menu says so.
-    const spare = qa('.set-list-row').find((r) => !r.classList.contains('on'));
-    spare.querySelector('.set-menu').open = true;
-    const del = byText('.set-menu-pop .menu-item', 'Delete this set');
-    ok('a set that is not in use can be deleted once there are two', !!del);
-    del.click();
-    ok('deleting a set offers the file back before it goes',
-       dialogText().includes('Download the set'), dialogText().slice(0, 80));
-    ok('and deleting without a copy is offered too',
-       dialogText().includes('Delete permanently'));
-    dialogAct('Keep it');
-    ok('and saying no keeps it', qa('.set-list-row').length === before + 1,
-       String(qa('.set-list-row').length));
-
-    const spare2 = qa('.set-list-row').find((r) => !r.classList.contains('on'));
-    spare2.querySelector('.set-menu').open = true;
-    byText('.set-menu-pop .menu-item', 'Delete this set').click();
-    dialogAct('Delete permanently');
-    await new Promise((r) => setTimeout(r, 40));
-    ok('saying yes removes it', qa('.set-list-row').length === before,
-       String(qa('.set-list-row').length));
-  }
+  /**
+   * COMMENTED OUT ON 1 OCTOBER WITH THE UPLOAD IT DRIVES, and kept for the same reason.
+   *
+   * Every line of it starts by putting a second question set into the browser through the file
+   * input, which is the control that was taken out. Without a way to add a set the library holds
+   * one, so deleting a set that is not in use is a path nobody can reach, and testing it would
+   * mean reaching past the interface to set up a state the interface cannot produce.
+   *
+   * It comes back with the upload. Nothing it covers has been deleted: addToLibrary,
+   * removeFromLibrary and canRemove are all still in src/library.ts and still exported.
+   */
+  // // Add a second set, keep the first, then delete the new one. Two steps, both times.
+  // {
+  // const before = qa('.set-list-row').length;
+  // const second = JSON.parse(JSON.stringify(rubric));
+  // second.version = '9.9-test';
+  // second.title = 'A second question set';
+  // const add = q('.filelabel input[type=file]');
+  // Object.defineProperty(add, 'files', {
+  // value: [{ name: 'second.json', text: async () => JSON.stringify(second) }],
+  // configurable: true,
+  // });
+  // fire(add, 'change');
+  // await new Promise((r) => setTimeout(r, 80));
+  //
+  // ok('an added set joins the library and the old one stays',
+  // qa('.set-list-row').length === before + 1, String(qa('.set-list-row').length));
+  // ok('adding it does not make it active',
+  // !q('.set-list-row.on').textContent.includes('A second question set'),
+  // q('.set-list-row.on')?.textContent?.slice(0, 60));
+  //
+  // // Now a second set exists, so either can be deleted, and the menu says so.
+  // const spare = qa('.set-list-row').find((r) => !r.classList.contains('on'));
+  // spare.querySelector('.set-menu').open = true;
+  // const del = byText('.set-menu-pop .menu-item', 'Delete this set');
+  // ok('a set that is not in use can be deleted once there are two', !!del);
+  // del.click();
+  // ok('deleting a set offers the file back before it goes',
+  // dialogText().includes('Download the set'), dialogText().slice(0, 80));
+  // ok('and deleting without a copy is offered too',
+  // dialogText().includes('Delete permanently'));
+  // dialogAct('Keep it');
+  // ok('and saying no keeps it', qa('.set-list-row').length === before + 1,
+  // String(qa('.set-list-row').length));
+  //
+  // const spare2 = qa('.set-list-row').find((r) => !r.classList.contains('on'));
+  // spare2.querySelector('.set-menu').open = true;
+  // byText('.set-menu-pop .menu-item', 'Delete this set').click();
+  // dialogAct('Delete permanently');
+  // await new Promise((r) => setTimeout(r, 40));
+  // ok('saying yes removes it', qa('.set-list-row').length === before,
+  // String(qa('.set-list-row').length));
+  // }
   byText('.tab', 'Submissions').click();
 }
 
