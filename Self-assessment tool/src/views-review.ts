@@ -61,8 +61,6 @@ interface Loaded {
    * never opened a file.
    */
   fromStore?: boolean;
-  /** Came from the store, and the store no longer has it. Kept only when it has been audited. */
-  goneFromStore?: boolean;
 }
 
 /**
@@ -363,7 +361,6 @@ function absorb(rubric: Rubric, answer: PoolAnswer): void {
        */
       seen.add(mine);
       mine.fromStore = true;
-      mine.goneFromStore = false;
       if (a.id && mine.a.id !== a.id) mine.a.id = a.id;
       const theirs = a.meta?.updatedAt ?? '';
       const ours = mine.a.meta?.updatedAt ?? '';
@@ -388,10 +385,11 @@ function absorb(rubric: Rubric, answer: PoolAnswer): void {
    * somebody had opened from a file, and pressing delete on it answered that there was no such
    * submission, about a row on screen. Both were reported in the same sitting.
    *
-   * Nothing audited is thrown away. A row with an audit on it stays and says what happened, so
-   * an assessor can take a copy of their own work before it goes. A row with nothing on it goes
-   * quietly, because it is a stale copy of somebody else's record and nobody is owed a window
-   * about it.
+   * Deleted means gone, including a row this assessor has audited. Keeping those was an idea
+   * of mine rather than anybody's requirement, and it is what left a record somebody had
+   * deleted sitting on their screen through three attempts to be rid of it: there is no
+   * control on this list that removes a row, so a row nothing drops is a row that stays for
+   * ever. An audit of a record that no longer exists has nothing to be an audit of.
    */
   let dropped = 0;
   for (let i = loaded.length - 1; i >= 0; i--) {
@@ -406,7 +404,6 @@ function absorb(rubric: Rubric, answer: PoolAnswer): void {
      */
     const came = l.fromStore ?? !/\.json$/i.test(l.file);
     if (!came || !l.a.id) continue;
-    if (Object.keys(l.a.audit?.perQuestion ?? {}).length) { l.goneFromStore = true; continue; }
     loaded.splice(i, 1);
     dropped++;
   }
@@ -816,12 +813,6 @@ function paintList(rubric: Rubric, root: HTMLElement) {
               title: `Marked ready to review on ${new Date(l.a.meta.submittedAt).toLocaleString()}`,
             }, ['Ready'])
           : el('span', { class: 'muted', title: 'Nobody has said this one is finished' }, ['Draft']),
-        // A row kept because this assessor has work on it, after the store stopped having the
-        // record. Without this the row is a submission that will not go away and nothing on it
-        // differs from the ones that are really there.
-        l.goneFromStore
-          ? el('span', { class: 'badge badge-warn tag', title: 'Removed from the shared store. Your audit is still here.' }, ['Not in the store'])
-          : null,
       ]),
       el('td', {}, [l.a.initiative?.department ?? '--']),
       el('td', { class: 'small' }, [l.a.initiative?.classification || 'unmarked']),

@@ -2316,12 +2316,16 @@ console.log('\nSigning in with Google\n');
   ok('a row the store no longer has is dropped', !names.some((n) => /Legacy code check/.test(n)),
      names.join(' | '));
   ok('and the one it still has stays', names.some((n) => /Licensing Renewal/.test(n)), names.join(' | '));
-  ok('and one carrying this assessor\u2019s own audit is kept',
-     names.some((n) => /Audited and gone/.test(n)), names.join(' | '));
-  const goneRow = [...doc.querySelectorAll('.triage tbody tr')]
-    .find((tr) => /Audited and gone/.test(tr.textContent));
-  ok('and its state says the store no longer has it',
-     /Not in the store/.test(goneRow?.textContent ?? ''), goneRow?.textContent?.slice(0, 120));
+  /**
+   * Including one this assessor has audited.
+   *
+   * Those were kept, and that is what left a record somebody had deleted sitting on their
+   * screen through three attempts to be rid of it. There is no control on this list that
+   * removes a row, so a row nothing drops is a row that stays for ever, and an audit of a
+   * record that no longer exists has nothing to be an audit of.
+   */
+  ok('and so is one this assessor had audited', !names.some((n) => /Audited and gone/.test(n)),
+     names.join(' | '));
 
   /**
    * And a record the store did hand over is never called missing from it.
