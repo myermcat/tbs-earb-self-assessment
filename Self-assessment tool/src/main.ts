@@ -86,7 +86,9 @@ function routeToHash(r: Route): string {
   if (r.side === 'assess') {
     // The depth is part of where you are, so it is in the address too. Flagged is the way in
     // and carries no suffix, the way the default settings pane carries none.
-    const open = r.open ? `/${r.open}${r.depth === 'all' ? '/all' : ''}` : '';
+    // Each depth is its own address, so Back between them goes where it looks as though it
+    // should and a link opens the list somebody meant to send.
+    const open = r.open ? `/${r.open}${r.depth && r.depth !== 'flagged' ? `/${r.depth}` : ''}` : '';
     return r.mode === 'admin' ? '#assessor/admin'
       : r.mode === 'settings' ? `#assessor/settings${pane}`
       : `#assessor${open}`;
@@ -109,7 +111,8 @@ function hashToRoute(hash: string): Route {
   if (h.startsWith('assessor/')) {
     const [seg, tail] = h.slice('assessor/'.length).split('/');
     if (isAddressSegment(seg)) {
-      return { side: 'assess', mode: 'review', open: seg, depth: tail === 'all' ? 'all' : 'flagged' };
+      const depth: Depth = tail === 'all' ? 'all' : tail === 'others' ? 'others' : 'flagged';
+      return { side: 'assess', mode: 'review', open: seg, depth };
     }
     // Anything else under the assessor door is the assessor's list, and never the submitter's
     // questionnaire, which is where the catch-all at the end of this function would send it.
