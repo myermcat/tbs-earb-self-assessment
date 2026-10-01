@@ -510,7 +510,7 @@ const WHERE_KEY = storeKey('assessor-open');
  * leave say so.
  */
 export function forgetOpenSubmission(): void {
-  rememberWhere(undefined, 'overview');
+  rememberWhere(undefined, 'flagged');
 }
 
 function rememberWhere(code: string | undefined, depth: Depth): void {
@@ -528,7 +528,7 @@ function whereWas(): { code: string; depth: Depth } | null {
     if (!v?.code) return null;
     // `full` is what the first version of this wrote. A browser holding one is put back where
     // it was rather than sent to the list for having an older key in it.
-    const depth: Depth = v.depth ?? (v.full ? 'all' : 'overview');
+    const depth: Depth = v.depth === 'all' || v.full ? 'all' : 'flagged';
     return { code: v.code, depth };
   } catch {
     return null;
@@ -578,32 +578,12 @@ export function renderReview(root: HTMLElement, rubric: Rubric): void {
     : null;
 
   /**
-   * The sad cat is for an empty screen. Once submissions are on the page, telling the assessor
-   * that nothing is assigned to them contradicts the list directly underneath, so what is left
-   * is one line saying where they came from and a way to ask again.
+   * The sad cat is for an empty screen. With a list under it, there is nothing for this card
+   * to say: where the rows came from is not a question anybody asked, and a count sits beside
+   * the heading of the list itself.
    */
-  /**
-   * Where these came from, in one sentence rather than two numbers side by side.
-   *
-   * It read "2 from the pool" beside "3 submissions open", which invites exactly the question
-   * it was asked: why does it say two when I can see three. They count different things. The
-   * first is what the store handed over, the second is what is on this page, and the gap is
-   * whatever was opened from a file. Two numbers with no relation stated is a puzzle, so the
-   * sentence states it and the numbers only appear when they differ.
-   */
-  const fromFiles = loaded.filter((l) => !l.fromStore).length;
-  const where = poolNow.state !== 'ok'
-    ? `${loaded.length} open, read from files in this browser.`
-    : fromFiles === 0
-      ? `${loaded.length} from the shared store.`
-      : `${loaded.length} open: ${poolNow.found} from the shared store and ${fromFiles} opened from files here.`;
-
   const head = loaded.length
-    ? el('div', { class: 'pool-in' }, [
-        el('span', { class: 'badge' }, [poolNow.state === 'ok' ? 'Shared store' : 'From files']),
-        el('span', { class: 'muted small' }, [where]),
-        again,
-      ])
+    ? null
     : el('div', { class: 'pool-out' }, [
         el('div', { class: 'pool-art', html: SAD_CAT }),
         el('div', {}, [
@@ -645,9 +625,7 @@ export function renderReview(root: HTMLElement, rubric: Rubric): void {
    *     if (e.dataTransfer?.files) await ingest(rubric, e.dataTransfer.files, root);
    *   });
    */
-  const drop = el('section', { class: `card ${loaded.length ? 'dropzone-tight' : ''}` }, [head]);
-
-  root.appendChild(drop);
+  if (head) root.appendChild(el('section', { class: 'card' }, [head]));
   if (loaded.length) paintList(rubric, root);
 }
 
@@ -769,7 +747,18 @@ function paintList(rubric: Rubric, root: HTMLElement) {
     ])]),
   ]);
   const tb = el('tbody', {});
+  /**
+   * Ready and draft are two groups, and the eye should find the join without being told.
+   *
+   * The list is sorted ready first and a sentence used to say so. The sort is visible; what was
+   * not visible is where one group stops, so the first draft row carries a rule above it and
+   * the drafts are dimmed.
+   */
+  let wasReady: boolean | null = null;
   for (const l of rows) {
+    const ready = !!l.a.meta?.submittedAt;
+    const breaks = wasReady === true && !ready;
+    wasReady = ready;
     const highs = l.fs.filter((f) => f.severity === 'high').length;
     /**
      * The row opens the submission, and the button that used to is gone.
@@ -784,7 +773,7 @@ function paintList(rubric: Rubric, root: HTMLElement) {
       openDetail(l.rubric, root, l);
     };
     tb.appendChild(el('tr', {
-      class: 'row-open',
+      class: `row-open ${ready ? '' : 'is-draft'} ${breaks ? 'group-break' : ''}`,
       tabindex: 0,
       role: 'link',
       title: `Open ${l.a.initiative?.name || l.file}`,
@@ -912,10 +901,10 @@ function paintList(rubric: Rubric, root: HTMLElement) {
   table.appendChild(tb);
 
   root.appendChild(el('section', { class: 'card' }, [
-    el('h2', {}, [t(
-      `${loaded.length} submission${loaded.length === 1 ? '' : 's'}, ready first then weakest`,
-      `${loaded.length} soumission${loaded.length === 1 ? '' : 's'}, les prêtes d’abord puis les plus faibles`,
-    )]),
+    el('h2', {}, [
+      t('Submissions', 'Soumissions'),
+      el('span', { class: 'muted small count-beside' }, [` ${loaded.length}`]),
+    ]),
     /**
      * The toolbar. It goes above the table, where it reads as belonging to it.
      *
@@ -1041,9 +1030,9 @@ function sectionHead(
  * It is one function because every part of it is computed from the same twenty locals. Three
  * functions would be three copies of that arithmetic.
  */
-type Depth = 'overview' | 'needs' | 'all';
+type Depth = 'flagged' | 'all';
 
-function openDetail(rubric: Rubric, root: HTMLElement, l: Loaded, depth: Depth = 'overview') {
+function openDetail(rubric: Rubric, root: HTMLElement, l: Loaded, depth: Depth = 'flagged') {
   clear(root);
   rememberWhere(l.a.id, depth);
   const { a, r, fs } = l;
@@ -1090,20 +1079,30 @@ function openDetail(rubric: Rubric, root: HTMLElement, l: Loaded, depth: Depth =
   );
   const evidenceCount = Object.values(a.answers).reduce((n, x) => n + (x.evidence ?? []).length, 0);
 
-  root.appendChild(el('section', { class: 'card tight actions' }, [
-    depth === 'overview'
-      ? el('button', {
-          class: 'ghost',
-          onclick: () => { rememberWhere(undefined, 'overview'); renderReview(root, rubric); },
-        }, ['Back to the list'])
-      // One step back, not all the way out. From inside the assessment the thing above it is
-      // the submission, and from the submission it is the list.
-      : el('button', {
-          class: 'ghost',
-          onclick: () => openDetail(rubric, root, l, 'overview'),
-        }, ['Back to the submission']),
-    el('span', { class: 'muted small' }, [l.file]),
+  root.appendChild(el('nav', { class: 'card tight crumbs', 'aria-label': 'Where you are' }, [
+    el('button', {
+      class: 'linkish',
+      onclick: () => { rememberWhere(undefined, 'flagged'); renderReview(root, rubric); },
+    }, ['Submissions']),
+    el('span', { class: 'crumb-sep', 'aria-hidden': true }, ['\u203A']),
+    el('span', { class: 'crumb-here' }, [a.initiative?.name || l.file]),
   ]));
+
+  /**
+   * Who has audited this, above everything else on the page.
+   *
+   * One word for one thing. The list column says audited, this says audited, and the trail at
+   * the foot is about saving, which is what a department does to its own answers.
+   */
+  {
+    const mine = Object.keys(audit.perQuestion).length > 0;
+    const who = [...(mine ? ['You'] : []), ...(l.others ?? []).map((x) => x.reviewerName?.trim() || x.reviewer)];
+    root.appendChild(el('section', { class: `card tight audited-by ${who.length ? '' : 'none-yet'}` }, [
+      who.length
+        ? el('p', {}, [el('b', {}, [who.join(', ')]), ' audited this'])
+        : el('p', {}, ['Nobody has audited this yet']),
+    ]));
+  }
 
   /**
    * The heading of this view goes at the top of it.
@@ -1137,175 +1136,75 @@ function openDetail(rubric: Rubric, root: HTMLElement, l: Loaded, depth: Depth =
     ]),
   ]));
 
-  /**
-   * The way into the assessment, which is a block and not a sentence.
-   *
-   * Her rule for this screen: the user experience should be self-explanatory, no text
-   * explanations and no tutorials, it should be obvious. So nothing here says what an assessor
-   * is for. The submission is a looking glass over the whole thing, and assessing it is one
-   * press with the numbers that matter written on it.
-   */
-  if (depth === 'overview') {
-    const mine = Object.entries(audit.perQuestion)
-      .filter(([, e]) => typeof e.auditedScore === 'number' || e.verdict || (e.note ?? '').trim()).length;
-    root.appendChild(el('button', {
-      class: 'card assess-door',
-      onclick: () => openDetail(rubric, root, l, 'needs'),
-    }, [
-      el('div', {}, [
-        el('h2', {}, ['Assessment']),
-        el('p', { class: 'muted small' }, [
-          `${fs.filter((f) => f.severity === 'high').length} to argue with, ${allQuestionScores(r).length} questions in all, ${mine} you have scored or judged`,
-        ]),
-      ]),
-      el('span', { class: 'assess-go', 'aria-hidden': true }, ['\u2192']),
-    ]));
-  }
 
-  if (depth === 'overview') {
-    /**
-     * Whose version this is, and the ones before it.
-     *
-     * On the full view and not on the list, because it is the question an assessor asks once they
-     * have decided to read something, not while they are scanning. The name is typed by whoever
-     * pressed save and checked by nobody, which is said here every time it is shown: the same
-     * rule the assessor's own name has always lived under.
-     *
-     * A save replaces the document, so this trail is not a history of the answers. It is a
-     * history of who put a version there, when, and what it scored at the time, which is enough
-     * to see that a number moved and to go and ask the person who moved it.
-     */
-    {
-      const by = a.meta?.savedBy;
-      const trail = [...(a.meta?.saves ?? [])].reverse();
-      const MOMENT: Record<string, string> = {
-        first: 'first saved online',
-        ready: 'marked ready to review',
-        unready: 'ready mark taken off',
-        save: 'saved',
-      };
+  /**
+   * The same answers cut by category, for the person who has to decide what to ask about.
+   *
+   * The submitter gets this on their results page and the assessor did not, which is the wrong
+   * way round: a department that is fine overall and weak on security is exactly the case an
+   * assessor exists to catch, and the four domain numbers hide it by dividing those questions
+   * four ways.
+   *
+   * Read-only here. An assessor's opinion of a question belongs in the audit, which is its own
+   * screen with its own reasons attached, and a second place to change a score is a second
+   * place for the two to disagree.
+   */
+  {
+    const domainIds = new Set(rubric.domains.map((d) => d.id));
+    const cats = r.topics.filter((x) => x.total > 0 && !domainIds.has(x.topic.id));
+    if (cats.length) {
       const box = el('section', { class: 'card' }, [
-        el('h2', {}, ['Who saved this']),
-        by
-          ? el('p', {}, [
-              el('b', {}, [by.name]), ' ', el('span', { class: 'mono small' }, [by.email]),
-              el('span', { class: 'badge badge-warn tiny tag' }, ['not checked']),
-              el('div', { class: 'muted small' }, [
-                `${new Date(by.at).toLocaleString()}. On save the tool asks the submitter for a name and a `,
-                'work email address, and refuses an address that does not end in gc.ca or canada.ca. ',
-                'That is all the checking there is. Nobody confirms the person behind it.',
-              ]),
-            ])
-          : el('p', { class: 'muted' }, [
-              'Nobody. This version was saved before the tool asked who was saving, or it came from a file.',
-            ]),
+        el('h2', {}, ['By category']),
+        el('p', { class: 'muted small' }, [
+          'The same questions grouped by what they are about. One question can be in several ',
+          'categories at once, so these do not add up to the overall.',
+        ]),
       ]);
-      if (trail.length > 1) {
-        const list = el('details', { class: 'trail' }, [
-          el('summary', {}, [`Earlier saves (${trail.length - 1})`]),
-        ]);
-        const table = el('table', { class: 'trail-table' }, [
-          el('thead', {}, [el('tr', {}, [
-            el('th', {}, ['When']), el('th', {}, ['Who']), el('th', {}, ['What']),
-            el('th', {}, ['Score']),
-            // "Answered" read as something an assessor had done. It is the department's own
-            // progress at that save: how many of the 176 they had filled in by then.
-            el('th', { title: 'How many of the questions the department had filled in at that save' }, ['Answers filled in']),
-          ])]),
-        ]);
-        const tbody = el('tbody', {});
-        for (const x of trail) {
-          tbody.appendChild(el('tr', {}, [
-            el('td', { class: 'small' }, [new Date(x.at).toLocaleString()]),
-            el('td', { class: 'small' }, [x.name, el('div', { class: 'mono dim tiny' }, [x.email])]),
-            // The two named moments survive when the trail fills up, because they are the ones
-            // somebody asks about afterwards.
-            el('td', { class: 'small' }, [
-              x.moment && x.moment !== 'save'
-                ? el('span', { class: 'badge tag' }, [MOMENT[x.moment] ?? x.moment])
-                : MOMENT.save,
+      for (const cat of cats) {
+        const mine = allQuestionScores(r)
+          .filter((qs) => (qs.question.topics ?? []).includes(cat.topic.id))
+          .sort((x, y) => (x.answered ? (x.raw as number) : 99) - (y.answered ? (y.raw as number) : 99));
+        const rows = el('div', { class: 'cat-list' }, mine.map((qs) => {
+          const said = qs.answered ? (qs.raw as number).toFixed(0)
+            : a.answers[qs.question.id]?.na ? 'n/a' : 'not answered';
+          return el('div', { class: 'cat-q cat-q-flat' }, [
+            el('span', { class: `cat-q-score ${qs.answered ? tone(qs.raw as number) : 'dim'}` }, [said]),
+            el('span', { class: 'cat-q-text' }, [
+              qs.question.text,
+              el('span', { class: 'cat-q-where' }, [qs.question.id]),
             ]),
-            el('td', { class: `num ${tone(x.score ?? null)}` }, [
-              typeof x.score === 'number' ? x.score.toFixed(1) : '--',
+          ]);
+        }));
+        box.appendChild(section(`cat:${cat.topic.id}`, { class: 'cat-open' }, [
+          el('summary', { class: 'bar-row' }, [
+            el('div', { class: 'bar-label' }, [
+              cat.topic.label,
+              el('span', { class: 'muted small' }, [` ${cat.answered} of ${cat.total} answered`]),
+              cat.redFlags.length
+                ? el('span', { class: 'badge badge-bad' }, [`${cat.redFlags.length} answered no`])
+                : null,
             ]),
-            el('td', { class: 'num' }, [typeof x.answered === 'number' ? String(x.answered) : '--']),
-          ]));
-        }
-        table.appendChild(tbody);
-        list.appendChild(el('div', { class: 'table-wrap' }, [table]));
-        box.appendChild(list);
+            el('div', { class: 'bar-track' }, [
+              el('div', { class: `bar-fill ${bar(cat.score)}`, style: `width:${((cat.score ?? 0) / 10) * 100}%` }),
+            ]),
+            el('div', { class: `bar-num ${tone(cat.score)}` }, [cat.score === null ? '--' : cat.score.toFixed(1)]),
+          ]),
+          rows,
+        ]));
       }
       root.appendChild(box);
     }
-    /**
-     * The same answers cut by category, for the person who has to decide what to ask about.
-     *
-     * The submitter gets this on their results page and the assessor did not, which is the wrong
-     * way round: a department that is fine overall and weak on security is exactly the case an
-     * assessor exists to catch, and the four domain numbers hide it by dividing those questions
-     * four ways.
-     *
-     * Read-only here. An assessor's opinion of a question belongs in the audit, which is its own
-     * screen with its own reasons attached, and a second place to change a score is a second
-     * place for the two to disagree.
-     */
-    {
-      const domainIds = new Set(rubric.domains.map((d) => d.id));
-      const cats = r.topics.filter((x) => x.total > 0 && !domainIds.has(x.topic.id));
-      if (cats.length) {
-        const box = el('section', { class: 'card' }, [
-          el('h2', {}, ['By category']),
-          el('p', { class: 'muted small' }, [
-            'The same questions grouped by what they are about. One question can be in several ',
-            'categories at once, so these do not add up to the overall.',
-          ]),
-        ]);
-        for (const cat of cats) {
-          const mine = allQuestionScores(r)
-            .filter((qs) => (qs.question.topics ?? []).includes(cat.topic.id))
-            .sort((x, y) => (x.answered ? (x.raw as number) : 99) - (y.answered ? (y.raw as number) : 99));
-          const rows = el('div', { class: 'cat-list' }, mine.map((qs) => {
-            const said = qs.answered ? (qs.raw as number).toFixed(0)
-              : a.answers[qs.question.id]?.na ? 'n/a' : 'not answered';
-            return el('div', { class: 'cat-q cat-q-flat' }, [
-              el('span', { class: `cat-q-score ${qs.answered ? tone(qs.raw as number) : 'dim'}` }, [said]),
-              el('span', { class: 'cat-q-text' }, [
-                qs.question.text,
-                el('span', { class: 'cat-q-where' }, [qs.question.id]),
-              ]),
-            ]);
-          }));
-          box.appendChild(section(`cat:${cat.topic.id}`, { class: 'cat-open' }, [
-            el('summary', { class: 'bar-row' }, [
-              el('div', { class: 'bar-label' }, [
-                cat.topic.label,
-                el('span', { class: 'muted small' }, [` ${cat.answered} of ${cat.total} answered`]),
-                cat.redFlags.length
-                  ? el('span', { class: 'badge badge-bad' }, [`${cat.redFlags.length} answered no`])
-                  : null,
-              ]),
-              el('div', { class: 'bar-track' }, [
-                el('div', { class: `bar-fill ${bar(cat.score)}`, style: `width:${((cat.score ?? 0) / 10) * 100}%` }),
-              ]),
-              el('div', { class: `bar-num ${tone(cat.score)}` }, [cat.score === null ? '--' : cat.score.toFixed(1)]),
-            ]),
-            rows,
-          ]));
-        }
-        root.appendChild(box);
-      }
-    }
-
-    root.appendChild(el('section', { class: 'card' }, [
-      el('div', { class: 'kpi-row' }, [
-        kpi(String(fs.filter((f) => f.severity === 'high').length), 'must ask'),
-        kpi(String(needLook.size), 'questions flagged'),
-        kpi(`${Math.round(r.completeness * 100)}%`, 'complete'),
-        kpi(String(evidenceCount), 'pieces of evidence'),
-        kpi(String(changed.length), 'you changed'),
-      ]),
-    ]));
   }
+
+  root.appendChild(el('section', { class: 'card' }, [
+    el('div', { class: 'kpi-row' }, [
+      kpi(`${Math.round(r.completeness * 100)}%`, 'complete'),
+      kpi(String(fs.filter((f) => f.severity === 'high').length), 'must ask'),
+      kpi(String(needLook.size), 'questions flagged'),
+      kpi(String(evidenceCount), 'pieces of evidence'),
+      kpi(String(changed.length), 'you changed'),
+    ]),
+  ]));
 
   /**
    * Two ways of reading the same work, as two tabs.
@@ -1314,19 +1213,17 @@ function openDetail(rubric: Rubric, root: HTMLElement, l: Loaded, depth: Depth =
    * questions is the assessment as the department filled it in. Neither is a better answer than
    * the other, so neither is buried inside the other.
    */
-  if (depth !== 'overview') {
-    const tab = (label: string, to: Depth) => el('button', {
-      class: `tab ${depth === to ? 'on' : ''}`,
-      'aria-current': depth === to ? 'page' : undefined,
-      onclick: () => openDetail(rubric, root, l, to),
-    }, [label]);
-    root.appendChild(el('nav', { class: 'card tight assess-tabs', 'aria-label': 'This assessment' }, [
-      tab('What needs you', 'needs'),
-      tab('All the questions', 'all'),
-    ]));
-  }
+  const tab = (label: string, to: Depth) => el('button', {
+    class: `tab ${depth === to ? 'on' : ''}`,
+    'aria-current': depth === to ? 'page' : undefined,
+    onclick: () => openDetail(rubric, root, l, to),
+  }, [label]);
+  root.appendChild(el('nav', { class: 'card tight assess-tabs', 'aria-label': 'This assessment' }, [
+    tab('Flagged questions', 'flagged'),
+    tab('All questions', 'all'),
+  ]));
 
-  if (depth === 'needs') {
+  if (depth === 'flagged') {
     // ---- 1. the anomalies, with the controls in place ------------------------------------
     const flagBox = el('section', { class: 'card' }, [
       el('h2', {}, ['Audit these']),
@@ -1399,91 +1296,164 @@ function openDetail(rubric: Rubric, root: HTMLElement, l: Loaded, depth: Depth =
     }
   }
 
-  if (depth === 'overview') {
-    // ---- 2. what the assessor changed ----------------------------------------------------
-    if (changed.length) {
-      const box = el('section', { class: 'card' }, [
-        el('h2', {}, ['What you changed']),
-        el('p', { class: 'muted small' }, [
-          'The gap between what they claimed and what you scored. This is the calibration record.',
+  // ---- 2. what the assessor changed ----------------------------------------------------
+  if (changed.length) {
+    const box = el('section', { class: 'card' }, [
+      el('h2', {}, ['What you changed']),
+      el('p', { class: 'muted small' }, [
+        'The gap between what they claimed and what you scored. This is the calibration record.',
+      ]),
+    ]);
+    for (const [qid, entry] of changed) {
+      const qs = questionOf.get(qid);
+      const self = a.answers[qid]?.score ?? null;
+      const delta = (entry.auditedScore as number) - (self ?? 0);
+      box.appendChild(el('div', { class: 'audit-row changed' }, [
+        el('div', { class: 'q-head' }, [
+          el('span', { class: 'qid' }, [qid]),
+          el('span', { class: 'q-text' }, [qs?.question.text ?? qid]),
         ]),
+        el('div', { class: 'small' }, [
+          `They said ${self ?? '--'}, you scored ${entry.auditedScore} `,
+          el('span', { class: `delta ${delta > 0 ? 'up' : 'down'}` }, [`${delta > 0 ? '+' : ''}${delta}`]),
+          entry.verdict ? ` · ${entry.verdict}` : '',
+          entry.note ? ` · ${entry.note}` : '',
+        ]),
+      ]));
+    }
+    root.appendChild(box);
+  }
+
+  // ---- 4. sign off ---------------------------------------------------------------------
+  root.appendChild(el('section', { class: 'card' }, [
+    el('p', { class: 'small' }, [
+      'Auditing as ', el('b', {}, [auditor || 'unnamed']), ' ',
+      /**
+       * Not a warning when there is an account behind the name.
+       *
+       * On a build with a provider this is the address the provider gave, and the store will
+       * not even list the pool to an address it has not checked (deploy/firestore.rules,
+       * email_verified). The card printed "unverified" against it unconditionally, which was
+       * not a cautious statement but a false one. The header already got this right.
+       */
+      nameIsChecked()
+        ? el('span', { class: 'badge' }, ['signed in'])
+        : el('span', { class: 'badge badge-warn' }, ['not checked']),
+      el('span', { class: 'muted' }, [' Recorded against every score you change.']),
+    ]),
+    /**
+     * Where this audit lives, in a sentence, because it used to live nowhere.
+     *
+     * Everything typed here stayed in one browser and left as a downloaded file. A second
+     * assessor saw none of it and a cleared browser lost all of it, and nothing on screen said
+     * so. Saying where the work is takes one line and is the difference between a tool
+     * somebody can rely on and one they find out about afterwards.
+     */
+    el('p', { class: 'small audit-where' }, [auditWhere(l)]),
+    el('label', { class: 'field' }, [
+      el('span', {}, ['Overall note for the board']),
+      el('textarea', {
+        rows: 4,
+        oninput: (e: Event) => {
+          audit.overallNote = (e.target as HTMLTextAreaElement).value;
+          keepSession();
+        },
+      }, [audit.overallNote ?? '']),
+    ]),
+    el('div', { class: 'actions' }, [
+      (() => {
+        const missing = unexplainedChanges(a);
+        return el('button', {
+          class: 'primary', disabled: missing.length > 0,
+          title: missing.length
+            ? `A changed score needs a reason: ${missing.join(', ')}`
+            : 'Save your audit',
+          onclick: () => {
+            audit.reviewedAt = new Date().toISOString();
+            audit.reviewer = auditor || audit.reviewer;
+            download(`${slug(a.initiative.name)}-audited.json`, JSON.stringify(a, null, 2));
+          },
+        }, [missing.length ? `${missing.length} change${missing.length === 1 ? '' : 's'} need a reason` : 'Save the audited file']);
+      })(),
+      el('button', { class: 'ghost', onclick: () => window.print() }, ['Print the one-pager']),
+    ]),
+  ]));
+
+  // Saving is what a department does to its own answers, so this is the last thing on the
+  // page rather than the first: an assessor reads it once they have a reason to.
+  /**
+   * Whose version this is, and the ones before it.
+   *
+   * On the full view and not on the list, because it is the question an assessor asks once they
+   * have decided to read something, not while they are scanning. The name is typed by whoever
+   * pressed save and checked by nobody, which is said here every time it is shown: the same
+   * rule the assessor's own name has always lived under.
+   *
+   * A save replaces the document, so this trail is not a history of the answers. It is a
+   * history of who put a version there, when, and what it scored at the time, which is enough
+   * to see that a number moved and to go and ask the person who moved it.
+   */
+  {
+    const by = a.meta?.savedBy;
+    const trail = [...(a.meta?.saves ?? [])].reverse();
+    const MOMENT: Record<string, string> = {
+      first: 'first saved online',
+      ready: 'marked ready to review',
+      unready: 'ready mark taken off',
+      save: 'saved',
+    };
+    const box = el('section', { class: 'card' }, [
+      el('h2', {}, ['Saved versions']),
+      by
+        ? el('p', {}, [
+            el('b', {}, [by.name]), ' ', el('span', { class: 'mono small' }, [by.email]),
+            el('span', { class: 'badge badge-warn tiny tag' }, ['not checked']),
+            el('div', { class: 'muted small' }, [
+              `${new Date(by.at).toLocaleString()}. On save the tool asks the submitter for a name and a `,
+              'work email address, and refuses an address that does not end in gc.ca or canada.ca. ',
+              'That is all the checking there is. Nobody confirms the person behind it.',
+            ]),
+          ])
+        : el('p', { class: 'muted' }, [
+            'Nobody. This version was saved before the tool asked who was saving, or it came from a file.',
+          ]),
+    ]);
+    if (trail.length > 1) {
+      const list = el('details', { class: 'trail' }, [
+        el('summary', {}, [`Earlier saves (${trail.length - 1})`]),
       ]);
-      for (const [qid, entry] of changed) {
-        const qs = questionOf.get(qid);
-        const self = a.answers[qid]?.score ?? null;
-        const delta = (entry.auditedScore as number) - (self ?? 0);
-        box.appendChild(el('div', { class: 'audit-row changed' }, [
-          el('div', { class: 'q-head' }, [
-            el('span', { class: 'qid' }, [qid]),
-            el('span', { class: 'q-text' }, [qs?.question.text ?? qid]),
+      const table = el('table', { class: 'trail-table' }, [
+        el('thead', {}, [el('tr', {}, [
+          el('th', {}, ['When']), el('th', {}, ['Who']), el('th', {}, ['What']),
+          el('th', {}, ['Score']),
+          // "Answered" read as something an assessor had done. It is the department's own
+          // progress at that save: how many of the 176 they had filled in by then.
+          el('th', { title: 'How many of the questions the department had filled in at that save' }, ['Answers filled in']),
+        ])]),
+      ]);
+      const tbody = el('tbody', {});
+      for (const x of trail) {
+        tbody.appendChild(el('tr', {}, [
+          el('td', { class: 'small' }, [new Date(x.at).toLocaleString()]),
+          el('td', { class: 'small' }, [x.name, el('div', { class: 'mono dim tiny' }, [x.email])]),
+          // The two named moments survive when the trail fills up, because they are the ones
+          // somebody asks about afterwards.
+          el('td', { class: 'small' }, [
+            x.moment && x.moment !== 'save'
+              ? el('span', { class: 'badge tag' }, [MOMENT[x.moment] ?? x.moment])
+              : MOMENT.save,
           ]),
-          el('div', { class: 'small' }, [
-            `They said ${self ?? '--'}, you scored ${entry.auditedScore} `,
-            el('span', { class: `delta ${delta > 0 ? 'up' : 'down'}` }, [`${delta > 0 ? '+' : ''}${delta}`]),
-            entry.verdict ? ` · ${entry.verdict}` : '',
-            entry.note ? ` · ${entry.note}` : '',
+          el('td', { class: `num ${tone(x.score ?? null)}` }, [
+            typeof x.score === 'number' ? x.score.toFixed(1) : '--',
           ]),
+          el('td', { class: 'num' }, [typeof x.answered === 'number' ? String(x.answered) : '--']),
         ]));
       }
-      root.appendChild(box);
+      table.appendChild(tbody);
+      list.appendChild(el('div', { class: 'table-wrap' }, [table]));
+      box.appendChild(list);
     }
-
-  }
-  if (depth !== 'overview') {
-    // ---- 4. sign off ---------------------------------------------------------------------
-    root.appendChild(el('section', { class: 'card' }, [
-      el('p', { class: 'small' }, [
-        'Auditing as ', el('b', {}, [auditor || 'unnamed']), ' ',
-        /**
-         * Not a warning when there is an account behind the name.
-         *
-         * On a build with a provider this is the address the provider gave, and the store will
-         * not even list the pool to an address it has not checked (deploy/firestore.rules,
-         * email_verified). The card printed "unverified" against it unconditionally, which was
-         * not a cautious statement but a false one. The header already got this right.
-         */
-        nameIsChecked()
-          ? el('span', { class: 'badge' }, ['signed in'])
-          : el('span', { class: 'badge badge-warn' }, ['not checked']),
-        el('span', { class: 'muted' }, [' Recorded against every score you change.']),
-      ]),
-      /**
-       * Where this audit lives, in a sentence, because it used to live nowhere.
-       *
-       * Everything typed here stayed in one browser and left as a downloaded file. A second
-       * assessor saw none of it and a cleared browser lost all of it, and nothing on screen said
-       * so. Saying where the work is takes one line and is the difference between a tool
-       * somebody can rely on and one they find out about afterwards.
-       */
-      el('p', { class: 'small audit-where' }, [auditWhere(l)]),
-      el('label', { class: 'field' }, [
-        el('span', {}, ['Overall note for the board']),
-        el('textarea', {
-          rows: 4,
-          oninput: (e: Event) => {
-            audit.overallNote = (e.target as HTMLTextAreaElement).value;
-            keepSession();
-          },
-        }, [audit.overallNote ?? '']),
-      ]),
-      el('div', { class: 'actions' }, [
-        (() => {
-          const missing = unexplainedChanges(a);
-          return el('button', {
-            class: 'primary', disabled: missing.length > 0,
-            title: missing.length
-              ? `A changed score needs a reason: ${missing.join(', ')}`
-              : 'Save your audit',
-            onclick: () => {
-              audit.reviewedAt = new Date().toISOString();
-              audit.reviewer = auditor || audit.reviewer;
-              download(`${slug(a.initiative.name)}-audited.json`, JSON.stringify(a, null, 2));
-            },
-          }, [missing.length ? `${missing.length} change${missing.length === 1 ? '' : 's'} need a reason` : 'Save the audited file']);
-        })(),
-        el('button', { class: 'ghost', onclick: () => window.print() }, ['Print the one-pager']),
-      ]),
-    ]));
+    root.appendChild(box);
   }
 }
 

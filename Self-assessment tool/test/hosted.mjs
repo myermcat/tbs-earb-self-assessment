@@ -294,8 +294,12 @@ console.log('\nThe published build, signed in\n');
   });
   const w = dom.window;
   const px = (el, prop) => parseFloat(w.getComputedStyle(el)[prop]) || 0;
-  const kids = [...doc.querySelector('main').children];
   ok('the assessor body is marked as one', doc.querySelector('main').className.includes('body-review'));
+  // Measured on a submission, where the page is several blocks. The list is one card now that
+  // nothing sits above it saying where the rows came from.
+  doc.querySelector('.triage tbody tr').dispatchEvent(new dom.window.MouseEvent('click', { bubbles: true }));
+  await new Promise((r) => setTimeout(r, 60));
+  const kids = [...doc.querySelector('main').children];
   const between = kids.length > 1 ? px(kids[1], 'marginTop') : 0;
   const within = px(kids[0], 'paddingTop');
   ok('two blocks are further apart than a heading is from its own content',
@@ -303,6 +307,9 @@ console.log('\nThe published build, signed in\n');
   const h2 = doc.querySelector('main .card h2');
   ok('and a heading has room under it',
      px(h2.nextElementSibling, 'marginTop') > 0, String(px(h2?.nextElementSibling, 'marginTop')));
+  // Back to the list, which the rest of this block is about.
+  doc.querySelector('.crumbs button')?.dispatchEvent(new dom.window.MouseEvent('click', { bubbles: true }));
+  await new Promise((r) => setTimeout(r, 60));
 
   /**
    * Nothing destroys an assessor's work from a toolbar.
@@ -761,9 +768,6 @@ console.log('\nThe published build, signed in\n');
    * screen was never asserted on, which is how the two disagreed in one product.
    */
   {
-    // Signing off is part of assessing, so it is behind the door with the rest of it.
-    doc.querySelector('.assess-door')?.dispatchEvent(new dom.window.MouseEvent('click', { bubbles: true }));
-    await new Promise((r) => setTimeout(r, 40));
     const signOff = [...doc.querySelectorAll('.card')]
       .find((c) => /Auditing as/.test(c.textContent));
     ok('the sign-off card names who is auditing', !!signOff, signOff?.textContent?.slice(0, 60));
@@ -1347,9 +1351,9 @@ console.log('\nThe published build, signed in\n');
      text.includes('Coastal Permits Replacement'), text.slice(0, 160));
   ok('and one a demonstration made is not',
      !text.includes('Permit Renewal Online'), text.slice(0, 160));
-  ok('so the count over the table counts what is in it',
-     /1 submission, ready first then weakest/.test(text),
-     text.match(/\d+ submissions?[^.]{0,40}/)?.[0]);
+  ok('so the count beside the heading counts what is in the table',
+     /Submissions\s+1(\D|$)/.test(text.replace(/\s+/g, ' ')),
+     text.replace(/\s+/g, ' ').match(/Submissions\s*\d+/)?.[0]);
 
   /**
    * And the badge on that row says what follows from the missing set rather than naming it.
@@ -1887,9 +1891,8 @@ console.log('\nThe published build, signed in\n');
    * On the full view, because the question this fixture audits is not flagged and the screen an
    * assessor opens on carries only what is.
    */
-  doc.querySelector('.assess-door')?.dispatchEvent(new dom.window.MouseEvent('click', { bubbles: true }));
-  await new Promise((r) => setTimeout(r, 40));
-  [...doc.querySelectorAll('.assess-tabs .tab')].find((b) => /All the questions/.test(b.textContent))
+  // The questions are on the submission's own page; the tab chooses which of them.
+  [...doc.querySelectorAll('.assess-tabs .tab')].find((b) => /All questions/.test(b.textContent))
     ?.dispatchEvent(new dom.window.MouseEvent('click', { bubbles: true }));
   await new Promise((r) => setTimeout(r, 60));
 
@@ -1967,8 +1970,10 @@ console.log('\nThe published build, signed in\n');
    * "2 from the pool" beside "3 submissions open" invited the question it was asked: why does
    * it say two when I can see three. They count different things and the screen said neither.
    */
-  ok('the source line explains itself', /from the shared store/.test(said), said.slice(0, 200));
-  ok('and the button says what it asks again', /Check the store again/.test(said), said.slice(0, 200));
+  // Where the rows came from is not a question anybody asked, and the count sits beside the
+  // heading of the list rather than in a sentence over it.
+  ok('nothing over the list says where it came from', !/from the shared store/.test(said), said.slice(0, 200));
+  ok('and the heading names the screen', /Submissions/.test(said), said.slice(0, 200));
   dom.window.close();
 }
 
@@ -2033,7 +2038,7 @@ console.log('\nThe published build, signed in\n');
  */
 {
   const one = submission('AB12', 'Licensing Renewal');
-  for (const [where, expect] of [['overview', 'Who saved this'], ['needs', 'Audit these'], ['all', 'All the questions']]) {
+  for (const [where, expect] of [['flagged', 'Audit these'], ['all', 'All questions']]) {
     const { doc, dom } = await boot({
       session: live, side: 'assess', role: 'assessor',
       listAnswer: { documents: [asDoc(one)] },
@@ -2054,7 +2059,7 @@ console.log('\nThe published build, signed in\n');
     openAt: { code: one.id, full: true },
   });
   await new Promise((r) => setTimeout(r, 120));
-  ok('and the key the earlier version wrote still works', body(doc).includes('All the questions'),
+  ok('and the key the earlier version wrote still works', body(doc).includes('All questions'),
      body(doc).slice(0, 120));
   dom.window.close();
 }
@@ -2138,7 +2143,8 @@ console.log('\nThe published build, signed in\n');
   doc.querySelector('.brand').dispatchEvent(new dom.window.MouseEvent('click', { bubbles: true }));
   await new Promise((r) => setTimeout(r, 80));
   const said = body(doc);
-  ok('the name of the tool goes to the list', /submissions?, ready first/.test(said), said.slice(0, 140));
+  ok('the name of the tool goes to the list', !!doc.querySelector('.triage') && !doc.querySelector('.crumbs'),
+     said.slice(0, 140));
   ok('and the submission is not put back over it', !said.includes('Audit these'), said.slice(0, 140));
   dom.window.close();
 }
