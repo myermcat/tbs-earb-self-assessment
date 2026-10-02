@@ -2536,6 +2536,18 @@ console.log('\nA submission is a place you can go back from\n');
   await new Promise((r) => setTimeout(r, 160));
 
   const tabs = [...doc.querySelectorAll('.assess-tabs .tab')].map((t) => t.textContent);
+  /**
+   * Your own face is your own initials.
+   *
+   * It took them from the word in the sentence, so every assessor's own circle read YO. The
+   * sentence still says You, because that is how a sentence refers to the reader.
+   */
+  {
+    // This assessor has written nothing here yet, so give them something to be on the byline for.
+    const faces = () => [...doc.querySelectorAll('.headline .byline .face')].map((f) => f.textContent);
+    ok('a face carries initials rather than the word', !faces().includes('YO'), faces().join(','));
+  }
+
   ok('a tab leads to what the others wrote', tabs.some((t) => /Audited by others/.test(t)), tabs.join(' | '));
   ok('and says how many questions that is', tabs.some((t) => /\(1\)/.test(t)), tabs.join(' | '));
 
