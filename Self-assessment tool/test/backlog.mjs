@@ -50,8 +50,14 @@ async function build(data, TZ) {
 }
 
 let serial = 0;
+/**
+ * The default kind is 'feature' on purpose. Broken gathers everything marked 'bug' from
+ * wherever it is filed, so a helper that made every fixture item a bug would pull every fixture
+ * into Broken and the sections these tests are about would come out empty. A test that cannot
+ * put an ordinary item in an ordinary section cannot ask its question.
+ */
 const item = (o) => ({
-  kind: 'bug', status: 'open', priority: 'medium', owner: 'ours', golive: false,
+  kind: 'feature', status: 'open', priority: 'medium', owner: 'ours', golive: false,
   t: 'A thing', why: 'Because.', n: ++serial, ...o,
 });
 
@@ -66,6 +72,7 @@ const SECS = [
   { id: 'e-broken', track: 'engine', title: 'Broken' },
   { id: 'e-live', track: 'engine', title: 'Still going' },
   { id: 'e-never', track: 'engine', title: 'Never used' },
+  { id: 'e-two', track: 'engine', title: 'Another place' },
   { id: 'e-done', track: 'engine', title: 'Done' },
 ];
 
@@ -109,6 +116,76 @@ console.log('\nThe backlog page\n');
      !html.includes('s-engine-e-never'));
 }
 
+/* ---------- Broken collects the bug mark, and nothing is filed into it by hand ------------ */
+{
+  /**
+   * Reported on 2 October: the items we put the bug tag on are not in Broken, and it should not
+   * be a manual thing. Four open bugs were sitting under The assessor, Saving and storage, The
+   * submitter and French while Broken stood empty on three tabs.
+   */
+  const { html } = await build(fixture([
+    item({ id: 'abug', track: 'engine', section: 'e-live', kind: 'bug', t: 'A broken thing' }),
+    item({ id: 'plain', track: 'engine', section: 'e-live', kind: 'feature', t: 'An ordinary thing' }),
+  ], SECS));
+  const sec = (id) => (html.split(`id="s-engine-${id}"`)[1] ?? '').split('<h2')[0];
+  ok('a bug is gathered into Broken wherever it is filed',
+     sec('e-broken').includes('data-ref="abug"'));
+  /**
+   * And it stays where it was filed, because Broken is a view and not a place.
+   *
+   * Asked for on 2 October: in the broken tab I want them to look unclickable, and clicking one
+   * scrolls down to that item, so you can see it is pulled together rather than separate items.
+   * So the item itself is drawn once, in its own section, with everything you can do to it.
+   */
+  ok('and it is still drawn in its own section', sec('e-live').includes('data-id="abug"'));
+  ok('and the section it was filed in keeps everything else',
+     sec('e-live').includes('data-id="plain"'));
+
+  /**
+   * The pointer is a link and nothing else: no fold, no priority buttons, and no anchor of its
+   * own. Two elements carrying one id would make the address find whichever the browser prefers,
+   * and the item it points at is the one that should answer.
+   */
+  const ref = (sec('e-broken').match(/<a class="ref"[\s\S]*?<\/a>/) ?? [''])[0];
+  ok('the pointer is a link, not an item', ref.startsWith('<a class="ref"'));
+  ok('it carries no fold and no priority buttons',
+     !/<details|class="prio"/.test(ref), ref.slice(0, 120));
+  ok('and it owns no anchor, so the address still finds the item itself',
+     !/ id="n\d+"/.test(ref));
+  ok('Broken counts what it gathered',
+     /<h2 id="s-engine-e-broken">Broken <span class="c">1<\/span>/.test(html));
+
+  /**
+   * A fixed bug leaves Broken. The item stays in its own section's history the way everything
+   * else does, through the archive.
+   */
+  const mended = await build(fixture([
+    item({ id: 'abug', track: 'engine', section: 'e-live', kind: 'bug',
+      status: 'closed', closedAt: '2026-09-20T12:00:00-04:00' }),
+    item({ id: 'plain', track: 'engine', section: 'e-live', kind: 'feature' }),
+  ], SECS));
+  ok('a fixed bug is out of Broken',
+     /<h2 id="s-engine-e-broken">Broken <span class="c">0<\/span>/.test(mended.html));
+  ok('and in the archive', (mended.html.split('class="archive"')[1] ?? '').includes('data-id="abug"'));
+}
+
+/* ---------- the number is a column, not part of the title -------------------------------- */
+{
+  /**
+   * Reported on 2 October: the text overlaps with the ID column, the heading of the item should
+   * be in its own space. The number was inline with the title, so a title long enough to wrap
+   * put its second line underneath the number. The title has its own box now, and the two are
+   * columns of one grid.
+   */
+  const { html } = await build(fixture([
+    item({ id: 'a', track: 'engine', section: 'e-live', t: 'A title long enough to wrap twice over' }),
+  ], SECS));
+  ok('the title sits in a box of its own, after the number',
+     /<span class="t"><a class="n"[^>]*>#\d+<\/a><span class="tt">A title long enough/.test(html));
+  ok('and no title text is left loose beside the number',
+     !/<\/a>[^<]*[A-Za-z]/.test(html.split('class="t"')[1] ?? ''));
+}
+
 /* ---------- Broken is a place, whether or not anything is in it -------------------------- */
 {
   /**
@@ -140,13 +217,16 @@ console.log('\nThe backlog page\n');
    * in another section, which four real items do.
    */
   const { html, stderr } = await build(fixture([
-    item({ id: 'done-one', track: 'engine', section: 'e-broken', status: 'closed', closedAt: '2026-09-20T12:00:00-04:00' }),
-    item({ id: 'parent', track: 'engine', section: 'e-live' }),
-    item({ id: 'kid', track: 'engine', section: 'e-broken', parent: 'parent' }),
+    item({ id: 'done-one', track: 'engine', section: 'e-live', status: 'closed', closedAt: '2026-09-20T12:00:00-04:00' }),
+    item({ id: 'parent', track: 'engine', section: 'e-two' }),
+    item({ id: 'kid', track: 'engine', section: 'e-live', parent: 'parent' }),
   ], SECS));
   ok('the page builds at all', !!html, stderr.slice(0, 160));
+  /* Broken is empty here and says so with the same placeholder, so the question is asked of
+     the section that holds the subitem rather than of the page. */
+  const live = (html.split('id="s-engine-e-live"')[1] ?? '').split('<h2')[0];
   ok('a section with an unfinished subitem in it does not claim to be finished',
-     !/<p class="settled">/.test(html), (html.match(/<p class="settled">[^<]*/) ?? [''])[0]);
+     !live.includes('<p class="settled">'), live.slice(0, 120));
 }
 
 /* ---------- the committed page is the data ----------------------------------------------- */
