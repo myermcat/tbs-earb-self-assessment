@@ -213,7 +213,12 @@ position:absolute;left:.62rem;top:.62rem}
 .item[open]>summary::before{content:'\\25BE'}
 .item>summary:hover{background:var(--surface-2)}
 .item>summary:hover::before{color:var(--ink-2)}
-.item .t{font-weight:640;font-size:.93rem;min-width:0;text-wrap:pretty}
+/* The number has a column and the title has a column. Reported as: the text overlaps with the
+   ID column, the heading of the item should be in its own space. It was inline with the title,
+   so a title long enough to wrap put its second line under the number. */
+.item .t{font-weight:640;font-size:.93rem;min-width:0;text-wrap:pretty;
+display:grid;grid-template-columns:2.6rem minmax(0,1fr);gap:0 .5rem;align-items:baseline}
+.item .tt{min-width:0}
 .under{display:block;font-weight:500;font-size:.72rem;color:var(--ink-3);margin-bottom:.1rem}
 
 /* An opened item: its own block, set in from the title, with air under it so it does not run
@@ -248,9 +253,18 @@ border:1px solid;border-radius:999px;padding:.07rem .42rem;white-space:nowrap}
 /* The number sits in front of the title and is meant to be read when it is wanted and skipped
    when it is not, so it is monospaced, quiet, and it does not move the title when it widens
    from two digits to three. */
-.n{font:600 .68rem/1 var(--mono);color:var(--ink-3);text-decoration:none;margin-right:.45rem;
-display:inline-block;min-width:2.3rem;vertical-align:.08em}
+.n{font:600 .68rem/1 var(--mono);color:var(--ink-3);text-decoration:none;justify-self:start}
 .n:hover,.n:focus-visible{color:var(--accent);text-decoration:underline}
+/* A pointer at an item that lives further down. Flat, no fold, no buttons, and set lighter than
+   a row, so the eye reads the whole section as a gathering rather than as work of its own. */
+.ref{display:grid;grid-template-columns:2.6rem minmax(0,1fr) auto;gap:0 .5rem;align-items:baseline;
+padding:.5rem .6rem .5rem 1.5rem;text-decoration:none;color:var(--ink-2);font-size:.88rem;
+font-weight:560;border-top:1px solid var(--line)}
+.card>.ref:first-child{border-top:0}
+.ref .tt{min-width:0;text-wrap:pretty}
+.ref:hover,.ref:focus-visible{background:var(--surface-2);color:var(--ink)}
+.ref:hover .n,.ref:focus-visible .n{color:var(--accent)}
+.refmarks{display:flex;gap:.25rem}
 /* Arrived at from an address: held long enough to be found on a long page, then let go. */
 .row.found>.item{background:var(--accent-soft);border-radius:6px;
 box-shadow:0 0 0 2px var(--accent-line)}
@@ -449,6 +463,26 @@ function prio(i) {
     + '</div>';
 }
 
+/**
+ * A row in Broken is a pointer at the real item, not a second copy of it.
+ *
+ * Asked for on 2 October: in the broken tab I want them to look unclickable, and clicking one
+ * scrolls the page down to that item, so you can see straight away that they are pulled
+ * together from below rather than being items of their own.
+ *
+ * So it does not fold open, it carries no priority buttons and it owns no anchor. Everything
+ * you can do to a bug you do where the bug lives, one place, which is also why nothing here is
+ * counted twice: these are not .row elements, so the counts along the bottom never see them.
+ */
+function pointer(i) {
+  const st = statusOf(i);
+  const mark = STATUS[st] ? `<span class="chip st-${st}">${STATUS[st]}</span>` : '';
+  return `<a class="ref" href="#n${i.n}" data-ref="${esc(i.id)}" data-status="${st}" `
+    + `data-kind="${i.kind}" data-golive="${i.golive}" data-group="false">`
+    + `<span class="n">#${i.n}</span><span class="tt">${esc(i.t)}</span>`
+    + `<span class="refmarks">${mark}</span></a>`;
+}
+
 function row(i, tabId) {
   const kids = kidsOf(i.id).sort(order);
   const body = (i.why ? `<div class="why">${esc(i.why)}</div>` : '')
@@ -474,9 +508,8 @@ function row(i, tabId) {
    */
   const num = `<a class="n" href="#n${i.n}"${tabId === 'golive' && i.track !== 'golive' ? '' : ` id="n${i.n}"`}`
     + ` title="Item ${i.n}. Refer to it as #${i.n}.">#${i.n}</a>`;
-  const title = parent
-    ? `<span class="t">${num}<span class="under">${esc(parent.t)}</span>${esc(i.t)}</span>`
-    : `<span class="t">${num}${esc(i.t)}</span>`;
+  const text = parent ? `<span class="under">${esc(parent.t)}</span>${esc(i.t)}` : esc(i.t);
+  const title = `<span class="t">${num}<span class="tt">${text}</span></span>`;
   const inner = body
     ? `<details class="item"><summary>${title}${chips(i, tabId)}</summary>${body}</details>`
     : `<div class="item"><div class="plain">${title}${chips(i, tabId)}</div></div>`;
@@ -519,10 +552,31 @@ const panes = tracks.map((tr) => {
          * reading settled off that list would call a section finished while a subitem in it was
          * still open. Eleven sections hold children and two of them hold more than eight.
          */
-        const mine = archive ? [] : items.filter((i) => i.track === tr.id && i.section === s.id);
+        /**
+         * BROKEN IS WHATEVER CARRIES THE BUG MARK, AND NOTHING IS FILED INTO IT BY HAND.
+         *
+         * Reported on 2 October: the items we put the bug tag on are not in Broken, and it
+         * should not be a manual thing. It was. A bug was marked a bug and also had to be filed
+         * in the right section, so four open bugs sat under The assessor, Saving and storage,
+         * The submitter and French while Broken stood empty on three tabs.
+         *
+         * A bug is drawn in Broken and not in its topical section, so it is in one place on the
+         * tab rather than two. The section it carries still says what it is about, which is what
+         * puts it on the right tab and what the Done archive keeps it under once it is fixed.
+         *
+         * Children are left where they are. A child draws tucked under its parent, so pulling
+         * one out would take it away from the thing it is a piece of.
+         */
+        const bug = (i) => i.kind === 'bug' && !i.parent;
+        const broken = /-broken$/.test(s.id);
+        const mine = archive ? []
+          : broken ? items.filter((i) => i.track === tr.id && bug(i))
+            : items.filter((i) => i.track === tr.id && i.section === s.id);
         const rows = archive
           ? items.filter((i) => i.track === tr.id && i.status === 'closed' && !i.parent).sort(order)
-          : rowsIn(s.id, tr.id).filter((i) => i.status !== 'closed');
+          : broken
+            ? items.filter((i) => i.track === tr.id && bug(i) && i.status !== 'closed').sort(order)
+            : rowsIn(s.id, tr.id).filter((i) => i.status !== 'closed');
         /**
          * A SECTION EMPTIED BY FINISHING ITS CONTENTS IS NOT A SECTION THAT NEVER EXISTED.
          *
@@ -552,20 +606,20 @@ const panes = tracks.map((tr) => {
          * first time and was reported in those words. A reader looking for what is broken has
          * one place to look on every tab, and an empty one answers the question.
          */
-        const fixed = /-broken$/.test(s.id);
+        const fixed = broken;
         return { s, rows, fixed, settled: settled || (fixed && mine.length === 0) };
       }).filter((x) => x.rows.length || x.settled || x.fixed);
   const nav = drawn.map(({ s, rows }) =>
     `<a href="#s-${esc(tr.id)}-${esc(s.id)}" data-sec="s-${esc(tr.id)}-${esc(s.id)}">`
     + `<span>${esc(s.title)}</span><span class="c">${rows.length}</span></a>`).join('');
   const body = drawn.length
-    ? drawn.map(({ s, rows, settled }) => {
+    ? drawn.map(({ s, rows, settled, fixed }) => {
       const head = `<h2 id="s-${esc(tr.id)}-${esc(s.id)}">${esc(s.title)} <span class="c">${rows.length}</span></h2>`;
       // Empty, and it says nothing. The heading and its count are the whole message; a
       // sentence explaining why a section is empty is the page talking about itself.
       const card = settled
         ? '<div class="card"><p class="settled"></p></div>'
-        : `<div class="card">${rows.map((i) => row(i, tr.id)).join('')}</div>`;
+        : `<div class="card">${rows.map((i) => (fixed ? pointer(i) : row(i, tr.id))).join('')}</div>`;
       /**
        * Done is an archive and it is the longest list on the page. Asked for directly: we want
        * the whole heading toggled, and closed by default. So the heading is the control.
@@ -698,7 +752,10 @@ const SCRIPT = `<script>
       var n = arch
         ? arch.querySelectorAll('.card > .row').length
         : (card ? [].slice.call(card.children).filter(function (r) {
-          return r.classList && r.classList.contains('row');
+          // A pointer in Broken counts for its own heading, which is answering how many things
+          // are broken. The bar along the bottom reads .row only, so the item it points at is
+          // still counted once, where it lives.
+          return r.classList && (r.classList.contains('row') || r.classList.contains('ref'));
         }).length : 0);
       var c = h.querySelector('.c');
       if (c) c.textContent = String(n);
@@ -751,6 +808,9 @@ const SCRIPT = `<script>
       b.setAttribute('aria-pressed', String(b.dataset.filter === filter));
     });
     document.querySelectorAll('.pane').forEach(function (pane) {
+      pane.querySelectorAll('.card > .ref').forEach(function (r) {
+        r.hidden = !!filter && !MATCH[filter](r);
+      });
       pane.querySelectorAll('.card > .row').forEach(function (r) {
         // A heading stays when something under it matches, or the thing you filtered for
         // disappears along with its own title.
@@ -771,8 +831,11 @@ const SCRIPT = `<script>
         if (link) link.hidden = !left;
         // Under a filter the heading says how many of the section you are looking at, because a
         // count that keeps reporting the whole section is describing rows that are not there.
+        // A pointer in Broken counts for its own heading, because that heading is answering
+        // how many things are broken. It counts nowhere else: the bar along the bottom reads
+        // .row only, so the item it points at is counted once, where it lives.
         var top = card ? [].slice.call(card.children).filter(function (r) {
-          return r.classList && r.classList.contains('row');
+          return r.classList && (r.classList.contains('row') || r.classList.contains('ref'));
         }) : [];
         var all = top.length;
         var some = top.filter(function (r) { return filter && MATCH[filter](r); }).length;
