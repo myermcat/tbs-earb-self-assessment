@@ -1962,11 +1962,8 @@ console.log('\nThe published build, signed in\n');
   row.dispatchEvent(new dom.window.MouseEvent('click', { bubbles: true }));
   await new Promise((r) => setTimeout(r, 120));
 
-  /**
-   * On the full view, because the question this fixture audits is not flagged and the screen an
-   * assessor opens on carries only what is.
-   */
-  // The questions are on the submission's own page; the tab chooses which of them.
+  // Every question is on the submission's own page, flagged or not, so the one this fixture
+  // audits is already here.
   [...doc.querySelectorAll('.assess-tabs .tab')].find((b) => /All questions/.test(b.textContent))
     ?.dispatchEvent(new dom.window.MouseEvent('click', { bubbles: true }));
   await new Promise((r) => setTimeout(r, 60));
@@ -2255,7 +2252,17 @@ console.log('\nThe published build, signed in\n');
   const said = body(doc);
   ok('the name of the tool goes to the list', !!doc.querySelector('.triage') && !doc.querySelector('.crumbs'),
      said.slice(0, 140));
-  ok('and the submission is not put back over it', !said.includes('Audit these'), said.slice(0, 140));
+  /**
+   * Named against something the page can still say.
+   *
+   * This read !said.includes('Audit these'), which was the heading of the flagged view. That
+   * view is gone, so nothing anywhere can print those words and the check could not fail
+   * however broken the behaviour was. What it is actually about is whether the questions came
+   * back with the list, so it counts them.
+   */
+  ok('and the submission is not put back over it',
+     doc.querySelectorAll('.audit-row').length === 0,
+     `${doc.querySelectorAll('.audit-row').length} question rows on the list`);
   dom.window.close();
 }
 
@@ -2660,14 +2667,14 @@ console.log('\nA submission is a place you can go back from\n');
 
 {
   /**
-   * A link to the third tab, opened by somebody for whom that tab does not exist.
+   * A link to the filter, opened by somebody for whom that filter does not exist.
    *
    * Audited by others is drawn only where somebody else has written on a question, and whose
    * work counts as somebody else's depends on who is reading: l.others excludes the reader's
    * own audit. So the one assessor who is guaranteed NOT to see that tab on a submission is the
    * assessor who wrote the thing the tab is listing.
    *
-   * Which is exactly who the link gets sent to. A copies the address from the third tab and
+   * Which is exactly who the link gets sent to. A copies the filtered address and
    * sends it to B to ask about a note; B wrote that note, so for B there is nothing in it.
    */
   const one = submission('AB12', 'Licensing Renewal');

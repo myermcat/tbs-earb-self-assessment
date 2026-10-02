@@ -1146,10 +1146,12 @@ function sectionHead(
  * stays on the front, because it is the record of what this assessor has already decided and
  * it belongs with the summary of the thing.
  *
- * So: 'overview' is the submission, with a door marked Assessment. 'needs' is the anomalies,
- * which is the screen the tool was built around. 'all' is the assessment laid out the way the
- * department filled it in. The last two are two tabs of one place, because they are two ways
- * of reading the same work, and the sign-off sits under both.
+ * So: 'overview' is the submission, with a door marked Assessment, and 'all' is the assessment
+ * laid out the way the department filled it in - every question, in that order, with the
+ * flagged ones marked where they sit. There was a third, 'needs', which was the anomalies on
+ * their own and the screen the tool was built around; it went on 2 October, when 111 of 176
+ * questions on a real submission turned out to carry a finding. The sign-off is under the
+ * questions either way.
  *
  * It is one function because every part of it is computed from the same twenty locals. Three
  * functions would be three copies of that arithmetic.
@@ -1178,14 +1180,14 @@ function openDetail(rubric: Rubric, root: HTMLElement, l: Loaded, asked: Depth =
    *
    * Audited by others is drawn only where somebody else has written on a question, and whose
    * work counts as somebody else's depends on who is reading: l.others leaves out the reader's
-   * own. So the one assessor guaranteed not to see that tab on a submission is the assessor who
-   * wrote the thing it lists — and that is exactly who the link gets sent to. One copies the
-   * address from the third tab to ask a colleague about a note, the colleague wrote the note,
-   * and for them there is nothing in it.
+   * own. So the one assessor guaranteed not to see that filter on a submission is the assessor
+   * who wrote the thing it lists — and that is exactly who the link gets sent to. One copies
+   * the filtered address to ask a colleague about a note, the colleague wrote the note, and for
+   * them there is nothing behind it.
    *
-   * Before the address carried the depth this could not happen, because the only way to the tab
-   * was pressing it. Now it is asked for, it is answered: the submission opens on the tab
-   * everybody has, and the address is corrected so it stops naming one that is not there.
+   * Before the address carried the depth this could not happen, because the only way to the
+   * filter was pressing it. Now it is asked for, it is answered: the submission opens on the
+   * whole list, which everybody has, and the address stops naming a filter that is not there.
    */
   const hasOthers = (l.others ?? []).some((o) => Object.values(o.perQuestion ?? {})
     .some((e) => typeof e.auditedScore === 'number' || e.verdict || (e.note ?? '').trim()));
@@ -1586,8 +1588,8 @@ function openDetail(rubric: Rubric, root: HTMLElement, l: Loaded, asked: Depth =
   /**
    * Whose version this is, and the ones before it.
    *
-   * On the full view and not on the list, because it is the question an assessor asks once they
-   * have decided to read something, not while they are scanning. The name is typed by whoever
+   * Inside a submission and not on the list, because it is the question an assessor asks once
+   * they have decided to read something, not while they are scanning. The name is typed by whoever
    * pressed save and checked by nobody, which is said here every time it is shown: the same
    * rule the assessor's own name has always lived under.
    *
