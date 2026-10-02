@@ -2242,6 +2242,10 @@ tr.row-open:focus-visible { outline: 2px solid var(--accent); outline-offset: -2
 /* Controls inside it keep their own cursor, because they do something else. */
 tr.row-open button, tr.row-open summary, tr.row-open label { cursor: pointer; }
 .audited-who { display: inline-block; max-width: 14rem; overflow-wrap: anywhere; }
+/* Nobody yet, almost down to the background. It is the answer on most rows, and a column of
+   the same three words at ordinary muted weight buries the names somebody is scanning for.
+   Mixed toward the surface rather than given a flat value, so it holds in both themes. */
+.audited-none { color: color-mix(in srgb, var(--ink-3) 60%, var(--surface)); }
 .audited-mine b { color: var(--accent); }
 /* The language link on a stripped-down screen, where the header carries nothing. */
 .card-lang { margin: 1rem 0 0; text-align: center; font-size: .85rem; }

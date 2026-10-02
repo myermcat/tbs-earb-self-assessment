@@ -1445,7 +1445,8 @@ function openDetail(rubric: Rubric, root: HTMLElement, l: Loaded, asked: Depth =
       },
     }, [label]);
     root.appendChild(el('nav', { class: 'card tight assess-tabs', 'aria-label': 'Which questions' }, [
-      tab(`All questions (${r.scoreable})`, 'all'),
+      // No count on it. There are 176 and knowing that changes nothing about which to press.
+      tab('All questions', 'all'),
       tab(`Audited by others (${othersOn.size})`, 'others'),
     ]));
   }
@@ -1703,7 +1704,16 @@ function flagCard(f: Flag): HTMLElement {
  */
 function auditedCell(l: Loaded): HTMLElement {
   const who = l.auditedBy ?? [];
-  if (!who.length) return el('span', { class: 'muted', title: 'Nobody has written an audit on this one' }, ['Nobody yet']);
+  /**
+   * Nobody yet is the quietest thing in the column, on purpose.
+   *
+   * It is the answer on most rows, so at the weight of ordinary muted text the column read as
+   * a wall of the same three words with the names an assessor is looking for buried in it.
+   * Asked for in those terms: way paler, almost merging with the background but still
+   * readable, so that something audited stands out. The names are left at full ink and the
+   * absence of one is what recedes.
+   */
+  if (!who.length) return el('span', { class: 'audited-none', title: 'Nobody has written an audit on this one' }, ['Nobody yet']);
   const title = `Audited by ${who.join(', ')}`;
   if (!l.auditedByMe) return el('span', { class: 'audited-who', title }, [who.join(', ')]);
   const others = who.length - 1;

@@ -42,6 +42,25 @@ to add the line, and the assistant followed it instead of this.
 and say so in the reply.** The work is hers, under her name, on a Government of Canada project
 that gets handed to colleagues.
 
+## Merge your own work. Do not ask
+
+Branch, open the pull request, wait for the checks, **merge it, and delete the branch**. The
+pull request is where the work is recorded and the checks are the review; it is not a request
+for her attention. Say in the reply what landed, not that something is waiting.
+
+Asked for on 2 October, after two pull requests sat green for an hour each: merge yourself,
+figure those things out yourself, it is your work, I do not want to come back to each of your
+200 commits. A list of open pull requests is a list of things she has to hold in her head, and
+holding them is the job the branch was supposed to do.
+
+**What still goes to her**, and the test is whether merging it would surprise her: a change she
+has not asked for and would not expect, one that undoes a decision she made, anything that
+deletes a department's data or touches `deploy/firestore.rules`, and publishing. Those are not
+"ask before merging" - they are "do not build it without asking first".
+
+If a session's own permissions refuse the merge, say so plainly in the reply and name what is
+waiting. Do not route it through another session; that is their user's decision, not hers.
+
 ## Every folder, and what is in it
 
 This list exists because it was missing. A session asked to work on the concept case read a
