@@ -896,10 +896,10 @@ export const items = [
     why: "Somebody leaves, or a file needs a second pair of eyes.",
   },
   {
-    id: "clear-test-submissions", track: "engine", section: "e-admin", kind: "feature",
-    status: "open", priority: "low", owner: "ours", golive: false, parent: "admin-actions",
+    id: "clear-test-submissions", track: "engine", section: "e-admin", kind: "chore",
+    status: "open", priority: "low", owner: "ours", golive: false,
     t: "Clear out test submissions",
-    why: "Dan raised it and parked it.",
+    why: "Dan raised it and parked it.\n\nTHERE ARE EIGHT OF THEM NOW, and they are the only records in the store that nobody at a department made. Every one carries meta.appVersion “seed”, which is what tells a made-up submission from a real one, and none carries an owner address, so no account is attached to any of them.\n\nSeeded 28 September: SB4T-XCAL-PRPS Marine Licensing Renewal, WTJA-NRST-N9Y8 Benefits Payment Modernization, K9K3-WVG2-7TEN Grants and Contributions Intake.\n\nSeeded 2 October: L8P7-44PT-C8XP Digital Credentials Wallet, XRL2-B9Q2-P9C2 Case Management Modernization, TDGN-754W-KVQN Payroll Data Hub, BVY6-PMLE-3D86 Legacy Grants Portal, HFNL-M7JL-ZPNU Immigration Appointment Booking.\n\ntools/seed-submissions.mjs writes the second five and prints the codes. Running it again writes nothing, because each code is worked out from the initiative name and the store refuses a document that already exists.\n\nWhoever clears them can do it by code, and the appVersion field is the check that nothing real goes with them.",
   },
   {
     id: "twelve-month-questions-dan", track: "engine", section: "e-exec", kind: "feature",
