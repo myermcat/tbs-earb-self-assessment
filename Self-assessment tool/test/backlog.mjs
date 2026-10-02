@@ -109,6 +109,25 @@ console.log('\nThe backlog page\n');
      !html.includes('s-engine-e-never'));
 }
 
+/* ---------- Broken is a place, whether or not anything is in it -------------------------- */
+{
+  /**
+   * Reported on 2 October: administrative still does not have its Broken tab. Nothing had ever
+   * been filed under it, so the rule above dropped it and that tab was the only one without the
+   * heading. Every other never-used section stays dropped.
+   */
+  const { html } = await build(fixture([
+    item({ id: 'a', track: 'engine', section: 'e-live' }),
+  ], SECS));
+  ok('Broken is drawn on a tab where nothing has ever broken',
+     /<h2 id="s-engine-e-broken">Broken <span class="c">0<\/span>/.test(html));
+  ok('and it is empty, with nothing said about why',
+     html.includes('<p class="settled"></p>'));
+  ok('and it still comes first', (html.match(/<h2 id="s-engine-([a-z-]+)">/) ?? [])[1] === 'e-broken');
+  ok('while a never-used section that is not Broken stays out',
+     !html.includes('s-engine-e-never'));
+}
+
 /* ---------- a subitem counts, even though it does not draw as a row ---------------------- */
 {
   /**

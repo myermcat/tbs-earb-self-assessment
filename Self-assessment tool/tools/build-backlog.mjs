@@ -540,8 +540,21 @@ const panes = tracks.map((tr) => {
          * nothing to have been done with.
          */
         const settled = !archive && mine.length > 0 && mine.every((i) => i.status === 'closed');
-        return { s, rows, settled };
-      }).filter((x) => x.rows.length || x.settled);
+        /**
+         * BROKEN IS A FIXED PLACE ON EVERY TAB, INCLUDING ONE WHERE NOTHING HAS EVER BROKEN.
+         *
+         * Reported on 2 October: administrative still does not have its Broken tab. It had
+         * never held an item, so the rule above dropped it, and the tab was missing a heading
+         * that all three of the others carry.
+         *
+         * The rule above is still right for every other section. Broken is the exception
+         * because its absence is read as the page having lost it, which is what happened the
+         * first time and was reported in those words. A reader looking for what is broken has
+         * one place to look on every tab, and an empty one answers the question.
+         */
+        const fixed = /-broken$/.test(s.id);
+        return { s, rows, fixed, settled: settled || (fixed && mine.length === 0) };
+      }).filter((x) => x.rows.length || x.settled || x.fixed);
   const nav = drawn.map(({ s, rows }) =>
     `<a href="#s-${esc(tr.id)}-${esc(s.id)}" data-sec="s-${esc(tr.id)}-${esc(s.id)}">`
     + `<span>${esc(s.title)}</span><span class="c">${rows.length}</span></a>`).join('');
