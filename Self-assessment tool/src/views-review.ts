@@ -1156,17 +1156,28 @@ function openDetail(rubric: Rubric, root: HTMLElement, l: Loaded, asked: Depth =
        * and put it above the name of the thing it is about.
        */
       (() => {
+        /**
+         * Your own face carries your own initials, and the sentence still says You.
+         *
+         * It took the initials from the word in the sentence, so every assessor's own circle
+         * read YO. A face is somebody's initials: whose it is comes from the account, and
+         * You is only how the sentence refers to them.
+         */
+        const me = currentUser()?.email ?? auditor;
         const mine = Object.keys(audit.perQuestion).length > 0;
         const who = [
-          ...(mine ? [{ name: 'You', mine: true }] : []),
-          ...(l.others ?? []).map((x) => ({ name: x.reviewerName?.trim() || x.reviewer, mine: false })),
+          ...(mine ? [{ name: 'You', from: me || 'You', mine: true }] : []),
+          ...(l.others ?? []).map((x) => {
+            const name = x.reviewerName?.trim() || x.reviewer;
+            return { name, from: name, mine: false };
+          }),
         ];
         if (!who.length) {
           return el('p', { class: 'byline none-yet' }, ['Not audited']);
         }
         return el('p', { class: 'byline', title: `Audited by ${who.map((x) => x.name).join(', ')}` }, [
           el('span', { class: 'faces', 'aria-hidden': true }, who.map((x) =>
-            el('span', { class: `face ${x.mine ? 'mine' : ''}` }, [initialsFor(x.name)]))),
+            el('span', { class: `face ${x.mine ? 'mine' : ''}` }, [initialsFor(x.from)]))),
           el('span', {}, [`Audited by ${who.map((x) => x.name).join(', ')}`]),
         ]);
       })(),
