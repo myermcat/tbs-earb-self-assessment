@@ -2618,6 +2618,16 @@ console.log('\nA submission is a place you can go back from\n');
 
   ok('a tab leads to what the others wrote', tabs.some((t) => /Audited by others/.test(t)), tabs.join(' | '));
   ok('and says how many questions that is', tabs.some((t) => /\(1\)/.test(t)), tabs.join(' | '));
+  /**
+   * The count is on the filter and not on the whole list.
+   *
+   * A count says how much a filter is hiding, which is the thing worth knowing before pressing
+   * it. On the other one it was the size of the assessment, which is the same number on every
+   * submission and changes nothing about which to press. Asked for in those words: I do not
+   * need to know how many questions.
+   */
+  ok('and the whole list carries no count', tabs.some((t) => t.trim() === 'All questions'),
+     tabs.join(' | '));
 
   [...doc.querySelectorAll('.assess-tabs .tab')].find((t) => /Audited by others/.test(t.textContent))
     .dispatchEvent(new dom.window.MouseEvent('click', { bubbles: true }));

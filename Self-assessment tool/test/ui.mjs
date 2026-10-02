@@ -1594,6 +1594,23 @@ byText('.tab', 'Submissions').click();
 await new Promise((r) => setTimeout(r, 100));
 
 ok('submission appears in the triage list', !!q('table.triage tbody tr'));
+/**
+ * Nobody yet recedes, so a name does not have to compete with it.
+ *
+ * jsdom lays nothing out, so this reads the stylesheet: the empty answer must have a rule of
+ * its own and it must not be the ordinary muted grey that everything else quiet uses. Asked
+ * for as: way paler, almost merging with the background, but still readable.
+ */
+{
+  const sheet = html.slice(html.indexOf('<style'), html.indexOf('</style>'));
+  const rule = (sheet.match(/\.audited-none\s*\{[^}]*\}/) ?? [''])[0];
+  ok('the empty audited cell has a colour of its own', /color:/.test(rule), rule || 'no rule');
+  ok('and it is mixed down toward the surface rather than the ordinary muted ink',
+     /color-mix\(/.test(rule) && /--surface/.test(rule) && !/--ink-2/.test(rule), rule);
+  ok('and the cell that says nobody yet is the one using it',
+     /Nobody yet/.test(q('.audited-none')?.textContent ?? ''),
+     q('table.triage tbody tr')?.textContent?.slice(0, 60));
+}
 ok('restored from the session this browser keeps', !!q('table.triage tbody tr'));
 ok('triage row names the initiative', q('table.triage tbody tr').textContent.includes('Nexus'));
 /**
