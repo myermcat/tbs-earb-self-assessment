@@ -49,9 +49,10 @@ async function build(data, TZ) {
   return { html, stdout: out.stdout ?? '', stderr: out.stderr ?? '' };
 }
 
+let serial = 0;
 const item = (o) => ({
   kind: 'bug', status: 'open', priority: 'medium', owner: 'ours', golive: false,
-  t: 'A thing', why: 'Because.', ...o,
+  t: 'A thing', why: 'Because.', n: ++serial, ...o,
 });
 
 const fixture = (items, sections) => `
@@ -230,6 +231,41 @@ console.log('\nThe backlog page\n');
    * matched, and the runner in UTC rendered four bytes of different hours and failed. The zones
    * are named now, and these two builds are what says so.
    */
+  /**
+   * The number is the short name of an item, so it has to be there, be unique, and be findable.
+   *
+   * An item is drawn twice when it also blocks going live — once in the first tab and once in
+   * its own — and the number goes with it, so only one of the two may carry the anchor. Two
+   * elements with one id is a page where the address finds whichever the browser prefers.
+   */
+  const anchors = [...live.matchAll(/ id="n(\d+)"/g)].map((m) => m[1]);
+  const uniq = new Set(anchors);
+  ok('every item carries a number you can link to', anchors.length > 0);
+  ok('and no number is an anchor twice', anchors.length === uniq.size,
+     `${anchors.length} anchors, ${uniq.size} distinct`);
+
+  /**
+   * Every number links somewhere. An item drawn in two tabs has two links and one anchor on
+   * purpose, so the test is that each href has a home, not that the two counts match.
+   */
+  const hrefs = new Set([...live.matchAll(/href="#n(\d+)"/g)].map((m) => m[1]));
+  const homeless = [...hrefs].filter((n) => !uniq.has(n));
+  ok('every number links to an item that exists on the page', homeless.length === 0,
+     homeless.slice(0, 5).map((n) => `#${n}`).join(', '));
+
+  const dup = await build(fixture([
+    { ...item({ id: 'a', track: 'engine', section: 'e-broken' }), n: 7 },
+    { ...item({ id: 'b', track: 'engine', section: 'e-live' }), n: 7 },
+  ], SECS));
+  ok('two items sharing a number stops the build',
+     !dup.html && /belongs to/.test(dup.stderr), dup.stderr.slice(0, 140));
+
+  const none = await build(fixture([
+    { ...item({ id: 'a', track: 'engine', section: 'e-broken' }), n: undefined },
+  ], SECS));
+  ok('and so does an item with no number at all',
+     !none.html && /no number/.test(none.stderr), none.stderr.slice(0, 140));
+
   const data2 = await readFile(join(ROOT, 'NOTES', 'backlog.data.mjs'), 'utf8');
   for (const TZ of ['UTC', 'Asia/Tokyo']) {
     const elsewhere = await build(data2, TZ);
