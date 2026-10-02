@@ -1618,6 +1618,15 @@ ok('a KPI row summarises the submission', qa('.kpi').length === 5, String(qa('.k
 ok('and how much of it is filled in comes first',
    qa('.kpi')[0]?.textContent?.includes('complete'), qa('.kpi')[0]?.textContent);
 ok('the questions are on the same page', view().includes('Audit these'));
+/**
+ * The score an assessor gave is said once.
+ *
+ * It was on the question's heading as "you: 4" and again in the controls a few lines below as
+ * "you: 4, they said 8", which is the same fact twice and the shorter one is the less useful.
+ */
+ok('a changed score is not said twice on one question',
+   qa('.audit-row.changed .q-head .delta').length === 0,
+   String(qa('.audit-row.changed .q-head .delta').length));
 ok('with two tabs over them', qa('.assess-tabs .tab').length === 2,
    qa('.assess-tabs .tab').map((t) => t.textContent).join(' | '));
 ok('named for what they hold',

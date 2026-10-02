@@ -1276,6 +1276,12 @@ export const items = [
     why: "Asked for on 1 October: always say EARB rather than Enterprise Architecture. It is the name in the rubric file, so it reaches the header, the tab title, every email subject the tool writes and the printed one-pager from one line.",
   },
   {
+    id: "flagged-questions-view-is-messy", track: "engine", section: "e-assessor",
+    kind: "bug", status: "open", priority: "high", owner: "ours", golive: false,
+    t: "The flagged questions view is a mess",
+    why: "Reported on 1 October: it is currently very messy, probably all of them under assessment, and that last part is a guess at the answer rather than the answer.\n\nWhat is on that tab: a heading saying how many questions need a look, then the findings that belong to no question, then one card per finding with the questions it covers folded inside it, then the questions that carry a finding of their own. A question that belongs to two findings is listed under both. So the same question can be scored in two places on one screen, the nesting is three deep in places, and the order is by finding rather than by anything a department would recognise.\n\nThe other two tabs do not have this shape. All questions and Audited by others are both one card per domain with the questions inside, in the order the department answered them, which is the order the submitter filled them in and the order the printed one-pager uses.\n\nThe likely answer is that this tab becomes the same shape and the finding moves onto the question rather than the question sitting under the finding, which is where a finding is already shown in the other two tabs. What that costs is the aggregate findings, the ones that are about a set of questions rather than one, and those need somewhere to go rather than being dropped.\n\nNot started, and the shape is worth agreeing before it is built.",
+  },
+  {
     id: "no-link-to-one-question", track: "engine", section: "e-assessor",
     kind: "feature", status: "open", priority: "medium", owner: "ours", golive: false,
     t: "There is no way to send somebody one question",
