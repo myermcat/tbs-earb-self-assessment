@@ -1,5 +1,4 @@
 import { classRank, type Assessment, type AuditEntry, type Rubric } from './types';
-import { refOf } from './storage';
 import { el, clear, tone, bar } from './dom';
 import { allQuestionScores, score, triageOrder, type QuestionScore, type Result, type SectionScore } from './scoring';
 import { t } from './i18n';
@@ -788,10 +787,10 @@ function paintList(rubric: Rubric, root: HTMLElement) {
       noteHead('State', 'The submitter says this about their own assessment', 'left',
                [el('span', { class: 'th-sub' }, ['self-marked by submitter'])]),
       el('th', {}, ['Department']), el('th', {}, ['Marking']),
-      noteHead('Code and set',
-               'Evidence emails quote it in their subject line, so searching for it finds '
-               + 'everything sent about this assessment.\n'
-               + 'It is the start of the twelve-character access code.'),
+      noteHead('Set',
+               'Which version of the question set this department answered.\n'
+               + 'Two assessments answered against different versions are not comparable, '
+               + 'and a row that is not says so.'),
       el('th', {}, ['Stage']), el('th', {}, ['Score']), el('th', {}, ['Routing']),
       el('th', {}, ['Must ask']), el('th', {}, ['Evidence']), el('th', {}, ['Complete']),
       // Its own column, because "has anybody looked at this" is a fact about the row and was
@@ -893,12 +892,18 @@ function paintList(rubric: Rubric, root: HTMLElement) {
       ]),
       el('td', {}, [l.a.initiative?.department ?? '--']),
       el('td', { class: 'small' }, [l.a.initiative?.classification || 'unmarked']),
-      // Two facts, one under the other. Side by side they read as one string, and "ZZ99 1.0-dan"
-      // is not a thing anybody has.
+      /**
+       * The four-character chip is gone with the reference it showed.
+       *
+       * It was the first four characters of the access code, and it was there because evidence
+       * email subjects quoted them. They do not any more: a subject carries the initiative's
+       * name, which is the first column of this table. So the chip named a thing that appeared
+       * nowhere else, which is a column asking a reader to learn something for nothing.
+       *
+       * The whole code is still one press away in the row menu, where anybody who wants it goes
+       * deliberately.
+       */
       el('td', { class: 'small mono' }, [
-        l.a.id
-          ? el('div', {}, [el('span', { class: 'ref-chip mono' }, [refOf(l.a)])])
-          : null,
         el('div', { class: 'dim' }, [
           l.a.rubric.version,
           l.substituted

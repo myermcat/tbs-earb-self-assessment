@@ -300,8 +300,11 @@ ok('the assessment has a code from the moment it exists',
    /[A-Z2-9]{4}-[A-Z2-9]{4}-[A-Z2-9]{4}/.test(view().replace(/\s+/g, ' ')), view().slice(0, 120));
 ok('shown as something you can copy, not as text', !!q('.ov-block .code-chip button'));
 ok('and says renaming does not change it', view().includes('if you rename the initiative'));
-ok('and says what the four characters in an email subject are for',
-   view().includes('first four characters'), view().slice(0, 200));
+// The code is not in a subject line at all now, and the screen says so rather than explaining
+// a four-character reference nobody recognised.
+ok('and says the code stays out of email subjects',
+   view().includes('Nothing that opens the assessment travels in a subject line'),
+   view().slice(0, 200));
 
 // Step one: the four plain facts.
 {
@@ -364,12 +367,20 @@ byText('.gate-marks .mark-btn', 'Protected B').click();
   ok('and it names the marking that triggered it',
      dlg.querySelector('.pledge-head h2').textContent.includes('Protected B'),
      dlg.querySelector('.pledge-head h2')?.textContent);
-  // The first version of this line read "EARB evidence - m - [question]", which meant
-  // nothing to anybody. It names what it is, which initiative, and which question.
-  // The subject carries the question and a code that never changes. It used to carry the
-  // initiative name, which meant renaming the initiative invalidated every sent email.
-  ok('the subject line names the question and a permanent code',
-     /^EARB evidence [A-Z2-9]{4}, question B-Q14$/.test(dlg.querySelector('.pledge-subject').textContent),
+  /**
+   * The subject names the initiative and the question, and carries no code.
+   *
+   * It used to carry the first four characters of the access code, so a rename could not strand
+   * mail already sent. Two assessments share four characters about four times in a hundred once
+   * there are three hundred of them, nobody recognised what they were, and four characters of a
+   * twelve-character credential is a third of a password that cannot be withdrawn. A rename now
+   * splits the mail trail on the day it happens, which is the smaller cost and is its own item.
+   */
+  ok('the subject line names the initiative and the question',
+     /^EARB evidence for .+, question B-Q14$/.test(dlg.querySelector('.pledge-subject').textContent),
+     dlg.querySelector('.pledge-subject')?.textContent);
+  ok('and carries nothing that opens the assessment',
+     !/[A-Z2-9]{4}, question/.test(dlg.querySelector('.pledge-subject').textContent),
      dlg.querySelector('.pledge-subject')?.textContent);
   ok('and says the real one is written for them per question',
      dlg.textContent.includes('That is an example'));
@@ -1066,7 +1077,7 @@ ok('and offers the email route', !!byText('.ev-alt button', 'cannot be linked'))
   const loc = qa('.question').find((n) => n.textContent.includes('hosting environment'))
     .querySelector('.ev-row2 input[type=text]');
   ok('which fills in a findable subject line',
-     /^Emailed to the assessor\. Subject: EARB evidence [A-Z2-9]{4}, question T-Q1$/.test(loc.value),
+     /^Emailed to the assessor\. Subject: EARB evidence for .+, question T-Q1$/.test(loc.value),
      loc.value);
   {
     // And the line is there to copy, so nobody retypes it and loses the question number.
