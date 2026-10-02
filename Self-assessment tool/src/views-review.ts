@@ -12,7 +12,7 @@ import { rubricFor } from './library';
 import { confirmStep } from './confirm';
 import { SAD_CAT } from './cat';
 import { ICON_DOWN } from './icons';
-import { addressOf, currentUser, formatCode, listAudits, putAudit, type AssessorAudit } from './firebase';
+import { addressOf, currentUser, formatCode, listAudits, putAudit, setWithdrawn, type AssessorAudit } from './firebase';
 import { isHosted, poolRecords, type PoolAnswer } from './store';
 import { repaint } from './views-submit';
 import { nameIsChecked } from './who';
@@ -755,7 +755,16 @@ function paintList(rubric: Rubric, root: HTMLElement) {
    * report this came from: "6 submissions, weakest first" so why is Legacy code check last. It
    * was both of the other two at once, a draft with no score.
    */
-  const rows = triageOrder(loaded);
+  /**
+   * Withdrawn records go to the foot, after the drafts.
+   *
+   * They used to be scattered through the work with nothing saying so, because this list reads
+   * the store and the store returns them like anything else: the only screen that told them
+   * apart was the portfolio's own copy of this table, which is gone. A record somebody took
+   * out of the counting is not work, and it is here so it can be put back.
+   */
+  const rows = triageOrder(loaded)
+    .sort((x, y) => Number(!!x.a.withdrawnAt) - Number(!!y.a.withdrawnAt));
 
   /**
    * Twelve columns, given widths instead of left to fight each other.
@@ -793,17 +802,41 @@ function paintList(rubric: Rubric, root: HTMLElement) {
   ]);
   const tb = el('tbody', {});
   /**
-   * Ready and draft are two groups, and the eye should find the join without being told.
+   * THE GROUPS ARE NAMED, NOT IMPLIED.
    *
-   * The list is sorted ready first and a sentence used to say so. The sort is visible; what was
-   * not visible is where one group stops, so the first draft row carries a rule above it and
-   * the drafts are dimmed.
+   * Ready work, drafts and withdrawn records were told apart by a hairline rule and a lower
+   * contrast, which is a hint rather than a statement: an assessor arriving at a dimmed row
+   * halfway down has to work out what it is dim for. Reported as: drafts need to be more
+   * clearly separated from the finished ones. So each group carries a heading row that says
+   * what the rows under it are and how many, the way a mail client bands a list by date.
+   *
+   * The band says what the group IS, not what to do about it: a draft is somebody's work in
+   * progress and scoring one is the mistake the State column already exists to prevent.
    */
-  let wasReady: boolean | null = null;
+  const bands: Record<string, string> = {
+    ready: 'Marked ready to review',
+    draft: 'Drafts, which the department has not marked ready',
+    withdrawn: 'Withdrawn, and out of every number on the portfolio',
+  };
+  const groupOf = (l: Loaded) =>
+    l.a.withdrawnAt ? 'withdrawn' : l.a.meta?.submittedAt ? 'ready' : 'draft';
+  const sizes = rows.reduce<Record<string, number>>(
+    (n, l) => ({ ...n, [groupOf(l)]: (n[groupOf(l)] ?? 0) + 1 }), {});
+  let wasGroup: string | null = null;
   for (const l of rows) {
-    const ready = !!l.a.meta?.submittedAt;
-    const breaks = wasReady === true && !ready;
-    wasReady = ready;
+    const group = groupOf(l);
+    const ready = group === 'ready';
+    // A band is not drawn over the first group when it is the only one: a list that is all
+    // finished work does not need a heading saying the whole of it is finished work.
+    if (group !== wasGroup && !(wasGroup === null && Object.keys(sizes).length === 1)) {
+      tb.appendChild(el('tr', { class: `group-band band-${group}` }, [
+        el('td', { colspan: '13' }, [
+          el('span', { class: 'band-name' }, [bands[group]]),
+          el('span', { class: 'band-count' }, [String(sizes[group])]),
+        ]),
+      ]));
+    }
+    wasGroup = group;
     const highs = l.fs.filter((f) => f.severity === 'high').length;
     /**
      * The row opens the submission, and the button that used to is gone.
@@ -818,10 +851,12 @@ function paintList(rubric: Rubric, root: HTMLElement) {
       openDetail(l.rubric, root, l);
     };
     tb.appendChild(el('tr', {
-      class: `row-open ${ready ? '' : 'is-draft'} ${breaks ? 'group-break' : ''}`,
+      class: `row-open row-${group} ${ready ? '' : 'is-draft'}`,
       tabindex: 0,
       role: 'link',
-      title: `Open ${l.a.initiative?.name || l.file}`,
+      title: l.a.meta?.updatedAt
+        ? `Open ${l.a.initiative?.name || l.file}. Last changed ${new Date(l.a.meta.updatedAt).toLocaleString()}`
+        : `Open ${l.a.initiative?.name || l.file}`,
       onclick: openThis,
       onkeydown: (e: Event) => {
         const k = (e as KeyboardEvent).key;
@@ -844,7 +879,12 @@ function paintList(rubric: Rubric, root: HTMLElement) {
       el('td', { class: 'small' }, [
         // One word, because a three-word badge in a narrow column wraps into a shape that
         // reads as broken. The date is on the hover, where a date belongs.
-        l.a.meta?.submittedAt
+        l.a.withdrawnAt
+          ? el('span', {
+              class: 'badge badge-warn tag',
+              title: `Taken out of the portfolio on ${new Date(l.a.withdrawnAt).toLocaleString()}`,
+            }, ['Withdrawn'])
+          : l.a.meta?.submittedAt
           ? el('span', {
               class: 'badge tag',
               title: `Marked ready to review on ${new Date(l.a.meta.submittedAt).toLocaleString()}`,
@@ -887,14 +927,48 @@ function paintList(rubric: Rubric, root: HTMLElement) {
           el('details', { class: 'set-menu row-menu' }, [
             el('summary', { class: 'set-menu-btn', 'aria-label': 'More actions', title: 'More actions' }, ['\u22EF']),
             el('div', { class: 'set-menu-pop' }, [
+              // One way in, because there is one view. These were "Open what needs you" and
+              // "Open the full submission" when the submission had two tabs, and after the
+              // flagged one went they were two labels for the same click.
               el('button', {
                 class: 'menu-item',
                 onclick: () => openDetail(l.rubric, root, l),
-              }, ['Open what needs you']),
-              el('button', {
-                class: 'menu-item',
-                onclick: () => openDetail(l.rubric, root, l, 'all'),
-              }, ['Open the full submission']),
+              }, ['Open it']),
+              /**
+               * Withdrawing, which was only on the portfolio's own copy of this list.
+               *
+               * It is the move somebody wants when a test submission is cluttering the
+               * portfolio, and it belongs on the row it is about rather than on a second list
+               * of the same records. Nothing is deleted: the record comes out of every average
+               * and every ranked list, goes to the foot of this one under its own heading, and
+               * any assessor can put it back. Its access code keeps working throughout.
+               */
+              l.a.id && isHosted()
+                ? el('button', {
+                    class: 'menu-item',
+                    onclick: () => {
+                      const out = !!l.a.withdrawnAt;
+                      const name = l.a.initiative?.name || 'this assessment';
+                      confirmStep({
+                        tier: out ? 'plain' : 'caution',
+                        title: out ? `Count ${name} again?` : `Stop counting ${name}?`,
+                        body: out
+                          ? 'It goes back into every average and every ranked list, exactly as it was.'
+                          : 'It comes out of every average and every ranked list, and stays at the foot of this one so it can be put back. Nothing in it is changed or removed, and its access code keeps working.',
+                        note: out ? undefined
+                          : 'This is the one to use for a test submission. Deleting is in the danger zone and cannot be undone.',
+                        commitLabel: out ? 'Count it again' : 'Stop counting it',
+                        cancelLabel: 'Cancel',
+                        onCommit: () => {
+                          void setWithdrawn(l.a.id as string, !out).then(() => {
+                            l.a.withdrawnAt = out ? undefined : new Date().toISOString();
+                            repaint();
+                          }, (e: Error) => alert(e.message));
+                        },
+                      });
+                    },
+                  }, [l.a.withdrawnAt ? 'Count it again' : 'Stop counting it'])
+                : null,
               el('div', { class: 'menu-sep' }),
               l.a.id
                 /**

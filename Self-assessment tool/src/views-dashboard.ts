@@ -1,9 +1,7 @@
 import type { Assessment, Rubric } from './types';
-import { setWithdrawn } from './firebase';
 import { el, clear, tone, bar } from './dom';
 import { score, isRedFlag, allQuestionScores, type Result } from './scoring';
 import { csvHeader, csvRow, toCsv } from './csv';
-import { confirmStep } from './confirm';
 import { flags } from './flags';
 import { download } from './storage';
 import { isHosted, listRecords, sourceLine, type StoredRecord } from './store';
@@ -38,14 +36,11 @@ function paint(
   clear(root);
 
   /**
-   * Withdrawn records stay in the list and out of every statistic.
-   *
-   * The comment above this said exactly that while the code filtered them out of the list too,
-   * so a record pulled out of the portfolio could never be put back by anybody looking at the
-   * portfolio. Withdrawing is the reversible move and it is only reversible if it stays visible.
+   * A withdrawn record is out of every number on this page and still on the submissions list,
+   * at the foot of it, where it can be put back. Withdrawing is the reversible move and it is
+   * only reversible while it is visible somewhere.
    */
   const live = records.filter((rec) => rec.status !== 'withdrawn');
-  const withdrawn = records.filter((rec) => rec.status === 'withdrawn');
   const rows: Row[] = live.map((rec) => {
     const r = score(rubric, rec.assessment);
     const redFlags = allQuestionScores(r).filter(isRedFlag).length;
@@ -179,108 +174,26 @@ function paint(
     cuts.appendChild(byCategory);
   }
 
-  // The records themselves, weakest first: the list is a worklist, not an alphabet.
-  const table = el('table', { class: 'detail' }, [
-    el('thead', {}, [el('tr', {}, [
-      el('th', {}, ['Initiative']), el('th', {}, ['Department']), el('th', {}, ['Stage']),
-      el('th', {}, ['Score']), el('th', {}, ['Band']), el('th', {}, ['Answered']),
-      // "No" was the whole heading over a count of red flags, which reads as a yes-or-no column
-      // and answers a question nobody asked.
-      el('th', { title: 'Answers scored high with nothing behind them' }, ['Red flags']),
-      el('th', {}, ['State']), el('th', {}, ['Updated']), el('th', {}, ['']),
-    ])]),
-  ]);
-  const body = el('tbody', {});
-  // Weakest first, then the withdrawn ones at the foot: the list is a worklist, and a record
-  // nobody is counting is not work. It is there so it can be put back.
-  const ordered = [
-    ...[...rows].sort((a, b) => (a.r.overall ?? 99) - (b.r.overall ?? 99)),
-    ...withdrawn.map((rec) => {
-      const r = score(rubric, rec.assessment);
-      return { rec, r, redFlags: allQuestionScores(r).filter(isRedFlag).length };
-    }),
-  ];
-  for (const row of ordered) {
-    const a = row.rec.assessment;
-    // Records come from a store, and a store holds whatever was written to it. One document
-    // saved by an older version, or half-written, must not take the whole portfolio down.
-    const about = a.initiative ?? {};
-    const isOut = row.rec.status === 'withdrawn';
-    body.appendChild(el('tr', { class: `${row.redFlags && !isOut ? 'red-flag' : ''} ${isOut ? 'withdrawn-row' : ''}` }, [
-      el('td', {}, [about.name || el('span', { class: 'muted' }, ['(unnamed)'])]),
-      el('td', {}, [about.department || '--']),
-      el('td', {}, [about.lifecycleStage || '--']),
-      el('td', { class: tone(row.r.overall) }, [row.r.overall === null ? '--' : row.r.overall.toFixed(1)]),
-      el('td', { class: 'small' }, [row.r.band?.label ?? '--']),
-      el('td', { class: 'small' }, [`${Math.round(row.r.completeness * 100)}%`]),
-      el('td', { class: 'small' }, [row.redFlags ? String(row.redFlags) : '']),
-      el('td', { class: 'small' }, [state(row.rec)]),
-      el('td', { class: 'small muted' }, [when(row.rec.updatedAt)]),
-      /**
-       * An admin can delete a record, and has to type the initiative name to do it. Copied
-       * from the way GitHub deletes a repository, for the reason that pattern exists: a
-       * prototype accumulates test submissions, and a confirmation somebody can agree to by
-       * reflex stops being one.
-       */
-      el('td', {}, [
-        el('details', { class: 'set-menu row-menu' }, [
-          el('summary', { class: 'set-menu-btn', title: 'More', 'aria-label': 'More actions' }, ['\u22EF']),
-          el('div', { class: 'set-menu-pop' }, [
-        /**
-         * Withdrawing, which is the move somebody actually wants when a test submission is
-         * cluttering the portfolio.
-         *
-         * It takes the record out of every statistic and leaves it whole: nobody's answers,
-         * evidence or audited scores are touched, and any assessor can put it back. That is
-         * what keeps it out of the danger zone and beside the record it is about. Deleting is
-         * below it, behind the separator, and cannot be undone by anybody.
-         */
-        el('button', {
-          class: 'menu-item',
-          onclick: () => {
-            const id = a.id;
-            if (!isHosted() || !id) {
-              alert('This record is not in a shared store, so the portfolio is not counting it anyway.');
-              return;
-            }
-            const out = row.rec.status === 'withdrawn';
-            confirmStep({
-              tier: out ? 'plain' : 'caution',
-              title: out
-                ? `Count ${a.initiative?.name || 'this assessment'} again?`
-                : `Stop counting ${a.initiative?.name || 'this assessment'}?`,
-              body: out
-                ? 'It goes back into every average and every ranked list, exactly as it was.'
-                : 'It comes out of every average and every ranked list, and stays at the foot of this table so it can be put back. Nothing in it is changed or removed, and its access code keeps working.',
-              note: out ? undefined
-                : 'This is the one to use for a test submission. Deleting is further down this menu and cannot be undone.',
-              commitLabel: out ? 'Count it again' : 'Stop counting it',
-              cancelLabel: 'Cancel',
-              onCommit: () => {
-                void setWithdrawn(id, !out).then(
-                  () => renderDashboard(root, rubric, sessionFiles),
-                  (e: Error) => alert(e.message),
-                );
-              },
-            });
-          },
-        }, [row.rec.status === 'withdrawn' ? 'Count it again' : 'Stop counting it']),
-        /**
-         * Deleting is not here any more.
-         *
-         * Reported as: deletion should not be from a portfolio, but from the danger zone, that
-         * is the whole reason for having it. Withdrawing stays, because it removes nothing and
-         * any assessor can undo it.
-         */
-          ]),
-        ]),
-      ]),
-    ]));
-  }
-  table.appendChild(body);
+  /**
+   * THE LIST OF RECORDS IS NOT HERE ANY MORE. IT IS THE SUBMISSIONS TAB.
+   *
+   * Asked, and the answer is that there was no argument for it: why do we have it in the
+   * portfolio view if we have exactly the same thing in submissions. It was the same records,
+   * from the same read, in the same worklist order - weakest first, which is the second of the
+   * two rules the submissions list already sorts by - with a thinner set of columns and no way
+   * into a submission. Two lists of one thing is two places to keep in step, and the one that
+   * loses is always the one somebody forgets.
+   *
+   * Three things were only here, and all three went to the list rather than being dropped.
+   * Withdrawn records, which the submissions list showed undifferentiated among the work.
+   * Withdrawing and putting back, which is the move somebody wants when a test submission is
+   * cluttering the portfolio, and which belongs on the row it is about. And when a record was
+   * last touched, which is on the row's hover.
+   *
+   * What is left on this page is the only thing that is not a list: the numbers over all of
+   * the records at once, and the file of all of them.
+   */
   root.appendChild(el('section', { class: 'card' }, [
-    el('h2', {}, ['Every record, weakest first']),
-    el('div', { class: 'table-wrap' }, [table]),
     el('div', { class: 'actions' }, [
       el('button', {
         class: 'ghost',
@@ -296,6 +209,7 @@ function paint(
       }, ['Export the portfolio as CSV']),
     ]),
   ]));
+
 
   // What this role can do that an assessor cannot, and what nobody has decided yet.
   root.appendChild(el('section', { class: 'card' }, [
@@ -334,19 +248,6 @@ function barRow(label: string, sub: string, v: number | null): HTMLElement {
     ]),
     el('div', { class: `bar-num ${tone(v)}` }, [v === null ? '--' : v.toFixed(1)]),
   ]);
-}
-
-function state(rec: StoredRecord): HTMLElement | string {
-  if (rec.status === 'audited') return el('span', { class: 'badge' }, ['audited']);
-  if (rec.status === 'submitted') return el('span', { class: 'badge' }, ['submitted']);
-  if (rec.status === 'withdrawn') return el('span', { class: 'badge badge-warn' }, ['withdrawn']);
-  return el('span', { class: 'muted' }, ['draft']);
-}
-
-function when(iso: string): string {
-  if (!iso) return '--';
-  const d = new Date(iso);
-  return Number.isNaN(d.getTime()) ? '--' : d.toISOString().slice(0, 10);
 }
 
 function kpi(value: string, label: string): HTMLElement {

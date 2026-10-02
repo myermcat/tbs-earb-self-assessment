@@ -89,7 +89,7 @@ function routeToHash(r: Route): string {
     // Each depth is its own address, so Back between them goes where it looks as though it
     // should and a link opens the list somebody meant to send.
     const open = r.open ? `/${r.open}${r.depth && r.depth !== 'all' ? `/${r.depth}` : ''}` : '';
-    return r.mode === 'admin' ? '#assessor/admin'
+    return r.mode === 'admin' ? '#assessor/portfolio'
       : r.mode === 'settings' ? `#assessor/settings${pane}`
       : `#assessor${open}`;
   }
@@ -102,7 +102,13 @@ function hashToRoute(hash: string): Route {
   const h = hash.replace(/^#/, '');
   if (!h) return { side: 'submit', mode: 'home' };
   if (h === 'assessor') return { side: 'assess', mode: 'review' };
-  if (h === 'assessor/admin') return { side: 'assess', mode: 'admin' };
+  /**
+   * The screen is Portfolio, and it always was: the heading on it has said so since it was
+   * written. It was reached at /admin and labelled Admin, which named a role rather than the
+   * thing on screen - and the tab is not an admin's, because every assessor is granted it.
+   * The old address still works, because somebody has it in a bookmark or a message.
+   */
+  if (h === 'assessor/portfolio' || h === 'assessor/admin') return { side: 'assess', mode: 'admin' };
   /**
    * A submission. Matched by the shape of a code rather than by being something this function
    * does not otherwise recognise: a mistyped address should open the list, not a submission
@@ -867,7 +873,7 @@ function header(bare = false): HTMLElement {
             // appears once the role has come back and grants this side.
             !firebaseConfigured() || grantsAccess(knownRole()) ? chev() : null,
             !firebaseConfigured() || grantsAccess(knownRole())
-              ? tab(t('Admin', 'Administration'), 'admin')
+              ? tab(t('Portfolio', 'Portefeuille'), 'admin')
               : null,
           ])
         : el('nav', { class: 'path', 'aria-label': t('Where you are', 'Où vous êtes') }, [
