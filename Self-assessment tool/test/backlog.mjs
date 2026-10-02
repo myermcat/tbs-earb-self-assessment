@@ -193,6 +193,32 @@ console.log('\nThe backlog page\n');
   ok('and a bare date says it is only a ceiling', /class="when"[^>]*>by Sep 28</.test(exact.html));
   ok('the ceiling says as much when you hover it',
      /title="Finished on or before September 28, 2026/.test(exact.html));
+
+  /**
+   * The column is 4rem, which is 64px, and the widest label rendered today is 'by Sep 28' at
+   * 50.1px measured in a browser at 375, 800 and 1400 wide. This counts characters instead,
+   * because nothing in the suite has a layout engine: jsdom returns zero for every width, which
+   * is how a column was last shipped too narrow. Nine characters is the measured ceiling.
+   *
+   * What this is guarding against is a format change rather than a date. Putting the time of day
+   * back into the label, or spelling the month out, doubles the string and the column does not
+   * move, and the first thing anybody sees is marks overlapping the title beside them.
+   *
+   * Nine rests on one decision rather than on anything about dates: the builder asks for en-CA
+   * by name, and this page stays English on purpose, which backlog.data.mjs says in as many
+   * words beside the access code and the question ids. Short months are three letters only in
+   * that locale. fr-CA gives 'by 28 juill.' at twelve, and even en-GB gives 'by 28 Sept' at ten,
+   * so the day somebody makes this page bilingual, or just changes the locale, the check fires.
+   * It is firing correctly. Re-measure the column and move both numbers together; raising this
+   * one on its own is how the labels end up over the titles again.
+   */
+  const live = await readFile(join(ROOT, 'NOTES', 'backlog.html'), 'utf8');
+  const labels = [...live.matchAll(/class="when"[^>]*>([^<]+)</g)].map((m) => m[1]);
+  const longest = labels.sort((a, b) => b.length - a.length)[0] ?? '';
+  ok('every finish label fits the column it was measured for',
+     labels.length > 0 && longest.length <= 9,
+     `${labels.length} labels, longest ${JSON.stringify(longest)} at ${longest.length} characters. `
+     + 'Re-measure the fifth column in tools/build-backlog.mjs before widening this.');
 }
 
 console.log(fails ? `\n${fails} backlog check(s) failed\n` : '\nthe page keeps its sections\n');
