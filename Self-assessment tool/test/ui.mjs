@@ -1470,10 +1470,11 @@ ok('the real route is shown but not wired',
      q('.side-badge').textContent.includes('Allison') && q('.side-badge').textContent.includes('unverified'),
      q('.side-badge')?.textContent);
   // Signed in, the full header comes back.
-  ok("the assessor's path is Submissions then Admin",
-     qa('nav.path .tab').map((t) => t.textContent).join('|') === 'Submissions|Admin',
+  ok("the assessor's path is Submissions then Portfolio",
+     qa('nav.path .tab').map((t) => t.textContent).join('|') === 'Submissions|Portfolio',
      qa('nav.path .tab').map((t) => t.textContent).join('|'));
-  ok('the assessor path offers an admin view', !!byText('.tab', 'Admin'));
+  // Named for what is on it rather than for a role: every assessor is granted this tab.
+  ok('the assessor path offers the portfolio', !!byText('.tab', 'Portfolio'));
   ok('the submitter path is gone from the assessor view',
      !qa('nav.path .tab').some((t) => /Start|Fill it in|My results/.test(t.textContent)));
 }
@@ -1595,6 +1596,28 @@ await new Promise((r) => setTimeout(r, 100));
 ok('submission appears in the triage list', !!q('table.triage tbody tr'));
 ok('restored from the session this browser keeps', !!q('table.triage tbody tr'));
 ok('triage row names the initiative', q('table.triage tbody tr').textContent.includes('Nexus'));
+/**
+ * Nothing on a row destroys anything.
+ *
+ * Reported as: deletion should not be from a portfolio, but from the danger zone, that is the
+ * whole reason for having it. This moved here with the row menu it is about, when the
+ * portfolio stopped keeping a second copy of this list.
+ */
+{
+  const menu = q('table.triage .row-menu');
+  ok('a submission row carries a menu', !!menu);
+  menu.open = true;
+  const items = qa('table.triage .row-menu .menu-item').map((b) => b.textContent.trim());
+  // One way in. These were "Open what needs you" and "Open the full submission" while a
+  // submission had two tabs, and after the flagged one went they were one click under two names.
+  ok('and offers one way into the submission',
+     items.filter((x) => /^Open/.test(x)).length === 1, items.join(' | '));
+  ok('and no row deletes anything, because deleting is in the danger zone',
+     !items.some((x) => /delete/i.test(x)), items.join(' | '));
+  ok('and nothing in it is drawn as destroying',
+     !qa('table.triage .row-menu .menu-item').some((b) => b.classList.contains('menu-danger')));
+  menu.open = false;
+}
 
 byText('button', 'Open').click();
 /**
@@ -1802,9 +1825,9 @@ ok('audited file keeps the self-score alongside the audited one',
 {
   // The admin view is the portfolio dashboard. It reads the records asynchronously, because
   // the same call becomes one request the day a store exists.
-  byText('.tab', 'Admin').click();
+  byText('.tab', 'Portfolio').click();
   await new Promise((r) => setTimeout(r, 0));
-  ok('the admin view is a portfolio dashboard', view().includes('Portfolio'));
+  ok('the portfolio view is a portfolio dashboard', view().includes('Portfolio'));
   ok('it admits nothing is hosted yet', view().includes('Not hosted yet'));
   ok('and says exactly what it can see', view().includes('Showing:'));
   ok('and says the submission opened this session is what it is reading',
@@ -1872,47 +1895,32 @@ ok('audited file keeps the self-score alongside the audited one',
        catNames.length > 0 && disagree.length === 0,
        disagree.map(([n, v]) => `${n}: portfolio ${v}, results ${categoryOnResults.get(n)}`).join(' | '));
   }
-  ok('the records are listed weakest first, in one table',
-     view().includes('Every record, weakest first') && qa('table.detail tbody tr').length > 0,
+  /**
+   * THE PORTFOLIO DOES NOT HOLD A SECOND LIST OF THE RECORDS.
+   *
+   * Asked, and there was no argument for it: why do we have it in the portfolio view if we have
+   * exactly the same thing in submissions. It was the same records, from the same read, in the
+   * same worklist order, with fewer columns and no way into a submission. What is on this page
+   * is what is not a list - the numbers over all the records at once, and the file of them.
+   */
+  ok('the portfolio holds no second list of the records',
+     qa('table.detail').length === 0 && !view().includes('Every record, weakest first'),
      String(qa('table.detail tbody tr').length));
+  ok('and still offers the whole portfolio as a file',
+     !!byText('button', 'Export the portfolio as CSV'));
   ok('nothing about the roll-up is stored, so it cannot go stale',
      !view().includes('last calculated'));
-  {
-    /**
-     * The reversible move comes first in the menu, and the one that cannot be undone is behind
-     * a separator below it.
-     *
-     * Asked for as: I should be able to remove garbage or testing ones so they do not mess up
-     * the portfolio. Withdrawing is that, and it is not deletion: the record keeps every answer,
-     * every piece of evidence and every audited score, its access code keeps working, and any
-     * assessor can put it back. That is why it sits beside the record rather than in the danger
-     * zone, which is for the things that cannot be undone.
-     */
-    q('table.detail .row-menu').open = true;
-    {
-      const items = qa('.row-menu .set-menu-pop .menu-item').map((b) => b.textContent.trim());
-      ok('the row offers to stop counting a record', items.includes('Stop counting it'),
-         items.join(' | '));
-      /**
-       * And no row deletes anything. Reported as: deletion should not be from a portfolio, but
-       * from the danger zone, that is the whole reason for having it.
-       */
-      ok('and no row deletes anything, because deleting is in the danger zone',
-         !items.some((x) => /delete/i.test(x)), items.join(' | '));
-      ok('and nothing in the row menu is drawn as destroying',
-         !qa('.row-menu .set-menu-pop .menu-item').some((b) => b.classList.contains('menu-danger')));
-      /**
-       * What the window says is asserted in test/hosted.mjs, because with no store there is
-       * nothing to withdraw from and the control says so rather than opening.
-       */
-    }
-
-    /**
-     * Deleting used to be here, behind a typed initiative name. It is in the danger zone now,
-     * asks for the access code, and does not print the code it asks for. Driven in
-     * test/hosted.mjs, where there is a store with something in it to delete.
-     */
-  }
+  /**
+   * Withdrawing moved to the row it is about, on the submissions list.
+   *
+   * It was on the portfolio's own copy of that list, which is gone. It is driven in
+   * test/hosted.mjs, because it only appears where there is a store to withdraw from: on a
+   * build with none it used to be a control that opened a window saying it could not work.
+   *
+   * What stays asserted here is that no row anywhere destroys anything. Reported as: deletion
+   * should not be from a portfolio, but from the danger zone, that is the whole reason for
+   * having it.
+   */
   ok('the admin-only actions are listed, with what is built marked',
      view().includes('Admin actions') && view().includes('Mostly not built')
      && view().includes('Question sets'));

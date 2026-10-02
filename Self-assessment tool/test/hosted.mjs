@@ -454,14 +454,14 @@ console.log('\nThe published build, signed in\n');
   // delete button, and Firestore did the refusing after the click.
   const { doc, dom, seen } = await boot({ session: live, side: 'assess' });
   ok('the role is asked for', seen.some((r) => r.href.includes('/roles/')));
-  ok('and a submitter is not offered the admin tab',
-     !/Admin/.test(body(doc)), body(doc).slice(0, 140));
+  ok('and a submitter is not offered the portfolio tab',
+     !/Portfolio/.test(body(doc)), body(doc).slice(0, 140));
   dom.window.close();
 }
 
 {
   const { doc, dom } = await boot({ session: live, side: 'assess', role: 'admin' });
-  ok('an admin is', /Admin/.test(body(doc)), body(doc).slice(0, 140));
+  ok('an admin is', /Portfolio/.test(body(doc)), body(doc).slice(0, 140));
   dom.window.close();
 }
 
@@ -760,7 +760,8 @@ console.log('\nThe published build, signed in\n');
        /background:\s*var\(--sev\)/.test(dot), dot);
   }
 
-  const rows = [...doc.querySelectorAll('.triage tbody tr')];
+  // The heading rows that band the list are not submissions, so they are not read as any.
+  const rows = [...doc.querySelectorAll('.triage tbody tr')].filter((tr) => !tr.classList.contains('group-band'));
   const cell = (tr) => tr.children[1]?.textContent?.trim();
   ok('a marked assessment says it is ready', rows.some((tr) => /^Ready$/.test(cell(tr))),
      rows.map(cell).join(' | '));
@@ -771,6 +772,22 @@ console.log('\nThe published build, signed in\n');
      rows.map(cell).join(' | '));
   ok('and the ready one is listed first, because that is the work',
      /^Ready$/.test(cell(rows[0])), cell(rows[0]));
+  /**
+   * And the two groups are named rather than implied.
+   *
+   * Reported as: drafts need to be more clearly separated from the finished ones. A hairline
+   * rule and a lower contrast are a hint; an assessor arriving at a dimmed row halfway down
+   * had to work out what it was dim for.
+   */
+  {
+    const bands = [...doc.querySelectorAll('.triage tbody tr.group-band')].map((r) =>
+      r.textContent.replace(/\s+/g, ' ').trim());
+    ok('each group carries a heading that says what it is',
+       bands.some((b) => /ready to review/i.test(b)) && bands.some((b) => /Drafts/i.test(b)),
+       bands.join(' | ') || 'no bands');
+    ok('and how many are in it',
+       bands.every((b) => /\d/.test(b)), bands.join(' | '));
+  }
 
   /**
    * The same cut by category the submitter gets, on the assessor's side of the same answers.
@@ -1218,17 +1235,25 @@ console.log('\nThe published build, signed in\n');
    * request the tool actually sends is masked to that one field. An assessor who could rewrite a
    * department's answers while tidying the portfolio is the failure it exists to prevent.
    */
+  /**
+   * It is driven from the submissions list, because that is where the rows are. The portfolio
+   * kept a second copy of this list and the control was only on that copy; the list is gone and
+   * the control came to the row it is about.
+   */
   const rows = [submission('AB12', 'Real Work'), submission('CD34', 'Test Submission')];
   const { doc, dom, seen } = await boot({
-    session: live, side: 'assess', role: 'assessor', hash: '#assessor/admin',
+    session: live, side: 'assess', role: 'assessor',
     listAnswer: { documents: rows.map(asDoc) },
   });
-  const menu = doc.querySelector('table.detail .row-menu');
-  ok('the portfolio row carries a menu', !!menu, doc.querySelector('main')?.textContent?.slice(0, 120));
+  await new Promise((r) => setTimeout(r, 120));
+  const menu = doc.querySelector('table.triage .row-menu');
+  ok('the submission row carries a menu', !!menu, doc.querySelector('main')?.textContent?.slice(0, 120));
   menu.open = true;
   const items = [...menu.querySelectorAll('.menu-item')].map((b) => b.textContent.trim());
-  ok('and offers to stop counting the record before it offers to delete it',
-     items.indexOf('Stop counting it') === 0, items.join(' | '));
+  ok('and offers to stop counting the record, under the way in',
+     items.indexOf('Stop counting it') === 1, items.join(' | '));
+  ok('and offers nothing that destroys anything',
+     !items.some((x) => /delete/i.test(x)), items.join(' | '));
 
   [...menu.querySelectorAll('.menu-item')].find((b) => /Stop counting it/.test(b.textContent)).click();
   await new Promise((r) => setTimeout(r, 40));
@@ -1249,6 +1274,20 @@ console.log('\nThe published build, signed in\n');
      !!patch && /updateMask\.fieldPaths=withdrawnAt/.test(patch.href), patch?.href ?? 'no PATCH sent');
   ok('and it is sent against the record that was chosen',
      !!patch && new RegExp(`assessments/${codeFor('AB12')}\\?`).test(patch.href), patch?.href ?? '');
+
+  /**
+   * And the row goes to the foot of the list, under a heading that says what it is now.
+   *
+   * A withdrawn record used to sit among the work with nothing marking it, because the only
+   * screen that told it apart was the portfolio's copy of this table.
+   */
+  const bands = [...doc.querySelectorAll('table.triage tr.group-band')].map((r) => r.textContent);
+  ok('the list gains a band for withdrawn records',
+     bands.some((b) => /Withdrawn/.test(b)), bands.join(' | ') || 'no bands');
+  const order = [...doc.querySelectorAll('table.triage tbody tr')].map((r) =>
+    r.classList.contains('group-band') ? `[${r.textContent.replace(/\s+/g, ' ').trim().slice(0, 20)}]`
+      : r.classList.contains('row-withdrawn') ? 'withdrawn' : 'live');
+  ok('and the withdrawn one is last', order[order.length - 1] === 'withdrawn', order.join(' > '));
   dom.window.close();
 }
 
@@ -1918,7 +1957,7 @@ console.log('\nThe published build, signed in\n');
   const row = doc.querySelector('.triage tbody tr.row-open');
   ok('the row itself opens the submission', !!row);
   ok('and the menu still offers it in words',
-     [...doc.querySelectorAll('.row-acts .menu-item')].some((b) => /Open what needs you/.test(b.textContent)),
+     [...doc.querySelectorAll('.row-acts .menu-item')].some((b) => /^Open it$/.test(b.textContent.trim())),
      [...doc.querySelectorAll('.row-acts .menu-item')].map((b) => b.textContent).join(' | '));
   row.dispatchEvent(new dom.window.MouseEvent('click', { bubbles: true }));
   await new Promise((r) => setTimeout(r, 120));

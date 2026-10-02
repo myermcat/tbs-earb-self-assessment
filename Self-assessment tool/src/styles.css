@@ -2290,10 +2290,22 @@ tr.row-open button, tr.row-open summary, tr.row-open label { cursor: pointer; }
 .assess-tabs .tab.on { background: var(--surface-2); border-color: var(--line);
   color: var(--ink); font-weight: 600; }
 
-/* Ready first, then drafts. The join is a rule and the drafts sit back, so the two groups are
-   one glance rather than a sentence explaining the sort. */
-.triage tbody tr.group-break td { border-top: 2px solid var(--line-2); }
+/* Ready work, then drafts, then withdrawn records, each under a heading that says what it is.
+   A rule and a lower contrast were a hint: somebody arriving at a dimmed row halfway down the
+   list had to work out what it was dim for. The band says it, and the dimming stays as the
+   second signal for the rows themselves. */
+.triage tbody tr.group-band td { border-top: 2px solid var(--line-2); background: var(--surface-2);
+  padding: .45rem .55rem; font-size: .76rem; text-transform: uppercase; letter-spacing: .05em;
+  font-weight: 650; color: var(--ink-2); }
+.triage tbody tr.group-band:first-child td { border-top: 0; }
+/* Never the row-hover tint: a heading is not a thing you can open. */
+.triage tbody tr.group-band:hover td { background: var(--surface-2); }
+.triage tbody tr.group-band .band-count { display: inline-block; margin-left: .45rem;
+  padding: 0 .35rem; border-radius: var(--radius-sm); background: var(--surface);
+  border: 1px solid var(--line); font-family: var(--mono); letter-spacing: 0; }
 .triage tbody tr.is-draft td:first-child { color: var(--ink-2); }
+/* Out of every number on the portfolio, and it should not read as live work. */
+.triage tbody tr.row-withdrawn td { opacity: .62; }
 /* Where you are, as a path. */
 /* A path, not a panel. It sits above the page the way a breadcrumb does everywhere else, on
    one baseline, with the current place in plain weight rather than shouting. */
