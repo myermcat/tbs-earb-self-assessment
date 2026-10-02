@@ -1258,7 +1258,8 @@ th.has-note:focus-visible { outline: 2px solid var(--accent); outline-offset: 2p
   width: 15rem; max-width: calc(100vw - 1rem);
   /* A heading is uppercase and letter-spaced; a sentence read at that size is not. */
   font-weight: 400; font-size: .76rem; line-height: 1.4;
-  text-transform: none; letter-spacing: 0; text-align: left; white-space: normal;
+  /* pre-line, so a note can put a second fact on its own line and still wrap within each. */
+  text-transform: none; letter-spacing: 0; text-align: left; white-space: pre-line;
   color: var(--surface); background: var(--ink);
   padding: .45rem .55rem; border-radius: 6px;
   box-shadow: 0 6px 18px rgba(0, 0, 0, .22);

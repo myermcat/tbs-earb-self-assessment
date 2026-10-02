@@ -765,8 +765,8 @@ function paintList(rubric: Rubric, root: HTMLElement) {
       el('th', {}, ['Department']), el('th', {}, ['Marking']),
       noteHead('Code and set',
                'Evidence emails quote it in their subject line, so searching for it finds '
-               + 'everything sent about this assessment. It is the start of the '
-               + 'twelve-character code.'),
+               + 'everything sent about this assessment.\n'
+               + 'It is the start of the twelve-character access code.'),
       el('th', {}, ['Stage']), el('th', {}, ['Score']), el('th', {}, ['Routing']),
       el('th', {}, ['Must ask']), el('th', {}, ['Evidence']), el('th', {}, ['Complete']),
       // Its own column, because "has anybody looked at this" is a fact about the row and was
@@ -1648,11 +1648,8 @@ function auditRow(
       el('span', { class: `pill small ${tone(qs.raw)}` }, [qs.na ? 'n/a' : qs.raw === null ? '--' : String(qs.raw)]),
       el('span', { class: 'qid' }, [q.id]),
       el('span', { class: 'q-text' }, [q.text]),
-      wasChanged
-        ? el('span', { class: `delta ${(entry.auditedScore as number) > (ans?.score ?? 0) ? 'up' : 'down'}` }, [
-            `you: ${entry.auditedScore}`,
-          ])
-        : null,
+      // The score you gave is said once, by the controls, which say what the department gave
+      // beside it. This said half of the same thing a few lines above it.
       // Somebody else has written on this one. The same initials as the byline, so the mark
       // means the same thing wherever it is seen, and the reading itself is below.
       ...(() => {
