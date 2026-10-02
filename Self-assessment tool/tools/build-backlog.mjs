@@ -509,7 +509,7 @@ function prio(i) {
 }
 
 /**
- * A row in Broken is a pointer at the real item, not a second copy of it.
+ * A row in Bugs is a pointer at the real item, not a second copy of it.
  *
  * Asked for on 2 October: in the broken tab I want them to look unclickable, and clicking one
  * scrolls the page down to that item, so you can see straight away that they are pulled
@@ -590,7 +590,7 @@ function row(i, tabId) {
 const panes = tracks.map((tr) => {
   /**
    * The first tab is a view and not a place. Its headings are Dan's three categories, because
-   * grouping it by the same sections as everywhere else put two headings called Broken on one
+   * grouping it by the same sections as everywhere else put two headings called Bugs on one
    * page, which tells a reader nothing about which is which.
    */
   /**
@@ -622,28 +622,30 @@ const panes = tracks.map((tr) => {
          * still open. Eleven sections hold children and two of them hold more than eight.
          */
         /**
-         * BROKEN IS WHATEVER CARRIES THE BUG MARK, AND NOTHING IS FILED INTO IT BY HAND.
+         * BUGS IS WHATEVER CARRIES THE BUG MARK, AND NOTHING IS FILED INTO IT BY HAND.
          *
          * Reported on 2 October: the items we put the bug tag on are not in Broken, and it
          * should not be a manual thing. It was. A bug was marked a bug and also had to be filed
          * in the right section, so four open bugs sat under The assessor, Saving and storage,
          * The submitter and French while Broken stood empty on three tabs.
          *
-         * A bug is drawn in Broken and not in its topical section, so it is in one place on the
-         * tab rather than two. The section it carries still says what it is about, which is what
-         * puts it on the right tab and what the Done archive keeps it under once it is fixed.
+         * The bug itself stays in the section it was filed under, with everything you can do
+         * to it. What Bugs holds is a pointer at it, so the gathering is a view rather than a
+         * second copy and finishing a bug is still one edit in one place. The section it
+         * carries is what puts it on the right tab and what the Done archive keeps it under
+         * once it is fixed.
          *
          * Children are left where they are. A child draws tucked under its parent, so pulling
          * one out would take it away from the thing it is a piece of.
          */
         const bug = (i) => i.kind === 'bug' && !i.parent;
-        const broken = /-broken$/.test(s.id);
+        const isBugs = /-bugs$/.test(s.id);
         const mine = archive ? []
-          : broken ? items.filter((i) => i.track === tr.id && bug(i))
+          : isBugs ? items.filter((i) => i.track === tr.id && bug(i))
             : items.filter((i) => i.track === tr.id && i.section === s.id);
         const rows = archive
           ? items.filter((i) => i.track === tr.id && i.status === 'closed' && !i.parent).sort(order)
-          : broken
+          : isBugs
             ? items.filter((i) => i.track === tr.id && bug(i) && i.status !== 'closed').sort(order)
             : rowsIn(s.id, tr.id).filter((i) => i.status !== 'closed');
         /**
@@ -670,12 +672,12 @@ const panes = tracks.map((tr) => {
          * never held an item, so the rule above dropped it, and the tab was missing a heading
          * that all three of the others carry.
          *
-         * The rule above is still right for every other section. Broken is the exception
+         * The rule above is still right for every other section. Bugs is the exception
          * because its absence is read as the page having lost it, which is what happened the
          * first time and was reported in those words. A reader looking for what is broken has
          * one place to look on every tab, and an empty one answers the question.
          */
-        const fixed = broken;
+        const fixed = isBugs;
         return { s, rows, fixed, settled: settled || (fixed && mine.length === 0) };
       }).filter((x) => x.rows.length || x.settled || x.fixed);
   const nav = drawn.map(({ s, rows }) =>
@@ -822,7 +824,7 @@ const SCRIPT = `<script>
       var n = arch
         ? arch.querySelectorAll('.card > .row').length
         : (card ? [].slice.call(card.children).filter(function (r) {
-          // A pointer in Broken counts for its own heading, which is answering how many things
+          // A pointer in Bugs counts for its own heading, which is answering how many things
           // are broken. The bar along the bottom reads .row only, so the item it points at is
           // still counted once, where it lives.
           return r.classList && (r.classList.contains('row') || r.classList.contains('ref'));
@@ -901,7 +903,7 @@ const SCRIPT = `<script>
         if (link) link.hidden = !left;
         // Under a filter the heading says how many of the section you are looking at, because a
         // count that keeps reporting the whole section is describing rows that are not there.
-        // A pointer in Broken counts for its own heading, because that heading is answering
+        // A pointer in Bugs counts for its own heading, because that heading is answering
         // how many things are broken. It counts nowhere else: the bar along the bottom reads
         // .row only, so the item it points at is counted once, where it lives.
         var top = card ? [].slice.call(card.children).filter(function (r) {
@@ -1120,7 +1122,7 @@ const html = [
   '<footer class="foot"><div class="foot-in">',
   [
     ['open', 'open'], ['wait', 'waiting on somebody'], ['doing', 'doing'],
-    ['bug', 'broken'], ['question', 'questions'], ['closed', 'closed'],
+    ['bug', 'bugs'], ['question', 'questions'], ['closed', 'closed'],
   ].map(([k, label]) => `<button type="button" data-filter="${k}" aria-pressed="false">`
     + `<b id="n-${k}">0</b> ${esc(label)}</button>`).join(''),
   '<span class="sp" id="signed"></span>',

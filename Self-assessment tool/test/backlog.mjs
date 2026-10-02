@@ -51,9 +51,9 @@ async function build(data, TZ) {
 
 let serial = 0;
 /**
- * The default kind is 'feature' on purpose. Broken gathers everything marked 'bug' from
+ * The default kind is 'feature' on purpose. Bugs gathers everything marked 'bug' from
  * wherever it is filed, so a helper that made every fixture item a bug would pull every fixture
- * into Broken and the sections these tests are about would come out empty. A test that cannot
+ * into Bugs and the sections these tests are about would come out empty. A test that cannot
  * put an ordinary item in an ordinary section cannot ask its question.
  */
 const item = (o) => ({
@@ -69,7 +69,7 @@ export const items = ${JSON.stringify(items)};
 `;
 
 const SECS = [
-  { id: 'e-broken', track: 'engine', title: 'Broken' },
+  { id: 'e-bugs', track: 'engine', title: 'Bugs' },
   { id: 'e-live', track: 'engine', title: 'Still going' },
   { id: 'e-never', track: 'engine', title: 'Never used' },
   { id: 'e-two', track: 'engine', title: 'Another place' },
@@ -81,8 +81,8 @@ console.log('\nThe backlog page\n');
 /* ---------- a section emptied by finishing its contents ---------------------------------- */
 {
   const { html } = await build(fixture([
-    item({ id: 'a', track: 'engine', section: 'e-broken', status: 'closed', closedAt: '2026-09-20T12:00:00-04:00' }),
-    item({ id: 'b', track: 'engine', section: 'e-broken', status: 'closed', closedAt: '2026-09-20T12:00:00-04:00' }),
+    item({ id: 'a', track: 'engine', section: 'e-bugs', status: 'closed', closedAt: '2026-09-20T12:00:00-04:00' }),
+    item({ id: 'b', track: 'engine', section: 'e-bugs', status: 'closed', closedAt: '2026-09-20T12:00:00-04:00' }),
     item({ id: 'c', track: 'engine', section: 'e-live' }),
   ], SECS));
 
@@ -91,9 +91,9 @@ console.log('\nThe backlog page\n');
    * a tab that had never had a bug in it.
    */
   ok('a section whose work is all finished keeps its heading',
-     /<h2 id="s-engine-e-broken">Broken /.test(html));
+     /<h2 id="s-engine-e-bugs">Bugs /.test(html));
   ok('and keeps its place in the list down the left',
-     html.includes('data-sec="s-engine-e-broken"'));
+     html.includes('data-sec="s-engine-e-bugs"'));
   // Empty on purpose. Asked for in those words: placeholders stay empty, do not explain.
   ok('and leaves an empty placeholder rather than a sentence about itself',
      html.includes('<p class="settled"></p>'),
@@ -101,7 +101,7 @@ console.log('\nThe backlog page\n');
   // Zero, because every other count on this page means what is still open, and one that meant
   // something else here would be the only number on the page that lied.
   ok('and its count still means what every other count on the page means',
-     /<h2 id="s-engine-e-broken">Broken <span class="c">0<\/span>/.test(html));
+     /<h2 id="s-engine-e-bugs">Bugs <span class="c">0<\/span>/.test(html));
   ok('a section with work left in it is untouched',
      /<h2 id="s-engine-e-live">Still going <span class="c">1<\/span>/.test(html)
      && html.includes('data-id="c"'));
@@ -109,29 +109,29 @@ console.log('\nThe backlog page\n');
 
   /**
    * A section nobody has ever filed anything in is still dropped. Keeping a heading for one
-   * would put an empty Broken on a tab where nothing has ever broken, which is not a record of
+   * would put an empty Bugs on a tab where nothing has ever broken, which is not a record of
    * anything.
    */
   ok('a section nobody has ever used is still left out',
      !html.includes('s-engine-e-never'));
 }
 
-/* ---------- Broken collects the bug mark, and nothing is filed into it by hand ------------ */
+/* ---------- Bugs collects the bug mark, and nothing is filed into it by hand -------------- */
 {
   /**
    * Reported on 2 October: the items we put the bug tag on are not in Broken, and it should not
    * be a manual thing. Four open bugs were sitting under The assessor, Saving and storage, The
-   * submitter and French while Broken stood empty on three tabs.
+   * submitter and French while Bugs stood empty on three tabs.
    */
   const { html } = await build(fixture([
     item({ id: 'abug', track: 'engine', section: 'e-live', kind: 'bug', t: 'A broken thing' }),
     item({ id: 'plain', track: 'engine', section: 'e-live', kind: 'feature', t: 'An ordinary thing' }),
   ], SECS));
   const sec = (id) => (html.split(`id="s-engine-${id}"`)[1] ?? '').split('<h2')[0];
-  ok('a bug is gathered into Broken wherever it is filed',
-     sec('e-broken').includes('data-ref="abug"'));
+  ok('a bug is gathered into Bugs wherever it is filed',
+     sec('e-bugs').includes('data-ref="abug"'));
   /**
-   * And it stays where it was filed, because Broken is a view and not a place.
+   * And it stays where it was filed, because Bugs is a view and not a place.
    *
    * Asked for on 2 October: in the broken tab I want them to look unclickable, and clicking one
    * scrolls down to that item, so you can see it is pulled together rather than separate items.
@@ -146,7 +146,7 @@ console.log('\nThe backlog page\n');
    * own. Two elements carrying one id would make the address find whichever the browser prefers,
    * and the item it points at is the one that should answer.
    */
-  const ref = (sec('e-broken').match(/<a class="ref"[\s\S]*?<\/a>/) ?? [''])[0];
+  const ref = (sec('e-bugs').match(/<a class="ref"[\s\S]*?<\/a>/) ?? [''])[0];
   ok('the pointer is a link, not an item', ref.startsWith('<a class="ref"'));
   ok('it carries no fold and no priority buttons',
      !/<details|class="prio"/.test(ref), ref.slice(0, 120));
@@ -161,12 +161,12 @@ console.log('\nThe backlog page\n');
   ok('and the priority, drawn rather than operated',
      /<span class="prio-read"[\s\S]*?<span data-p="medium" class="on">M<\/span>/.test(ref));
   ok('and the card it sits in is marked as glass',
-     sec('e-broken').includes('class="card glass"'));
-  ok('Broken counts what it gathered',
-     /<h2 id="s-engine-e-broken">Broken <span class="c">1<\/span>/.test(html));
+     sec('e-bugs').includes('class="card glass"'));
+  ok('Bugs counts what it gathered',
+     /<h2 id="s-engine-e-bugs">Bugs <span class="c">1<\/span>/.test(html));
 
   /**
-   * A fixed bug leaves Broken. The item stays in its own section's history the way everything
+   * A fixed bug leaves Bugs. The item stays in its own section's history the way everything
    * else does, through the archive.
    */
   const mended = await build(fixture([
@@ -174,8 +174,8 @@ console.log('\nThe backlog page\n');
       status: 'closed', closedAt: '2026-09-20T12:00:00-04:00' }),
     item({ id: 'plain', track: 'engine', section: 'e-live', kind: 'feature' }),
   ], SECS));
-  ok('a fixed bug is out of Broken',
-     /<h2 id="s-engine-e-broken">Broken <span class="c">0<\/span>/.test(mended.html));
+  ok('a fixed bug is out of Bugs',
+     /<h2 id="s-engine-e-bugs">Bugs <span class="c">0<\/span>/.test(mended.html));
   ok('and in the archive', (mended.html.split('class="archive"')[1] ?? '').includes('data-id="abug"'));
 }
 
@@ -196,7 +196,7 @@ console.log('\nThe backlog page\n');
      !/<\/a>[^<]*[A-Za-z]/.test(html.split('class="t"')[1] ?? ''));
 }
 
-/* ---------- Broken is a place, whether or not anything is in it -------------------------- */
+/* ---------- Bugs is a place, whether or not anything is in it -------------------------- */
 {
   /**
    * Reported on 2 October: administrative still does not have its Broken tab. Nothing had ever
@@ -206,12 +206,12 @@ console.log('\nThe backlog page\n');
   const { html } = await build(fixture([
     item({ id: 'a', track: 'engine', section: 'e-live' }),
   ], SECS));
-  ok('Broken is drawn on a tab where nothing has ever broken',
-     /<h2 id="s-engine-e-broken">Broken <span class="c">0<\/span>/.test(html));
+  ok('Bugs is drawn on a tab where nothing has ever broken',
+     /<h2 id="s-engine-e-bugs">Bugs <span class="c">0<\/span>/.test(html));
   ok('and it is empty, with nothing said about why',
      html.includes('<p class="settled"></p>'));
-  ok('and it still comes first', (html.match(/<h2 id="s-engine-([a-z-]+)">/) ?? [])[1] === 'e-broken');
-  ok('while a never-used section that is not Broken stays out',
+  ok('and it still comes first', (html.match(/<h2 id="s-engine-([a-z-]+)">/) ?? [])[1] === 'e-bugs');
+  ok('while a never-used section that is not Bugs stays out',
      !html.includes('s-engine-e-never'));
 }
 
@@ -232,7 +232,7 @@ console.log('\nThe backlog page\n');
     item({ id: 'kid', track: 'engine', section: 'e-live', parent: 'parent' }),
   ], SECS));
   ok('the page builds at all', !!html, stderr.slice(0, 160));
-  /* Broken is empty here and says so with the same placeholder, so the question is asked of
+  /* Bugs is empty here and says so with the same placeholder, so the question is asked of
      the section that holds the subitem rather than of the page. */
   const live = (html.split('id="s-engine-e-live"')[1] ?? '').split('<h2')[0];
   ok('a section with an unfinished subitem in it does not claim to be finished',
@@ -255,13 +255,12 @@ console.log('\nThe backlog page\n');
      html ? `rebuilt ${html.length} bytes, committed ${live.length}. Run: node tools/build-backlog.mjs` : '');
 
   /**
-   * The file's own rule, at the top of backlog.data.mjs: Broken comes first in every tab that
-   * has anything broken in it.
+   * The file's own rule, at the top of backlog.data.mjs: Bugs comes first in every tab.
    */
   for (const tab of ['engine', 'questions']) {
     const pane = (live.split(`data-track="${tab}"`)[2] ?? '');
     const first = (pane.match(/<h2 id="s-[a-z-]+">([^<]*?) /) ?? [])[1];
-    ok(`Broken still comes first in the ${tab} tab`, first === 'Broken', `first heading is ${first}`);
+    ok(`Bugs still comes first in the ${tab} tab`, first === 'Bugs', `first heading is ${first}`);
   }
 }
 
@@ -275,13 +274,13 @@ console.log('\nThe backlog page\n');
  */
 {
   const bare = await build(fixture([
-    item({ id: 'a', track: 'engine', section: 'e-broken', status: 'closed' }),
+    item({ id: 'a', track: 'engine', section: 'e-bugs', status: 'closed' }),
   ], SECS));
   ok('a closed item with no closedAt stops the build',
      !bare.html && /closedAt/.test(bare.stderr), bare.stderr.slice(0, 160));
 
   const wrong = await build(fixture([
-    item({ id: 'a', track: 'engine', section: 'e-broken', status: 'closed', closedAt: 'Tuesday' }),
+    item({ id: 'a', track: 'engine', section: 'e-bugs', status: 'closed', closedAt: 'Tuesday' }),
   ], SECS));
   ok('and so does a closedAt that is not a date', !wrong.html && /not a date/.test(wrong.stderr));
 
@@ -313,7 +312,7 @@ console.log('\nThe backlog page\n');
      !lying.html && /closedApprox is for a date with no time/.test(lying.stderr));
 
   const stray = await build(fixture([
-    item({ id: 'a', track: 'engine', section: 'e-broken', closedAt: '2026-09-30T10:00:00-04:00' }),
+    item({ id: 'a', track: 'engine', section: 'e-bugs', closedAt: '2026-09-30T10:00:00-04:00' }),
   ], SECS));
   ok('a time on something still open stops it too',
      !stray.html && /not closed/.test(stray.stderr));
@@ -324,8 +323,8 @@ console.log('\nThe backlog page\n');
    * dates, and a page that printed it as a finishing time would be inventing one.
    */
   const exact = await build(fixture([
-    item({ id: 'a', track: 'engine', section: 'e-broken', status: 'closed', closedAt: '2026-09-30T14:05:00-04:00' }),
-    item({ id: 'b', track: 'engine', section: 'e-broken', status: 'closed',
+    item({ id: 'a', track: 'engine', section: 'e-bugs', status: 'closed', closedAt: '2026-09-30T14:05:00-04:00' }),
+    item({ id: 'b', track: 'engine', section: 'e-bugs', status: 'closed',
       closedAt: '2026-09-28', closedApprox: true }),
   ], SECS));
   ok('an exact time is drawn as a day', /class="when"[^>]*>Sep 30</.test(exact.html));
@@ -391,14 +390,14 @@ console.log('\nThe backlog page\n');
      homeless.slice(0, 5).map((n) => `#${n}`).join(', '));
 
   const dup = await build(fixture([
-    { ...item({ id: 'a', track: 'engine', section: 'e-broken' }), n: 7 },
+    { ...item({ id: 'a', track: 'engine', section: 'e-bugs' }), n: 7 },
     { ...item({ id: 'b', track: 'engine', section: 'e-live' }), n: 7 },
   ], SECS));
   ok('two items sharing a number stops the build',
      !dup.html && /belongs to/.test(dup.stderr), dup.stderr.slice(0, 140));
 
   const none = await build(fixture([
-    { ...item({ id: 'a', track: 'engine', section: 'e-broken' }), n: undefined },
+    { ...item({ id: 'a', track: 'engine', section: 'e-bugs' }), n: undefined },
   ], SECS));
   ok('and so does an item with no number at all',
      !none.html && /no number/.test(none.stderr), none.stderr.slice(0, 140));
