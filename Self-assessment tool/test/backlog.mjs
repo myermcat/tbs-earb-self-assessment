@@ -72,8 +72,8 @@ console.log('\nThe backlog page\n');
 /* ---------- a section emptied by finishing its contents ---------------------------------- */
 {
   const { html } = await build(fixture([
-    item({ id: 'a', track: 'engine', section: 'e-broken', status: 'done' }),
-    item({ id: 'b', track: 'engine', section: 'e-broken', status: 'done' }),
+    item({ id: 'a', track: 'engine', section: 'e-broken', status: 'closed', closedAt: '2026-09-20T12:00:00-04:00' }),
+    item({ id: 'b', track: 'engine', section: 'e-broken', status: 'closed', closedAt: '2026-09-20T12:00:00-04:00' }),
     item({ id: 'c', track: 'engine', section: 'e-live' }),
   ], SECS));
 
@@ -119,7 +119,7 @@ console.log('\nThe backlog page\n');
    * in another section, which four real items do.
    */
   const { html, stderr } = await build(fixture([
-    item({ id: 'done-one', track: 'engine', section: 'e-broken', status: 'done' }),
+    item({ id: 'done-one', track: 'engine', section: 'e-broken', status: 'closed', closedAt: '2026-09-20T12:00:00-04:00' }),
     item({ id: 'parent', track: 'engine', section: 'e-live' }),
     item({ id: 'kid', track: 'engine', section: 'e-broken', parent: 'parent' }),
   ], SECS));
@@ -152,6 +152,47 @@ console.log('\nThe backlog page\n');
     const first = (pane.match(/<h2 id="s-[a-z-]+">([^<]*?) /) ?? [])[1];
     ok(`Broken still comes first in the ${tab} tab`, first === 'Broken', `first heading is ${first}`);
   }
+}
+
+/**
+ * Closing something records when it closed.
+ *
+ * The question that asked for this was "what did we do today", and the only answer the file
+ * could give was the whole finished list with no way to tell this week's work from last
+ * month's. A close with no time is that question going unanswerable again, so the build
+ * refuses it rather than letting one item quietly opt out.
+ */
+{
+  const bare = await build(fixture([
+    item({ id: 'a', track: 'engine', section: 'e-broken', status: 'closed' }),
+  ], SECS));
+  ok('a closed item with no closedAt stops the build',
+     !bare.html && /closedAt/.test(bare.stderr), bare.stderr.slice(0, 160));
+
+  const wrong = await build(fixture([
+    item({ id: 'a', track: 'engine', section: 'e-broken', status: 'closed', closedAt: 'Tuesday' }),
+  ], SECS));
+  ok('and so does a closedAt that is not a date', !wrong.html && /not a date/.test(wrong.stderr));
+
+  const stray = await build(fixture([
+    item({ id: 'a', track: 'engine', section: 'e-broken', closedAt: '2026-09-30T10:00:00-04:00' }),
+  ], SECS));
+  ok('a time on something still open stops it too',
+     !stray.html && /not closed/.test(stray.stderr));
+
+  /**
+   * A day on its own is a ceiling rather than a moment, and the page has to say so. Everything
+   * the 28 September rebuild carried over wears that day because the record before it kept no
+   * dates, and a page that printed it as a finishing time would be inventing one.
+   */
+  const exact = await build(fixture([
+    item({ id: 'a', track: 'engine', section: 'e-broken', status: 'closed', closedAt: '2026-09-30T14:05:00-04:00' }),
+    item({ id: 'b', track: 'engine', section: 'e-broken', status: 'closed', closedAt: '2026-09-28' }),
+  ], SECS));
+  ok('an exact time is drawn as a day', /class="when"[^>]*>Sep 30</.test(exact.html));
+  ok('and a bare date says it is only a ceiling', /class="when"[^>]*>by Sep 28</.test(exact.html));
+  ok('the ceiling says as much when you hover it',
+     /title="Finished on or before September 28, 2026/.test(exact.html));
 }
 
 console.log(fails ? `\n${fails} backlog check(s) failed\n` : '\nthe page keeps its sections\n');

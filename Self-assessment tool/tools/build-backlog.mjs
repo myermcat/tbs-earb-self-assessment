@@ -42,9 +42,9 @@ const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replac
  * telling a reader nothing it did not already know. How much a thing matters is the priority,
  * which is three coloured buttons already sitting on every row.
  */
-const STATUS = { wait: 'Waiting', doing: 'Doing', done: 'Done', open: '' };
+const STATUS = { wait: 'Waiting', doing: 'Doing', closed: 'Closed', open: '' };
 /** Which status a heading takes from the items under it: the furthest along anything below it. */
-const FROM_KIDS = ['doing', 'open', 'wait', 'done'];
+const FROM_KIDS = ['doing', 'open', 'wait', 'closed'];
 const RANK = { high: 0, medium: 1, low: 2 };
 
 /**
@@ -75,7 +75,7 @@ const RANK = { high: 0, medium: 1, low: 2 };
      */
     if (i.parent) {
       const p = items.find((x) => x.id === i.parent);
-      if (p && p.status === 'done' && i.status !== 'done') {
+      if (p && p.status === 'closed' && i.status !== 'closed') {
         wrong.push(`${i.id} is '${i.status}' under a finished parent, ${p.id}.`);
       }
     }
@@ -87,12 +87,26 @@ const RANK = { high: 0, medium: 1, low: 2 };
      * and the Done archive gathers by the field. So the page said one thing and the file said
      * another, and the item sat in the open list wearing a Done badge.
      */
-    if (hasKids.has(i.id) && i.status !== 'done'
-        && items.filter((k) => k.parent === i.id).every((k) => k.status === 'done')) {
+    if (hasKids.has(i.id) && i.status !== 'closed'
+        && items.filter((k) => k.parent === i.id).every((k) => k.status === 'closed')) {
       wrong.push(`${i.id}: everything under it is done, so it is done. `
         + 'A heading that says Done and sits in the open list is the page disagreeing with the file.');
     }
     if (i.status !== 'wait' && i.owes) wrong.push(`${i.id}: owes is for waiting items only`);
+    /**
+     * Closing something records the moment it closed. A heading takes its time from the pieces
+     * underneath it, so only the pieces carry one, and a closed piece without one is a finish
+     * nobody can date afterwards.
+     */
+    if (i.status === 'closed' && !hasKids.has(i.id) && !i.closedAt) {
+      wrong.push(`${i.id}: closed with no closedAt. Closing something records the moment.`);
+    }
+    if (i.closedAt && Number.isNaN(Date.parse(i.closedAt))) {
+      wrong.push(`${i.id}: closedAt ${JSON.stringify(i.closedAt)} is not a date`);
+    }
+    if (i.closedAt && i.status !== 'closed') {
+      wrong.push(`${i.id}: closedAt on something that is not closed`);
+    }
   }
   const doing = items.filter((i) => i.status === 'doing');
   if (doing.length > 2) {
@@ -204,15 +218,17 @@ background:var(--surface-2);border-radius:0 6px 6px 0}
    for Bug cut Question in half and dropped the column beside it on top, which is what happens
    when the width is guessed from the short label. Changing a label means checking these. */
 .marks{display:grid;gap:.3rem;align-items:baseline;justify-items:start;
-grid-template-columns:4.4rem 5.2rem 4.6rem 3.4rem}
+grid-template-columns:4.4rem 5.2rem 4.6rem 3.4rem 4rem}
 .marks .cell{display:flex;gap:.25rem;min-width:0}
 .plain{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:.4rem .9rem;
 align-items:start;padding:.6rem .6rem .6rem 1.5rem}
-@media(max-width:820px){.marks{grid-template-columns:auto auto auto auto;justify-items:end}}
+@media(max-width:820px){.marks{grid-template-columns:auto auto auto auto auto;justify-items:end}}
 
 .chip{font-size:.63rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;
 border:1px solid;border-radius:999px;padding:.07rem .42rem;white-space:nowrap}
-.st-done{color:var(--good);border-color:var(--good);background:var(--good-bg)}
+.st-closed{color:var(--good);border-color:var(--good);background:var(--good-bg)}
+/* The finish time is a record, not a mark. Legible if you look for it, invisible if you do not. */
+.when{font-size:.62rem;color:var(--ink-3);opacity:.6;white-space:nowrap;letter-spacing:.02em}
 .st-next{color:var(--accent);border-color:var(--accent-line);background:var(--accent-soft)}
 .st-wait{color:var(--warn);border-color:var(--warn);background:var(--warn-bg)}
 .st-later{color:var(--ink-3);border-color:var(--line-2);background:var(--surface-2)}
@@ -330,18 +346,45 @@ const statusOf = (i) => {
  * an empty cell holds its place, so Next is under Next all the way down and adding an owner
  * moves nothing.
  */
-const CELLS = ['golive', 'flag', 'state', 'who'];
+/**
+ * When a thing was finished. A heading has no moment of its own, so it carries the last one from
+ * underneath it, which is when the whole heading stopped being work.
+ */
+const closedAtOf = (i) => {
+  if (!isGroup(i)) return i.closedAt || '';
+  const under = items.filter((k) => k.parent === i.id).map(closedAtOf).filter(Boolean);
+  return under.sort().pop() || i.closedAt || '';
+};
+/**
+ * A date with no time is a day somebody was finished by, not the moment they finished.
+ *
+ * Everything the 28 September rebuild carried over wears that day, because ids and titles were
+ * both replaced then and the record before it kept no dates at all. Writing 11:44 a.m. against
+ * 110 items that were finished across four weeks would be a precise lie, so those say 'by'.
+ */
+const approx = (iso) => /^\d{4}-\d{2}-\d{2}$/.test(iso);
+const DAY = (iso) => (approx(iso) ? 'by ' : '')
+  + new Date(iso).toLocaleDateString('en-CA', { day: 'numeric', month: 'short', timeZone: 'UTC' });
+const MOMENT = (iso) => (approx(iso)
+  ? `on or before ${new Date(iso).toLocaleDateString('en-CA',
+    { dateStyle: 'long', timeZone: 'UTC' })}, which is as far back as the record goes`
+  : new Date(iso).toLocaleString('en-CA', { dateStyle: 'long', timeStyle: 'short' }));
+
+const CELLS = ['golive', 'flag', 'state', 'who', 'when'];
 function chips(i, tabId) {
   const st = statusOf(i);
+  const fin = st === 'closed' ? closedAtOf(i) : '';
   const cell = {
     flag: i.kind === 'bug' ? '<span class="chip k-bug">Bug</span>'
       : i.kind === 'question' ? '<span class="chip k-question">Question</span>' : '',
     // A status that is neither blocked, started nor finished draws nothing. An empty cell still
     // holds its column, so the marks line up down the page either way.
     state: STATUS[st] ? `<span class="chip st-${st}">${STATUS[st]}</span>` : '',
-    who: i.owner && i.owner !== 'ours' && st !== 'done'
+    who: i.owner && i.owner !== 'ours' && st !== 'closed'
       ? `<span class="chip who" title="Whose work this is once it is unblocked">${esc(i.owner)}</span>` : '',
     golive: '',
+    // The moment it was finished. A record rather than a mark, so it is set small and pale.
+    when: fin ? `<span class="when" title="Finished ${esc(MOMENT(fin))}">${esc(DAY(fin))}</span>` : '',
   };
   /**
    * The Go live mark has a column to itself, everywhere except the tab that is made of it.
@@ -411,7 +454,7 @@ const panes = tracks.map((tr) => {
           * this tab was drawing every flagged item flat, so a child with a parent that is not
           * flagged arrived looking like a top-level thing.
           */
-         rows: items.filter((i) => i.golive && i.status !== 'done'
+         rows: items.filter((i) => i.golive && i.status !== 'closed'
            && !items.some((p) => p.id === i.parent && p.golive)).sort(order) }]
       .filter((x) => x.rows.length)
     : sections.filter((s) => s.track === tr.id)
@@ -425,8 +468,8 @@ const panes = tracks.map((tr) => {
          */
         const mine = archive ? [] : items.filter((i) => i.track === tr.id && i.section === s.id);
         const rows = archive
-          ? items.filter((i) => i.track === tr.id && i.status === 'done' && !i.parent).sort(order)
-          : rowsIn(s.id, tr.id).filter((i) => i.status !== 'done');
+          ? items.filter((i) => i.track === tr.id && i.status === 'closed' && !i.parent).sort(order)
+          : rowsIn(s.id, tr.id).filter((i) => i.status !== 'closed');
         /**
          * A SECTION EMPTIED BY FINISHING ITS CONTENTS IS NOT A SECTION THAT NEVER EXISTED.
          *
@@ -443,7 +486,7 @@ const panes = tracks.map((tr) => {
          * went. A section nobody has ever filed anything in is still dropped, because there is
          * nothing to have been done with.
          */
-        const settled = !archive && mine.length > 0 && mine.every((i) => i.status === 'done');
+        const settled = !archive && mine.length > 0 && mine.every((i) => i.status === 'closed');
         return { s, rows, settled };
       }).filter((x) => x.rows.length || x.settled);
   const nav = drawn.map(({ s, rows }) =>
@@ -560,7 +603,7 @@ const SCRIPT = `<script>
   // What a tab says is what its own pane holds, counted the same way the bar at the bottom
   // counts it, so the two can never disagree.
   panes.forEach(function (p) {
-    var open = p.querySelectorAll('.row:not([data-status=done]):not([data-group=true])').length;
+    var open = p.querySelectorAll('.row:not([data-status=closed]):not([data-group=true])').length;
     var tab = document.querySelector('.tab[data-track="' + p.dataset.track + '"] .c');
     if (tab) tab.textContent = String(open);
     // Section counts include what is folded inside an item, for the same reason: a heading that
@@ -619,9 +662,9 @@ const SCRIPT = `<script>
     open: function (r) { return r.dataset.status === 'open'; },
     wait: function (r) { return r.dataset.status === 'wait'; },
     doing: function (r) { return r.dataset.status === 'doing'; },
-    done: function (r) { return r.dataset.status === 'done'; },
-    bug: function (r) { return r.dataset.kind === 'bug' && r.dataset.status !== 'done'; },
-    question: function (r) { return r.dataset.kind === 'question' && r.dataset.status !== 'done'; },
+    closed: function (r) { return r.dataset.status === 'closed'; },
+    bug: function (r) { return r.dataset.kind === 'bug' && r.dataset.status !== 'closed'; },
+    question: function (r) { return r.dataset.kind === 'question' && r.dataset.status !== 'closed'; },
   };
   var filter = '';
 
@@ -822,7 +865,7 @@ const html = [
   '<footer class="foot"><div class="foot-in">',
   [
     ['open', 'open'], ['wait', 'waiting on somebody'], ['doing', 'doing'],
-    ['bug', 'broken'], ['question', 'questions'], ['done', 'done'],
+    ['bug', 'broken'], ['question', 'questions'], ['closed', 'closed'],
   ].map(([k, label]) => `<button type="button" data-filter="${k}" aria-pressed="false">`
     + `<b id="n-${k}">0</b> ${esc(label)}</button>`).join(''),
   '<span class="sp" id="signed"></span>',
@@ -831,6 +874,6 @@ const html = [
 ].join('\n');
 
 writeFileSync(out, html + '\n');
-const open = items.filter((i) => i.status !== 'done').length;
-console.log(`backlog.html  ${items.length} items, ${open} open, ${items.length - open} done, `
+const open = items.filter((i) => i.status !== 'closed').length;
+console.log(`backlog.html  ${items.length} items, ${open} open, ${items.length - open} closed, `
   + `${tracks.length} tabs, ${sections.length} sections`);
