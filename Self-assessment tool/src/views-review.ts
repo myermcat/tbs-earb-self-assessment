@@ -100,8 +100,19 @@ function theColumnNote(): HTMLElement {
   return columnNote;
 }
 
-function noteHead(label: string, note: string, side: 'left' | 'right' = 'left',
-                  before: (Node | null)[] = []): HTMLElement {
+/**
+ * A column heading with a note hanging off it, kept and currently used nowhere.
+ *
+ * Every note on this screen came off on 2 October: each one was its own heading again in a
+ * longer sentence, which is the thing a column heading is supposed to make unnecessary. The
+ * machinery stays because a note is the right answer for a fact a heading genuinely cannot
+ * carry - the four-character reference being the start of a twelve-character access code was
+ * one, and that is the shape to come back to if another turns up.
+ *
+ * Exported so it survives the unused check without a line that exists to silence a compiler.
+ */
+export function noteHead(label: string, note: string, side: 'left' | 'right' = 'left',
+                         before: (Node | null)[] = []): HTMLElement {
   const head = el('th', {
     class: 'has-note', tabindex: '0', 'aria-describedby': 'column-note',
   }, [...before, el('span', { class: 'note-word' }, [label])]);
@@ -779,23 +790,22 @@ function paintList(rubric: Rubric, root: HTMLElement) {
     el('colgroup', {}, widths.map((w) => el('col', { style: `width:${w}` }))),
     el('thead', {}, [el('tr', {}, [
       el('th', {}, ['Initiative']),
-      // The department says this, not us and not an assessor. A column reading "Ready to
-      // review" with nothing saying who decided it invites somebody to read it as a status the
-      // tool worked out.
-      // The qualifier goes above the word, because it is read before it: what follows is what
-      // the department said about itself, and not a state the tool worked out.
-      noteHead('State', 'The submitter says this about their own assessment', 'left',
-               [el('span', { class: 'th-sub' }, ['self-marked by submitter'])]),
+      /**
+       * NO COLUMN NOTES. The hover machinery stays; nothing is hanging off it.
+       *
+       * Three of these columns carried a note and a fourth carried a sub-line under its word,
+       * and between them they said that the submitter marks their own state, that two question
+       * set versions are not comparable, and that Audited means somebody has written an audit.
+       * Each of those is the column heading again in a longer sentence. The State one was the
+       * clearest case: it said self-marked by submitter over a column whose own group heading,
+       * four rows up, reads Marked ready to review.
+       */
+      el('th', {}, ['State']),
       el('th', {}, ['Department']), el('th', {}, ['Marking']),
-      noteHead('Set',
-               'Which version of the question set this department answered.\n'
-               + 'Two assessments answered against different versions are not comparable, '
-               + 'and a row that is not says so.'),
+      el('th', {}, ['Question set']),
       el('th', {}, ['Stage']), el('th', {}, ['Score']), el('th', {}, ['Routing']),
       el('th', {}, ['Must ask']), el('th', {}, ['Evidence']), el('th', {}, ['Complete']),
-      // Its own column, because "has anybody looked at this" is a fact about the row and was
-      // reading as a tag stuck on the state the department set.
-      noteHead('Audited', 'Who has written an audit on this submission', 'right'),
+      el('th', {}, ['Audited']),
       el('th', {}, ['']),
     ])]),
   ]);
@@ -1088,20 +1098,37 @@ function paintList(rubric: Rubric, root: HTMLElement) {
  * view lays all of them out, and a control that existed on only one of those would be a
  * control people could not find.
  */
+/**
+ * The section's one heading, which is also the thing you press to open it.
+ *
+ * It was two: the fold's own summary carried the name, the count and the flagged badge, and an
+ * h4 inside the fold carried the name again with the weight, the score and Agree with all. So
+ * the name was on screen twice, a few pixels apart, for no reason a reader could work out.
+ */
 function sectionHead(
+  key: string,
   sec: SectionScore,
   a: Assessment,
   audit: NonNullable<Assessment['audit']>,
   repaint: () => void,
+  shown: number,
+  flagged: number,
 ): HTMLElement {
-  return el('h4', { class: 'section-head' }, [
-    sec.section.label,
-    el('span', { class: 'muted small' }, [`${sec.weight}% of this domain`]),
+  return el('summary', { class: 'section-head section-summary' }, [
+    el('span', { class: 'section-title' }, [sec.section.label]),
     el('span', { class: `pill small ${tone(sec.score)}` }, [sec.score === null ? '--' : sec.score.toFixed(1)]),
+    el('span', { class: 'muted small sec-weight' }, [`${sec.weight}% of this domain`]),
+    el('span', { class: 'sec-right' }, [
+      el('span', { class: 'muted small' }, [`${shown} question${shown === 1 ? '' : 's'}`]),
+      flagged ? el('span', { class: 'badge badge-warn tiny' }, [`${flagged} flagged`]) : null,
+    ]),
     el('button', {
       class: 'ghost small',
       title: 'Mark every question in this section as agreed. Changes no scores.',
-      onclick: () => {
+      // It lives inside the thing that opens the fold, so it has to say it is not that.
+      onclick: (e: Event) => {
+        e.preventDefault();
+        e.stopPropagation();
         let agreed = 0;
         let kept = 0;
         for (const qs of sec.questions) {
@@ -1118,12 +1145,12 @@ function sectionHead(
           e.at = new Date().toISOString();
           agreed++;
         }
-        lastAgree = { section: sec.section.id, agreed, kept };
+        lastAgree = { section: key, agreed, kept };
         keepSession();
         repaint();
       },
     }, ['Agree with all']),
-    lastAgree && lastAgree.section === sec.section.id
+    lastAgree && lastAgree.section === key
       ? el('span', { class: 'small muted' }, [
           `${lastAgree.agreed} marked as agreed`,
           lastAgree.kept ? `, ${lastAgree.kept} left as you scored ${lastAgree.kept === 1 ? 'it' : 'them'}` : '',
@@ -1361,13 +1388,7 @@ function openDetail(rubric: Rubric, root: HTMLElement, l: Loaded, asked: Depth =
     const domainIds = new Set(rubric.domains.map((d) => d.id));
     const cats = r.topics.filter((x) => x.total > 0 && !domainIds.has(x.topic.id));
     if (cats.length) {
-      const box = el('section', { class: 'card' }, [
-        el('h2', {}, ['By category']),
-        el('p', { class: 'muted small' }, [
-          'The same questions grouped by what they are about. One question can be in several ',
-          'categories at once, so these do not add up to the overall.',
-        ]),
-      ]);
+      const box = el('section', { class: 'card' }, [el('h2', {}, ['By category'])]);
       for (const cat of cats) {
         const mine = allQuestionScores(r)
           .filter((qs) => (qs.question.topics ?? []).includes(cat.topic.id))
@@ -1481,13 +1502,22 @@ function openDetail(rubric: Rubric, root: HTMLElement, l: Loaded, asked: Depth =
         if (qflags.length) flaggedHere++;
         rows.appendChild(auditRow(rubric, a, qs, audit, qflags, repaint, qflags.length > 0, l));
       }
-      boxes.push(section(`full:${sec.section.id}`, { class: 'full-section', open: true }, [
-        el('summary', { class: 'section-summary' }, [
-          el('span', { class: 'section-title' }, [sec.section.label]),
-          el('span', { class: 'muted small' }, [`${mine.length} question${mine.length === 1 ? '' : 's'}`]),
-          flaggedHere ? el('span', { class: 'badge badge-warn tiny' }, [`${flaggedHere} flagged`]) : null,
-        ]),
-        sectionHead(sec, a, audit, repaint),
+      /**
+       * THE KEY CARRIES THE DOMAIN, BECAUSE A SECTION ID DOES NOT NAME A SECTION.
+       *
+       * Reported as: I opened Defining the Current State, chose a verdict on the first
+       * question, and the question jumped somewhere - it disappeared, and the heading was on
+       * the screen more than once.
+       *
+       * defining-the-current-state is the id of four different sections, one in each domain:
+       * 20 sections carry 17 distinct ids. This remembered which were open by that id, so
+       * opening one in Business opened all four on the next redraw, and every control on a
+       * question redraws. The page went from three thousand pixels to thirteen thousand under
+       * somebody who had just clicked a dropdown, and the question they were reading was
+       * somewhere inside the difference.
+       */
+      boxes.push(section(`full:${d.domain.id}:${sec.section.id}`, { class: 'full-section' }, [
+        sectionHead(`${d.domain.id}:${sec.section.id}`, sec, a, audit, repaint, mine.length, flaggedHere),
         rows,
       ]));
     }
@@ -1504,12 +1534,7 @@ function openDetail(rubric: Rubric, root: HTMLElement, l: Loaded, asked: Depth =
 
   // ---- 2. what the assessor changed ----------------------------------------------------
   if (changed.length) {
-    const box = el('section', { class: 'card' }, [
-      el('h2', {}, ['What you changed']),
-      el('p', { class: 'muted small' }, [
-        'The gap between what they claimed and what you scored. This is the calibration record.',
-      ]),
-    ]);
+    const box = el('section', { class: 'card' }, [el('h2', {}, ['What you changed'])]);
     for (const [qid, entry] of changed) {
       const qs = questionOf.get(qid);
       const self = a.answers[qid]?.score ?? null;
@@ -1632,11 +1657,9 @@ function openDetail(rubric: Rubric, root: HTMLElement, l: Loaded, asked: Depth =
         el('thead', {}, [el('tr', {}, [
           el('th', {}, ['When']), el('th', {}, ['Who']), el('th', {}, ['What']),
           el('th', {}, ['Score']),
-          // "Answered" read as something an assessor had done. It is the department's own
-          // progress at that save: how many of the 176 they had filled in by then.
-          noteHead('Answers filled in',
-                   'How many of the questions the department had filled in at that save',
-                   'right'),
+          // "Answered" read as something an assessor had done, so the heading says whose
+          // answers rather than a note underneath saying whose answers.
+          el('th', {}, ['Answers filled in']),
         ])]),
       ]);
       const tbody = el('tbody', {});
@@ -1915,7 +1938,7 @@ function auditControls(
   const scores = el('div', { class: 'score-row audit-score' });
   const note = el('input', {
     type: 'text',
-    placeholder: 'Why? Required for a changed score',
+    placeholder: 'Why?',
     value: entry.note ?? '',
   }) as HTMLInputElement;
   const delta = el('span', { class: 'audit-delta small' });
@@ -1932,13 +1955,33 @@ function auditControls(
     ]));
   };
 
+  /**
+   * A changed score with no reason is the one thing this screen has to insist on.
+   *
+   * The field carried a class that only a select was ever styled for, so nothing showed. It
+   * is marked now, and the placeholder stops being a suggestion: a changed score is a
+   * disagreement with a department, and the reason is what the board reads.
+   */
   const markNote = () => {
-    note.classList.toggle('needs-marking', needsReason(a, q.id, entry));
+    const needs = needsReason(a, q.id, entry);
+    note.classList.toggle('needs-marking', needs);
+    note.placeholder = needs ? 'Why did you change it? Required' : 'Why?';
   };
 
   const choose = (v: number | null) => {
     if (v !== entry.auditedScore) {
       entry.auditedScore = v;
+      /**
+       * Adjusted follows the number rather than being chosen beside it.
+       *
+       * Her words: it should be automatic if I adjust the number, I should not need to choose
+       * it. A verdict somebody has to remember to set is a verdict that disagrees with the
+       * score on the questions where it matters most. Not enough evidence is left alone,
+       * because that is a judgement about the evidence and survives any score.
+       */
+      if (entry.verdict !== 'insufficient') {
+        entry.verdict = typeof v === 'number' && v !== theirs ? 'adjust' : '';
+      }
       entry.by = auditor || 'unnamed';
       entry.at = new Date().toISOString();
       (entry.history ??= []).push({
@@ -2005,19 +2048,50 @@ function auditControls(
       delta,
     ]),
     el('div', { class: 'audit-line' }, [
-      el('select', {
-        onchange: (e: Event) => {
-          entry.verdict = (e.target as HTMLSelectElement).value as AuditEntry['verdict'];
+      /**
+       * ONE TOGGLE WHERE THERE WAS A DROPDOWN OF FOUR.
+       *
+       * Her reasoning, and it is right. Agree with them was a thing to press in order to say
+       * you wanted nothing done, so the commonest outcome cost the most clicks. Adjusted was
+       * the assessor restating in words what the score strip already showed, which is a second
+       * place for the same fact to be wrong. What is left is the one judgement neither the
+       * score nor anything else records: that whatever the number is, there is not enough
+       * behind it to stand on.
+       *
+       * Adjusted is written on save from the score itself, so the stored verdict still says
+       * what it always said and nothing downstream has to change.
+       */
+      el('button', {
+        type: 'button',
+        class: `verdict-toggle ${entry.verdict === 'insufficient' ? 'on' : ''}`,
+        'aria-pressed': entry.verdict === 'insufficient' ? 'true' : 'false',
+        onclick: () => {
+          entry.verdict = entry.verdict === 'insufficient' ? '' : 'insufficient';
+          entry.by = auditor || 'unnamed';
+          entry.at = new Date().toISOString();
           keepSession();
           scheduleAuditSave(l);
           repaint();
         },
-      }, [
-        el('option', { value: '', selected: entry.verdict === '' }, ['Choose a verdict']),
-        el('option', { value: 'agree', selected: entry.verdict === 'agree' }, ['Agree with them']),
-        el('option', { value: 'adjust', selected: entry.verdict === 'adjust' }, ['Adjusted']),
-        el('option', { value: 'insufficient', selected: entry.verdict === 'insufficient' }, ['Not enough evidence']),
-      ]),
+      }, ['Not enough evidence']),
+      /**
+       * Agreed is a state now rather than a choice, because Agree with all still writes it.
+       * It is shown so that a question somebody swept is not silently different from one
+       * nobody has read, and it comes off the same way it went on.
+       */
+      entry.verdict === 'agree'
+        ? el('button', {
+            type: 'button',
+            class: 'verdict-agreed',
+            title: 'Marked agreed by Agree with all. Press to take it off.',
+            onclick: () => {
+              entry.verdict = '';
+              keepSession();
+              scheduleAuditSave(l);
+              repaint();
+            },
+          }, ['Agreed \u00D7'])
+        : null,
       note,
     ]),
   ]);

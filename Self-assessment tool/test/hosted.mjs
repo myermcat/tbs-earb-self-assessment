@@ -716,26 +716,20 @@ console.log('\nThe published build, signed in\n');
   const heads = [...doc.querySelectorAll('.triage thead th')].map((h) => h.textContent.trim());
   ok('the pool has a column for whether it is finished',
      heads.some((h) => /State/.test(h)), heads.join(' | '));
-  // A column reading "Ready to review" with nothing saying who decided it invites somebody to
-  // read it as a status the tool worked out.
-  ok('and says the department decided it, above the word itself',
-     heads.some((h) => /^self-marked by submitter\s*State$/i.test(h.replace(/\s+/g, ' ').trim())),
-     heads.join(' | '));
-
   /**
-   * The qualifier is paler than the heading it qualifies.
+   * And no column says in a second line what its own heading says.
    *
-   * Both were --ink-3, so the two lines read as one two-line heading. jsdom does not resolve
-   * custom properties, so this is read off the stylesheet the same way the table-wrap gate
-   * above is: the last rule that has anything to say about the colour, rather than the first
-   * one a grep happens to meet.
+   * State carried "self-marked by submitter" above the word, and three columns carried a note
+   * on hover. All four were the heading again in a longer sentence, and State's was the
+   * clearest case: the group heading four rows up already reads Marked ready to review.
    */
-  {
-    const decl = [...html.matchAll(/\.triage th \.th-sub[^{}]*\{([^}]*)\}/g)]
-      .map((m) => m[1]).filter((d) => /color:/.test(d)).pop() ?? '';
-    ok('the column qualifier is mixed toward the surface, so it sits back from its heading',
-       /color:\s*color-mix\([^;]*--ink-3[^;]*--surface/.test(decl), decl);
-  }
+  ok('and no heading explains itself under its own word',
+     heads.every((h) => h.split(/\s{2,}|\n/).filter(Boolean).length <= 1)
+     && !/self-marked/i.test(doc.querySelector('.triage thead')?.textContent ?? ''),
+     heads.join(' | '));
+  ok('and no column hangs a note off its heading',
+     doc.querySelectorAll('.triage thead th.has-note').length === 0,
+     String(doc.querySelectorAll('.triage thead th.has-note').length));
 
   /**
    * Severity is a rail and a dot on the audit screen, never a fill.
@@ -805,8 +799,9 @@ console.log('\nThe published build, signed in\n');
   ok('and every category opens onto its own questions',
      (catBox?.querySelectorAll('.cat-open').length ?? 0) > 0,
      String(catBox?.querySelectorAll('.cat-open').length));
-  ok('and says they do not add up to the overall',
-     /do not add up to the overall/.test(catBox?.textContent ?? ''));
+  // And does not say in a sentence what the bars are already showing.
+  ok('and does not explain itself',
+     !/do not add up to the overall/.test(catBox?.textContent ?? ''));
   ok('and the questions are read-only, because a score belongs in the audit',
      [...(catBox?.querySelectorAll('.cat-q') ?? [])].every((n) => n.tagName !== 'BUTTON'),
      [...(catBox?.querySelectorAll('.cat-q') ?? [])].map((n) => n.tagName).join(','));

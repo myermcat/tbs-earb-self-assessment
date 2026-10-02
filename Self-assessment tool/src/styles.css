@@ -1076,7 +1076,9 @@ details[open] > .q-extras-summary::before { content: '\2212'; }
 .att-name { font-weight: 600; font-size: .83rem; max-width: 15rem; overflow: hidden;
   text-overflow: ellipsis; white-space: nowrap; }
 .ev-list { padding-left: 1.1rem; }
-select.needs-marking { border-color: var(--bad); background: var(--bad-bg); }
+/* The field that is actually required, and it was marked on a selector no input could match. */
+select.needs-marking, input.needs-marking { border-color: var(--bad); background: var(--bad-bg); }
+input.needs-marking::placeholder { color: var(--bad); opacity: 1; }
 
 /* ---------- marking --------------------------------------------------------------------- */
 
@@ -1235,11 +1237,6 @@ code.mark-subject { display: block; margin: .25rem 0; }
 .triage td { overflow-wrap: break-word; }
 /* A qualifier under a column heading, for a word that would otherwise read as the tool's own
    finding: State is what the department said about itself. */
-/* Paler than the heading it qualifies, which is also --ink-3: identical colour made the two
-   read as one heading. Asked for by name: "make self-marked by submitter paler". */
-.triage th .th-sub { display: block; font-weight: 500; text-transform: none; letter-spacing: 0;
-  font-size: .66rem; line-height: 1.15; margin-bottom: .12rem;
-  color: color-mix(in srgb, var(--ink-3) 72%, var(--surface)); }
 /* A heading may wrap onto two lines. A button in a cell may not: "Open" broke in half. */
 .triage th { white-space: normal; line-height: 1.15; vertical-align: bottom; }
 
@@ -2264,6 +2261,27 @@ tr.row-open button, tr.row-open summary, tr.row-open label { cursor: pointer; }
 .audit-score { display: flex; gap: .2rem; flex-wrap: wrap; }
 .audit-score .score-btn.theirs { box-shadow: 0 0 0 2px var(--line-2) inset; }
 .audit-score .audit-clear { width: auto; padding: 0 .5rem; font-size: .78rem; }
+/* One judgement, pressed or not, where there was a dropdown of four. */
+.verdict-toggle { background: none; border: 1px solid var(--line); color: var(--ink-2);
+  border-radius: var(--radius-sm); padding: .3rem .6rem; font-size: .83rem; cursor: pointer;
+  white-space: nowrap; }
+.verdict-toggle:hover { border-color: var(--line-2); color: var(--ink); }
+.verdict-toggle.on { background: var(--warn-bg); border-color: var(--warn); color: var(--warn);
+  font-weight: 600; }
+.verdict-agreed { background: none; border: 1px solid var(--line); color: var(--ink-3);
+  border-radius: var(--radius-sm); padding: .3rem .5rem; font-size: .78rem; cursor: pointer;
+  white-space: nowrap; }
+.verdict-agreed:hover { color: var(--ink-2); border-color: var(--line-2); }
+
+/* One heading per section, and it is the control that opens the fold, so it takes the
+   summary's box and keeps only the separating rule from the heading it replaced. */
+summary.section-head { margin: 0; padding: .55rem .1rem .5rem;
+  border-bottom: 1px solid var(--line); }
+summary.section-head .section-title { flex: 0 1 auto; }
+summary.section-head .sec-right { margin-left: auto; display: flex; align-items: baseline;
+  gap: .45rem; }
+summary.section-head .sec-weight { white-space: nowrap; }
+summary.section-head button { margin-left: 0; }
 .audit-delta { margin-left: .2rem; }
 .audit-line select, .audit-line input[type="text"] { min-width: 10rem; }
 .audit-line input[type="text"] { flex: 1 1 14rem; }
