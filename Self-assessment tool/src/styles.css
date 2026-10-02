@@ -2311,7 +2311,32 @@ tr.row-open button, tr.row-open summary, tr.row-open label { cursor: pointer; }
 .triage tbody tr.group-band .band-count { display: inline-block; margin-left: .45rem;
   padding: 0 .35rem; border-radius: var(--radius-sm); background: var(--surface);
   border: 1px solid var(--line); font-family: var(--mono); letter-spacing: 0; }
-.triage tbody tr.is-draft td:first-child { color: var(--ink-2); }
+/**
+ * A DRAFT LOOKS LIKE A DRAFT BEFORE ANYBODY READS A WORD OF IT.
+ *
+ * The heading over the group says which rows these are, and the word Draft is in the State
+ * column, and both of those have to be read. Asked for in those terms: I should be able to
+ * look at it and tell you those are drafts without reading the note.
+ *
+ * Two signals, both borrowed rather than invented.
+ *
+ * The dashed edge, where finished rows have a solid one. Dashed means provisional everywhere
+ * it is used - a placeholder frame in a design tool, a proposed boundary on a plan, a cut line
+ * that is not a cut yet. It is the only dashed thing on the screen.
+ *
+ * And no score colour. A tracker says not-started with a hollow circle and started with a
+ * filled one, and the colour on a row here is its score: a draft's score is a number taken
+ * before the department had finished answering, so it is shown in plain ink rather than in the
+ * red-to-green that invites somebody to read it as a finding. The number is still there, and
+ * it goes back to full colour the moment the submitter marks the assessment ready.
+ */
+.triage tbody tr.row-draft td { color: var(--ink-2); }
+.triage tbody tr.row-draft td:first-child {
+  border-left: 2px dashed var(--line-2); padding-left: .5rem; }
+.triage tbody tr.row-draft td.num,
+.triage tbody tr.row-draft .pill, .triage tbody tr.row-draft .bar-num { color: var(--ink-3); }
+/* The group's own heading carries the same edge, so the band and its rows read as one block. */
+.triage tbody tr.group-band.band-draft td { border-left: 2px dashed var(--line-2); }
 /* Out of every number on the portfolio, and it should not read as live work. */
 .triage tbody tr.row-withdrawn td { opacity: .62; }
 /* Where you are, as a path. */

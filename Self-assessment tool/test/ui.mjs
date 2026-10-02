@@ -1625,6 +1625,27 @@ ok('submission appears in the triage list', !!q('table.triage tbody tr'));
 ok('restored from the session this browser keeps', !!q('table.triage tbody tr'));
 ok('triage row names the initiative', q('table.triage tbody tr').textContent.includes('Nexus'));
 /**
+ * A draft is told apart before anybody reads a word of it.
+ *
+ * Asked for as: I should be able to look at it and tell you those are drafts without reading
+ * the note. The band heading and the word Draft both have to be read, so the row itself carries
+ * two borrowed signals - a dashed edge where a finished row has none, and no score colour,
+ * which is the hollow-versus-filled a tracker uses for not-started. jsdom lays nothing out, so
+ * this reads the stylesheet, as an invariant rather than a grep for one selector.
+ */
+{
+  const sheet = html.slice(html.indexOf('<style'), html.indexOf('</style>'));
+  const draft = sheet.match(/\.triage[^{]*\.row-draft[^{]*\{[^}]*\}/g) ?? [];
+  ok('a draft row carries a dashed edge', draft.some((r) => /border-left:\s*2px dashed/.test(r)),
+     draft.join(' ').slice(0, 160) || 'no .row-draft rules');
+  ok('and nothing else on the list is dashed',
+     (sheet.match(/\.triage[^{]*\{[^}]*dashed[^}]*\}/g) ?? [])
+       .every((r) => /row-draft|band-draft/.test(r)),
+     (sheet.match(/\.triage[^{]*\{[^}]*dashed[^}]*\}/g) ?? []).join(' ').slice(0, 160));
+  ok('and its score is taken out of the red-to-green',
+     draft.some((r) => /td\.num/.test(r) && /color:/.test(r)), draft.join(' ').slice(0, 200));
+}
+/**
  * Nothing on a row destroys anything.
  *
  * Reported as: deletion should not be from a portfolio, but from the danger zone, that is the

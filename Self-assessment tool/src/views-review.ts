@@ -824,7 +824,6 @@ function paintList(rubric: Rubric, root: HTMLElement) {
   let wasGroup: string | null = null;
   for (const l of rows) {
     const group = groupOf(l);
-    const ready = group === 'ready';
     // A band is not drawn over the first group when it is the only one: a list that is all
     // finished work does not need a heading saying the whole of it is finished work.
     if (group !== wasGroup && !(wasGroup === null && Object.keys(sizes).length === 1)) {
@@ -850,7 +849,10 @@ function paintList(rubric: Rubric, root: HTMLElement) {
       openDetail(l.rubric, root, l);
     };
     tb.appendChild(el('tr', {
-      class: `row-open row-${group} ${ready ? '' : 'is-draft'}`,
+      // row-draft, row-ready, row-withdrawn. There was an is-draft beside this that was on the
+      // withdrawn rows too, because it only asked whether a row was not ready; nothing styles
+      // it any more and a class that names the wrong set is worse than none.
+      class: `row-open row-${group}`,
       tabindex: 0,
       role: 'link',
       title: l.a.meta?.updatedAt
