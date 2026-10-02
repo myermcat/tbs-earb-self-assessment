@@ -123,18 +123,40 @@ border:1px solid;border-radius:999px;padding:.07rem .42rem;white-space:nowrap}
 .n:hover,.n:focus-visible{color:var(--accent);text-decoration:underline}
 /* A pointer at an item that lives further down. Flat, no fold, no buttons, and set lighter than
    a row, so the eye reads the whole section as a gathering rather than as work of its own. */
-.ref{display:grid;grid-template-columns:2.6rem minmax(0,1fr) auto;gap:0 .5rem;align-items:baseline;
-padding:.5rem .6rem .5rem 1.5rem;text-decoration:none;color:var(--ink-2);font-size:.88rem;
-font-weight:560;border-top:1px solid var(--line)}
+/* Behind glass. Asked for in those words: I want the broken section to be seen like behind a
+   mirror or a glass, this is just a view into something else. So the card is tinted and set
+   back, its rows are flat, and everything in them is drawn at reduced contrast: you can read
+   all of it, and none of it looks like the place you act. Touching the glass takes you through
+   it to where the item is. */
+.card.glass{background:color-mix(in srgb, var(--surface) 55%, transparent);
+border-style:dashed;backdrop-filter:saturate(.75)}
+.ref{display:grid;grid-template-columns:2.6rem minmax(0,1fr) auto auto;gap:0 .5rem;
+align-items:baseline;padding:.5rem .6rem .5rem 1.5rem;text-decoration:none;color:var(--ink-2);
+font-size:.88rem;font-weight:560;border-top:1px dashed var(--line);opacity:.78}
 .card>.ref:first-child{border-top:0}
 .ref .tt{min-width:0;text-wrap:pretty}
-.ref:hover,.ref:focus-visible{background:var(--surface-2);color:var(--ink)}
+.ref .chip{opacity:.85}
+.ref:hover,.ref:focus-visible{background:var(--surface-2);color:var(--ink);opacity:1}
 .ref:hover .n,.ref:focus-visible .n{color:var(--accent)}
 .refmarks{display:flex;gap:.25rem}
-/* Arrived at from an address: held long enough to be found on a long page, then let go. */
-.row.found>.item{background:var(--accent-soft);border-radius:6px;
-box-shadow:0 0 0 2px var(--accent-line)}
-.row.found .n{color:var(--accent)}
+/* The priority, drawn and not operated. Same three letters as the buttons on a row, so the eye
+   reads it as the same fact rather than as a different one. */
+.prio-read{display:flex;gap:.12rem}
+.prio-read span{font:600 .62rem/1 var(--mono);color:var(--ink-3);border:1px solid var(--line);
+border-radius:4px;padding:.2rem .3rem;min-width:1.1rem;text-align:center}
+.prio-read span.on{color:var(--warn);border-color:var(--warn);background:var(--warn-bg)}
+/* Arrived at from an address, or from the glass. The same mark the tool itself uses when it
+   brings somebody to one question out of 176: say which one, for a moment, because landing in
+   the middle of a screen of near-identical rows does not say which one you were brought to.
+   Copied from .brought-here in src/styles.css, animation and duration included. */
+.row.brought-here{border-radius:10px;animation:brought-here 2.4s ease-out both}
+.row.brought-here .n{color:var(--accent)}
+@keyframes brought-here{
+0%,55%{box-shadow:0 0 0 3px var(--accent-line),0 0 0 8px var(--accent-soft)}
+100%{box-shadow:0 0 0 3px transparent,0 0 0 8px transparent}}
+@media(prefers-reduced-motion:reduce){
+html{scroll-behavior:auto}
+.row.brought-here{animation:none;box-shadow:0 0 0 3px var(--accent-line)}}
 .st-next{color:var(--accent);border-color:var(--accent-line);background:var(--accent-soft)}
 .st-wait{color:var(--warn);border-color:var(--warn);background:var(--warn-bg)}
 .st-later{color:var(--ink-3);border-color:var(--line-2);background:var(--surface-2)}
@@ -261,7 +283,7 @@ Two separate moves are tangled in this one line. Publishing the built page into 
 </section>
 <section class="pane" data-track="questions" hidden>
 <nav class="side"><div class="lead">The questions</div><a href="#s-questions-q-broken" data-sec="s-questions-q-broken"><span>Broken</span><span class="c">1</span></a><a href="#s-questions-q-content" data-sec="s-questions-q-content"><span>Content Dan owes</span><span class="c">2</span></a><a href="#s-questions-q-behaviour" data-sec="s-questions-q-behaviour"><span>How the questions behave</span><span class="c">4</span></a><a href="#s-questions-q-french" data-sec="s-questions-q-french"><span>French</span><span class="c">2</span></a><a href="#s-questions-q-done" data-sec="s-questions-q-done"><span>Done</span><span class="c">7</span></a></nav>
-<main><h2 id="s-questions-q-broken">Broken <span class="c">1</span></h2><div class="card"><a class="ref" href="#n1" data-ref="french-missing-assessor-screens" data-status="open" data-kind="bug" data-golive="true" data-group="false"><span class="n">#1</span><span class="tt">French is missing from the assessor screens and from half the rest</span><span class="refmarks"></span></a></div><h2 id="s-questions-q-content">Content Dan owes <span class="c">2</span></h2><div class="card"><div class="row" data-id="duplicate-questions" data-priority="high" data-status="wait" data-kind="feature" data-golive="false" data-group="false" data-owes="1"><details class="item"><summary><span class="t"><a class="n" href="#n157" id="n157" title="Item 157. Refer to it as #157.">#157</a><span class="tt">The same question is asked twice in different sections</span></span><span class="marks"><span class="cell c-golive"></span><span class="cell c-flag"></span><span class="cell c-state"><span class="chip st-wait">Waiting</span></span><span class="cell c-who"><span class="chip who" title="Whose work this is once it is unblocked">dan</span></span><span class="cell c-when"></span></span></summary><div class="why">Dan found it himself in the meeting on 26 September: he asked the same thing twice, in two different sections, and said neither of them had ever been happy with it. A department answering the same question twice, in two places, with two scores, makes the total meaningless.
+<main><h2 id="s-questions-q-broken">Broken <span class="c">1</span></h2><div class="card glass"><a class="ref" href="#n1" data-ref="french-missing-assessor-screens" data-status="open" data-kind="bug" data-golive="true" data-priority="high" data-group="false" title="Goes to #1, where this is filed"><span class="n">#1</span><span class="tt">French is missing from the assessor screens and from half the rest</span><span class="refmarks"><span class="chip k-golive">Go live</span><span class="chip k-bug">Bug</span></span><span class="prio-read" aria-hidden="true"><span data-p="high" class="on">H</span><span data-p="medium">M</span><span data-p="low">L</span></span></a></div><h2 id="s-questions-q-content">Content Dan owes <span class="c">2</span></h2><div class="card"><div class="row" data-id="duplicate-questions" data-priority="high" data-status="wait" data-kind="feature" data-golive="false" data-group="false" data-owes="1"><details class="item"><summary><span class="t"><a class="n" href="#n157" id="n157" title="Item 157. Refer to it as #157.">#157</a><span class="tt">The same question is asked twice in different sections</span></span><span class="marks"><span class="cell c-golive"></span><span class="cell c-flag"></span><span class="cell c-state"><span class="chip st-wait">Waiting</span></span><span class="cell c-who"><span class="chip who" title="Whose work this is once it is unblocked">dan</span></span><span class="cell c-when"></span></span></summary><div class="why">Dan found it himself in the meeting on 26 September: he asked the same thing twice, in two different sections, and said neither of them had ever been happy with it. A department answering the same question twice, in two places, with two scores, makes the total meaningless.
 
 THE PASS IS DONE, 1 October. All 176 questions read, and every one of the 15,400 pairs scored by tools/find-duplicate-questions.mjs. What follows is the finding. The cutting is Dan’s, and nothing in the set has been changed.
 
@@ -367,7 +389,7 @@ Also run end to end against Dan’s actual spreadsheets, which live outside the 
 </section>
 <section class="pane" data-track="engine" hidden>
 <nav class="side"><div class="lead">The engine</div><a href="#s-engine-e-broken" data-sec="s-engine-e-broken"><span>Broken</span><span class="c">2</span></a><a href="#s-engine-e-submitter" data-sec="s-engine-e-submitter"><span>The submitter</span><span class="c">6</span></a><a href="#s-engine-e-assessor" data-sec="s-engine-e-assessor"><span>The assessor</span><span class="c">2</span></a><a href="#s-engine-e-admin" data-sec="s-engine-e-admin"><span>Admin screens</span><span class="c">2</span></a><a href="#s-engine-e-exec" data-sec="s-engine-e-exec"><span>The executive view</span><span class="c">1</span></a><a href="#s-engine-e-storage" data-sec="s-engine-e-storage"><span>Saving and storage</span><span class="c">2</span></a><a href="#s-engine-e-done" data-sec="s-engine-e-done"><span>Done</span><span class="c">82</span></a></nav>
-<main><h2 id="s-engine-e-broken">Broken <span class="c">2</span></h2><div class="card"><a class="ref" href="#n203" data-ref="draft-and-active-set-can-disagree" data-status="open" data-kind="bug" data-golive="false" data-group="false"><span class="n">#203</span><span class="tt">A draft can be answered against one question set while the browser says another is active</span><span class="refmarks"></span></a><a class="ref" href="#n194" data-ref="four-character-reference-collides" data-status="open" data-kind="bug" data-golive="false" data-group="false"><span class="n">#194</span><span class="tt">Two assessments can share the four characters in an email subject</span><span class="refmarks"></span></a></div><h2 id="s-engine-e-submitter">The submitter <span class="c">6</span></h2><div class="card"><div class="row" data-id="draft-and-active-set-can-disagree" data-priority="medium" data-status="open" data-kind="bug" data-golive="false" data-group="false"><details class="item"><summary><span class="t"><a class="n" href="#n203" id="n203" title="Item 203. Refer to it as #203.">#203</a><span class="tt">A draft can be answered against one question set while the browser says another is active</span></span><span class="marks"><span class="cell c-golive"></span><span class="cell c-flag"><span class="chip k-bug">Bug</span></span><span class="cell c-state"></span><span class="cell c-who"></span><span class="cell c-when"></span></span></summary><div class="why">Left open on 1 October by the fix that stopped the assessor page deleting the submitter’s draft, and named here rather than guessed at.
+<main><h2 id="s-engine-e-broken">Broken <span class="c">2</span></h2><div class="card glass"><a class="ref" href="#n203" data-ref="draft-and-active-set-can-disagree" data-status="open" data-kind="bug" data-golive="false" data-priority="medium" data-group="false" title="Goes to #203, where this is filed"><span class="n">#203</span><span class="tt">A draft can be answered against one question set while the browser says another is active</span><span class="refmarks"><span class="chip k-bug">Bug</span></span><span class="prio-read" aria-hidden="true"><span data-p="high">H</span><span data-p="medium" class="on">M</span><span data-p="low">L</span></span></a><a class="ref" href="#n194" data-ref="four-character-reference-collides" data-status="open" data-kind="bug" data-golive="false" data-priority="low" data-group="false" title="Goes to #194, where this is filed"><span class="n">#194</span><span class="tt">Two assessments can share the four characters in an email subject</span><span class="refmarks"><span class="chip k-bug">Bug</span></span><span class="prio-read" aria-hidden="true"><span data-p="high">H</span><span data-p="medium">M</span><span data-p="low" class="on">L</span></span></a></div><h2 id="s-engine-e-submitter">The submitter <span class="c">6</span></h2><div class="card"><div class="row" data-id="draft-and-active-set-can-disagree" data-priority="medium" data-status="open" data-kind="bug" data-golive="false" data-group="false"><details class="item"><summary><span class="t"><a class="n" href="#n203" id="n203" title="Item 203. Refer to it as #203.">#203</a><span class="tt">A draft can be answered against one question set while the browser says another is active</span></span><span class="marks"><span class="cell c-golive"></span><span class="cell c-flag"><span class="chip k-bug">Bug</span></span><span class="cell c-state"></span><span class="cell c-who"></span><span class="cell c-when"></span></span></summary><div class="why">Left open on 1 October by the fix that stopped the assessor page deleting the submitter’s draft, and named here rather than guessed at.
 
 The active set is a shared name, the same way the draft was. So an assessor making a different set active now leaves the submitter’s draft alone, which is the point, but that draft was answered against the old set and nothing compares the two.
 
@@ -671,7 +693,7 @@ Landed on 28 September. The link now carries the address it was issued for, the 
 </section>
 <section class="pane" data-track="admin" hidden>
 <nav class="side"><div class="lead">Administrative</div><a href="#s-admin-a-broken" data-sec="s-admin-a-broken"><span>Broken</span><span class="c">0</span></a><a href="#s-admin-a-signin" data-sec="s-admin-a-signin"><span>Signing in</span><span class="c">4</span></a><a href="#s-admin-a-publish" data-sec="s-admin-a-publish"><span>Where it lives</span><span class="c">3</span></a><a href="#s-admin-a-owner" data-sec="s-admin-a-owner"><span>Ownership and handover</span><span class="c">4</span></a><a href="#s-admin-a-process" data-sec="s-admin-a-process"><span>Process, for people</span><span class="c">4</span></a><a href="#s-admin-a-done" data-sec="s-admin-a-done"><span>Done</span><span class="c">13</span></a></nav>
-<main><h2 id="s-admin-a-broken">Broken <span class="c">0</span></h2><div class="card"><p class="settled"></p></div><h2 id="s-admin-a-signin">Signing in <span class="c">4</span></h2><div class="card"><div class="row" data-id="assessor-sign" data-priority="high" data-status="open" data-kind="feature" data-golive="false" data-group="true"><details class="item"><summary><span class="t"><a class="n" href="#n133" id="n133" title="Item 133. Refer to it as #133.">#133</a><span class="tt">Assessor sign-in</span></span><span class="marks"><span class="cell c-golive"></span><span class="cell c-flag"></span><span class="cell c-state"></span><span class="cell c-who"></span><span class="cell c-when"></span></span></summary><div class="why">Four routes, and they are a sequence rather than a choice. Each was argued on its own and the cheapest was never costed.</div><div class="kids"><div class="row" data-id="sign-link-sent-work" data-priority="high" data-status="open" data-kind="feature" data-golive="false" data-group="false"><details class="item"><summary><span class="t"><a class="n" href="#n134" id="n134" title="Item 134. Refer to it as #134.">#134</a><span class="tt">Sign in with a link sent to your work address</span></span><span class="marks"><span class="cell c-golive"></span><span class="cell c-flag"></span><span class="cell c-state"></span><span class="cell c-who"></span><span class="cell c-when"></span></span></summary><div class="why">Built and working. Firebase mails a one-time link, opening it proves the person can read that mailbox, and the address comes back verified, which is what the store’s rules insist on. It sits under Other ways to sign in, below the Google button.
+<main><h2 id="s-admin-a-broken">Broken <span class="c">0</span></h2><div class="card glass"><p class="settled"></p></div><h2 id="s-admin-a-signin">Signing in <span class="c">4</span></h2><div class="card"><div class="row" data-id="assessor-sign" data-priority="high" data-status="open" data-kind="feature" data-golive="false" data-group="true"><details class="item"><summary><span class="t"><a class="n" href="#n133" id="n133" title="Item 133. Refer to it as #133.">#133</a><span class="tt">Assessor sign-in</span></span><span class="marks"><span class="cell c-golive"></span><span class="cell c-flag"></span><span class="cell c-state"></span><span class="cell c-who"></span><span class="cell c-when"></span></span></summary><div class="why">Four routes, and they are a sequence rather than a choice. Each was argued on its own and the cheapest was never costed.</div><div class="kids"><div class="row" data-id="sign-link-sent-work" data-priority="high" data-status="open" data-kind="feature" data-golive="false" data-group="false"><details class="item"><summary><span class="t"><a class="n" href="#n134" id="n134" title="Item 134. Refer to it as #134.">#134</a><span class="tt">Sign in with a link sent to your work address</span></span><span class="marks"><span class="cell c-golive"></span><span class="cell c-flag"></span><span class="cell c-state"></span><span class="cell c-who"></span><span class="cell c-when"></span></span></summary><div class="why">Built and working. Firebase mails a one-time link, opening it proves the person can read that mailbox, and the address comes back verified, which is what the store’s rules insist on. It sits under Other ways to sign in, below the Google button.
 
 What it costs: five sign-in emails a day for the whole project on the no-cost plan. Read that as five sign-in events, not five people; somebody who signs in once stays signed in until they clear their browser. A room trying it at the same time, or one person mistyping twice, is what it will not survive.
 
@@ -978,6 +1000,13 @@ It needs a service-account key, which can act as the whole project, so it refuse
   });
 
   function paint(id, p) {
+    // The glass shows a priority it cannot change, so it has to be told when one changes.
+    document.querySelectorAll('.ref[data-ref="' + id + '"]').forEach(function (ref) {
+      ref.dataset.priority = p;
+      ref.querySelectorAll('.prio-read span').forEach(function (s) {
+        s.className = s.dataset.p === p ? 'on' : '';
+      });
+    });
     document.querySelectorAll('.row[data-id="' + id + '"]').forEach(function (row) {
       row.dataset.priority = p;
       row.querySelectorAll('.prio button').forEach(function (b) {
@@ -1059,9 +1088,9 @@ It needs a service-account key, which can act as the whole project, so it refuse
       if (node.tagName === 'DETAILS') node.open = true;
       node = node.parentElement;
     }
-    row.scrollIntoView({ block: 'center' });
-    row.classList.add('found');
-    setTimeout(function () { row.classList.remove('found'); }, 2400);
+    row.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    row.classList.add('brought-here');
+    setTimeout(function () { row.classList.remove('brought-here'); }, 2600);
     try { history.replaceState(null, '', hash); } catch (e) { /* the item is still shown */ }
     return true;
   }
