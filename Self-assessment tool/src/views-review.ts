@@ -249,6 +249,15 @@ function scheduleAuditSave(l: Loaded, after: () => void = () => {}): void {
       const hasScore = typeof e.auditedScore === 'number';
       if (hasScore || e.verdict || (e.note ?? '').trim() || (e.history ?? []).length) written[qid] = e;
     }
+    /**
+     * The list has to learn about this.
+     *
+     * Who audited what is read once per session, so an assessor who wrote an audit and went
+     * back to the list was looking at an answer taken before they wrote it: the submission
+     * said audited by you and the row said nobody yet, about the same submission. The read is
+     * marked stale here and the list asks again when it is next drawn.
+     */
+    listAuditsRead = false;
     void putAudit(code, {
       reviewer: currentUser()?.email ?? '',
       reviewerName: auditor,
@@ -256,7 +265,14 @@ function scheduleAuditSave(l: Loaded, after: () => void = () => {}): void {
       perQuestion: written,
       overallNote: audit.overallNote,
     }).then(
-      () => { auditSave = { state: 'saved' }; after(); },
+      () => {
+        auditSave = { state: 'saved' };
+        const me = currentUser()?.email ?? '';
+        const name = auditor.trim() || me;
+        if (!(l.auditedBy ?? []).includes(name)) l.auditedBy = [...(l.auditedBy ?? []), name];
+        l.auditedByMe = true;
+        after();
+      },
       (err: Error) => { auditSave = { state: 'failed', problem: err.message }; after(); },
     );
   }, 1200);
