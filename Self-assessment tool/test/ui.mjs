@@ -1716,7 +1716,7 @@ ok('assessor is told where a justification is missing', view().includes('No just
  * A flagged question is marked where it sits, and its finding is on it.
  *
  * The aggregated findings used to swallow their questions: a hundred of them became four cards
- * at the top of the flagged tab and carried no mark at all on the questions themselves, so the
+ * at the top of the flagged view and carried no mark at all on the questions themselves, so the
  * section headings undercounted and the one view would have been missing most of what it is
  * for. The members travel with the aggregate now and are unpacked back onto their questions.
  */
@@ -1756,11 +1756,11 @@ ok('the audit is attributed to whoever signed in, and says it is unverified',
 // no score.
 {
   /**
-   * Agree-with-all lives where the sections are, which is the full view.
+   * Agree-with-all lives where the sections are, which is the one list of questions.
    *
-   * It used to sit inside the fold that held every unflagged question. That fold is a screen
-   * of its own now, so the control went with the sections rather than staying on a screen that
-   * no longer has any.
+   * It used to sit inside the fold that held every unflagged question. The fold became a second
+   * screen and the second screen became the only one, and the control stayed with the sections
+   * through both.
    */
   // The scores as the assessor left them, so "touches no score" is actually checked.
   // The score is eleven buttons now, the way the submitter picks one, so what is on the page

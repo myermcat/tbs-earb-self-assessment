@@ -1640,8 +1640,8 @@ td.t0, td.t1, td.t2, td.t3, td.t4, td.t5, td.t6, td.t7, td.t8, td.t9, td.t10 { f
 /**
  * Severity is the rail and the dot. It is never a fill.
  *
- * "look like mishmash of colour. really hard to see anything." Measured on one Audit these
- * screen: four tinted grounds and five rail colours at once, and two of the tints collided
+ * "look like mishmash of colour. really hard to see anything." Measured on one screen of
+ * questions: four tinted grounds and five rail colours at once, and two of the tints collided
  * with the thing they sat inside. A medium finding was painted the same amber as the row
  * holding it, and a low finding the same grey as the quotation beside it, so the finding read
  * as part of its own container. One quiet ground for every severity fixes both: the panel says
@@ -1695,9 +1695,13 @@ td.num { text-align: right; font-family: var(--mono); font-variant-numeric: tabu
 /**
  * A tint that every row carries is not a signal.
  *
- * Every row inside Audit these is flagged, so the amber ground marked 166 rows out of 166 and
- * told the assessor nothing. Worse, it was the same amber as a medium finding, which meant the
- * findings sank into the rows holding them. A row separates with its rule and its space now.
+ * Measured when the flagged questions were a screen of their own: every row on it was flagged,
+ * so the amber ground marked 166 rows out of 166 and told the assessor nothing. There is one
+ * list now and the flagged ones are a part of it, which does not bring the tint back - on a
+ * real submission they are about two thirds of the questions, and a ground on two rows in
+ * three is the same wallpaper with a gap in it. Worse, the amber was the one a medium finding
+ * uses, so the findings sank into the rows holding them. A row separates with its rule and its
+ * space, and the finding on it is what says it is flagged.
  * Changed keeps a rail, because that one is rare and it is the assessor's own work.
  */
 .audit-row { border-top: 1px solid var(--line); padding: .6rem 0; }
