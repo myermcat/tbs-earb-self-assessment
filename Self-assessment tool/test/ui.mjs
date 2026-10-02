@@ -1907,8 +1907,18 @@ ok('audited file keeps the self-score alongside the audited one',
     ok('both roll-ups are in one box', !!box && panels.length === 2, String(panels.length));
     ok('and the box is the one the results page uses, so the two sides match',
        !!box && box.classList.contains('cuts') && panels.every((c) => c.classList.contains('res-sub')));
+    /**
+     * Named for what is in it.
+     *
+     * It was "Where the portfolio is weak" over every average, the strong ones included. A
+     * magnifying glass over the weak ones would be a different screen, and a heading that
+     * promises one and draws the other is worse than a plain one.
+     */
     ok('and the box has a heading of its own',
-       /Where the portfolio is weak/.test(view()));
+       !!box?.closest('.card')?.querySelector('h2'),
+       box?.closest('.card')?.querySelector('h2')?.textContent);
+    ok('and it does not promise a cut it is not making',
+       !/Where the portfolio is weak/.test(view()));
   }
   {
     const cards = qa('main .cuts > .cut');

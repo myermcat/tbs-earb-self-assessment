@@ -222,6 +222,22 @@ or a diff already says.
 This does not touch code comments. The comments in this repository explain *why* a line exists
 to the next person who has to change it, which is a different job, and they stay.
 
+**Restated as a standing rule on 2 October, after it was broken again on the portfolio and in
+four column notes:** *we don't explain what's on the page unless stated otherwise. Because if
+it's not understandable what's on the page, then the issue is with the UX, and that is what we
+need to work on. Not explaining it with text.*
+
+So a sentence under a heading that describes what is under the heading is not a small
+indulgence to be trimmed later - **it is a bug report against the layout, written by the person
+who built it.** Delete the sentence and fix what made it seem necessary. The four notes removed
+that day each said their own column heading again in a longer sentence, and the clearest of them
+put "self-marked by submitter" over a column whose group heading, four rows above, already read
+"Marked ready to review".
+
+A heading may name a thing and a number may count it. Caveats about *data* stay: what this page
+can and cannot see, that a figure is provisional, that a store takes a minute to catch up. Those
+are facts about the world, not descriptions of the screen.
+
 ## The concept case
 
 **Read `../TBS fall (working material)/Concept case/README.md` before changing a word of it.** It lists the claims that were

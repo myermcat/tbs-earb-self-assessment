@@ -3,6 +3,7 @@ import { el, clear, tone, bar } from './dom';
 import { score, isRedFlag, allQuestionScores, type Result } from './scoring';
 import { csvHeader, csvRow, toCsv } from './csv';
 import { flags } from './flags';
+import { ICON_DOWN } from './icons';
 import { download } from './storage';
 import { isHosted, listRecords, sourceLine, type StoredRecord } from './store';
 
@@ -68,21 +69,38 @@ function paint(
         isHosted() ? 'Live' : 'Not hosted yet',
       ]),
     ]),
-    el('p', { class: 'muted' }, [
-      isHosted()
-        ? 'Every record in the store, recalculated as this page loads.'
-        : 'Nothing is hosted yet, so this page can only see what this browser and this session hold. The day a store exists, the same page reads the whole portfolio. The numbers below are computed the same way in both cases.',
-    ]),
     el('p', { class: 'small' }, ['Showing: ', el('b', {}, [sourceLine(records)]), '.']),
-    // Key-value storage is eventually consistent: a write can take a minute to be visible at
-    // another location, and longer at one that read the old list recently. Somebody watching
-    // for a submission that has just been sent needs to know that before they assume it lost.
-    isHosted()
-      ? el('p', { class: 'small muted' }, [
-          'A submission can take up to a minute to appear here, and longer if this page read the list a moment ago. ',
-          el('button', { class: 'ghost small', onclick: () => renderDashboard(root, rubric, sessionFiles) }, ['Check again']),
-        ])
-      : null,
+    /**
+     * The same toolbar the submissions list has, because the two exports are the same control.
+     *
+     * This one sat in a card of its own at the foot of the page, which gave a button the
+     * standing of a section. Key-value storage is eventually consistent, so Check again is
+     * beside it: a submission sent a moment ago may not be in this read yet, and the hover
+     * says so rather than a paragraph above the numbers.
+     */
+    el('div', { class: 'res-toolbar' }, [
+      el('button', {
+        class: 'ghost small btn-icon',
+        html: `${ICON_DOWN}<span>Export the portfolio as CSV</span>`,
+        onclick: () => {
+          const csv = toCsv([
+            csvHeader(rubric),
+            ...rows.map((row) => csvRow(rubric, row.rec.assessment, {
+              high: 0, total: flags(rubric, row.rec.assessment, row.r).length,
+            })),
+          ]);
+          download('gc-arch-portfolio.csv', csv, 'text/csv');
+        },
+      }),
+      el('span', { class: 'spacer' }),
+      isHosted()
+        ? el('button', {
+            class: 'ghost small',
+            title: 'A submission sent in the last minute may not be in this read yet, and longer if this page read the list a moment ago.',
+            onclick: () => renderDashboard(root, rubric, sessionFiles),
+          }, ['Check again'])
+        : null,
+    ]),
     el('div', { class: 'kpi-row' }, [
       kpi(String(live.length), live.length === 1 ? 'record' : 'records'),
       kpi(avg === null ? '--' : avg.toFixed(1), 'average overall'),
@@ -129,8 +147,9 @@ function paint(
    * with one bordered box and a rule between the halves, so this uses the same box.
    */
   const where = el('section', { class: 'card' }, [
-    el('h2', {}, ['Where the portfolio is weak']),
-    el('p', { class: 'muted small' }, [`Across ${rows.length} record${rows.length === 1 ? '' : 's'}, grouped twice.`]),
+    // It was called Where the portfolio is weak and it is every average, strong ones included.
+    // A magnifying glass over the weak ones would be a different screen.
+    el('h2', {}, ['Averages']),
   ]);
   const cuts = el('div', { class: 'cuts' });
   where.appendChild(cuts);
@@ -138,7 +157,6 @@ function paint(
 
   const byDomain = el('div', { class: 'res-sub cut' }, [
     el('h3', {}, ['By architecture domain']),
-    el('p', { class: 'muted small' }, ['These carry weights and they add up to the overall.']),
   ]);
   rubric.domains.forEach((d, i) => {
     const v = avgOf((row) => row.r.domains[i]?.score ?? null);
@@ -162,9 +180,6 @@ function paint(
   if (shown.length) {
     const byCategory = el('div', { class: 'res-sub cut' }, [
       el('h3', {}, ['By category']),
-      el('p', { class: 'muted small' }, [
-        'The same questions grouped by what they are about. One question can be in several categories at once, so these do not add up to the overall.',
-      ]),
     ]);
     for (const t of shown) {
       const v = avgOf((row) => scoreOf(row, t.id)?.score ?? null);
@@ -175,41 +190,12 @@ function paint(
   }
 
   /**
-   * THE LIST OF RECORDS IS NOT HERE ANY MORE. IT IS THE SUBMISSIONS TAB.
+   * THE LIST OF RECORDS IS NOT HERE. IT IS THE SUBMISSIONS TAB.
    *
-   * Asked, and the answer is that there was no argument for it: why do we have it in the
-   * portfolio view if we have exactly the same thing in submissions. It was the same records,
-   * from the same read, in the same worklist order - weakest first, which is the second of the
-   * two rules the submissions list already sorts by - with a thinner set of columns and no way
-   * into a submission. Two lists of one thing is two places to keep in step, and the one that
-   * loses is always the one somebody forgets.
-   *
-   * Three things were only here, and all three went to the list rather than being dropped.
-   * Withdrawn records, which the submissions list showed undifferentiated among the work.
-   * Withdrawing and putting back, which is the move somebody wants when a test submission is
-   * cluttering the portfolio, and which belongs on the row it is about. And when a record was
-   * last touched, which is on the row's hover.
-   *
-   * What is left on this page is the only thing that is not a list: the numbers over all of
-   * the records at once, and the file of all of them.
+   * Asked, and there was no argument for it: the same records, from the same read, in the same
+   * worklist order, with fewer columns and no way into a submission. Withdrawing and the
+   * withdrawn rows went to the list with it; the export went to the toolbar above.
    */
-  root.appendChild(el('section', { class: 'card' }, [
-    el('div', { class: 'actions' }, [
-      el('button', {
-        class: 'ghost',
-        onclick: () => {
-          const csv = toCsv([
-            csvHeader(rubric),
-            ...rows.map((row) => csvRow(rubric, row.rec.assessment, {
-              high: 0, total: flags(rubric, row.rec.assessment, row.r).length,
-            })),
-          ]);
-          download('gc-arch-portfolio.csv', csv, 'text/csv');
-        },
-      }, ['Export the portfolio as CSV']),
-    ]),
-  ]));
-
 
   // What this role can do that an assessor cannot, and what nobody has decided yet.
   root.appendChild(el('section', { class: 'card' }, [
