@@ -1617,7 +1617,8 @@ ok('and the breadcrumb is a path rather than a panel',
 ok('a KPI row summarises the submission', qa('.kpi').length === 5, String(qa('.kpi').length));
 ok('and how much of it is filled in comes first',
    qa('.kpi')[0]?.textContent?.includes('complete'), qa('.kpi')[0]?.textContent);
-ok('the questions are on the same page', view().includes('Audit these'));
+ok('the questions are on the same page', qa('.audit-row').length > 0,
+   String(qa('.audit-row').length));
 /**
  * The score an assessor gave is said once.
  *
@@ -1627,11 +1628,16 @@ ok('the questions are on the same page', view().includes('Audit these'));
 ok('a changed score is not said twice on one question',
    qa('.audit-row.changed .q-head .delta').length === 0,
    String(qa('.audit-row.changed .q-head .delta').length));
-ok('with two tabs over them', qa('.assess-tabs .tab').length === 2,
+/**
+ * ONE VIEW, NOT TWO.
+ *
+ * Flagged questions was a tab until 2 October, when 111 of 176 questions carried a finding and
+ * a shortlist of two thirds of the assessment stopped being a shortlist. There is one list now
+ * and the flagged ones are marked where they sit, so nothing draws a bar across the page: with
+ * nobody else's audit on this submission there is no filter to offer and no nav at all.
+ */
+ok('and nothing divides them into tabs', qa('.assess-tabs').length === 0,
    qa('.assess-tabs .tab').map((t) => t.textContent).join(' | '));
-ok('named for what they hold',
-   qa('.assess-tabs .tab').map((t) => t.textContent).join('|') === 'Flagged questions|All questions',
-   qa('.assess-tabs .tab').map((t) => t.textContent).join('|'));
 ok('and saving is at the foot, under its own word', view().includes('Saved versions'));
 
 /**
@@ -1642,35 +1648,53 @@ ok('and saving is at the foot, under its own word', view().includes('Saved versi
  * section, with the same controls on every question.
  */
 {
-  byText('.assess-tabs .tab', 'All questions').click();
   const allQids = new Set(qa('.audit-row .qid').map((n) => n.textContent));
-  ok('the full view holds every question', allQids.size === TOTAL, `${allQids.size} vs ${TOTAL}`);
+  ok('the one view holds every question', allQids.size === TOTAL, `${allQids.size} vs ${TOTAL}`);
+  ok('each of them exactly once', qa('.audit-row').length === TOTAL, String(qa('.audit-row').length));
   ok('laid out by domain', qa('.card h2').length >= 4, String(qa('.card h2').length));
   ok('and by section inside it', qa('.full-section').length > 10, String(qa('.full-section').length));
-  ok('with a way back to the flagged ones', !!byText('.assess-tabs .tab', 'Flagged questions'));
   ok("assessor sees the submitter's own words",
      view().includes('They said') && view().includes('owned by the platform team'));
   ok('assessor sees the evidence reference and its classification',
      view().includes('Current-state architecture diagram') && view().includes('Protected B'));
   ok('the assessor is told where the evidence is', view().includes('Current-state architecture diagram'));
-  byText('.assess-tabs .tab', 'Flagged questions').click();
-  ok('and coming back lands on what needs you', view().includes('Audit these'));
 }
 
 ok('assessor is told where a justification is missing', view().includes('No justification given'));
-// Anomalies first: only the flagged questions are on the page until the assessor asks for
-// the rest. This is the whole point of the reviewer side.
+/**
+ * A flagged question is marked where it sits, and its finding is on it.
+ *
+ * The aggregated findings used to swallow their questions: a hundred of them became four cards
+ * at the top of the flagged tab and carried no mark at all on the questions themselves, so the
+ * section headings undercounted and the one view would have been missing most of what it is
+ * for. The members travel with the aggregate now and are unpacked back onto their questions.
+ */
 {
   const flaggedRows = qa('.audit-row.flagged').length;
-  ok('flagged questions are surfaced on their own', flaggedRows > 0, String(flaggedRows));
-  ok('the flagged set is a small fraction of 176', flaggedRows < 40, String(flaggedRows));
-  ok('and the screen somebody opens on is only those', qa('.audit-row').length < 40,
-     String(qa('.audit-row').length));
-  ok('the anomalies are what this tab is', view().includes('Audit these'));
+  ok('flagged questions are marked in the one list', flaggedRows > 0, String(flaggedRows));
+  ok('every flagged question carries its own finding',
+     qa('.audit-row.flagged').every((row) => !!row.querySelector('.flag')),
+     String(qa('.audit-row.flagged .flag').length));
+  // Everything left outside a question is a finding about the whole submission, which has no
+  // question to sit on. A finding about one question is never hoisted above it again.
+  const loose = qa('.flag').filter((f) => !f.closest('.audit-row'));
+  ok('and every other finding is about the whole submission',
+     loose.every((f) => !!f.closest('.card')?.textContent?.startsWith('Findings')),
+     loose.map((f) => f.textContent.slice(0, 40)).join(' | '));
+  const counted = qa('.full-section .badge.badge-warn').reduce(
+    (n, b) => n + Number((b.textContent.match(/^(\d+) flagged/) ?? [0, 0])[1]), 0);
+  ok('the section headings count the same questions', counted === flaggedRows,
+     `${counted} counted vs ${flaggedRows} marked`);
 }
 
-ok('a challenge question is drafted for the assessor, with no AI and no key involved',
-   qa('.challenge').length > 0 && qa('.challenge')[0].textContent.includes('?'),
+/**
+ * The question to put to the room is the submitter's, and it is on the submitter's page.
+ *
+ * Her words: you scored eight on blah blah, what would you show us - that is obvious to me,
+ * who needs to see it is the submitter and not the assessor. It is still generated and still
+ * drawn on the results page; test/smoke.ts checks it is written at all.
+ */
+ok('the assessor is not asked the submitter\u2019s question', qa('.challenge').length === 0,
    qa('.challenge')[0]?.textContent?.slice(0, 70));
 ok('the marking is shown as handling information, not as an anomaly',
    view().includes('Marked Protected B') && !view().includes('Evidence marked Protected B'));
@@ -1687,7 +1711,6 @@ ok('the audit is attributed to whoever signed in, and says it is unverified',
    * of its own now, so the control went with the sections rather than staying on a screen that
    * no longer has any.
    */
-  byText('.assess-tabs .tab', 'All questions').click();
   // The scores as the assessor left them, so "touches no score" is actually checked.
   // The score is eleven buttons now, the way the submitter picks one, so what is on the page
   // is which button is pressed rather than what is typed in a box.
@@ -1700,19 +1723,16 @@ ok('the audit is attributed to whoever signed in, and says it is unverified',
   btn.click();
   ok('and it says how many it marked', view().includes('marked as agreed'));
   ok('while changing no score', nums() === before, `${before} -> ${nums()}`);
-  byText('.assess-tabs .tab', 'Flagged questions').click();
 }
 
 /**
  * Re-score one specific question so the delta is checkable.
  *
- * In the full view, because the first question of the first section is not flagged and the
- * screen somebody opens on now carries only what is. Scoring it there and coming back is how
- * an assessor would actually do it.
+ * The first question of the first section is not flagged, and it is on the page anyway: there
+ * is one list and everything is in it, which is the point of this whole shape.
  */
 const targetQid = rubric.domains[0].sections[0].questions[0].id;
 const rowOf = (qid) => q(`.audit-row[data-qid="${qid}"]`);
-byText('.assess-tabs .tab', 'All questions').click();
 const targetRow = rowOf(targetQid);
 ok('every question is addressable by its rubric id', !!targetRow, targetQid);
 const pick = (row, v) => [...row.querySelectorAll('.audit-controls .score-btn')]
