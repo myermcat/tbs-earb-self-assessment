@@ -382,8 +382,16 @@ console.log('\nThe published build, signed in\n');
   ok('the assessor column is wider than the reading column, because it holds a table',
      parseFloat((reviewCap.match(/(\d+(?:\.\d+)?)px/) ?? [])[1]) >= 1200, reviewCap);
   ok('and its cap is one a phone can honour', /%/.test(reviewCap), reviewCap);
-  ok('and nothing in the table refuses to wrap',
-     w.getComputedStyle(doc.querySelector('.triage td')).overflowWrap === 'anywhere');
+  /**
+   * A cell wraps, and breaks a word only when the word cannot fit at all.
+   *
+   * It was `anywhere`, which breaks wherever the browser likes the moment a line is tight, and
+   * Unclassified arrived as Unclassifi and ed. `break-word` keeps the break for a word
+   * genuinely wider than its column, which is the case the rule exists for.
+   */
+  ok('a cell wraps, and splits a word only as a last resort',
+     w.getComputedStyle(doc.querySelector('.triage td')).overflowWrap === 'break-word',
+     w.getComputedStyle(doc.querySelector('.triage td')).overflowWrap);
 
   ok('there is no Clear on the toolbar', !labels.includes('Clear'), labels.slice(0, 12).join(','));
   ok('the export is on a toolbar above the table', !!doc.querySelector('.res-toolbar .btn-icon'));

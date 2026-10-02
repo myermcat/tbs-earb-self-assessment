@@ -166,6 +166,25 @@ in any project, and it is written up in `Claude Hub/Document house rules.md`.
 
 Document layout follows `Claude Hub/Document house rules.md`.
 
+## A surprising pass is as suspicious as a surprising failure
+
+Five times on 1 October a check reported nothing because it never ran, and every one of them
+looked like success. A test helper that knew two of a field's three values, so the test could
+not ask its question. A search-and-replace without /g that landed on the first of two identical
+lines, breaking the rule nobody was testing. A gate pointed at a folder that had been deleted,
+counting zero and printing it. A script run from /tmp that resolved its own root from its own
+path and read a tree that was not the repository. A guard tested on a branch that did not have
+the guard in it.
+
+**The tell was the same every time: the result was too clean for the thing that had just been
+reasoned out.** A green that arrives where a red was expected is a claim about two things, the
+code and the instrument, and the instrument is the one nobody checks.
+
+**Before believing an outcome, print the thing it rests on.** The URL that was fetched, the line
+that was mutated, the state that was seeded, the file that is about to run. When a harness has a
+helper that encodes a value's options, check it knows all of them. One line of evidence is worth
+more than the whole chain of reasoning that says it should have worked.
+
 ## Do not explain yourself, or the thing you built
 
 Asked for on 1 October, after a page printed a sentence explaining why one of its sections was

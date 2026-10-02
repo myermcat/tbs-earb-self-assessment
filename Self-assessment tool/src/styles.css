@@ -1224,7 +1224,15 @@ code.mark-subject { display: block; margin: .25rem 0; }
      badge is one or two short words and must not: Ready broke after Read and the y went to a
      second line, which turned a chip into a circle with a letter in it. */
   overflow-wrap: normal; word-break: keep-all; }
-.triage td { overflow-wrap: anywhere; }
+/**
+ * A cell breaks a word only when the word cannot fit at all.
+ *
+ * `anywhere` lets the browser break wherever it likes the moment a line is tight, which is how
+ * Unclassified arrived as Unclassifi and ed. `break-word` keeps that as a last resort for a
+ * word genuinely wider than its column, and the table already has a sideways scroller for the
+ * case where everything else is too wide. Asked: what else can we do then. This.
+ */
+.triage td { overflow-wrap: break-word; }
 /* A qualifier under a column heading, for a word that would otherwise read as the tool's own
    finding: State is what the department said about itself. */
 /* Paler than the heading it qualifies, which is also --ink-3: identical colour made the two
