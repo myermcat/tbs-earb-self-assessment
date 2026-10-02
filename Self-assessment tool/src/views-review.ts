@@ -1164,7 +1164,19 @@ function openDetail(rubric: Rubric, root: HTMLElement, l: Loaded, asked: Depth =
          * You is only how the sentence refers to them.
          */
         const me = currentUser()?.email ?? auditor;
-        const mine = Object.keys(audit.perQuestion).length > 0;
+        /**
+         * Audited means the same thing here as it does in the list.
+         *
+         * Reported as: inside a submission it says audited by you, and in the list it says
+         * nobody yet. Opening a submission gives every question a blank entry for the controls
+         * to write into, so counting entries counted the act of opening it. The list counts
+         * what reached the store, which is entries with something in them, and the save strips
+         * the rest. This is the same test as the save's.
+         */
+        const mine = Object.values(audit.perQuestion).some(
+          (e) => typeof e.auditedScore === 'number' || e.verdict || (e.note ?? '').trim()
+            || (e.history ?? []).length,
+        );
         const who = [
           ...(mine ? [{ name: 'You', from: me || 'You', mine: true }] : []),
           ...(l.others ?? []).map((x) => {
@@ -1199,6 +1211,16 @@ function openDetail(rubric: Rubric, root: HTMLElement, l: Loaded, asked: Depth =
     ]),
   ]));
 
+
+  root.appendChild(el('section', { class: 'card' }, [
+    el('div', { class: 'kpi-row' }, [
+      kpi(`${Math.round(r.completeness * 100)}%`, 'complete'),
+      kpi(String(fs.filter((f) => f.severity === 'high').length), 'must ask'),
+      kpi(String(needLook.size), 'questions flagged'),
+      kpi(String(evidenceCount), 'pieces of evidence'),
+      kpi(String(changed.length), 'you changed'),
+    ]),
+  ]));
 
   /**
    * The same answers cut by category, for the person who has to decide what to ask about.
@@ -1259,15 +1281,6 @@ function openDetail(rubric: Rubric, root: HTMLElement, l: Loaded, asked: Depth =
     }
   }
 
-  root.appendChild(el('section', { class: 'card' }, [
-    el('div', { class: 'kpi-row' }, [
-      kpi(`${Math.round(r.completeness * 100)}%`, 'complete'),
-      kpi(String(fs.filter((f) => f.severity === 'high').length), 'must ask'),
-      kpi(String(needLook.size), 'questions flagged'),
-      kpi(String(evidenceCount), 'pieces of evidence'),
-      kpi(String(changed.length), 'you changed'),
-    ]),
-  ]));
 
   /**
    * Two ways of reading the same work, as two tabs.
@@ -1304,10 +1317,15 @@ function openDetail(rubric: Rubric, root: HTMLElement, l: Loaded, asked: Depth =
   }, [label]);
   root.appendChild(el('nav', { class: 'card tight assess-tabs', 'aria-label': 'This assessment' }, [
     tab('Flagged questions', 'flagged'),
-    // Only where there is something behind it. A tab onto an empty list is a dead end, and a
-    // dead end with nothing written on it is the worst of both.
-    othersOn.size ? tab(`Audited by others (${othersOn.size})`, 'others') : null,
     tab('All questions', 'all'),
+    /**
+     * Last, because it is a different kind of thing from the two before it.
+     *
+     * Flagged and All are two readings of the whole assessment. This is a filter over it, and
+     * putting it between them split the pair that belong together. It appears only where there
+     * is something behind it: a tab onto an empty list is a dead end.
+     */
+    othersOn.size ? tab(`Audited by others (${othersOn.size})`, 'others') : null,
   ]));
 
   // The questions another assessor has written on, in the order the department answered them.

@@ -1694,8 +1694,10 @@ td.num { text-align: right; font-family: var(--mono); font-variant-numeric: tabu
  */
 .audit-row { border-top: 1px solid var(--line); padding: .6rem 0; }
 .audit-row + .audit-row { margin-top: .85rem; }
+/* A rail is a margin, not a border: text starting 3px from it reads as text in a box that is
+   too small for it. */
 .audit-row.changed { border-top: 0; box-shadow: inset 3px 0 0 var(--accent);
-  border-radius: var(--radius-sm); padding: .6rem; }
+  border-radius: var(--radius-sm); padding: .7rem .9rem .7rem 1.1rem; }
 /* A quotation, not a box. It held a grey fill that a low-severity finding also held. */
 .said { border-left: 2px solid var(--line-2); padding: .15rem .6rem; color: var(--ink-2); }
 .audit-controls { display: flex; gap: .45rem; align-items: center; flex-wrap: wrap; margin-top: .45rem; }

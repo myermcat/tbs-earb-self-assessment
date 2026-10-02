@@ -1924,6 +1924,16 @@ console.log('\nThe published build, signed in\n');
     ?.dispatchEvent(new dom.window.MouseEvent('click', { bubbles: true }));
   await new Promise((r) => setTimeout(r, 60));
 
+  /**
+   * Audited means one thing on both screens.
+   *
+   * Reported as: inside a submission it says audited by you, and in the list it says nobody
+   * yet. Opening a submission gives every question a blank entry for the controls to write
+   * into, and counting entries counted the act of opening it.
+   */
+  ok('opening a submission does not make it audited by you',
+     !/Audited by You/.test(body(doc)), body(doc).slice(0, 200));
+
   ok('opening one reads the audits written against it',
      seen.some((x) => /\/assessments\/[^/]+\/audit/.test(x.href) && x.method === 'GET'),
      seen.map((x) => `${x.method} ${x.href}`).slice(-4).join(' | '));
