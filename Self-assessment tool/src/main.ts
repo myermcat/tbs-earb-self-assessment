@@ -88,7 +88,7 @@ function routeToHash(r: Route): string {
     // and carries no suffix, the way the default settings pane carries none.
     // Each depth is its own address, so Back between them goes where it looks as though it
     // should and a link opens the list somebody meant to send.
-    const open = r.open ? `/${r.open}${r.depth && r.depth !== 'flagged' ? `/${r.depth}` : ''}` : '';
+    const open = r.open ? `/${r.open}${r.depth && r.depth !== 'all' ? `/${r.depth}` : ''}` : '';
     return r.mode === 'admin' ? '#assessor/admin'
       : r.mode === 'settings' ? `#assessor/settings${pane}`
       : `#assessor${open}`;
@@ -111,7 +111,9 @@ function hashToRoute(hash: string): Route {
   if (h.startsWith('assessor/')) {
     const [seg, tail] = h.slice('assessor/'.length).split('/');
     if (isAddressSegment(seg)) {
-      const depth: Depth = tail === 'all' ? 'all' : tail === 'others' ? 'others' : 'flagged';
+      // The bare address is every question, which is the only full view there is. A link
+      // written when there were two, ending in /all, still names the same screen.
+      const depth: Depth = tail === 'others' ? 'others' : 'all';
       return { side: 'assess', mode: 'review', open: seg, depth };
     }
     // Anything else under the assessor door is the assessor's list, and never the submitter's
@@ -184,7 +186,7 @@ let settingsPane: SettingsPane = booted.pane ?? 'questions';
  * the address now, and the address is the only place it lives.
  */
 let openCode: string | undefined = booted.open;
-let openDepth: Depth = booted.depth ?? 'flagged';
+let openDepth: Depth = booted.depth ?? 'all';
 
 /**
  * The assessment a discard just threw away, held in this tab and nowhere else. Undo is offered
@@ -242,7 +244,7 @@ function pushRoute(): void {
 function go(next: Mode) {
   // Asking for the list means the list, even when a submission was open. A reload is not an
   // act and keeps its address; this is.
-  if (next === 'review') { openCode = undefined; openDepth = 'flagged'; }
+  if (next === 'review') { openCode = undefined; openDepth = 'all'; }
   mode = next;
   const owner = SIDE_OF[next];
   if (owner && owner !== side) setSide(owner, false);
@@ -1343,7 +1345,7 @@ function go2home(): void {
   side = 'assess';
   mode = 'review';
   openCode = undefined;
-  openDepth = 'flagged';
+  openDepth = 'all';
   pushRoute();
   paint();
 }
@@ -2321,7 +2323,7 @@ function wireHistory(): void {
     mode = r.mode;
     // Back out of a submission is Back to the list, and the entry it lands on says so.
     openCode = r.open;
-    openDepth = r.depth ?? 'flagged';
+    openDepth = r.depth ?? 'all';
     try { localStorage.setItem(SIDE_KEY, side); } catch { /* storage unavailable */ }
     if (r.stop) setStopKey(r.stop);
     paint();

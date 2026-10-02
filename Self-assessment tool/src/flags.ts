@@ -18,6 +18,16 @@ export interface Flag {
   challenge?: string;      // a question the assessor can ask in the room. Templated, not generated.
   share?: number;          // how much of the score this question carries, for ranking
   questionIds?: string[];  // set on an aggregated flag
+  /**
+   * The findings this aggregate was made of, each still naming its own question.
+   *
+   * Collapsing threw them away and kept a list of ids, which is enough to draw a card with
+   * the questions folded inside it and not enough to put the finding back on the question it
+   * is about. The assessor's screen does the second thing, so the originals travel with the
+   * aggregate rather than being rebuilt from a title that reads "7 high scores with nothing
+   * cited" - which is true of the set and false of any one of them.
+   */
+  members?: Flag[];
 }
 
 /**
@@ -262,6 +272,7 @@ function collapse(flags: Flag[], r: Result): Flag[] {
       detail: `Heaviest first: ${named}${group.length > top.length ? `, and ${group.length - top.length} more` : ''}.`,
       challenge: top[0]?.challenge,
       questionIds: sorted.map((f) => f.questionId!),
+      members: sorted,
     });
   }
 

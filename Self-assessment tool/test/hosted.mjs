@@ -2084,7 +2084,8 @@ console.log('\nThe published build, signed in\n');
  */
 {
   const one = submission('AB12', 'Licensing Renewal');
-  for (const [where, expect] of [['flagged', 'Audit these'], ['all', 'All questions']]) {
+  // One depth now, and a link written when there were two still names the same screen.
+  for (const where of ['all', undefined]) {
     const { doc, dom } = await boot({
       session: live, side: 'assess', role: 'assessor',
       listAnswer: { documents: [asDoc(one)] },
@@ -2092,7 +2093,8 @@ console.log('\nThe published build, signed in\n');
     });
     await new Promise((r) => setTimeout(r, 120));
     const said = body(doc);
-    ok(`a reload inside ${where} comes back to it`, said.includes(expect), said.slice(0, 120));
+    ok(`a reload inside ${where ?? 'the bare address'} comes back to the submission`,
+       !!doc.querySelector('.crumbs') && said.includes(one.initiative.name), said.slice(0, 120));
     ok(`and not to the list`, !/submissions?, ready first/.test(said), said.slice(0, 120));
     dom.window.close();
   }
@@ -2206,7 +2208,8 @@ console.log('\nThe published build, signed in\n');
     openAt: { code: one.id, depth: 'needs' },
   });
   await new Promise((r) => setTimeout(r, 120));
-  ok('a reload is still put back where it was', body(doc).includes('Audit these'), body(doc).slice(0, 90));
+  ok('a reload is still put back where it was',
+     !!doc.querySelector('.crumbs') && body(doc).includes('Licensing Renewal'), body(doc).slice(0, 90));
 
   doc.querySelector('.brand').dispatchEvent(new dom.window.MouseEvent('click', { bubbles: true }));
   await new Promise((r) => setTimeout(r, 80));
@@ -2479,26 +2482,34 @@ console.log('\nA submission is a place you can go back from\n');
 }
 
 {
-  // Depth is part of where you are, so it is in the address and Back walks out of it too.
+  // The filter is part of where you are, so it is in the address and Back walks out of it too.
+  // It only exists where somebody else has written something, so this fixture gives it one.
   const one = submission('AB12', 'Licensing Renewal');
+  const theirs = {
+    reviewer: 'nick@tbs-sct.gc.ca', reviewerName: 'Nick Allen', reviewedAt: '2026-10-01T00:00:00.000Z',
+    perQuestion: { 'B-Q1': { auditedScore: 8, verdict: 'adjust', note: 'The evidence covers it.' } },
+  };
   const j = await boot({
     session: live, side: 'assess', role: 'assessor',
     listAnswer: { documents: [asDoc(one)] },
-    openAt: { code: one.id, depth: 'flagged' },
+    audits: { [one.id]: [theirs] },
+    openAt: { code: one.id },
   });
   const w = j.dom.window;
   const settle = () => new Promise((r) => setTimeout(r, 120));
   await settle();
+  ok('the bare address is every question',
+     w.location.hash === `#assessor/${one.id.slice(0, 6)}`, w.location.hash);
 
-  const all = [...j.doc.querySelectorAll('button')].find((b) => /All questions/.test(b.textContent));
-  all?.dispatchEvent(new w.MouseEvent('click', { bubbles: true }));
+  const others = [...j.doc.querySelectorAll('button')].find((b) => /Audited by others/.test(b.textContent));
+  others?.dispatchEvent(new w.MouseEvent('click', { bubbles: true }));
   await settle();
-  ok('changing depth changes the address', w.location.hash === `#assessor/${one.id.slice(0, 6)}/all`,
+  ok('filtering changes the address', w.location.hash === `#assessor/${one.id.slice(0, 6)}/others`,
      w.location.hash);
 
   w.history.back();
   await settle();
-  ok('and Back returns to the depth you were at',
+  ok('and Back returns to the whole list',
      w.location.hash === `#assessor/${one.id.slice(0, 6)}`, w.location.hash);
   j.dom.window.close();
 }
@@ -2574,6 +2585,10 @@ console.log('\nA submission is a place you can go back from\n');
   await new Promise((r) => setTimeout(r, 120));
   const shown = [...doc.querySelectorAll('.audit-row')].map((n) => n.getAttribute('data-qid'));
   ok('which holds only those questions', shown.length === 1 && shown[0] === 'B-Q1', shown.join(','));
+  // The same drawing as the whole list, narrowed: domains, sections and the controls in place,
+  // rather than a third way of laying the same questions out.
+  ok('drawn the same way the whole list is', !!doc.querySelector('.full-section .audit-row'),
+     String(doc.querySelectorAll('.full-section').length));
   ok('with their reading on it', /The evidence covers it/.test(body(doc)), body(doc).slice(0, 160));
   ok('and the question is marked with who else is on it',
      !!doc.querySelector('.audit-row .q-faces'),
@@ -2586,8 +2601,8 @@ console.log('\nA submission is a place you can go back from\n');
   });
   alone.doc.querySelector('.triage tbody tr').dispatchEvent(new alone.dom.window.MouseEvent('click', { bubbles: true }));
   await new Promise((r) => setTimeout(r, 160));
-  ok('and no tab where nobody else has written',
-     ![...alone.doc.querySelectorAll('.assess-tabs .tab')].some((t) => /Audited by others/.test(t.textContent)),
+  ok('and nothing to filter with where nobody else has written',
+     alone.doc.querySelectorAll('.assess-tabs').length === 0,
      [...alone.doc.querySelectorAll('.assess-tabs .tab')].map((t) => t.textContent).join(' | '));
   alone.dom.window.close();
   dom.window.close();
@@ -2620,16 +2635,14 @@ console.log('\nA submission is a place you can go back from\n');
   await new Promise((r) => setTimeout(r, 140));
 
   const tabs = [...j.doc.querySelectorAll('.assess-tabs .tab')].map((b) => b.textContent.trim());
-  ok('the third tab is not drawn when nobody else has written on it',
+  ok('the filter is not drawn when nobody else has written on it',
      !tabs.some((t) => /Audited by others/.test(t)), tabs.join(' | '));
-  // The defect: the address asked for a tab that is not there, and the screen drew the tab
-  // strip, nothing under it, and no tab marked as the one you are on.
-  // Before this was answered, the address asked for the third tab, the tab strip drew without
-  // it, the branch behind it found nothing to list, and the reader got a submission with no
-  // tab marked and nothing under the strip at all.
-  const on = [...j.doc.querySelectorAll('.assess-tabs .tab')].filter((b) => b.classList.contains('on'));
-  ok('and the submission opens on the tab everybody has',
-     on.length === 1 && /Flagged questions/.test(on[0].textContent), on.map((b) => b.textContent).join(' | ') || 'none marked');
+  // The defect: the address asked for a filter that is not there, and the screen drew the
+  // strip, nothing under it, and nothing marked as the one you are on. There is no strip at
+  // all for this reader now, and what they get is the whole list.
+  ok('and the submission opens on the list everybody has',
+     [...j.doc.querySelectorAll('.audit-row')].length > 1,
+     String(j.doc.querySelectorAll('.audit-row').length));
   ok('and the rest of the submission is drawn, not an empty strip',
      /Licensing Renewal/.test(body(j.doc)) && !!j.doc.querySelector('.crumbs'),
      body(j.doc).slice(0, 120));

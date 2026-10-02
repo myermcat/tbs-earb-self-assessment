@@ -1075,9 +1075,24 @@ function sectionHead(
  * It is one function because every part of it is computed from the same twenty locals. Three
  * functions would be three copies of that arithmetic.
  */
-export type Depth = 'flagged' | 'others' | 'all';
+/**
+ * ONE VIEW OF THE QUESTIONS, AND ONE FILTER OVER IT.
+ *
+ * There were two readings, Flagged questions and All questions, and the flagged one was the
+ * screen this tool was built around. It stopped being a shortlist: on a real submission 111 of
+ * 176 questions carried a finding, so the tab that was meant to say "start here" was saying
+ * "start almost anywhere", in a shape nobody else used - findings at the top with their
+ * questions folded inside them, three deep, the same question scoreable in two places.
+ *
+ * Her decision, in her own words: you might just as well put them in all questions anyway, and
+ * just separate visually whichever ones are flagged. So there is one list, in the order the
+ * department answered it, the finding sits on the question it is about, and the count of
+ * flagged ones is on each section heading. Audited by others is what it always was, a filter
+ * over that same list rather than a third way of drawing it.
+ */
+export type Depth = 'others' | 'all';
 
-function openDetail(rubric: Rubric, root: HTMLElement, l: Loaded, asked: Depth = 'flagged') {
+function openDetail(rubric: Rubric, root: HTMLElement, l: Loaded, asked: Depth = 'all') {
   clear(root);
   /**
    * AN ADDRESS CAN ASK FOR A TAB THAT IS NOT THERE.
@@ -1095,7 +1110,7 @@ function openDetail(rubric: Rubric, root: HTMLElement, l: Loaded, asked: Depth =
    */
   const hasOthers = (l.others ?? []).some((o) => Object.values(o.perQuestion ?? {})
     .some((e) => typeof e.auditedScore === 'number' || e.verdict || (e.note ?? '').trim()));
-  const depth: Depth = asked === 'others' && !hasOthers ? 'flagged' : asked;
+  const depth: Depth = asked === 'others' && !hasOthers ? 'all' : asked;
   // The address is told, and it decides whether this is somewhere new or the same place being
   // repainted. A row with no id yet has no address and simply does not get one.
   putInAddress(l.a.id, depth);
@@ -1110,16 +1125,25 @@ function openDetail(rubric: Rubric, root: HTMLElement, l: Loaded, asked: Depth =
    * written, and scheduleAuditSave already puts it there.
    */
   const audit = (a.audit ??= { reviewer: '', reviewedAt: '', perQuestion: {}, overallNote: '' });
+  /**
+   * Every finding, filed under the question it is about.
+   *
+   * An aggregate is the same findings with the individuals thrown away, so reading only
+   * f.questionId left most of them off the questions entirely: a submission with 111 flagged
+   * questions showed a handful of badges, because the other hundred had been folded into four
+   * cards at the top of a tab that no longer exists. The members travel with the aggregate now
+   * and are unpacked here, each still carrying its own sentence about its own question.
+   */
   const byQuestion = new Map<string, Flag[]>();
+  const file = (qid: string, f: Flag) =>
+    byQuestion.set(qid, [...(byQuestion.get(qid) ?? []), f]);
   for (const f of fs) {
-    if (!f.questionId) continue;
-    byQuestion.set(f.questionId, [...(byQuestion.get(f.questionId) ?? []), f]);
+    if (f.questionId) { file(f.questionId, f); continue; }
+    for (const m of f.members ?? []) if (m.questionId) file(m.questionId, m);
   }
-  /** Questions reachable through an aggregated card, so they are not also listed below. */
-  const inAggregate = new Set(fs.flatMap((f) => f.questionIds ?? []));
-  // A question can carry its own finding and sit inside an aggregate at the same time. It is
-  // still one question to look at: count it once, and show it once, inside the aggregate.
-  const needLook = new Set([...byQuestion.keys(), ...inAggregate]);
+  /** Findings about the whole submission rather than any one question. */
+  const wholeAssessment = fs.filter((f) => !f.questionId && !f.members?.length);
+  const needLook = new Set(byQuestion.keys());
   const questionOf = new Map(allQuestionScores(r).map((qs) => [qs.question.id, qs]));
   /**
    * A redraw leaves the page where it was.
@@ -1146,7 +1170,7 @@ function openDetail(rubric: Rubric, root: HTMLElement, l: Loaded, asked: Depth =
   root.appendChild(el('nav', { class: 'crumbs', 'aria-label': 'Where you are' }, [
     el('button', {
       class: 'linkish',
-      onclick: () => { putInAddress(undefined, 'flagged'); renderReview(root, rubric); },
+      onclick: () => { putInAddress(undefined, 'all'); renderReview(root, rubric); },
     }, ['Submissions']),
     el('span', { class: 'crumb-sep', 'aria-hidden': true }, ['\u203A']),
     el('span', { class: 'crumb-here' }, [a.initiative?.name || l.file]),
@@ -1299,12 +1323,18 @@ function openDetail(rubric: Rubric, root: HTMLElement, l: Loaded, asked: Depth =
 
 
   /**
-   * Two ways of reading the same work, as two tabs.
+   * What is true of the submission rather than of any question in it.
    *
-   * What needs you is the screen this tool was built around and the one Dan was shown. All the
-   * questions is the assessment as the department filled it in. Neither is a better answer than
-   * the other, so neither is buried inside the other.
+   * Two findings have no question to sit on: scores that barely vary across 176 answers, and a
+   * submission with most of the rubric marked not applicable. They are about the shape of the
+   * whole thing. Everything else has gone down onto its own question.
    */
+  if (wholeAssessment.length) {
+    const box = el('section', { class: 'card' }, [el('h2', {}, ['Findings'])]);
+    for (const f of wholeAssessment) box.appendChild(flagCard(f));
+    root.appendChild(box);
+  }
+
   /**
    * Which questions another assessor has already written on.
    *
@@ -1321,123 +1351,71 @@ function openDetail(rubric: Rubric, root: HTMLElement, l: Loaded, asked: Depth =
     }
   }
 
-  const tab = (label: string, to: Depth) => el('button', {
-    class: `tab ${depth === to ? 'on' : ''}`,
-    'aria-current': depth === to ? 'page' : undefined,
-    // Changing which questions are shown is not going anywhere, so the page stays where it is.
-    onclick: () => {
-      const at = window.scrollY;
-      openDetail(rubric, root, l, to);
-      window.scrollTo({ top: at });
-    },
-  }, [label]);
-  root.appendChild(el('nav', { class: 'card tight assess-tabs', 'aria-label': 'This assessment' }, [
-    tab('Flagged questions', 'flagged'),
-    tab('All questions', 'all'),
-    /**
-     * Last, because it is a different kind of thing from the two before it.
-     *
-     * Flagged and All are two readings of the whole assessment. This is a filter over it, and
-     * putting it between them split the pair that belong together. It appears only where there
-     * is something behind it: a tab onto an empty list is a dead end.
-     */
-    othersOn.size ? tab(`Audited by others (${othersOn.size})`, 'others') : null,
-  ]));
-
-  // The questions another assessor has written on, in the order the department answered them.
-  if (depth === 'others') {
-    for (const d of r.domains) {
-      const rows: HTMLElement[] = [];
-      for (const sec of d.sections) {
-        for (const qs of sec.questions) {
-          if (!othersOn.has(qs.question.id)) continue;
-          rows.push(auditRow(rubric, a, qs, audit, byQuestion.get(qs.question.id) ?? [], repaint,
-                             (byQuestion.get(qs.question.id) ?? []).length > 0, l));
-        }
-      }
-      if (!rows.length) continue;
-      const box = el('section', { class: 'card' }, [
-        el('h2', {}, [
-          d.domain.label,
-          el('span', { class: `pill small ${tone(d.score)}` }, [d.score === null ? '--' : d.score.toFixed(1)]),
-        ]),
-      ]);
-      for (const n of rows) box.appendChild(n);
-      root.appendChild(box);
-    }
+  /**
+   * The filter, which exists only when there is something to filter to.
+   *
+   * With two views this was a tab bar and it sat between the cut by category and the questions,
+   * which is the complaint that killed it: a bar across the page reads as a division of the
+   * page, and there is nothing here to divide any more. What is left is one switch onto a
+   * subset of the same list, and a submission nobody else has touched does not show it at all.
+   */
+  if (othersOn.size) {
+    const tab = (label: string, to: Depth) => el('button', {
+      class: `tab ${depth === to ? 'on' : ''}`,
+      'aria-current': depth === to ? 'page' : undefined,
+      // Narrowing the list is not going anywhere, so the page stays where it is.
+      onclick: () => {
+        const at = window.scrollY;
+        openDetail(rubric, root, l, to);
+        window.scrollTo({ top: at });
+      },
+    }, [label]);
+    root.appendChild(el('nav', { class: 'card tight assess-tabs', 'aria-label': 'Which questions' }, [
+      tab(`All questions (${r.scoreable})`, 'all'),
+      tab(`Audited by others (${othersOn.size})`, 'others'),
+    ]));
   }
 
-  if (depth === 'flagged') {
-    // ---- 1. the anomalies, with the controls in place ------------------------------------
-    const flagBox = el('section', { class: 'card' }, [
-      el('h2', {}, ['Audit these']),
-      el('p', { class: 'muted small' }, [
-          `${needLook.size} of ${r.scoreable} questions need a look. Score them here; the rest is below if you want it.`,
-      ]),
-    ]);
-
-    for (const f of fs.filter((x) => !x.questionId)) {
-      if (!f.questionIds?.length) { flagBox.appendChild(flagCard(f)); continue; }
-      // An aggregated finding: one card, with its questions behind a fold so the assessor
-      // opens them only if the count alone is not enough to act on.
+  /**
+   * The questions, in the order the department answered them, once.
+   *
+   * Audited by others is the same drawing with a narrower list rather than a second one, so
+   * the two cannot look different from each other: both keep the domains, the sections, the
+   * flagged count on each heading and Agree-with-all where it has always been. The filtered
+   * one drops a section it would have drawn empty, and a domain with nothing left in it.
+   */
+  const keep = (qid: string) => depth !== 'others' || othersOn.has(qid);
+  for (const d of r.domains) {
+    const boxes: HTMLElement[] = [];
+    for (const sec of d.sections) {
+      const mine = sec.questions.filter((qs) => keep(qs.question.id));
+      if (!mine.length) continue;
       const rows = el('div', {});
-      for (const qid of f.questionIds) {
-        const qs = questionOf.get(qid);
-        if (qs) rows.appendChild(auditRow(rubric, a, qs, audit, byQuestion.get(qid) ?? [], repaint, true, l));
+      let flaggedHere = 0;
+      for (const qs of mine) {
+        const qflags = byQuestion.get(qs.question.id) ?? [];
+        if (qflags.length) flaggedHere++;
+        rows.appendChild(auditRow(rubric, a, qs, audit, qflags, repaint, qflags.length > 0, l));
       }
-      flagBox.appendChild(el('div', { class: `flag sev-${f.severity}` }, [
-        flagTitle(f),
-        el('div', { class: 'small' }, [f.detail]),
-        f.challenge ? el('div', { class: 'small challenge' }, [f.challenge]) : null,
-        section(`flag:${f.id ?? f.title}`, {}, [
-          el('summary', { class: 'small' }, [`Score these ${f.questionIds.length}`]),
-          rows,
+      boxes.push(section(`full:${sec.section.id}`, { class: 'full-section', open: true }, [
+        el('summary', { class: 'section-summary' }, [
+          el('span', { class: 'section-title' }, [sec.section.label]),
+          el('span', { class: 'muted small' }, [`${mine.length} question${mine.length === 1 ? '' : 's'}`]),
+          flaggedHere ? el('span', { class: 'badge badge-warn tiny' }, [`${flaggedHere} flagged`]) : null,
         ]),
+        sectionHead(sec, a, audit, repaint),
+        rows,
       ]));
     }
-
-    if (!needLook.size) {
-      flagBox.appendChild(el('p', {}, ['Nothing anomalous. Spot-check and move on.']));
-    }
-    for (const [qid, qflags] of byQuestion) {
-      if (inAggregate.has(qid)) continue;   // already shown inside its aggregate
-      const qs = questionOf.get(qid);
-      if (!qs) continue;
-      flagBox.appendChild(auditRow(rubric, a, qs, audit, qflags, repaint, true, l));
-    }
-    root.appendChild(flagBox);
-
-  }
-
-  // The assessment as the department filled it in, by domain and section.
-  if (depth === 'all') {
-    for (const d of r.domains) {
-      const box = el('section', { class: 'card' }, [
-        el('h2', {}, [
-          d.domain.label,
-          el('span', { class: `pill small ${tone(d.score)}` }, [d.score === null ? '--' : d.score.toFixed(1)]),
-        ]),
-      ]);
-      for (const sec of d.sections) {
-        const rows = el('div', {});
-        let flaggedHere = 0;
-        for (const qs of sec.questions) {
-          const qflags = byQuestion.get(qs.question.id) ?? [];
-          if (qflags.length) flaggedHere++;
-          rows.appendChild(auditRow(rubric, a, qs, audit, qflags, repaint, qflags.length > 0, l));
-        }
-        box.appendChild(section(`full:${sec.section.id}`, { class: 'full-section', open: true }, [
-          el('summary', { class: 'section-summary' }, [
-            el('span', { class: 'section-title' }, [sec.section.label]),
-            el('span', { class: 'muted small' }, [`${sec.questions.length} questions`]),
-            flaggedHere ? el('span', { class: 'badge badge-warn tiny' }, [`${flaggedHere} flagged`]) : null,
-          ]),
-          sectionHead(sec, a, audit, repaint),
-          rows,
-        ]));
-      }
-      root.appendChild(box);
-    }
+    if (!boxes.length) continue;
+    const box = el('section', { class: 'card' }, [
+      el('h2', {}, [
+        d.domain.label,
+        el('span', { class: `pill small ${tone(d.score)}` }, [d.score === null ? '--' : d.score.toFixed(1)]),
+      ]),
+    ]);
+    for (const n of boxes) box.appendChild(n);
+    root.appendChild(box);
   }
 
   // ---- 2. what the assessor changed ----------------------------------------------------
@@ -1626,11 +1604,18 @@ function flagTitle(f: Flag): HTMLElement {
   ]);
 }
 
+/**
+ * A finding, without the question to put to the room.
+ *
+ * Every finding carries a challenge: "You scored 8 on this and cited nothing. What would you
+ * show us?" It is written at the submitter and it is on the submitter's results page, where it
+ * belongs. Her words: that is obvious to me, who needs to see it is the submitter and not the
+ * assessor. An assessor reading their own screen is being told what they already decided.
+ */
 function flagCard(f: Flag): HTMLElement {
   return el('div', { class: `flag sev-${f.severity}` }, [
     flagTitle(f),
     el('div', { class: 'small' }, [f.detail]),
-    f.challenge ? el('div', { class: 'small challenge' }, [f.challenge]) : null,
   ]);
 }
 
@@ -1710,11 +1695,7 @@ function auditRow(
       })(),
     ]),
 
-    ...qflags.map((f) => el('div', { class: `flag sev-${f.severity}` }, [
-      flagTitle(f),
-      el('div', { class: 'small' }, [f.detail]),
-      f.challenge ? el('div', { class: 'small challenge' }, [f.challenge]) : null,
-    ])),
+    ...qflags.map((f) => flagCard(f)),
 
     ans?.justification
       ? el('p', { class: 'said small' }, ['They said: ', ans.justification])
