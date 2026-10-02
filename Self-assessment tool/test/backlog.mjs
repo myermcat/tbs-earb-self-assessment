@@ -152,6 +152,16 @@ console.log('\nThe backlog page\n');
      !/<details|class="prio"/.test(ref), ref.slice(0, 120));
   ok('and it owns no anchor, so the address still finds the item itself',
      !/ id="n\d+"/.test(ref));
+  /**
+   * The glass shows everything a row shows. Asked for on 2 October: I want to see the bug tags
+   * on all of them, and it should show me the priorities and the rest. The first version drew
+   * the status alone, so the one mark the section gathers on was the one mark missing from it.
+   */
+  ok('a pointer carries the bug mark', ref.includes('<span class="chip k-bug">Bug</span>'));
+  ok('and the priority, drawn rather than operated',
+     /<span class="prio-read"[\s\S]*?<span data-p="medium" class="on">M<\/span>/.test(ref));
+  ok('and the card it sits in is marked as glass',
+     sec('e-broken').includes('class="card glass"'));
   ok('Broken counts what it gathered',
      /<h2 id="s-engine-e-broken">Broken <span class="c">1<\/span>/.test(html));
 

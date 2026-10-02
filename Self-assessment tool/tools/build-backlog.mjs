@@ -280,18 +280,40 @@ border:1px solid;border-radius:999px;padding:.07rem .42rem;white-space:nowrap}
 .n:hover,.n:focus-visible{color:var(--accent);text-decoration:underline}
 /* A pointer at an item that lives further down. Flat, no fold, no buttons, and set lighter than
    a row, so the eye reads the whole section as a gathering rather than as work of its own. */
-.ref{display:grid;grid-template-columns:2.6rem minmax(0,1fr) auto;gap:0 .5rem;align-items:baseline;
-padding:.5rem .6rem .5rem 1.5rem;text-decoration:none;color:var(--ink-2);font-size:.88rem;
-font-weight:560;border-top:1px solid var(--line)}
+/* Behind glass. Asked for in those words: I want the broken section to be seen like behind a
+   mirror or a glass, this is just a view into something else. So the card is tinted and set
+   back, its rows are flat, and everything in them is drawn at reduced contrast: you can read
+   all of it, and none of it looks like the place you act. Touching the glass takes you through
+   it to where the item is. */
+.card.glass{background:color-mix(in srgb, var(--surface) 55%, transparent);
+border-style:dashed;backdrop-filter:saturate(.75)}
+.ref{display:grid;grid-template-columns:2.6rem minmax(0,1fr) auto auto;gap:0 .5rem;
+align-items:baseline;padding:.5rem .6rem .5rem 1.5rem;text-decoration:none;color:var(--ink-2);
+font-size:.88rem;font-weight:560;border-top:1px dashed var(--line);opacity:.78}
 .card>.ref:first-child{border-top:0}
 .ref .tt{min-width:0;text-wrap:pretty}
-.ref:hover,.ref:focus-visible{background:var(--surface-2);color:var(--ink)}
+.ref .chip{opacity:.85}
+.ref:hover,.ref:focus-visible{background:var(--surface-2);color:var(--ink);opacity:1}
 .ref:hover .n,.ref:focus-visible .n{color:var(--accent)}
 .refmarks{display:flex;gap:.25rem}
-/* Arrived at from an address: held long enough to be found on a long page, then let go. */
-.row.found>.item{background:var(--accent-soft);border-radius:6px;
-box-shadow:0 0 0 2px var(--accent-line)}
-.row.found .n{color:var(--accent)}
+/* The priority, drawn and not operated. Same three letters as the buttons on a row, so the eye
+   reads it as the same fact rather than as a different one. */
+.prio-read{display:flex;gap:.12rem}
+.prio-read span{font:600 .62rem/1 var(--mono);color:var(--ink-3);border:1px solid var(--line);
+border-radius:4px;padding:.2rem .3rem;min-width:1.1rem;text-align:center}
+.prio-read span.on{color:var(--warn);border-color:var(--warn);background:var(--warn-bg)}
+/* Arrived at from an address, or from the glass. The same mark the tool itself uses when it
+   brings somebody to one question out of 176: say which one, for a moment, because landing in
+   the middle of a screen of near-identical rows does not say which one you were brought to.
+   Copied from .brought-here in src/styles.css, animation and duration included. */
+.row.brought-here{border-radius:10px;animation:brought-here 2.4s ease-out both}
+.row.brought-here .n{color:var(--accent)}
+@keyframes brought-here{
+0%,55%{box-shadow:0 0 0 3px var(--accent-line),0 0 0 8px var(--accent-soft)}
+100%{box-shadow:0 0 0 3px transparent,0 0 0 8px transparent}}
+@media(prefers-reduced-motion:reduce){
+html{scroll-behavior:auto}
+.row.brought-here{animation:none;box-shadow:0 0 0 3px var(--accent-line)}}
 .st-next{color:var(--accent);border-color:var(--accent-line);background:var(--accent-soft)}
 .st-wait{color:var(--warn);border-color:var(--warn);background:var(--warn-bg)}
 .st-later{color:var(--ink-3);border-color:var(--line-2);background:var(--surface-2)}
@@ -499,11 +521,35 @@ function prio(i) {
  */
 function pointer(i) {
   const st = statusOf(i);
-  const mark = STATUS[st] ? `<span class="chip st-${st}">${STATUS[st]}</span>` : '';
+  /**
+   * The same marks a row carries, because the view is meant to answer without being left.
+   *
+   * Asked for on 2 October: I want to see the bug tags on all of them, and it should show me
+   * the priorities and the rest. The first version showed the status alone, so the one mark the
+   * section is gathering on was the one mark missing from it.
+   *
+   * The priority is drawn and not operated. Clicking a pointer takes you to the item, and a
+   * control inside a link is a second thing to click in a place that is behind glass, so the
+   * three letters are spans and the item itself is where a priority is changed.
+   */
+  const marks = [
+    i.golive ? '<span class="chip k-golive">Go live</span>' : '',
+    i.kind === 'bug' ? '<span class="chip k-bug">Bug</span>'
+      : i.kind === 'question' ? '<span class="chip k-question">Question</span>' : '',
+    STATUS[st] ? `<span class="chip st-${st}">${STATUS[st]}</span>` : '',
+    i.owner && i.owner !== 'ours' && st !== 'closed'
+      ? `<span class="chip who">${esc(i.owner)}</span>` : '',
+  ].join('');
+  const prio = `<span class="prio-read" aria-hidden="true">`
+    + ['high', 'medium', 'low'].map((p) =>
+      `<span data-p="${p}"${i.priority === p ? ' class="on"' : ''}>`
+      + `${p[0].toUpperCase()}</span>`).join('')
+    + '</span>';
   return `<a class="ref" href="#n${i.n}" data-ref="${esc(i.id)}" data-status="${st}" `
-    + `data-kind="${i.kind}" data-golive="${i.golive}" data-group="false">`
+    + `data-kind="${i.kind}" data-golive="${i.golive}" data-priority="${i.priority}" `
+    + `data-group="false" title="Goes to #${i.n}, where this is filed">`
     + `<span class="n">#${i.n}</span><span class="tt">${esc(i.t)}</span>`
-    + `<span class="refmarks">${mark}</span></a>`;
+    + `<span class="refmarks">${marks}</span>${prio}</a>`;
 }
 
 function row(i, tabId) {
@@ -641,8 +687,9 @@ const panes = tracks.map((tr) => {
       // Empty, and it says nothing. The heading and its count are the whole message; a
       // sentence explaining why a section is empty is the page talking about itself.
       const card = settled
-        ? '<div class="card"><p class="settled"></p></div>'
-        : `<div class="card">${rows.map((i) => (fixed ? pointer(i) : row(i, tr.id))).join('')}</div>`;
+        ? `<div class="card${fixed ? ' glass' : ''}"><p class="settled"></p></div>`
+        : `<div class="card${fixed ? ' glass' : ''}">`
+          + `${rows.map((i) => (fixed ? pointer(i) : row(i, tr.id))).join('')}</div>`;
       /**
        * Done is an archive and it is the longest list on the page. Asked for directly: we want
        * the whole heading toggled, and closed by default. So the heading is the control.
@@ -898,6 +945,13 @@ const SCRIPT = `<script>
   });
 
   function paint(id, p) {
+    // The glass shows a priority it cannot change, so it has to be told when one changes.
+    document.querySelectorAll('.ref[data-ref="' + id + '"]').forEach(function (ref) {
+      ref.dataset.priority = p;
+      ref.querySelectorAll('.prio-read span').forEach(function (s) {
+        s.className = s.dataset.p === p ? 'on' : '';
+      });
+    });
     document.querySelectorAll('.row[data-id="' + id + '"]').forEach(function (row) {
       row.dataset.priority = p;
       row.querySelectorAll('.prio button').forEach(function (b) {
@@ -979,9 +1033,9 @@ const SCRIPT = `<script>
       if (node.tagName === 'DETAILS') node.open = true;
       node = node.parentElement;
     }
-    row.scrollIntoView({ block: 'center' });
-    row.classList.add('found');
-    setTimeout(function () { row.classList.remove('found'); }, 2400);
+    row.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    row.classList.add('brought-here');
+    setTimeout(function () { row.classList.remove('brought-here'); }, 2600);
     try { history.replaceState(null, '', hash); } catch (e) { /* the item is still shown */ }
     return true;
   }
