@@ -363,12 +363,26 @@ const closedAtOf = (i) => {
  * 110 items that were finished across four weeks would be a precise lie, so those say 'by'.
  */
 const approx = (iso) => /^\d{4}-\d{2}-\d{2}$/.test(iso);
+/**
+ * Both zones are named, and they are deliberately different ones.
+ *
+ * A moment is shown in Ottawa time, because that is where the work was done and 'yesterday at
+ * five' has to mean what the person remembers. A bare date is shown in UTC, because it is not a
+ * moment at all: it parses as midnight UTC, and asking for it in Ottawa time lands it on the
+ * evening before and prints the wrong day.
+ *
+ * Naming them is also what makes the build reproducible. The page is committed and the suite
+ * compares it byte for byte against a rebuild, so a machine in another zone rendered four bytes
+ * of different hours and the check failed on CI while passing here. It was right to.
+ */
+const ZONE = 'America/Toronto';
 const DAY = (iso) => (approx(iso) ? 'by ' : '')
-  + new Date(iso).toLocaleDateString('en-CA', { day: 'numeric', month: 'short', timeZone: 'UTC' });
+  + new Date(iso).toLocaleDateString('en-CA',
+    { day: 'numeric', month: 'short', timeZone: approx(iso) ? 'UTC' : ZONE });
 const MOMENT = (iso) => (approx(iso)
   ? `on or before ${new Date(iso).toLocaleDateString('en-CA',
     { dateStyle: 'long', timeZone: 'UTC' })}, which is as far back as the record goes`
-  : new Date(iso).toLocaleString('en-CA', { dateStyle: 'long', timeStyle: 'short' }));
+  : new Date(iso).toLocaleString('en-CA', { dateStyle: 'long', timeStyle: 'short', timeZone: ZONE }));
 
 const CELLS = ['golive', 'flag', 'state', 'who', 'when'];
 function chips(i, tabId) {

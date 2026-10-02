@@ -36,13 +36,14 @@ function ok(what, cond, detail = '') {
 }
 
 /** Builds a page from whatever data is handed in, in a folder of its own. */
-async function build(data) {
+async function build(data, TZ) {
   const dir = await mkdtemp(join(tmpdir(), 'earb-backlog-'));
   await mkdir(join(dir, 'tools'));
   await mkdir(join(dir, 'NOTES'));
   await copyFile(join(ROOT, 'tools', 'build-backlog.mjs'), join(dir, 'tools', 'build-backlog.mjs'));
   await writeFile(join(dir, 'NOTES', 'backlog.data.mjs'), data);
-  const out = await run('node', [join(dir, 'tools', 'build-backlog.mjs')]).catch((e) => e);
+  const env = TZ ? { ...process.env, TZ } : process.env;
+  const out = await run('node', [join(dir, 'tools', 'build-backlog.mjs')], { env }).catch((e) => e);
   const html = await readFile(join(dir, 'NOTES', 'backlog.html'), 'utf8').catch(() => '');
   await rm(dir, { recursive: true, force: true });
   return { html, stdout: out.stdout ?? '', stderr: out.stderr ?? '' };
@@ -219,6 +220,23 @@ console.log('\nThe backlog page\n');
      labels.length > 0 && longest.length <= 9,
      `${labels.length} labels, longest ${JSON.stringify(longest)} at ${longest.length} characters. `
      + 'Re-measure the fifth column in tools/build-backlog.mjs before widening this.');
+
+  /**
+   * The page is the same page wherever it is built.
+   *
+   * It is committed and compared byte for byte against a rebuild, so anything the builder reads
+   * off the machine makes the check fail somewhere it passes here. That is exactly what happened:
+   * the finish times were formatted in the local zone, every developer in Ottawa saw a page that
+   * matched, and the runner in UTC rendered four bytes of different hours and failed. The zones
+   * are named now, and these two builds are what says so.
+   */
+  const data2 = await readFile(join(ROOT, 'NOTES', 'backlog.data.mjs'), 'utf8');
+  for (const TZ of ['UTC', 'Asia/Tokyo']) {
+    const elsewhere = await build(data2, TZ);
+    ok(`the page built in ${TZ} is the same page`, elsewhere.html === live,
+       `rebuilt ${elsewhere.html.length} bytes against ${live.length} committed. `
+       + 'Something in the builder is reading the clock off the machine.');
+  }
 }
 
 console.log(fails ? `\n${fails} backlog check(s) failed\n` : '\nthe page keeps its sections\n');

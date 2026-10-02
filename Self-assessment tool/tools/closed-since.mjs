@@ -26,8 +26,17 @@ const closed = items
   .filter((i) => i.status === 'closed' && i.closedAt && new Date(i.closedAt) >= since)
   .sort((a, b) => a.closedAt.localeCompare(b.closedAt));
 
-const day = (iso) => new Date(iso).toLocaleDateString('en-CA', { day: 'numeric', month: 'short' });
-const time = (iso) => new Date(iso).toLocaleTimeString('en-CA', { hour: 'numeric', minute: '2-digit' });
+/**
+ * Ottawa time for a moment, UTC for a bare date. A bare date parses as midnight UTC, so asking
+ * for it in Ottawa time lands it on the evening before and prints the wrong day. The same pair
+ * is in tools/build-backlog.mjs, for the same reason.
+ */
+const ZONE = 'America/Toronto';
+const bare = (iso) => /^\d{4}-\d{2}-\d{2}$/.test(iso);
+const day = (iso) => new Date(iso)
+  .toLocaleDateString('en-CA', { day: 'numeric', month: 'short', timeZone: bare(iso) ? 'UTC' : ZONE });
+const time = (iso) => (bare(iso) ? '' : new Date(iso)
+  .toLocaleTimeString('en-CA', { hour: 'numeric', minute: '2-digit', timeZone: ZONE }));
 
 const when = since.toLocaleDateString('en-CA', { day: 'numeric', month: 'long', year: 'numeric' });
 if (!closed.length) {
