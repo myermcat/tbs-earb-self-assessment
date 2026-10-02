@@ -275,6 +275,33 @@ console.log('\nThe backlog page\n');
   ], SECS));
   ok('and so does a closedAt that is not a date', !wrong.html && /not a date/.test(wrong.stderr));
 
+  /**
+   * A day with no time is a claim, and it has to be meant.
+   *
+   * The page draws a bare date as a ceiling, because the 110 items the 28 September rebuild
+   * carried over have no recoverable finish time. Nothing stopped a fresh close being written
+   * the same way and one was, on 2 October, for a bug whose moment was known to the minute.
+   * The shape and the flag have to agree, and the flag is what somebody has to type.
+   */
+  const dayOnly = await build(fixture([
+    item({ id: 'a', track: 'engine', section: 'e-live', status: 'closed', closedAt: '2026-10-02' }),
+  ], SECS));
+  ok('a bare date with no closedApprox stops the build',
+     !dayOnly.html && /day with no time/.test(dayOnly.stderr), dayOnly.stderr.slice(0, 140));
+
+  const marked = await build(fixture([
+    item({ id: 'a', track: 'engine', section: 'e-live', status: 'closed',
+      closedAt: '2026-10-02', closedApprox: true }),
+  ], SECS));
+  ok('and it builds once it says so', /class="when"[^>]*>by Oct 2</.test(marked.html));
+
+  const lying = await build(fixture([
+    item({ id: 'a', track: 'engine', section: 'e-live', status: 'closed',
+      closedAt: '2026-10-02T14:00:00-04:00', closedApprox: true }),
+  ], SECS));
+  ok('closedApprox on a real moment stops it too',
+     !lying.html && /closedApprox is for a date with no time/.test(lying.stderr));
+
   const stray = await build(fixture([
     item({ id: 'a', track: 'engine', section: 'e-broken', closedAt: '2026-09-30T10:00:00-04:00' }),
   ], SECS));
@@ -288,7 +315,8 @@ console.log('\nThe backlog page\n');
    */
   const exact = await build(fixture([
     item({ id: 'a', track: 'engine', section: 'e-broken', status: 'closed', closedAt: '2026-09-30T14:05:00-04:00' }),
-    item({ id: 'b', track: 'engine', section: 'e-broken', status: 'closed', closedAt: '2026-09-28' }),
+    item({ id: 'b', track: 'engine', section: 'e-broken', status: 'closed',
+      closedAt: '2026-09-28', closedApprox: true }),
   ], SECS));
   ok('an exact time is drawn as a day', /class="when"[^>]*>Sep 30</.test(exact.html));
   ok('and a bare date says it is only a ceiling', /class="when"[^>]*>by Sep 28</.test(exact.html));

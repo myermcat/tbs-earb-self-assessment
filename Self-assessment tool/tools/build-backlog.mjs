@@ -123,6 +123,29 @@ const RANK = { high: 0, medium: 1, low: 2 };
     if (i.closedAt && i.status !== 'closed') {
       wrong.push(`${i.id}: closedAt on something that is not closed`);
     }
+    /**
+     * A DATE WITH NO TIME MEANS SOMETHING, AND IT HAS TO BE MEANT.
+     *
+     * The page draws a bare date as 'by Oct 2' and says on hover that it is a ceiling rather
+     * than a moment, because the 110 items the 28 September rebuild carried over have no real
+     * finish time and inventing one would be a precise lie. Nothing stopped a fresh close being
+     * written the same way, and one was: a bug closed on 2 October with closedAt "2026-10-02"
+     * read as on or before, when the moment was known to the minute.
+     *
+     * So the shape and the flag have to agree, and the flag is the thing somebody has to type.
+     * The convention is unenforceable otherwise, because the two ways of writing a date look
+     * equally correct and only one of them is a claim.
+     */
+    const bareDate = typeof i.closedAt === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(i.closedAt);
+    if (bareDate && !i.closedApprox) {
+      wrong.push(`${i.id}: closedAt ${JSON.stringify(i.closedAt)} is a day with no time, and the `
+        + 'page draws that as a ceiling: by that date rather than at that moment. Write the time '
+        + 'it closed, or add closedApprox: true if the real moment is not recoverable.');
+    }
+    if (i.closedApprox && !bareDate) {
+      wrong.push(`${i.id}: closedApprox is for a date with no time. `
+        + `closedAt is ${JSON.stringify(i.closedAt ?? null)}.`);
+    }
   }
   const doing = items.filter((i) => i.status === 'doing');
   if (doing.length > 2) {
