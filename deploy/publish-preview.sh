@@ -30,8 +30,41 @@ else
   read -r _
 fi
 
-# The gate. This script is how the tool actually reaches people, and it used to build and push
-# without running a single test.
+# ---------------------------------------------------------------------------------------------
+# THE FIRST GATE: PUBLISH THE TREE YOU MEANT TO PUBLISH.
+#
+# This script builds from the WORKING TREE, not from a commit. That is useful while somebody is
+# trying something, and it is how the live site can end up carrying a change nobody reviewed, a
+# half-finished edit, or — the way it actually happened on 1 October — a merge that was refused
+# for being behind main, in a chain that pulled and published anyway and reported all green.
+#
+# The published-site checks at the end could not catch any of that: they test the build that
+# went out, not the one you meant to send. So this checks the intention, before the build.
+#
+# EARB_PUBLISH_ANYWAY=1 skips it, for deliberately putting an unmerged branch in front of
+# somebody. It refuses rather than asking, because a prompt in a script two assistants run
+# unattended is a script that hangs.
+# ---------------------------------------------------------------------------------------------
+if [ "${EARB_PUBLISH_ANYWAY:-}" != "1" ]; then
+  if [ -n "$(git -C "$HERE" status --porcelain)" ]; then
+    echo "Nothing published: this working tree has changes that are not committed." >&2
+    echo "  They would go to the live site. Commit them, stash them, or set" >&2
+    echo "  EARB_PUBLISH_ANYWAY=1 if that is what you want." >&2
+    git -C "$HERE" status --short >&2
+    exit 1
+  fi
+  git -C "$HERE" fetch -q origin main
+  if [ "$(git -C "$HERE" rev-parse HEAD)" != "$(git -C "$HERE" rev-parse origin/main)" ]; then
+    echo "Nothing published: this tree is not origin/main." >&2
+    echo "  HEAD        $(git -C "$HERE" rev-parse --short HEAD)  $(git -C "$HERE" log -1 --format=%s HEAD)" >&2
+    echo "  origin/main $(git -C "$HERE" rev-parse --short origin/main)  $(git -C "$HERE" log -1 --format=%s origin/main)" >&2
+    echo "  Merge first, or set EARB_PUBLISH_ANYWAY=1 to publish this tree on purpose." >&2
+    exit 1
+  fi
+fi
+
+# The second gate. This script is how the tool actually reaches people, and it used to build and
+# push without running a single test.
 echo "Testing..."
 ( cd "$HERE/Self-assessment tool" && npm test >/dev/null ) || {
   echo "Tests failed. Nothing published. Run npm test in the tool directory to see what."
