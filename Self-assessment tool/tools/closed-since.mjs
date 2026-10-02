@@ -44,7 +44,7 @@ if (!closed.length) {
 } else {
   console.log(`${closed.length} closed since ${when}:\n`);
   for (const i of closed) {
-    console.log(`  ${day(i.closedAt)} ${time(i.closedAt).padStart(8)}  ${i.t}`);
-    console.log(`  ${' '.repeat(16)}${i.track} · ${i.id}`);
+    console.log(`  ${day(i.closedAt)} ${time(i.closedAt).padStart(8)}  #${i.n}  ${i.t}`);
+    console.log(`  ${' '.repeat(16)}${' '.repeat(String(i.n).length + 3)}${i.track} · ${i.id}`);
   }
 }

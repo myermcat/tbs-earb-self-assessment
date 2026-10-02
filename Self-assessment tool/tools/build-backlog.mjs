@@ -56,6 +56,7 @@ const RANK = { high: 0, medium: 1, low: 2 };
   const trackIds = new Set(tracks.map((t) => t.id));
   const wrong = [];
   const seen = new Set();
+  const nums = new Map();
   const hasKids = new Set(items.filter((i) => i.parent).map((i) => i.parent));
   for (const i of items) {
     if (!ids.has(i.section)) wrong.push(`${i.id}: no section called ${JSON.stringify(i.section)}`);
@@ -64,6 +65,21 @@ const RANK = { high: 0, medium: 1, low: 2 };
     if (STATUS[i.status] === undefined) wrong.push(`${i.id}: status ${JSON.stringify(i.status)}`);
     if (seen.has(i.id)) wrong.push(`${i.id}: written twice`);
     seen.add(i.id);
+    /**
+     * Every item has a number, and no two share one.
+     *
+     * The number is how a person refers to an item out loud, in a note, or in a branch name,
+     * because the id is a slug nobody says. It is assigned once and never reused, never
+     * renumbered and never freed when something closes, so #47 still finds the same thing a
+     * month later when somebody asks what it was. Two items sharing one would make the only
+     * short name we have ambiguous, which is worse than having none.
+     */
+    if (!Number.isInteger(i.n) || i.n < 1) {
+      wrong.push(`${i.id}: no number. Run: node tools/number-backlog.mjs`);
+    } else if (nums.has(i.n)) {
+      wrong.push(`${i.id}: number ${i.n} belongs to ${nums.get(i.n)} as well. `
+        + 'Numbers are never reused, so one of these was assigned by hand.');
+    } else nums.set(i.n, i.id);
     if (!i.owner) wrong.push(`${i.id}: no owner. Who does the work once it is unblocked?`);
     /**
      * Nothing open may sit under something finished, which is the one case that is never right.
@@ -229,6 +245,16 @@ border:1px solid;border-radius:999px;padding:.07rem .42rem;white-space:nowrap}
 .st-closed{color:var(--good);border-color:var(--good);background:var(--good-bg)}
 /* The finish time is a record, not a mark. Legible if you look for it, invisible if you do not. */
 .when{font-size:.62rem;color:var(--ink-3);opacity:.6;white-space:nowrap;letter-spacing:.02em}
+/* The number sits in front of the title and is meant to be read when it is wanted and skipped
+   when it is not, so it is monospaced, quiet, and it does not move the title when it widens
+   from two digits to three. */
+.n{font:600 .68rem/1 var(--mono);color:var(--ink-3);text-decoration:none;margin-right:.45rem;
+display:inline-block;min-width:2.3rem;vertical-align:.08em}
+.n:hover,.n:focus-visible{color:var(--accent);text-decoration:underline}
+/* Arrived at from an address: held long enough to be found on a long page, then let go. */
+.row.found>.item{background:var(--accent-soft);border-radius:6px;
+box-shadow:0 0 0 2px var(--accent-line)}
+.row.found .n{color:var(--accent)}
 .st-next{color:var(--accent);border-color:var(--accent-line);background:var(--accent-soft)}
 .st-wait{color:var(--warn);border-color:var(--warn);background:var(--warn-bg)}
 .st-later{color:var(--ink-3);border-color:var(--line-2);background:var(--surface-2)}
@@ -435,9 +461,22 @@ function row(i, tabId) {
    * piece arrives without its parent and reads as standalone. It carries the parent's name now.
    */
   const parent = tabId === 'golive' && i.parent ? items.find((x) => x.id === i.parent) : null;
+  /**
+   * The number, and a link straight to this item.
+   *
+   * It is a link rather than text so that copying it out of the browser gives an address that
+   * opens the page at this row, which is what somebody leaving a note for the next person
+   * actually needs. The row carries the matching id, so the browser does the scrolling.
+   *
+   * An item can be drawn twice, in the first tab and in its own, so only one of the two can own
+   * the anchor or the page has two elements with one id. The first tab is the view and the
+   * item's own tab is the place, so the place keeps it.
+   */
+  const num = `<a class="n" href="#n${i.n}"${tabId === 'golive' && i.track !== 'golive' ? '' : ` id="n${i.n}"`}`
+    + ` title="Item ${i.n}. Refer to it as #${i.n}.">#${i.n}</a>`;
   const title = parent
-    ? `<span class="t"><span class="under">${esc(parent.t)}</span>${esc(i.t)}</span>`
-    : `<span class="t">${esc(i.t)}</span>`;
+    ? `<span class="t">${num}<span class="under">${esc(parent.t)}</span>${esc(i.t)}</span>`
+    : `<span class="t">${num}${esc(i.t)}</span>`;
   const inner = body
     ? `<details class="item"><summary>${title}${chips(i, tabId)}</summary>${body}</details>`
     : `<div class="item"><div class="plain">${title}${chips(i, tabId)}</div></div>`;
@@ -812,13 +851,57 @@ const SCRIPT = `<script>
     save(id, b.dataset.p).then(function (ok) { if (!ok) paint(id, before); });
   });
 
+  // ------------------------------------------------------------------ going to one item
+  /**
+   * An address ending in #n155 opens that item, wherever it is hiding.
+   *
+   * The anchor on its own is not enough and that is the whole reason this exists. An item can
+   * sit on a tab that is not showing, inside a parent folded shut, so the browser scrolls to
+   * something nobody can see and the number is a label rather than an address. The point of
+   * giving every item a number is that somebody can write 'see #155' in a note on Tuesday and
+   * the person reading it on Thursday lands on the item itself.
+   *
+   * So: switch to the tab it lives on, open every fold above it, drop any filter that would
+   * hide it, then scroll. The highlight is for the eye arriving on a long page.
+   */
+  function goToItem(hash) {
+    var m = /^#n(\\d+)$/.exec(hash || '');
+    if (!m) return false;
+    var a = document.getElementById('n' + m[1]);
+    if (!a) return false;
+    var pane = a.closest('.pane');
+    if (pane) show(pane.dataset.track);
+    var row = a.closest('.row');
+    if (!row) return false;
+    // A filter is a view of the list, and an address naming one item outranks it.
+    if (filter) { filter = ''; apply(); }
+    var node = a.parentElement;
+    while (node && node !== pane) {
+      if (node.tagName === 'DETAILS') node.open = true;
+      node = node.parentElement;
+    }
+    row.scrollIntoView({ block: 'center' });
+    row.classList.add('found');
+    setTimeout(function () { row.classList.remove('found'); }, 2400);
+    try { history.replaceState(null, '', hash); } catch (e) { /* the item is still shown */ }
+    return true;
+  }
+  window.addEventListener('hashchange', function () { goToItem(location.hash); });
+
   // ------------------------------------------------------------------ start
+  /**
+   * Read before anything runs. show() writes the tab's own name over the address, so by the
+   * time the page has chosen a tab the item in the address is gone. Found by landing on #n180
+   * and watching the address turn into #golive on the way.
+   */
+  var asked = location.hash;
   var wanted = (location.hash || '').replace('#', '');
   var remembered = '';
   try { remembered = localStorage.getItem('earb-backlog-tab') || ''; } catch (e) { /* first visit */ }
   var start = tabs.filter(function (t) { return t.dataset.track === wanted; })[0]
     || tabs.filter(function (t) { return t.dataset.track === remembered; })[0] || tabs[0];
   if (start) show(start.dataset.track);
+  goToItem(asked);
 
   var s = session();
   if (!cfg) tell('This copy has no store behind it, so priorities cannot be shared from here.');
@@ -858,6 +941,11 @@ const SCRIPT = `<script>
 
 const html = [
   '<title>EARB tool backlog</title>',
+  /* GitHub Pages sends utf-8 in the header, so the published page was always right and this was
+     invisible. Opened from the file system, or served by anything plainer, the browser guessed
+     windows-1252 and every curly apostrophe in Dan's name and in the item text came out as three
+     characters of rubbish. One line, and the file is correct on its own. */
+  '<meta charset="utf-8">',
   '<meta name="viewport" content="width=device-width,initial-scale=1">',
   '<link rel="icon" href="data:image/svg+xml,' + encodeURIComponent(
     '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">'
