@@ -1,5 +1,4 @@
 import type { Assessment, Rubric } from './types';
-import { refOf } from './storage';
 import { score } from './scoring';
 
 /** One row per assessment. This is the file Nick and Allison open in Excel to do trend analysis. */
@@ -11,19 +10,20 @@ function cell(v: unknown): string {
 
 export function csvHeader(rubric: Rubric): string[] {
   /**
-   * Two identifiers, and they are not the same thing.
+   * ONE IDENTIFIER, AND IT IS THE CODE.
    *
-   * `ref` is four characters minted when an assessment is created, before it has ever been
-   * online. It is the subject line of every evidence email, frozen into mail already sent, so
-   * it cannot change and it is how a reply in somebody's inbox matches a row here.
+   * There used to be two columns: a four-character `email_tag` and the twelve-character code.
+   * The tag was here because evidence email subjects quoted it, so a reply sitting in somebody's
+   * inbox could be matched back to a row. Subjects carry the initiative's name now, which is the
+   * next column along, so the tag named nothing anybody would ever search for and it is gone.
    *
-   * `access_code` is the twelve-character name the assessment has in the store, and it exists
-   * only once it has been saved online. It is unique by construction and it is what opens the
-   * assessment. Without it in this sheet the only stable key was a four-character string with
-   * no uniqueness check behind it.
+   * `code` is the twelve-character name the assessment has in the store. It exists only once the
+   * assessment has been saved online, it is unique by construction, and it is what opens the
+   * assessment, which is why it is in a sheet that gets opened in Excel and not in a subject
+   * line that gets forwarded.
    */
   const cols = [
-    'code', 'email_tag', 'initiative', 'department', 'contact', 'lifecycle_stage',
+    'code', 'initiative', 'department', 'contact', 'lifecycle_stage',
     'rubric_version', 'saved_by_name', 'saved_by_email', 'submitted_at',
     'overall_score', 'band', 'completeness_pct',
   ];
@@ -54,8 +54,7 @@ export function csvHeader(rubric: Rubric): string[] {
 export function csvRow(rubric: Rubric, a: Assessment, flagCounts: { high: number; total: number }): string[] {
   const r = score(rubric, a);
   const row: string[] = [
-    // One code, and the four characters of it that appear in email subject lines.
-    a.id ?? '', refOf(a),
+    a.id ?? '',
     a.initiative.name, a.initiative.department, a.initiative.contact, a.initiative.lifecycleStage,
     a.rubric.version,
     // Typed by whoever saved it and checked by nobody, which is why the sheet carries both

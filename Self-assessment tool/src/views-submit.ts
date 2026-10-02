@@ -3,7 +3,7 @@ import { CLASSIFICATIONS, classRank, type Assessment, type EvidenceRef, type Que
 import { el, clear, tone } from './dom';
 import { codeChip } from './code-chip';
 import { domainRedFlags, score, sectionRedFlags, type Result, type SectionScore } from './scoring';
-import { autosave, clearSaveWatchers, saveAssessmentFile , refOf } from './storage';
+import { autosave, clearSaveWatchers, saveAssessmentFile } from './storage';
 import { humanSize, openAttachment, totalAttachedBytes, TOTAL_WARN } from './attach';
 import { demandPledge } from './pledge';
 import { confirmStep } from './confirm';
@@ -599,29 +599,36 @@ function stepper(
 /**
  * The subject line for an artefact that has to travel by email.
  *
- * It carries the two things an assessor needs to match the message to an answer: which
- * initiative, and which question. The first version read "EARB evidence - m - [question]",
- * which meant nothing to anybody who had not written it.
- */
-/**
- * The subject line for an artefact that has to travel by email.
+ * IT CARRIES THE INITIATIVE'S NAME, AND THERE IS NO SECOND IDENTIFIER.
  *
- * It carries the question and a short code for the assessment, and deliberately not the
- * initiative name. A subject line is permanent once the mail is sent: with the name in it,
- * renaming the initiative silently invalidated every email already gone, and there is no way
- * to un-send one. The code is made when the assessment is created and never changes, so a
- * rename costs nothing and nothing has to be locked.
+ * It used to carry the first four characters of the access code, so that renaming the initiative
+ * could not strand mail already sent. That bought less than it cost. Four characters of a
+ * 32-symbol alphabet is a million combinations, so two assessments share theirs about four times
+ * in a hundred once there are three hundred of them, and an inbox search then returns another
+ * department's evidence. And nobody recognised them: asked directly, the person who commissioned
+ * the tool could not say what the four characters were until she remembered where they appeared.
+ *
+ * An identifier nobody recognises is not an identifier. The name is what people say on a call,
+ * type into Outlook and pick out of a list, and it gives nothing away, which the code did: four
+ * characters of a twelve-character credential is a third of a password that cannot be withdrawn.
+ *
+ * WHAT A RENAME COSTS, SAID PLAINLY. Mail already sent keeps the old name, so the trail splits on
+ * the day of the rename and somebody looking for all of it searches both names. That is a real
+ * cost and it is the smaller one. What to do about it is its own item: either the tool keeps the
+ * names an assessment has had, or renaming becomes an act somebody has to mean, in the danger
+ * zone with everything else that cannot be undone.
  */
 export function evidenceSubject(a: Assessment, questionId: string): string {
   /**
-   * The first four characters of the code, never the whole of it.
-   *
-   * A subject line is logged, forwarded, quoted back in every reply and answerable to
-   * access-to-information, and the code opens the assessment. Four characters is what a subject
-   * line was ever for: enough to find the thread in Outlook, and eight characters short of
-   * opening anything.
+   * An assessment with no name yet gets no identifier rather than an invented one. The name is
+   * the first thing the overview asks for, so this is somebody going after evidence before
+   * saying what the initiative is. The question and who it came from are what the recipient has,
+   * and the next request carries the name once there is one.
    */
-  return `EARB evidence ${refOf(a)}, question ${questionId}`;
+  const named = a.initiative?.name?.trim();
+  return named
+    ? `EARB evidence for ${named}, question ${questionId}`
+    : `EARB evidence, question ${questionId}`;
 }
 
 /**
@@ -1034,8 +1041,8 @@ function aboutSection(
           el('span', { class: 'note-key' }, [t('Reference code', 'Code de référence')]),
           a.id ? codeChip(a.id) : el('b', { class: 'mono' }, ['----']),
           el('span', { class: 'note-say' }, [
-            t(`This assessment\u2019s own code, and the only way back to it once it is saved online. It stays the same if you rename the initiative. Emails about this assessment quote its first four characters, ${refOf(a)}, so you can find the thread; the whole code is what opens the assessment, so keep it somewhere and send it only to people who should be able to change this.`,
-              `Le code propre à cette évaluation, et le seul moyen d\u2019y revenir une fois enregistrée en ligne. Il ne change pas si vous renommez l\u2019initiative. Les courriels à son sujet citent ses quatre premiers caractères, ${refOf(a)}, pour retrouver le fil; le code entier ouvre l\u2019évaluation, alors conservez-le et ne l\u2019envoyez qu\u2019aux personnes qui doivent pouvoir la modifier.`),
+            t('This assessment’s own code, and the only way back to it once it is saved online. It stays the same if you rename the initiative. It is what opens the assessment, so keep it somewhere and send it only to people who should be able to change this. Emails asking for evidence carry the initiative’s name. Nothing that opens the assessment travels in a subject line.',
+              'Le code propre à cette évaluation, et le seul moyen d’y revenir une fois enregistrée en ligne. Il ne change pas si vous renommez l’initiative. C’est lui qui ouvre l’évaluation, alors conservez-le et ne l’envoyez qu’aux personnes qui doivent pouvoir la modifier. Les courriels demandant des preuves portent le nom de l’initiative. Rien qui ouvre l’évaluation ne circule dans une ligne d’objet.'),
           ]),
         ]),
         field(t('In two or three sentences, what is it?', 'En deux ou trois phrases, de quoi s\u2019agit-il?'), el('textarea', {
