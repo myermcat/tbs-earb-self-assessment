@@ -36,13 +36,14 @@ function ok(what, cond, detail = '') {
 }
 
 /** Builds a page from whatever data is handed in, in a folder of its own. */
-async function build(data) {
+async function build(data, TZ) {
   const dir = await mkdtemp(join(tmpdir(), 'earb-backlog-'));
   await mkdir(join(dir, 'tools'));
   await mkdir(join(dir, 'NOTES'));
   await copyFile(join(ROOT, 'tools', 'build-backlog.mjs'), join(dir, 'tools', 'build-backlog.mjs'));
   await writeFile(join(dir, 'NOTES', 'backlog.data.mjs'), data);
-  const out = await run('node', [join(dir, 'tools', 'build-backlog.mjs')]).catch((e) => e);
+  const env = TZ ? { ...process.env, TZ } : process.env;
+  const out = await run('node', [join(dir, 'tools', 'build-backlog.mjs')], { env }).catch((e) => e);
   const html = await readFile(join(dir, 'NOTES', 'backlog.html'), 'utf8').catch(() => '');
   await rm(dir, { recursive: true, force: true });
   return { html, stdout: out.stdout ?? '', stderr: out.stderr ?? '' };
@@ -72,8 +73,8 @@ console.log('\nThe backlog page\n');
 /* ---------- a section emptied by finishing its contents ---------------------------------- */
 {
   const { html } = await build(fixture([
-    item({ id: 'a', track: 'engine', section: 'e-broken', status: 'done' }),
-    item({ id: 'b', track: 'engine', section: 'e-broken', status: 'done' }),
+    item({ id: 'a', track: 'engine', section: 'e-broken', status: 'closed', closedAt: '2026-09-20T12:00:00-04:00' }),
+    item({ id: 'b', track: 'engine', section: 'e-broken', status: 'closed', closedAt: '2026-09-20T12:00:00-04:00' }),
     item({ id: 'c', track: 'engine', section: 'e-live' }),
   ], SECS));
 
@@ -119,7 +120,7 @@ console.log('\nThe backlog page\n');
    * in another section, which four real items do.
    */
   const { html, stderr } = await build(fixture([
-    item({ id: 'done-one', track: 'engine', section: 'e-broken', status: 'done' }),
+    item({ id: 'done-one', track: 'engine', section: 'e-broken', status: 'closed', closedAt: '2026-09-20T12:00:00-04:00' }),
     item({ id: 'parent', track: 'engine', section: 'e-live' }),
     item({ id: 'kid', track: 'engine', section: 'e-broken', parent: 'parent' }),
   ], SECS));
@@ -151,6 +152,90 @@ console.log('\nThe backlog page\n');
     const pane = (live.split(`data-track="${tab}"`)[2] ?? '');
     const first = (pane.match(/<h2 id="s-[a-z-]+">([^<]*?) /) ?? [])[1];
     ok(`Broken still comes first in the ${tab} tab`, first === 'Broken', `first heading is ${first}`);
+  }
+}
+
+/**
+ * Closing something records when it closed.
+ *
+ * The question that asked for this was "what did we do today", and the only answer the file
+ * could give was the whole finished list with no way to tell this week's work from last
+ * month's. A close with no time is that question going unanswerable again, so the build
+ * refuses it rather than letting one item quietly opt out.
+ */
+{
+  const bare = await build(fixture([
+    item({ id: 'a', track: 'engine', section: 'e-broken', status: 'closed' }),
+  ], SECS));
+  ok('a closed item with no closedAt stops the build',
+     !bare.html && /closedAt/.test(bare.stderr), bare.stderr.slice(0, 160));
+
+  const wrong = await build(fixture([
+    item({ id: 'a', track: 'engine', section: 'e-broken', status: 'closed', closedAt: 'Tuesday' }),
+  ], SECS));
+  ok('and so does a closedAt that is not a date', !wrong.html && /not a date/.test(wrong.stderr));
+
+  const stray = await build(fixture([
+    item({ id: 'a', track: 'engine', section: 'e-broken', closedAt: '2026-09-30T10:00:00-04:00' }),
+  ], SECS));
+  ok('a time on something still open stops it too',
+     !stray.html && /not closed/.test(stray.stderr));
+
+  /**
+   * A day on its own is a ceiling rather than a moment, and the page has to say so. Everything
+   * the 28 September rebuild carried over wears that day because the record before it kept no
+   * dates, and a page that printed it as a finishing time would be inventing one.
+   */
+  const exact = await build(fixture([
+    item({ id: 'a', track: 'engine', section: 'e-broken', status: 'closed', closedAt: '2026-09-30T14:05:00-04:00' }),
+    item({ id: 'b', track: 'engine', section: 'e-broken', status: 'closed', closedAt: '2026-09-28' }),
+  ], SECS));
+  ok('an exact time is drawn as a day', /class="when"[^>]*>Sep 30</.test(exact.html));
+  ok('and a bare date says it is only a ceiling', /class="when"[^>]*>by Sep 28</.test(exact.html));
+  ok('the ceiling says as much when you hover it',
+     /title="Finished on or before September 28, 2026/.test(exact.html));
+
+  /**
+   * The column is 4rem, which is 64px, and the widest label rendered today is 'by Sep 28' at
+   * 50.1px measured in a browser at 375, 800 and 1400 wide. This counts characters instead,
+   * because nothing in the suite has a layout engine: jsdom returns zero for every width, which
+   * is how a column was last shipped too narrow. Nine characters is the measured ceiling.
+   *
+   * What this is guarding against is a format change rather than a date. Putting the time of day
+   * back into the label, or spelling the month out, doubles the string and the column does not
+   * move, and the first thing anybody sees is marks overlapping the title beside them.
+   *
+   * Nine rests on one decision rather than on anything about dates: the builder asks for en-CA
+   * by name, and this page stays English on purpose, which backlog.data.mjs says in as many
+   * words beside the access code and the question ids. Short months are three letters only in
+   * that locale. fr-CA gives 'by 28 juill.' at twelve, and even en-GB gives 'by 28 Sept' at ten,
+   * so the day somebody makes this page bilingual, or just changes the locale, the check fires.
+   * It is firing correctly. Re-measure the column and move both numbers together; raising this
+   * one on its own is how the labels end up over the titles again.
+   */
+  const live = await readFile(join(ROOT, 'NOTES', 'backlog.html'), 'utf8');
+  const labels = [...live.matchAll(/class="when"[^>]*>([^<]+)</g)].map((m) => m[1]);
+  const longest = labels.sort((a, b) => b.length - a.length)[0] ?? '';
+  ok('every finish label fits the column it was measured for',
+     labels.length > 0 && longest.length <= 9,
+     `${labels.length} labels, longest ${JSON.stringify(longest)} at ${longest.length} characters. `
+     + 'Re-measure the fifth column in tools/build-backlog.mjs before widening this.');
+
+  /**
+   * The page is the same page wherever it is built.
+   *
+   * It is committed and compared byte for byte against a rebuild, so anything the builder reads
+   * off the machine makes the check fail somewhere it passes here. That is exactly what happened:
+   * the finish times were formatted in the local zone, every developer in Ottawa saw a page that
+   * matched, and the runner in UTC rendered four bytes of different hours and failed. The zones
+   * are named now, and these two builds are what says so.
+   */
+  const data2 = await readFile(join(ROOT, 'NOTES', 'backlog.data.mjs'), 'utf8');
+  for (const TZ of ['UTC', 'Asia/Tokyo']) {
+    const elsewhere = await build(data2, TZ);
+    ok(`the page built in ${TZ} is the same page`, elsewhere.html === live,
+       `rebuilt ${elsewhere.html.length} bytes against ${live.length} committed. `
+       + 'Something in the builder is reading the clock off the machine.');
   }
 }
 
