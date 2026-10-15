@@ -11,6 +11,7 @@
  * runs it, and `npm run check:published` runs it by hand.
  */
 import { readFileSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { JSDOM } from 'jsdom';
 
@@ -22,6 +23,36 @@ const PAGES = [
 ];
 /** Pages is usually a minute. Ten is generous and still ends. */
 const WAIT_MS = 10 * 60 * 1000;
+const REPO = 'myermcat/tbs-earb-self-assessment-preview';
+
+/**
+ * WHY THE PAGE NEVER ARRIVED, WHICH THIS USED TO BE UNABLE TO SAY.
+ *
+ * A GitHub Pages build can fail. When it does, the push succeeds, nothing errors, and the
+ * served bytes simply stay on the previous build forever. From inside the wait that looks
+ * exactly like a slow deploy, so this sat for twenty-two minutes on 15 October against a build
+ * that was never going to arrive: status errored, duration 0, "Page build failed", on a commit
+ * whose only diff was the three HTML files. Transient on GitHub's side rather than anything in
+ * the build.
+ *
+ * So when the wait runs out, ask. A failed build and a slow one are the same silence until
+ * somebody looks at the thing that knows.
+ */
+function pagesBuild() {
+  try {
+    const out = execFileSync('gh', [
+      'api', `repos/${REPO}/pages/builds`,
+      // Four fields out of the first build. The backslashes are jq's interpolation and have to
+      // survive JavaScript's string escaping to reach it, which is why they are doubled.
+      '--jq', '.[0] | "\\(.status)|\\(.duration)|\\(.error.message // "")|\\(.commit[0:8])"',
+    ], { encoding: 'utf8', timeout: 20000, stdio: ['ignore', 'pipe', 'ignore'] }).trim();
+    const [status, duration, message, commit] = out.split('|');
+    return { status, duration, message, commit };
+  } catch {
+    // gh missing, not signed in, or the API refused. The wait still reports what it saw.
+    return null;
+  }
+}
 
 let bad = 0;
 const ok = (cond, label, detail) => {
@@ -74,6 +105,24 @@ async function fetchWhenCurrent(page) {
 for (const page of PAGES) {
   console.log(`--- the ${page.name} page, at ${BASE}/${page.path}`);
   const { html, current } = await fetchWhenCurrent(page);
+  if (!current) {
+    const b = pagesBuild();
+    // Only 'errored' means it is never arriving. 'building' and 'queued' mean this wait was
+    // short, and saying otherwise would send somebody requeueing a build that was on its way.
+    if (!b) {
+      console.log(`      could not read the Pages build status. Try:  gh api repos/${REPO}/pages/builds`);
+    } else if (b.status === 'errored') {
+      console.log(`      the Pages build on ${b.commit} FAILED`
+        + `${b.message ? `: ${b.message}` : ''}. It is never arriving.`);
+      console.log(`      Requeue it:  gh api -X POST repos/${REPO}/pages/builds`);
+    } else if (b.status === 'built') {
+      console.log(`      the Pages build on ${b.commit} succeeded in ${b.duration}ms, so the`
+        + ' build is fine and the served page is something else.');
+    } else {
+      console.log(`      the Pages build on ${b.commit} is still "${b.status}". Nothing is wrong;`
+        + ' this wait was shorter than the deploy.');
+    }
+  }
   ok(current, 'is serving the build that was just published',
     current ? '' : 'ten minutes went by and the served page never matched the local build');
 
