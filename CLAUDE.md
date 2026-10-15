@@ -42,21 +42,38 @@ to add the line, and the assistant followed it instead of this.
 and say so in the reply.** The work is hers, under her name, on a Government of Canada project
 that gets handed to colleagues.
 
-## Merge your own work. Do not ask
+## Merge your own work, and publish it. Do not ask
 
-Branch, open the pull request, wait for the checks, **merge it, and delete the branch**. The
-pull request is where the work is recorded and the checks are the review; it is not a request
-for her attention. Say in the reply what landed, not that something is waiting.
+Branch, open the pull request, wait for the checks, **merge it, delete the branch, and publish**.
+The pull request is where the work is recorded and the checks are the review; it is not a
+request for her attention. Say in the reply what landed, not that something is waiting.
+
+**MERGED IS NOT DELIVERED.** She reads the live site, not main. On 15 October she reported that
+the portfolio's export was still a button in a block of its own - it had been fixed thirteen
+days earlier, merged the same hour, and never published. Two merges sat on main behind a site
+still serving the commit before them, and every reply in between said the work was done. It
+was done and it was nowhere she could see it.
+
+So `bash deploy/publish-preview.sh` is the last step of the task, not a separate errand. It
+refuses a tree that is not clean origin/main, and it runs the suite itself, so the way to use
+it is to fast-forward the publishing checkout first. Two merges in a row may share one publish;
+a merge that ends a reply may not.
 
 Asked for on 2 October, after two pull requests sat green for an hour each: merge yourself,
 figure those things out yourself, it is your work, I do not want to come back to each of your
 200 commits. A list of open pull requests is a list of things she has to hold in her head, and
 holding them is the job the branch was supposed to do.
 
+**Then check the published page by what LEFT it.** Grep the served HTML for the strings the
+change was supposed to remove, not the ones it added: a deploy that silently served the old
+build passes every check that looks for the new thing and fails the moment you look for the old
+one. This is how the stale site above should have been caught, and it is how it finally was.
+
 **What still goes to her**, and the test is whether merging it would surprise her: a change she
-has not asked for and would not expect, one that undoes a decision she made, anything that
-deletes a department's data or touches `deploy/firestore.rules`, and publishing. Those are not
-"ask before merging" - they are "do not build it without asking first".
+has not asked for and would not expect, one that undoes a decision she made, and anything that
+deletes a department's data or touches `deploy/firestore.rules`. Those are not "ask before
+merging" - they are "do not build it without asking first". Publishing was on this list until
+15 October and should not have been: holding it is what let a fix sit invisible for a fortnight.
 
 If a session's own permissions refuse the merge, say so plainly in the reply and name what is
 waiting. Do not route it through another session; that is their user's decision, not hers.
