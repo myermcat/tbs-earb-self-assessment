@@ -2703,6 +2703,52 @@ console.log('\nA submission is a place you can go back from\n');
 }
 
 
+/* --------------------------------------------------------------------------------------- */
+/**
+ * A submission with nothing wrong with it says so.
+ *
+ * Reported as: it used to say how many questions were flagged and now it does not. The counter
+ * was there and read 0. The submission she opened genuinely carries no findings - every answer
+ * between 1 and 3 with nothing cited, which this detector has no rule against - and a card that
+ * is simply absent cannot be told from one that failed to draw.
+ */
+{
+  const clean = submission('EF56', 'Nothing To Argue With');
+  /**
+   * Every question answered, low and uncited, which is the shape that produces no findings.
+   *
+   * Answering one of them is not enough: an incomplete submission is itself a finding, and the
+   * first draft of this check passed on that one instead of the thing it is about.
+   */
+  let n = 0;
+  for (const d of rubric.domains) for (const sec of d.sections) for (const q of sec.questions) {
+    clean.answers[q.id] = {
+      score: 1 + (n++ % 3), evidence: [], justification: 'Early days, and we know it.',
+    };
+  }
+  const { doc, dom } = await boot({
+    session: live, side: 'assess', role: 'assessor',
+    listAnswer: { documents: [asDoc(clean)] },
+  });
+  doc.querySelector('.triage tbody tr.row-open').dispatchEvent(new dom.window.MouseEvent('click', { bubbles: true }));
+  await new Promise((r) => setTimeout(r, 160));
+  const findings = [...doc.querySelectorAll('.card')]
+    .find((c) => c.querySelector('h2')?.textContent === 'Findings');
+  ok('a submission with no findings still draws the findings card', !!findings,
+     [...doc.querySelectorAll('.card h2')].map((h) => h.textContent).join(' | '));
+  ok('and says so in as many words', /Nothing flagged/.test(findings?.textContent ?? ''),
+     findings?.textContent?.slice(0, 80));
+  /**
+   * And offers no advice about it. The screen this replaced said "Nothing anomalous.
+   * Spot-check and move on", which this detector has not earned: it only looks for
+   * over-claiming, so a department that scores itself low on everything passes it in silence.
+   */
+  ok('and gives no advice it has not earned',
+     !/spot-check|move on|anomalous/i.test(findings?.textContent ?? ''),
+     findings?.textContent?.slice(0, 120));
+  dom.window.close();
+}
+
 console.log(fails ? `\n${fails} hosted check(s) failed\n` : '\nall hosted checks passed\n');
 process.exit(fails ? 1 : 0);
 

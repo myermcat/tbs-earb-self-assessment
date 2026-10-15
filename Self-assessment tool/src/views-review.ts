@@ -1433,8 +1433,24 @@ function openDetail(rubric: Rubric, root: HTMLElement, l: Loaded, asked: Depth =
    * submission with most of the rubric marked not applicable. They are about the shape of the
    * whole thing. Everything else has gone down onto its own question.
    */
-  if (wholeAssessment.length) {
+  /**
+   * ZERO IS AN ANSWER AND HAS TO LOOK LIKE ONE.
+   *
+   * Reported as: it used to say how many questions were flagged and now it does not. The
+   * counter is there and reads 0 - measured on the submission she opened, which carries no
+   * findings at all - but a card that is simply absent is indistinguishable from a card that
+   * failed to draw, and the screen it replaced always said something, even at zero.
+   *
+   * It says what is true and nothing more. Not "nothing anomalous, spot-check and move on",
+   * which is what the old one said: that is advice, and it is advice this detector has not
+   * earned. It only looks for over-claiming, so a department that scores itself low on
+   * everything and cites nothing passes it in silence.
+   */
+  if (wholeAssessment.length || !needLook.size) {
     const box = el('section', { class: 'card' }, [el('h2', {}, ['Findings'])]);
+    if (!wholeAssessment.length && !needLook.size) {
+      box.appendChild(el('p', { class: 'muted' }, ['Nothing flagged']));
+    }
     for (const f of wholeAssessment) box.appendChild(flagCard(f));
     root.appendChild(box);
   }
@@ -1635,19 +1651,24 @@ function openDetail(rubric: Rubric, root: HTMLElement, l: Loaded, asked: Depth =
     };
     const box = el('section', { class: 'card' }, [
       el('h2', {}, ['Saved versions']),
+      /**
+       * Who, when, and whether anybody checked. Not an essay about how saving works.
+       *
+       * The named branch carried three sentences explaining that the tool asks for a name and
+       * a gc.ca address and confirms nothing - which the badge beside the name already says in
+       * two words. The empty branch guessed at a reason: saved before the tool asked who was
+       * saving, or it came from a file. Asked whether that was accurate, and on the record it
+       * was shown against it was not: that submission was written by tools/seed-submissions.mjs,
+       * which is neither. The honest answer is the one fact there is, which is that the record
+       * carries no name.
+       */
       by
         ? el('p', {}, [
             el('b', {}, [by.name]), ' ', el('span', { class: 'mono small' }, [by.email]),
             el('span', { class: 'badge badge-warn tiny tag' }, ['not checked']),
-            el('div', { class: 'muted small' }, [
-              `${new Date(by.at).toLocaleString()}. On save the tool asks the submitter for a name and a `,
-              'work email address, and refuses an address that does not end in gc.ca or canada.ca. ',
-              'That is all the checking there is. Nobody confirms the person behind it.',
-            ]),
+            el('div', { class: 'muted small' }, [new Date(by.at).toLocaleString()]),
           ])
-        : el('p', { class: 'muted' }, [
-            'Nobody. This version was saved before the tool asked who was saving, or it came from a file.',
-          ]),
+        : el('p', { class: 'muted' }, ['No name on this version']),
     ]);
     if (trail.length > 1) {
       const list = el('details', { class: 'trail' }, [

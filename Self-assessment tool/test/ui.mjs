@@ -1882,6 +1882,16 @@ ok('audited file keeps the self-score alongside the audited one',
   await new Promise((r) => setTimeout(r, 0));
   ok('the portfolio view is a portfolio dashboard', view().includes('Portfolio'));
   ok('it admits nothing is hosted yet', view().includes('Not hosted yet'));
+  /**
+   * And says nothing about being live when it is.
+   *
+   * Live is a word about an initiative everywhere else in this tool, and on this heading it
+   * meant the page was talking to the real store - which the Showing line underneath already
+   * says. Asked: what is live, what does live mean here.
+   */
+  ok('and the heading badge is a warning or nothing, never the word Live',
+     [...document.querySelectorAll('.head-row .badge')].every((b) => !/^Live$/.test(b.textContent.trim())),
+     [...document.querySelectorAll('.head-row .badge')].map((b) => b.textContent).join(' | '));
   ok('and says exactly what it can see', view().includes('Showing:'));
   ok('and says the submission opened this session is what it is reading',
      view().includes('opened this session'));

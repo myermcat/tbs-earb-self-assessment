@@ -65,9 +65,16 @@ function paint(
   root.appendChild(el('section', { class: 'card' }, [
     el('div', { class: 'head-row' }, [
       el('h1', {}, ['Portfolio']),
-      el('span', { class: isHosted() ? 'badge' : 'badge badge-warn' }, [
-        isHosted() ? 'Live' : 'Not hosted yet',
-      ]),
+      /**
+       * A badge only where something is wrong with the page's reach.
+       *
+       * It read "Live", which is a word about an initiative on every other screen in this tool
+       * and here meant something else entirely: that this page is talking to the real store.
+       * Asked, in those words: what is live, what does live mean here, is it that the portfolio
+       * is live. The line underneath already says "N records from the hosted store", so the
+       * badge was the same fact in a word that could be read three ways.
+       */
+      isHosted() ? null : el('span', { class: 'badge badge-warn' }, ['Not hosted yet']),
     ]),
     el('p', { class: 'small' }, ['Showing: ', el('b', {}, [sourceLine(records)]), '.']),
     /**
