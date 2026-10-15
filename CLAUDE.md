@@ -236,6 +236,38 @@ be understood, the interface is wrong and the sentence is a patch over it.
 got there, do not justify a choice nobody questioned, and do not restate in prose what a number
 or a diff already says.
 
+### What needs her goes first, and it is marked
+
+Asked for on 15 October, and the reason matters more than the format: *you log everything you
+do and your responses are very, very long. I'm not reading them, so things that I actually need
+to read might get lost, which usually happens.* A reply she skims is a reply where the one
+question in it is lost, and the answer is not a shorter log - it is putting the part that needs
+her where skimming cannot miss it.
+
+**Every reply that needs anything from her opens with one of these, before any other text:**
+
+    ## NEEDS A DECISION
+    1. One line saying what the choice is. **Option A** or **option B** - I'd pick A, because …
+
+    ## READ THIS
+    - One line. Only for a fact that changes what she believes or would do.
+
+Then a `---`, and everything else under its own heading, written to be skipped.
+
+**The bar for each.** A decision is something only she can settle: a trade-off, a cost, a thing
+that would surprise her. A READ THIS is a fact she would be wrong without - something is broken
+and cannot be fixed here, a number turned out different from what we assumed, a thing she asked
+for cannot be done the way she asked. Work that landed is not READ THIS. Progress is not READ
+THIS. Neither is anything she can see on the page.
+
+**When nothing needs her, say exactly that in one line** - `Nothing needs you.` - and then the
+rest. An empty block is worse than none, because it trains her to skip the block.
+
+**At most three items between the two headings.** More than three means the reply is doing too
+much at once; carry the rest.
+
+This is every session's rule, not one session's.
+
 This does not touch code comments. The comments in this repository explain *why* a line exists
 to the next person who has to change it, which is a different job, and they stay.
 
