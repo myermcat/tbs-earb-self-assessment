@@ -101,7 +101,11 @@
 }
 
 /* A heading and its score, side by side, with the score outside the heading. */
+/* Words in this row share a baseline. A bordered pill has no baseline worth sharing: aligning
+   its text baseline to the heading's hung it low against the heading's optical centre, which
+   is what "not vertically centred" was. It centres in the line instead. */
 .head-row { display: flex; align-items: baseline; gap: .55rem; flex-wrap: wrap; }
+.head-row > .badge { align-self: center; }
 
 html { -webkit-text-size-adjust: 100%; }
 /**
