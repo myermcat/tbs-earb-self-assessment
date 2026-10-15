@@ -6,92 +6,92 @@ would change if the answer is different.
 
 Ordered by how much rework a different answer costs.
 
-The first part is direction: what the tool is for and who it is for, written on 15 October
-because we have been building without the answers and the gaps are starting to decide things
-for us. None of it needs a meeting. Every one can be answered in a sentence, and each says what
-the tool does today so that no answer is urgent.
+Part one, written on 15 October, is in two halves. A is a list of assumptions we have been
+building on and want contradicted where they are wrong; silence is agreement. B is the
+dashboard, where we have no assumptions at all. Neither half needs a meeting.
 
-The second part, from number 10 on, is about the instrument itself, and most of it predates
-this.
+Part two is about the instrument itself and predates this.
 
 ---
 
-# Part one: direction
+# Part one: assumptions, and the dashboard
 
-## A. What happens after an assessment is finished
+Two different things, and they want answering differently.
 
-**A1. Where does a finished assessment go?** Into a board meeting, into a report, into a
-conversation with the department, or nowhere in particular? Today it goes into a list that
-assessors read and a CSV somebody can export. Nothing leaves the tool on its own.
+**A is a list of assumptions**, not questions. They are what we have been building on, drawn
+from what you have already said. Answer only where we are wrong:
 
-**A2. Is this a gate or a conversation starter?** Does a department have to reach a number
-before it may proceed, or is the score the opening of a discussion? Everything about
-thresholds, refusals and how hard the tool argues with a submitter follows from this, and we
-have built it as a conversation starter by default.
+- agree, or near enough: write nothing, just the number
+- strongly disagree: say so, and that is the one we act on first
+- not sure yourself, or it depends: mark it, and that is useful on its own
+- anything you want to ask back: write it
 
-**A3. Does an assessment ever come back round?** After a board conversation, does the
-department revise and resubmit against the same record, or is it one-shot? Today it is
-one-shot: there is one assessment, it can be edited for ever, and nothing records a round.
+**B is the dashboard**, where we have no assumptions at all and are not pretending to. Nothing
+in B is a confirmation. They are there to be argued with.
 
-## B. Who may see what
+---
 
-**B1. Should every assessor see every department's submission?** Today any signed-in assessor
-sees the whole pool, including other departments' unfinished drafts. The alternative is
-assignment, which is more machinery and a different permission model.
+## A. Assumptions
 
-**B2. Can a department take its own submission back?** Today it cannot: once sent, only an
-assessor can withdraw it from the counting, and the department cannot delete it at all.
+**A1.** A finished assessment does not leave the tool on its own. Assessors read it here, and
+anything that reaches a board is carried there by a person.
 
-**B3. Is "assessor" one role or two?** There is a screen with admin-only actions on it that
-every assessor can currently reach. Is there a TBS-only tier above assessor, or is everybody
-the same?
+**A2.** The score starts a conversation. It is not a gate a department has to clear before it
+may proceed.
 
-## C. The dashboard, and what you would do about a bad number
+**A3.** An assessment is one record that keeps being edited. There is no round two, no
+resubmission, and nothing records that a board has been through it once.
 
-This is the one where your answer changes what gets built next, and we cannot guess it.
+**A4.** Every assessor sees every submission, including other departments' unfinished drafts.
 
-**C1. What are the three decisions you expect to make with this data in a year?** Not what
-would be interesting to see - what you would actually decide.
+**A5.** A department cannot take its own submission back once sent. An assessor can stop it
+being counted; the department cannot remove it.
 
-**C2. For each one: if the number came back bad, what would you do on Monday?** A number with
-no answer to that is a report rather than a dashboard, and we would rather not build it.
+**A6.** Assessor is one tier. There is no TBS-only level above it with powers an ordinary
+assessor does not have.
 
-**C3. Which matters more to you: how departments are doing, or whether the questions are
-working?** They are different screens. Today the tool shows the first and has just started
-showing the second.
+**A7.** A submission is filled in by a team, not one person, and the access code is how they
+share it - the way a document link is shared. What is NOT built is two of them typing at once:
+today the last save wins and nobody is told their change was overwritten. We are assuming that
+is tolerable for now rather than a thing to fix before real departments arrive.
 
-**C4. How many assessments do you expect in the first year?** Averages by department, weakest
-questions across government and best evidence per question are all filed and none of them mean
-anything at ten records. The number decides when they are worth building.
+**A8.** When an assessor changes a self-score, that is the assessor correcting the department.
+We are assuming it is not read as evidence that the question was unclear.
 
-## D. The instrument, at the level of what it is for
+**A9.** A department that scores itself low on everything and attaches nothing raises no
+flags at all, while a confident one raises a hundred and fifty. **We think this one is wrong**
+and are flagging it ourselves: every check in the tool looks for over-claiming.
 
-**D1. When an assessor changes a self-score, what is that telling you?** That the department
-was wrong, or that the question was unclear? The tool now measures the gap and shows which
-questions are furthest apart - it matters which of the two you read it as.
+**A10.** The band that routes an assessment to the board sits around 3.0, the number is drawn
+between two figures you gave at different times, and nobody has confirmed it.
 
-**D2. Should a department that scores itself low on everything be flagged?** Today it is not.
-Every check we have looks for over-claiming, so a submission scoring 1 to 3 across all 176
-questions with no evidence attached produces no findings at all, while a confident one produces
-a hundred and fifty. We think that is backwards and it is your call.
+---
 
-**D3. Is the routing threshold a real number?** It is drawn between two numbers you gave at
-different times, nobody has confirmed it, and every screen that uses it says so.
+## B. The dashboard
 
-## E. Who fills it in
+We have built counters that say how the portfolio is doing. What we cannot work out without
+you is what you would DO about any of them, and a number nobody acts on is a report rather
+than a dashboard.
 
-**E1. Is a submission written by one person or by a team?** Today it is one browser, one draft,
-with the access code as the only key. If two people are meant to work on it at once, that is a
-different design and a larger piece of work.
+**B1.** It is March, and you open this once a week. What are you hoping it tells you?
 
-**E2. Who tells the department somebody has looked at it?** Today nobody does: the tool sends
-nothing and notifies nobody, by deliberate choice, and the submitter is told to tell their
-assessor themselves.
+**B2.** Here is what the data could show. Mark the ones that would change what you do, and
+cross out the ones that are only interesting.
 
-## F. Timing
+- which questions the whole of government scores worst on
+- which questions departments and assessors disagree about most
+- how long a submission waits before anybody opens it
+- average score by department
+- how scores move over the year
+- which submissions fall below the board threshold
+- what good evidence looks like, question by question
+- how many departments have started and not finished
 
-**F1. When does this need to be in front of a real department?** Everything above is answerable
-in a sentence; this one decides which of the answers we act on first.
+**B3.** For each one you marked: what would you actually do about a bad number? That is the
+test the whole screen has to pass.
+
+**B4.** Is there a number you already keep by hand, in a spreadsheet or your head, that should
+be on this screen?
 
 ---
 
