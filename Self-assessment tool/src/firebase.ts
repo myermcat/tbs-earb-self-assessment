@@ -1285,7 +1285,24 @@ export async function putAssessment(a: Assessment): Promise<string> {
   // this is the first time it has been in the store. What says so is whether it has ever been.
   const making = !a.meta?.savedOnlineAt;
   if (making && me) a.ownerEmail = a.ownerEmail ?? me.email;
-  const owner = a.ownerEmail ?? me?.email ?? '';
+  /**
+   * WHATEVER OWNER THE RECORD HAS, AND NEVER ONE INVENTED HERE.
+   *
+   * This read `a.ownerEmail ?? me?.email ?? ''`, and the fallback was the bug. A record with no
+   * owner, opened by somebody who happens to be signed in, had their address stamped onto it on
+   * the next save. The rules freeze ownerEmail against a code holder, so the write came back
+   * 403 and the screen said "Missing or insufficient permissions", on an assessment the person
+   * had every right to edit.
+   *
+   * Reported on 15 October: entered the twelve-character code, told she had insufficient
+   * permission to save it. Every seeded assessment has no owner, and anybody who has used the
+   * assessor side is signed in, so the two conditions meet constantly.
+   *
+   * The create path above has already set the owner when there is one to set, so there is
+   * nothing left for a fallback to do except invent, and the comment on this function promises
+   * it never does.
+   */
+  const owner = a.ownerEmail ?? '';
   if (making && me && owner !== me.email) {
     throw new Error(`This assessment belongs to ${owner}, and you are signed in as ${me.email}.`);
   }

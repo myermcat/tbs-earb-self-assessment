@@ -278,5 +278,42 @@ check('nothing records who set it, so no address reaches a public page',
         await read('roles', {}), 'refused');
 }
 
+
+/**
+ * THE 403 A CODE HOLDER GOT ON AN ASSESSMENT THEY WERE ENTITLED TO EDIT.
+ *
+ * Reported on 15 October. The twelve-character code was entered and the save came back
+ * "Missing or insufficient permissions". The record had no owner, which every seeded assessment
+ * is, and the person was signed in, which anybody who has opened the assessor side is. The tool
+ * read the owner as "whatever the record has, or failing that whoever is signed in", so the
+ * write carried an ownerEmail the document did not have, and ownerEmail is one of the four
+ * fields frozen against a code holder.
+ *
+ * These three say what the rule actually does, so the fix in src/firebase.ts has something to
+ * be right against.
+ */
+{
+  const AS_OWNER = { authorization: 'Bearer owner' };
+  const OWNERLESS = 'NOOWNERABCD2';
+  await patch(`assessments/${OWNERLESS}`, REAL, AS_OWNER);
+
+  // The write the tool used to send: everything, including an ownerEmail the record never had.
+  check('a code holder adding an owner that was not there is refused',
+        await patch(`assessments/${OWNERLESS}`,
+                    { ...REAL, ownerEmail: str('passerby@example.com') },
+                    asPerson('passerby@example.com')), 'refused');
+
+  // The write it sends now.
+  check('and the same write without it goes through',
+        await patch(`assessments/${OWNERLESS}`,
+                    { ...REAL, initiative: map({ name: str('Renamed') }) },
+                    asPerson('passerby@example.com')), 'allowed');
+
+  // Not a quirk of being signed in: the code is the permission either way.
+  check('and goes through for somebody with no account at all',
+        await patch(`assessments/${OWNERLESS}`,
+                    { ...REAL, initiative: map({ name: str('Renamed twice') }) }), 'allowed');
+}
+
 console.log(failed ? `\n${failed} rules check(s) failed` : '\nthe create rule holds, the backlog holds, and an audit is one assessor\u2019s own');
 process.exit(failed ? 1 : 0);
