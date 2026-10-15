@@ -69,29 +69,62 @@ between two figures you gave at different times, and nobody has confirmed it.
 
 ## B. The dashboard
 
-We have built counters that say how the portfolio is doing. What we cannot work out without
-you is what you would DO about any of them, and a number nobody acts on is a report rather
-than a dashboard.
+**This section was wrong once and is worth saying why.** The first version of it listed eight
+things the dashboard could show and asked him to pick. Those are metrics, and a metric is the
+last thing you choose, not the first. Asked in those words: metrics help answer the questions,
+but shouldn't we start by working out which questions we are asking?
 
-**B1.** It is March, and you open this once a week. What are you hoping it tells you?
+That instinct has a name and a literature. Goal Question Metric, from Basili and the NASA
+Software Engineering Laboratory in the 1980s, is three levels in a fixed order: the conceptual
+level is a GOAL, the operational level is a set of QUESTIONS that say whether the goal is being
+met, and only the quantitative level is METRICS, each one answering a question. The reason for
+the order is the failure it was written against: measurement programmes that began with metrics
+measured whatever was easy to measure, and nobody could say afterwards what any of it was for.
 
-**B2.** Here is what the data could show. Mark the ones that would change what you do, and
-cross out the ones that are only interesting.
+So B is five questions now. What goes on the screen is whatever answers the ones he keeps.
 
-- which questions the whole of government scores worst on
-- which questions departments and assessors disagree about most
-- how long a submission waits before anybody opens it
-- average score by department
-- how scores move over the year
-- which submissions fall below the board threshold
-- what good evidence looks like, question by question
-- how many departments have started and not finished
+### The goal, written out
 
-**B3.** For each one you marked: what would you actually do about a bad number? That is the
-test the whole screen has to pass.
+Analyse the portfolio of self-assessments, in order to steer, with respect to where
+architecture capability is weak and where the EARB process itself is failing, from the point
+of view of TBS, in the first year of the tool.
 
-**B4.** Is there a number you already keep by hand, in a spreadsheet or your head, that should
-be on this screen?
+Worth separating, because the tool does two jobs at different scopes: one assessment helps a
+project, and the portfolio helps the department. This screen is only the second.
+
+### The five questions
+
+**B1. Is architecture capability across government getting better?** The slowest to answer and
+the one a year of this is for. Nothing can say it yet.
+
+**B2. Are the questions doing their job?** A question every department scores high and every
+assessor marks down is not twenty optimistic departments, it is a question that does not ask
+what its author thinks it asks. TBS owns the rubric, so this is a thing that can be changed
+on a Monday.
+
+**B3. Is the self-assessment honest?** Over-claiming and under-claiming are both dishonest and
+the tool currently only notices one of them. What would change: the guidance, and what evidence
+is required.
+
+**B4. Is the review keeping up with what arrives?** What would change: who is assigned, and how
+many of them there are.
+
+**B5. Where should TBS spend the support it has?** Which departments, which domains, which
+questions. Needs enough records that a department average is not one initiative.
+
+### What to ask him about them
+
+Which of these are actually his questions, which are missing, and which he does not care
+about. Then, for the ones he keeps: what would he do differently on a Monday depending on the
+answer? A question with no answer to that produces a number nobody acts on.
+
+### Where this leaves what is already built
+
+Not a coincidence worth hiding: the two readings on the screen today are the metrics for B2,
+B3 and B4, and they were built before the questions were written. Self-scores against assessors
+answers B2 and B3. Waiting on an assessor answers B4. B1 and B5 need more records than the pool
+holds and are filed as #129 to #132. Everything else on that screen is an average, which
+answers none of the five.
 
 ---
 
