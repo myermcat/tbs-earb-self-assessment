@@ -1176,8 +1176,12 @@ ok('routing is stated as a suggestion', view().includes('does not decide it'));
   ok('and it carries no note meant for the build team',
      !topicPart.querySelector('.badge-warn') && !/rests on \d+ question/.test(topicPart.textContent),
      topicPart.textContent.slice(0, 120));
-  ok('the topic block says the numbers do not add up to the overall',
-     topicPart.textContent.includes('do not add up to the overall'));
+  // The block is a heading and its bars. It used to carry a sentence describing what was under
+  // the heading, which is the one thing a page may not do, and the assessor's copy and the
+  // portfolio's lost the same sentence first.
+  ok('and says nothing about what the bars beneath it are',
+     !/do not add up to the overall|grouped by what they are about/.test(topicPart.textContent),
+     topicPart.textContent.slice(0, 120));
 
 /**
  * What this screen shows per category, kept for the portfolio check further down. The portfolio
