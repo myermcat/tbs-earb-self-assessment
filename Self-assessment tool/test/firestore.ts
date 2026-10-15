@@ -578,5 +578,46 @@ await wait(0);
      JSON.stringify(none[0]?.auditedBy));
 }
 
+/**
+ * A RECORD WITH NO OWNER, SAVED BY SOMEBODY WHO IS SIGNED IN.
+ *
+ * Reported on 15 October: the twelve-character code was entered and the screen said "Not saved:
+ * Missing or insufficient permissions. (403)" on an assessment the person had every right to
+ * edit.
+ *
+ * The cause was one fallback. putAssessment read the owner as `a.ownerEmail ?? me?.email ?? ''`,
+ * so a record that had none took the address of whoever happened to be signed in and sent it.
+ * The rules freeze ownerEmail against a code holder, so the store refused the write.
+ *
+ * The two conditions meet constantly rather than rarely. Every seeded assessment has no owner,
+ * and anybody who has opened the assessor side is signed in.
+ */
+{
+  quiet();
+  const theirs: Assessment = JSON.parse(JSON.stringify(a)) as Assessment;
+  theirs.id = 'QK7M2B4NPX9D';
+  delete theirs.ownerEmail;
+  // Already in the store, which is what makes this an update rather than a create.
+  theirs.meta = { ...theirs.meta, savedOnlineAt: '2026-10-01T00:00:00.000Z' };
+  await saveOnlineNow(theirs);
+
+  const w = writes();
+  ok('a code holder\u2019s save reaches the store', w.length > 0, String(w.length));
+  const body = JSON.parse(String(w[w.length - 1]?.init.body ?? '{}')) as
+    { fields?: Record<string, unknown> };
+  ok('and sends no ownerEmail, because the record has none',
+     body.fields?.ownerEmail === undefined, JSON.stringify(body.fields?.ownerEmail));
+  /**
+   * The body is the assertion and the mask is not, because a write with no mask at all passes
+   * any test of the mask's contents. This one is unmasked: the stub answers the base read with
+   * an empty document, so there is nothing to compare against and the whole record goes. That
+   * is the shape the store refused, so it is the right shape to test.
+   */
+  ok('and the write carries the whole record, which is what the store judged',
+     !String(w[w.length - 1]?.url).includes('updateMask'), String(w[w.length - 1]?.url));
+  ok('and leaves the record in this browser without one either',
+     theirs.ownerEmail === undefined, String(theirs.ownerEmail));
+}
+
 console.log(fails === 0 ? '\nall wiring checks passed' : `\n${fails} FAILED`);
 process.exit(fails === 0 ? 0 : 1);
