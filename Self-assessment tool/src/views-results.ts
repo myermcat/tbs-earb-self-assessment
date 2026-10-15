@@ -181,18 +181,19 @@ export function renderResults(
   const withTopics = r.topics.filter((t) => t.total > 0 && !domainIds.has(t.topic.id));
   if (withTopics.length) {
     const tbox = el('div', { class: 'res-sub cut' }, [
-      el('h3', {}, ['By category']),
       /**
-       * Plainly, and without the badge.
+       * A heading and the bars under it, and nothing saying what the bars are.
        *
-       * "The same answers, cut by subject" said nothing anybody could act on, and "provisional
-       * grouping" is a note between us and TBS about who owns the assignments. A department
-       * filling this in has no use for either.
+       * The sentence here read "The same questions again, grouped by what they are about. One
+       * question can be in several categories at once, so these do not add up to the overall."
+       * The first half described what was directly beneath it. The second pre-empted a
+       * confusion the layout does not create: these are five scores out of ten beside an
+       * overall out of ten, and nobody adds five of those expecting a sixth.
+       *
+       * The same sentence was taken off the assessor's copy and the portfolio's. This was the
+       * last one.
        */
-      el('p', { class: 'muted small' }, [
-        'The same questions again, grouped by what they are about. One question can be in ',
-        'several categories at once, so these do not add up to the overall.',
-      ]),
+      el('h3', {}, ['By category']),
     ]);
     /**
      * Each bar opens onto its own questions.
