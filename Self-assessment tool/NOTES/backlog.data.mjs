@@ -885,7 +885,7 @@ export const items = [
     why: "Nobody has decided whether admin is a role. Listed so the roles matrix is complete.",
   },
   {
-    id: "withdraw-record", n: 126, track: "engine", section: "e-admin", kind: "feature", status: "open",
+    id: "withdraw-record", n: 126, track: "engine", section: "e-admin", kind: "feature", status: "closed", closedAt: "2026-10-02T01:10:18-04:00",
     priority: "low", owner: "ours", golive: false, parent: "admin-actions",
     t: "Withdraw a record",
     why: "Out of every statistic and still in the list, with nothing deleted.",
