@@ -6,7 +6,96 @@ would change if the answer is different.
 
 Ordered by how much rework a different answer costs.
 
+The first part is direction: what the tool is for and who it is for, written on 15 October
+because we have been building without the answers and the gaps are starting to decide things
+for us. None of it needs a meeting. Every one can be answered in a sentence, and each says what
+the tool does today so that no answer is urgent.
+
+The second part, from number 10 on, is about the instrument itself, and most of it predates
+this.
+
 ---
+
+# Part one: direction
+
+## A. What happens after an assessment is finished
+
+**A1. Where does a finished assessment go?** Into a board meeting, into a report, into a
+conversation with the department, or nowhere in particular? Today it goes into a list that
+assessors read and a CSV somebody can export. Nothing leaves the tool on its own.
+
+**A2. Is this a gate or a conversation starter?** Does a department have to reach a number
+before it may proceed, or is the score the opening of a discussion? Everything about
+thresholds, refusals and how hard the tool argues with a submitter follows from this, and we
+have built it as a conversation starter by default.
+
+**A3. Does an assessment ever come back round?** After a board conversation, does the
+department revise and resubmit against the same record, or is it one-shot? Today it is
+one-shot: there is one assessment, it can be edited for ever, and nothing records a round.
+
+## B. Who may see what
+
+**B1. Should every assessor see every department's submission?** Today any signed-in assessor
+sees the whole pool, including other departments' unfinished drafts. The alternative is
+assignment, which is more machinery and a different permission model.
+
+**B2. Can a department take its own submission back?** Today it cannot: once sent, only an
+assessor can withdraw it from the counting, and the department cannot delete it at all.
+
+**B3. Is "assessor" one role or two?** There is a screen with admin-only actions on it that
+every assessor can currently reach. Is there a TBS-only tier above assessor, or is everybody
+the same?
+
+## C. The dashboard, and what you would do about a bad number
+
+This is the one where your answer changes what gets built next, and we cannot guess it.
+
+**C1. What are the three decisions you expect to make with this data in a year?** Not what
+would be interesting to see - what you would actually decide.
+
+**C2. For each one: if the number came back bad, what would you do on Monday?** A number with
+no answer to that is a report rather than a dashboard, and we would rather not build it.
+
+**C3. Which matters more to you: how departments are doing, or whether the questions are
+working?** They are different screens. Today the tool shows the first and has just started
+showing the second.
+
+**C4. How many assessments do you expect in the first year?** Averages by department, weakest
+questions across government and best evidence per question are all filed and none of them mean
+anything at ten records. The number decides when they are worth building.
+
+## D. The instrument, at the level of what it is for
+
+**D1. When an assessor changes a self-score, what is that telling you?** That the department
+was wrong, or that the question was unclear? The tool now measures the gap and shows which
+questions are furthest apart - it matters which of the two you read it as.
+
+**D2. Should a department that scores itself low on everything be flagged?** Today it is not.
+Every check we have looks for over-claiming, so a submission scoring 1 to 3 across all 176
+questions with no evidence attached produces no findings at all, while a confident one produces
+a hundred and fifty. We think that is backwards and it is your call.
+
+**D3. Is the routing threshold a real number?** It is drawn between two numbers you gave at
+different times, nobody has confirmed it, and every screen that uses it says so.
+
+## E. Who fills it in
+
+**E1. Is a submission written by one person or by a team?** Today it is one browser, one draft,
+with the access code as the only key. If two people are meant to work on it at once, that is a
+different design and a larger piece of work.
+
+**E2. Who tells the department somebody has looked at it?** Today nobody does: the tool sends
+nothing and notifies nobody, by deliberate choice, and the submitter is told to tell their
+assessor themselves.
+
+## F. Timing
+
+**F1. When does this need to be in front of a real department?** Everything above is answerable
+in a sentence; this one decides which of the answers we act on first.
+
+---
+
+# Part two: the instrument
 
 ## 1. Is answering every question mandatory?
 
