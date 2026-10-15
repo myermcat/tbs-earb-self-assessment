@@ -21,7 +21,7 @@ interface Row { rec: StoredRecord; r: Result; redFlags: number }
 export function renderDashboard(root: HTMLElement, rubric: Rubric, sessionFiles: Assessment[] = []): void {
   clear(root);
   root.appendChild(el('section', { class: 'card' }, [
-    el('div', { class: 'head-row' }, [el('h1', {}, ['Portfolio'])]),
+    el('div', { class: 'head-row' }, [el('h1', {}, ['Dashboard'])]),
     el('p', { class: 'muted' }, ['Reading the records…']),
   ]));
 
@@ -64,7 +64,7 @@ function paint(
 
   root.appendChild(el('section', { class: 'card' }, [
     el('div', { class: 'head-row' }, [
-      el('h1', {}, ['Portfolio']),
+      el('h1', {}, ['Dashboard']),
       /**
        * A badge only where something is wrong with the page's reach.
        *
@@ -203,6 +203,132 @@ function paint(
    * worklist order, with fewer columns and no way into a submission. Withdrawing and the
    * withdrawn rows went to the list with it; the export went to the toolbar above.
    */
+
+  /**
+   * TWO BLOCKS THAT MEAN SOMETHING AT TEN RECORDS.
+   *
+   * Everything else on this page is an output: the average, how many sit below the threshold,
+   * how many answered no. An output is a result, and the test a dashboard has to pass is
+   * whether a bad number names something to do on Monday. Nobody can act on an average.
+   *
+   * These two are the levers. Both work at any volume, which the rest of what this page could
+   * show does not - weakest questions across the GC, averages by department and what good
+   * evidence looks like all need more records than exist, and are filed as #130 to #132.
+   */
+  {
+    /**
+     * Where the department and the assessor disagree about what a number means.
+     *
+     * This is the only reading here that is about the INSTRUMENT rather than about the
+     * departments. A question every department scores itself high on and every assessor marks
+     * down is not twenty departments being optimistic; it is a question that does not ask what
+     * its author thinks it asks. That is a thing TBS can change, and nothing else on this page
+     * points at one.
+     *
+     * Only standing changes count. An assessor who looked and agreed has written no number, and
+     * counting their silence as agreement would make the gap look smaller the less anybody did.
+     */
+    type Gap = { qid: string; label: string; n: number; sum: number };
+    const gaps = new Map<string, Gap>();
+    const label = new Map<string, string>();
+    for (const d of rubric.domains) for (const sec of d.sections) for (const q of sec.questions) {
+      label.set(q.id, q.text);
+    }
+    let changed = 0;
+    let scored = 0;
+    let sum = 0;
+    let withAudit = 0;
+    for (const rec of live) {
+      if (!rec.audits?.length) continue;
+      withAudit++;
+      for (const audit of rec.audits) {
+        for (const [qid, e] of Object.entries(audit.perQuestion ?? {})) {
+          if (typeof e.auditedScore !== 'number') continue;
+          scored++;
+          const theirs = rec.assessment.answers?.[qid]?.score;
+          if (typeof theirs !== 'number' || theirs === e.auditedScore) continue;
+          changed++;
+          const delta = e.auditedScore - theirs;
+          sum += delta;
+          const g = gaps.get(qid) ?? { qid, label: label.get(qid) ?? qid, n: 0, sum: 0 };
+          g.n++; g.sum += delta;
+          gaps.set(qid, g);
+        }
+      }
+    }
+    if (withAudit) {
+      const mean = changed ? sum / changed : 0;
+      const worst = [...gaps.values()]
+        .sort((a, b) => Math.abs(b.sum / b.n) - Math.abs(a.sum / a.n) || b.n - a.n)
+        .slice(0, 5);
+      const box = el('section', { class: 'card' }, [
+        el('h2', {}, ['Self-scores against assessors']),
+        el('div', { class: 'kpi-row' }, [
+          kpi(String(withAudit), withAudit === 1 ? 'record audited' : 'records audited'),
+          kpi(String(scored), 'questions re-scored'),
+          kpi(String(changed), 'scores changed'),
+          kpi(changed ? `${mean > 0 ? '+' : ''}${mean.toFixed(1)}` : '--',
+              mean < 0 ? 'departments scored high by' : 'departments scored low by'),
+        ]),
+      ]);
+      if (worst.length) {
+        const list = el('div', { class: 'cat-list' }, worst.map((g) => {
+          const avg = g.sum / g.n;
+          return el('div', { class: 'cat-q cat-q-flat' }, [
+            el('span', { class: `cat-q-score ${avg < 0 ? 'red' : ''}` }, [
+              `${avg > 0 ? '+' : ''}${avg.toFixed(1)}`,
+            ]),
+            el('span', { class: 'cat-q-text' }, [
+              g.label,
+              el('span', { class: 'cat-q-where' }, [`${g.qid} \u00B7 ${g.n} time${g.n === 1 ? '' : 's'}`]),
+            ]),
+          ]);
+        }));
+        box.appendChild(el('h3', {}, ['Furthest apart']));
+        box.appendChild(list);
+      }
+      root.appendChild(box);
+    }
+  }
+
+  {
+    /**
+     * What is waiting, and how long the oldest has waited.
+     *
+     * The number to act on is the longest wait rather than the count: five submissions two days
+     * old is a working week, and one submission five weeks old is a department that has heard
+     * nothing since it pressed the button. A count cannot tell those apart.
+     */
+    const waiting = live
+      .filter((rec) => rec.assessment.meta?.submittedAt && !(rec.audits?.length))
+      .map((rec) => ({ rec, since: Date.parse(rec.assessment.meta?.submittedAt ?? '') }))
+      .filter((x) => !Number.isNaN(x.since))
+      .sort((a, b) => a.since - b.since);
+    const started = live.filter((rec) => (rec.audits?.length ?? 0) > 0).length;
+    const drafts = live.filter((rec) => !rec.assessment.meta?.submittedAt).length;
+    const days = (t: number) => Math.floor((Date.now() - t) / 86400000);
+    if (waiting.length || started || drafts) {
+      const oldest = waiting[0];
+      root.appendChild(el('section', { class: 'card' }, [
+        el('h2', {}, ['Waiting on an assessor']),
+        el('div', { class: 'kpi-row' }, [
+          kpi(String(waiting.length), 'nobody has opened'),
+          kpi(oldest ? String(days(oldest.since)) : '--', 'days, the longest wait'),
+          kpi(String(started), 'being audited'),
+          kpi(String(drafts), 'still drafts'),
+        ]),
+        oldest
+          ? el('p', { class: 'small' }, [
+              el('b', {}, [oldest.rec.assessment.initiative?.name || '(unnamed)']),
+              ' \u00B7 ',
+              oldest.rec.assessment.initiative?.department || '--',
+              ' \u00B7 ',
+              `marked ready ${new Date(oldest.since).toLocaleDateString()}`,
+            ])
+          : null,
+      ]));
+    }
+  }
 
   // What this role can do that an assessor cannot, and what nobody has decided yet.
   root.appendChild(el('section', { class: 'card' }, [

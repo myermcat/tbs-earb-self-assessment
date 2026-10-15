@@ -1485,11 +1485,11 @@ ok('the real route is shown but not wired',
      q('.side-badge').textContent.includes('Allison') && q('.side-badge').textContent.includes('unverified'),
      q('.side-badge')?.textContent);
   // Signed in, the full header comes back.
-  ok("the assessor's path is Submissions then Portfolio",
-     qa('nav.path .tab').map((t) => t.textContent).join('|') === 'Submissions|Portfolio',
+  ok("the assessor's path is Submissions then Dashboard",
+     qa('nav.path .tab').map((t) => t.textContent).join('|') === 'Submissions|Dashboard',
      qa('nav.path .tab').map((t) => t.textContent).join('|'));
   // Named for what is on it rather than for a role: every assessor is granted this tab.
-  ok('the assessor path offers the portfolio', !!byText('.tab', 'Portfolio'));
+  ok('the assessor path offers the dashboard', !!byText('.tab', 'Dashboard'));
   ok('the submitter path is gone from the assessor view',
      !qa('nav.path .tab').some((t) => /Start|Fill it in|My results/.test(t.textContent)));
 }
@@ -1878,9 +1878,9 @@ ok('audited file keeps the self-score alongside the audited one',
 {
   // The admin view is the portfolio dashboard. It reads the records asynchronously, because
   // the same call becomes one request the day a store exists.
-  byText('.tab', 'Portfolio').click();
+  byText('.tab', 'Dashboard').click();
   await new Promise((r) => setTimeout(r, 0));
-  ok('the portfolio view is a portfolio dashboard', view().includes('Portfolio'));
+  ok('the dashboard view is the dashboard', view().includes('Dashboard'));
   ok('it admits nothing is hosted yet', view().includes('Not hosted yet'));
   /**
    * And says nothing about being live when it is.
