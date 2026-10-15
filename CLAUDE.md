@@ -239,6 +239,21 @@ or a diff already says.
 This does not touch code comments. The comments in this repository explain *why* a line exists
 to the next person who has to change it, which is a different job, and they stay.
 
+**The test that catches the disguised version**, worked out on 15 October and agreed between
+two sessions, because the plain form of this rule does not catch it. A sentence can avoid
+describing the page and still be the same fault: it answers a question no reader asks.
+
+The last copy of a sentence under *By category* read "One question can be in several categories
+at once, so these do not add up to the overall." That is not self-description — it states a
+property of the numbers, which looked like a reason to keep it. It went anyway. The bars are
+five scores out of ten sitting beside an overall out of ten, and nobody adds five of those
+expecting a sixth. The sentence was answering a question the layout never raises.
+
+So before keeping an explanation that survives the first test, ask whether the thing it
+pre-empts is something the screen actually causes somebody to wonder. If the layout does not
+create the confusion, the sentence is not a safeguard, it is the same habit wearing a better
+disguise. If the layout does create it, fix the layout.
+
 **Restated as a standing rule on 2 October, after it was broken again on the portfolio and in
 four column notes:** *we don't explain what's on the page unless stated otherwise. Because if
 it's not understandable what's on the page, then the issue is with the UX, and that is what we
