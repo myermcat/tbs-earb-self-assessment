@@ -455,13 +455,13 @@ console.log('\nThe published build, signed in\n');
   const { doc, dom, seen } = await boot({ session: live, side: 'assess' });
   ok('the role is asked for', seen.some((r) => r.href.includes('/roles/')));
   ok('and a submitter is not offered the portfolio tab',
-     !/Portfolio/.test(body(doc)), body(doc).slice(0, 140));
+     !/Dashboard/.test(body(doc)), body(doc).slice(0, 140));
   dom.window.close();
 }
 
 {
   const { doc, dom } = await boot({ session: live, side: 'assess', role: 'admin' });
-  ok('an admin is', /Portfolio/.test(body(doc)), body(doc).slice(0, 140));
+  ok('an admin is', /Dashboard/.test(body(doc)), body(doc).slice(0, 140));
   dom.window.close();
 }
 
@@ -496,7 +496,7 @@ console.log('\nThe published build, signed in\n');
   const t = body(doc);
   ok('an assessor reaches the admin view, because there is no rung above assessor',
      !/does not have access/i.test(t) && !/admin view is for admins/i.test(t), t.slice(0, 160));
-  ok('and it is the portfolio they land on', /Portfolio/.test(t), t.slice(0, 160));
+  ok('and it is the dashboard they land on', /Dashboard/.test(t), t.slice(0, 160));
   dom.window.close();
 }
 
@@ -2746,6 +2746,73 @@ console.log('\nA submission is a place you can go back from\n');
   ok('and gives no advice it has not earned',
      !/spot-check|move on|anomalous/i.test(findings?.textContent ?? ''),
      findings?.textContent?.slice(0, 120));
+  dom.window.close();
+}
+
+/* --------------------------------------------------------------------------------------- */
+/**
+ * The two readings on the dashboard that mean something at ten records.
+ *
+ * Everything else on that page is an output - an average, a count below a threshold - and
+ * nobody can act on an average. These two are levers: whether the instrument and the
+ * departments agree about what a number means, and what is sitting unread.
+ */
+{
+  const judged = submission('GH78', 'Judged Twice');
+  judged.answers = {
+    'B-Q1': { score: 9, evidence: [], justification: 'We are confident.' },
+    'B-Q2': { score: 8, evidence: [], justification: 'Also confident.' },
+    'B-Q3': { score: 4, evidence: [], justification: 'Honest about this one.' },
+  };
+  const waiting = submission('IJ90', 'Nobody Has Opened This');
+  waiting.meta.submittedAt = '2026-09-01T10:00:00.000Z';
+  const theirs = {
+    reviewer: 'nick@tbs-sct.gc.ca', reviewerName: 'Nick Allen', reviewedAt: '2026-10-02T00:00:00.000Z',
+    perQuestion: {
+      // Two marked down by three, one agreed with at the same number.
+      'B-Q1': { auditedScore: 6, verdict: 'adjust', note: 'Nothing cited.' },
+      'B-Q2': { auditedScore: 5, verdict: 'adjust', note: 'Nothing cited.' },
+      'B-Q3': { auditedScore: 4, verdict: '', note: '' },
+    },
+  };
+  const { doc, dom } = await boot({
+    session: live, side: 'assess', role: 'assessor', hash: '#assessor/dashboard',
+    listAnswer: { documents: [judged, waiting].map(asDoc) },
+    audits: { [judged.id]: [theirs] },
+  });
+  await new Promise((r) => setTimeout(r, 200));
+  const card = (h) => [...doc.querySelectorAll('.card')].find((c) => c.querySelector('h2')?.textContent === h);
+  const gap = card('Self-scores against assessors');
+  ok('the dashboard reads the audits rather than only who wrote them', !!gap,
+     [...doc.querySelectorAll('.card h2')].map((h) => h.textContent).join(' | '));
+  const tiles = [...(gap?.querySelectorAll('.kpi') ?? [])].map((k) => k.textContent.replace(/\s+/g, ' ').trim());
+  ok('and counts the questions an assessor put a number on',
+     tiles.some((t) => /^3\s*questions re-scored$/.test(t)), tiles.join(' | '));
+  /**
+   * Three re-scored, two of them changed. Agreeing at the same number is not a change, and
+   * counting it as one would make the gap shrink the more carefully somebody looked.
+   */
+  ok('and only the ones that differ count as changed',
+     tiles.some((t) => /^2\s*scores changed$/.test(t)), tiles.join(' | '));
+  // -3 on both, so the mean is -3 and the department scored itself high.
+  ok('and says which way the disagreement runs, with the size of it',
+     tiles.some((t) => /^-3\.0\s*departments scored high by$/.test(t)), tiles.join(' | '));
+  ok('and names the questions furthest apart', /Q1|Q2/.test(gap?.textContent ?? ''),
+     gap?.textContent?.slice(0, 160));
+
+  const wait = card('Waiting on an assessor');
+  ok('the dashboard says what nobody has opened', !!wait,
+     [...doc.querySelectorAll('.card h2')].map((h) => h.textContent).join(' | '));
+  const wtiles = [...(wait?.querySelectorAll('.kpi') ?? [])].map((k) => k.textContent.replace(/\s+/g, ' ').trim());
+  ok('and counts them', wtiles.some((t) => /^1\s*nobody has opened$/.test(t)), wtiles.join(' | '));
+  /**
+   * The longest wait rather than the count, because five submissions two days old is a working
+   * week and one submission five weeks old is a department that has heard nothing.
+   */
+  ok('and leads with how long the oldest has waited',
+     wtiles.some((t) => /^\d+\s*days, the longest wait$/.test(t)), wtiles.join(' | '));
+  ok('and names it, so it can be picked up', /Nobody Has Opened This/.test(wait?.textContent ?? ''),
+     wait?.textContent?.slice(0, 160));
   dom.window.close();
 }
 

@@ -46,7 +46,7 @@ import { score } from './scoring';
 import { validate } from './rubric';
 import BUILTIN from '../rubric/rubric.v1-dan.json';
 import { currentUser, deleteAssessment, getAssessment, isConfigured, listAssessments, listAudits,
-  putAssessment, storeHost } from './firebase';
+  putAssessment, storeHost, type AssessorAudit } from './firebase';
 import { hasAccounts, isDemo, nameIsChecked } from './who';
 import { demoAssessments } from './demo-pool';
 
@@ -98,6 +98,16 @@ export interface StoredRecord {
    * a record it knows nothing about.
    */
   auditedBy?: string[];
+  /**
+   * The audits themselves, where they were read.
+   *
+   * The list kept only the reviewers' names, which answers "has anybody looked at this" and
+   * nothing else. Every judgement an assessor has made about a department's own scoring is in
+   * these documents, and the portfolio aggregated none of it: the one number TBS can act on -
+   * whether departments and assessors agree about what a 7 means - was being read once per
+   * record and thrown away.
+   */
+  audits?: AssessorAudit[];
 }
 
 /**
@@ -237,6 +247,7 @@ async function withAudits(rows: StoredRecord[]): Promise<StoredRecord[]> {
     if (!rec.assessment.id) return;
     try {
       const all = await listAudits(rec.assessment.id);
+      rec.audits = all;
       rec.auditedBy = all.map((x) => x.reviewerName?.trim() || x.reviewer);
       rec.status = statusOf(rec.assessment, rec.auditedBy.length > 0);
     } catch {
