@@ -682,8 +682,18 @@ function inBlock(b) {
  * the way the course hub has cards. A card is a summary and the items under it are pointers, so
  * pressing one goes to the item where it lives rather than making a second copy of it here.
  */
+/**
+ * Taken blocks first. Asked for on 19 October, and it is the same idea as fading the ones
+ * nobody has: a board is read to find the thing to pick up, and the two that somebody is
+ * already carrying are the ones that answer that question fastest.
+ *
+ * Within each half the file's order stands, so moving a block is one edit in one place.
+ */
+const onBoard = blocks.slice()
+  .sort((a, b) => Number(a.owner === UNOWNED) - Number(b.owner === UNOWNED));
+
 const board = `<section class="pane board" data-track="blocks" hidden><main>`
-  + blocks.map((b) => {
+  + onBoard.map((b, at) => {
     const mine = inBlock(b);
     const waiting = mine.filter((i) => i.status === 'wait').length;
     const meta = [
@@ -692,7 +702,7 @@ const board = `<section class="pane board" data-track="blocks" hidden><main>`
     ].join('');
     return `<details class="block h-${b.owner === UNOWNED ? 'none' : esc(b.hue)}" `
       + `id="b-${esc(b.id)}"><summary>`
-      + `<span class="ghost" aria-hidden="true">${b.n}</span>`
+      + `<span class="ghost" aria-hidden="true">${at + 1}</span>`
       + `<span class="bt"><span class="bk">${esc(b.owner)}</span>`
       + `<span class="bh">${esc(b.title)}</span>`
       + `<span class="bw">${esc(b.what)}</span>`

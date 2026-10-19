@@ -424,7 +424,7 @@ console.log('\nThe backlog page\n');
    * item number that does not exist, which draws an empty card on a page that looks finished.
    */
   const BLOCK = [{
-    id: 'one', n: 1, owner: 'Mariia', title: 'A block', hue: 'green',
+    id: 'one', owner: 'Mariia', title: 'A block', hue: 'green',
     what: 'What it is.', next: 'The next thing', sections: ['e-live'], also: [], except: [],
   }];
   const { html } = await build(fixture([
@@ -448,6 +448,23 @@ console.log('\nThe backlog page\n');
     item({ id: 'a', track: 'engine', section: 'e-live' }),
   ], SECS, [{ ...BLOCK[0], owner: 'nobody yet' }]));
   ok('a block nobody has taken is grey', unowned.html.includes('class="block h-none"'));
+
+  /**
+   * Taken blocks first, and the number on a card is its place on the board. A board is read to
+   * find the thing to pick up, so the ones somebody is already carrying answer that first.
+   */
+  const two = await build(fixture([
+    item({ id: 'a', track: 'engine', section: 'e-live' }),
+    item({ id: 'b', track: 'engine', section: 'e-two' }),
+  ], SECS, [
+    { ...BLOCK[0], id: 'spare', title: 'Nobody has this', owner: 'nobody yet', sections: ['e-two'] },
+    { ...BLOCK[0], id: 'taken', title: 'Somebody has this', owner: 'Mariia', sections: ['e-live'] },
+  ]));
+  ok('a taken block is drawn before an untaken one',
+     two.html.indexOf('id="b-taken"') < two.html.indexOf('id="b-spare"'));
+  ok('and the number follows the order rather than the file',
+     /id="b-taken"><summary><span class="ghost"[^>]*>1</.test(two.html)
+     && /id="b-spare"><summary><span class="ghost"[^>]*>2</.test(two.html));
   ok('and its own colour is still on file for whoever takes it',
      !unowned.html.includes('class="block h-green"'));
   ok('it gathers what its sections hold', board.includes('data-ref="a"'));
