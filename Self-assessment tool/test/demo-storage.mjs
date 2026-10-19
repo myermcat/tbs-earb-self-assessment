@@ -236,13 +236,110 @@ ok('every stored name is made by the helper, and there is more than one',
      audited.map((n) => n.join('+')).join(' | '));
 
   /**
-   * The invented assessors are named nobody. They carried the first names of two people who
-   * will be in the room the day this is shown, which puts an invented opinion against a real
-   * person on a screen they are looking at.
+   * THE INVENTED ASSESSORS HAVE TO READ AS INVENTED, AND NOT MERELY BE INVENTED.
+   *
+   * Two goes at this. They first carried the first names of two people who will be in the room
+   * the day this is shown, against opinions those two never held. Changing them to a different
+   * set of ordinary names fixed nothing, because a room cannot tell which plausible names are
+   * real and a plausible name is a claim that somebody said this.
+   *
+   * So the test is an allow-list and not a deny-list. A deny-list passes every name nobody
+   * thought to write down, which is how the second version passed. Adding a name here is a
+   * decision that it announces itself the way Office of Example Operations does.
    */
-  ok('and none of them is named after somebody who will be in the room',
-     !/\b(Dan|Nick|Allison|John|Patricia|Mariia)\b/.test(col(11).join(' ')),
-     col(11).join(' | '));
+  const INVENTED = ['Reviewer One', 'Reviewer Two', 'Reviewer Three'];
+  // Off the chips read above, for the same reason they are.
+  const names = [...new Set(auditCells.flat())];
+  ok('every assessor in the column is one of the invented ones',
+     names.length > 0 && names.every((n) => INVENTED.includes(n)), names.join(' | '));
+
+  /**
+   * The way back out, asked for after the door in: somebody shown the demonstration had no
+   * route to the real tool from inside it except retyping an address. There is nothing to sign
+   * out of, because nobody signed in.
+   */
+  const out = document.querySelector('.demo-banner .demo-out');
+  ok('the demonstration says how to leave it', !!out, document.querySelector('.demo-banner')?.textContent ?? 'no banner');
+  ok('pointing at the real page beside this one', out?.getAttribute('href') === '/assessor/',
+     out?.getAttribute('href') ?? 'none');
+  ok('and it is on the strip that is on every screen',
+     !!document.querySelector('.chrome .demo-banner .demo-out'));
+}
+
+/**
+ * SETTINGS IS REACHABLE ON THE DEMONSTRATION, AND IT WAS HANDING OUT REAL DOCUMENTS.
+ *
+ * The demonstration asks nobody to sign in, so the gate that holds the assessor's settings shut
+ * is open here by design, and the gear is on every screen. Two panes behind it offered the real
+ * thing:
+ *
+ * The team's working pages, the backlog and the requirements, which name colleagues and the
+ * state of internal decisions. Their test was "no project configured, or an admin", and a
+ * demonstration has no project configured. Having no project is not the same as being trusted.
+ *
+ * And the question set as a Google Sheet, which anybody holding the link can write comments
+ * into. That card had no test on it at all.
+ *
+ * The demonstration's address is sent to people outside the team and it is published with no
+ * sign-in, so every one of those was one click from a stranger.
+ */
+{
+  const gear = [...document.querySelectorAll('button.icon-btn')]
+    .find((b) => /settings|param/i.test(`${b.getAttribute('aria-label') ?? ''} ${b.getAttribute('title') ?? ''}`));
+  ok('the demonstration has settings on it, so the checks below mean something', !!gear,
+     [...document.querySelectorAll('button')].map((b) => b.getAttribute('aria-label') || b.textContent?.trim().slice(0, 18)).join(' | ').slice(0, 300));
+  gear?.dispatchEvent(new window.MouseEvent('click', { bubbles: true }));
+  await new Promise((r) => setTimeout(r, 200));
+
+  /**
+   * Re-queried on every call. Switching pane repaints the rail, so rows captured once are
+   * detached nodes from the second click onward and every click after the first does nothing.
+   */
+  const open = async (label) => {
+    const row = [...document.querySelectorAll('.set-navrow')]
+      .find((b) => new RegExp(label, 'i').test(b.textContent ?? ''));
+    row?.dispatchEvent(new window.MouseEvent('click', { bubbles: true }));
+    await new Promise((r) => setTimeout(r, 150));
+    return !!row;
+  };
+
+  ok('and more than one pane in it', document.querySelectorAll('.set-navrow').length > 1,
+     String(document.querySelectorAll('.set-navrow').length));
+  await open('documentation');
+  const docsHrefs = [...document.querySelectorAll('.set-pane a')].map((a) => a.getAttribute('href') ?? '');
+  ok('documentation offers the explanation that was made to be shown',
+     docsHrefs.some((h) => /domains-and-categories/.test(h)), docsHrefs.join(' | '));
+  ok('and not the spreadsheet anybody with the link can comment on',
+     !docsHrefs.some((h) => /docs\.google\.com/.test(h)), docsHrefs.join(' | '));
+
+  await open('this build|cette version');
+  const buildText = document.querySelector('.set-pane')?.textContent ?? '';
+  const buildHrefs = [...document.querySelectorAll('.set-pane a')].map((a) => a.getAttribute('href') ?? '');
+  ok('this build offers neither the backlog nor the requirements',
+     !buildHrefs.some((h) => /backlog\.html|requirements\.html/.test(h)), buildHrefs.join(' | '));
+  ok('and says the store is none, naming no host',
+     /sends nothing and keeps nothing/.test(buildText) && !/Writing to/.test(buildText),
+     buildText.slice(0, 200));
+
+  /**
+   * isHosted() is true on a demonstration and endpointHost() is empty on one, so the footer
+   * read "What you send is kept at ." on the page whose promise is that nothing is kept.
+   */
+  const foot = document.querySelector('.sitefoot')?.textContent ?? '';
+  ok('and the footer says nothing is kept rather than trailing off',
+     /Nothing on this page is kept anywhere/.test(foot) && !/kept at \./.test(foot),
+     foot.slice(0, 120));
+
+  ok('and none of that reached the network', reached.length === 0, reached.join(' | '));
+
+  // Back to the list, because the checks below read it and settings is still on screen.
+  [...document.querySelectorAll('.chrome button, .crumbs button, .crumbs a')]
+    .find((b) => /submissions|soumissions/i.test(b.textContent ?? ''))
+    ?.dispatchEvent(new window.MouseEvent('click', { bubbles: true }));
+  await new Promise((r) => setTimeout(r, 250));
+  ok('and the list is back on screen afterwards',
+     document.querySelectorAll('.triage tbody tr.row-open').length === 20,
+     String(document.querySelectorAll('.triage tbody tr.row-open').length));
 }
 
 /**

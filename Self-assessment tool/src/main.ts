@@ -737,9 +737,18 @@ function paint() {
      * about, on the screen of a room that may be working in French.
      */
     chrome.appendChild(el('div', { class: 'demo-banner' }, [
-      el('strong', {}, [t('Demonstration', 'Démonstration')]),
-      t(' Every department, submission and score here is made up. Nothing on this page comes from the real store, and nothing typed into it reaches the real store either.',
-        ' Chaque ministère, soumission et note ici est inventé. Rien sur cette page ne provient du dépôt réel, et rien de ce qui y est saisi n’atteint le dépôt réel.'),
+      el('span', { class: 'demo-said' }, [
+        el('strong', {}, [t('Demonstration', 'Démonstration')]),
+        t(' Every department, submission and score here is made up. Nothing on this page comes from the real store, and nothing typed into it reaches the real store either.',
+          ' Chaque ministère, soumission et note ici est inventé. Rien sur cette page ne provient du dépôt réel, et rien de ce qui y est saisi n’atteint le dépôt réel.'),
+      ]),
+      /**
+       * The way out, on the one strip that is on every screen of the demonstration and says
+       * what this page is. There is nothing to sign out of here, because nobody signed in.
+       */
+      el('a', { class: 'demo-out', href: realAddress() }, [
+        t('Leave the demonstration', 'Quitter la démonstration'),
+      ]),
     ]));
   }
   if (mode === 'submit' || mode === 'results') chrome.appendChild(banner());
@@ -972,7 +981,15 @@ function footer(): HTMLElement {
   if (isHosted()) {
     return el('footer', { class: 'sitefoot' }, [
       el('span', { class: 'proto' }, [
-          `What you send is kept at ${endpointHost()}. `,
+          /**
+           * isHosted() is true on a demonstration, and endpointHost() is empty on one, so this
+           * read "What you send is kept at ." on the one page whose promise is that nothing is
+           * kept anywhere. An empty host in a sentence about where work goes is worse than no
+           * sentence: it says something is being written somewhere and declines to say where.
+           */
+          isDemo()
+            ? 'Nothing on this page is kept anywhere, and nothing is sent. '
+            : `What you send is kept at ${endpointHost()}. `,
         ]),
       el('button', { class: 'linkish', onclick: () => openSettings('build') }, ['Where this goes']),
       el('span', {}, [`  \u00b7  rubric ${rubric.version}  \u00b7  v${APP_VERSION}${BUILT ? `  \u00b7  built ${BUILT} UTC` : ''}`]),
@@ -1367,10 +1384,28 @@ function go2home(): void {
  * off a laptop do not agree on.
  */
 function demoAddress(): string {
+  return siblingPage('assessor', 'demo');
+}
+
+/**
+ * The way back out of the demonstration, which is the same walk in the other direction.
+ *
+ * Asked for after the door in: somebody shown the demonstration has no way to the real tool
+ * from inside it, so the only route is retyping an address. The two pages are a pair and the
+ * walk between them goes both ways.
+ */
+function realAddress(): string {
+  return siblingPage('demo', 'assessor');
+}
+
+/** The other page of the pair, named from this one's address rather than from a written-down root. */
+function siblingPage(from: string, to: string): string {
   const path = location.pathname;
-  if (/\/assessor\/?$/.test(path)) return path.replace(/\/assessor\/?$/, '/demo/');
-  if (/assessor\.html$/.test(path)) return path.replace(/assessor\.html$/, 'demo.html');
-  return 'demo/';
+  const dir = new RegExp(`/${from}/?$`);
+  if (dir.test(path)) return path.replace(dir, `/${to}/`);
+  const file = new RegExp(`${from}\\.html$`);
+  if (file.test(path)) return path.replace(file, `${to}.html`);
+  return `${to}/`;
 }
 
 /**
@@ -2046,7 +2081,9 @@ function paneBuild(pane: HTMLElement) {
     el('dt', {}, ['Tool']), el('dd', { class: 'mono' }, [`v${APP_VERSION}`]),
     el('dt', {}, ['Question set']), el('dd', { class: 'mono' }, [`${rubric.id} ${rubric.version}`]),
     el('dt', {}, ['Store']), el('dd', {}, [
-      isHosted() ? `Writing to ${endpointHost()}` : 'None. This build cannot send anything.',
+      isDemo() ? 'None. A demonstration sends nothing and keeps nothing.'
+        : isHosted() ? `Writing to ${endpointHost()}`
+        : 'None. This build cannot send anything.',
     ]),
   ]));
 
@@ -2075,8 +2112,13 @@ function paneBuild(pane: HTMLElement) {
    * they are offered to an admin and to a build with no project, which is somebody working on
    * the tool itself. They belong here and not under Documentation: they are facts about this
    * build and about what is left to do to it.
+   *
+   * A DEMONSTRATION IS ALSO A BUILD WITH NO PROJECT, AND IT IS NOT SOMEBODY WORKING ON THE
+   * TOOL. It is published with no sign-in and its address is sent to people outside the team,
+   * so this test was handing the backlog and the requirements to anybody who opened Settings
+   * on it. Having no project configured is not the same as being trusted.
    */
-  if (!firebaseConfigured() || grantsAccess(knownRole())) {
+  if (!isDemo() && (!firebaseConfigured() || grantsAccess(knownRole()))) {
     pane.appendChild(el('h2', { class: 'set-sub' }, ['What is decided, and what is left']));
     pane.appendChild(el('div', { class: 'hub-cards' }, [
       linkCard({
@@ -2153,7 +2195,13 @@ function paneDocs(pane: HTMLElement) {
       cta: 'Open the explanation',
       href: 'https://myermcat.github.io/tbs-earb-self-assessment-preview/domains-and-categories.html',
     }),
-    linkCard({
+    /**
+     * A real document that anybody holding the link can write comments into. It had no test on
+     * it at all, so the published demonstration offered it to everybody, and the demonstration
+     * is the address being sent to people outside the team. The explanation above stays,
+     * because it is a published page made to be shown.
+     */
+    isDemo() ? null : linkCard({
       accent: '#7C5CB8', ghost: '\u2261',
       eyebrow: 'For the question set \u00b7 Google Sheets',
       title: 'The question set, as a spreadsheet',

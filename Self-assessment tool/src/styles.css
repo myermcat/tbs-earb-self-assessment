@@ -2268,6 +2268,14 @@ dialog.confirm.shake { animation: cf-shake .34s cubic-bezier(.36, .07, .19, .97)
   padding: .4rem 1.15rem; border-bottom: 1px solid #3f1f66; }
 .demo-banner strong { margin-right: .4rem; text-transform: uppercase; letter-spacing: .06em;
   font-size: .74rem; }
+/* The sentence and the way out share the strip, and the way out keeps its own end of it so it
+   is in the same place on every screen. On a narrow window they stack and it goes underneath. */
+.demo-banner { display: flex; align-items: center; justify-content: space-between;
+  gap: .75rem; flex-wrap: wrap; }
+.demo-said { flex: 1 1 22rem; min-width: 0; }
+.demo-out { color: #fff; white-space: nowrap; text-decoration: underline;
+  text-underline-offset: 2px; flex: 0 0 auto; }
+.demo-out:hover, .demo-out:focus-visible { text-decoration-thickness: 2px; }
 
 /* Another assessor's reading of the same question. Quieter than the controls below it, because
    it is somebody else's work and not a thing to act on, and separated by a rail so two opinions
