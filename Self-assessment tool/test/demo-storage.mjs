@@ -108,9 +108,17 @@ ok('no window about an assessment that has gone from the store',
    !/no longer in the shared store/.test(dialogs()), dialogs().slice(0, 120));
 // French, because the browser this test seeds had been left in French, which is the whole
 // point of the one name that crosses.
-ok('the count beside the heading is the count of what is in the table',
-   /Soumissions\s+4(\D|$)/.test(view().replace(/\s+/g, ' ')),
-   view().replace(/\s+/g, ' ').match(/Soumissions\s+\d+/)?.[0]);
+// Counted off the table rather than written in, so widening the invented pool does not make it
+// fail for the one reason it is not testing. row-open, because the banded list also puts a
+// group row in the body and those are not submissions.
+// this fail for the one reason it is not testing.
+{
+  const rows = document.querySelectorAll('.triage tbody tr.row-open');
+  const said = view().replace(/\s+/g, ' ').match(/Soumissions\s+(\d+)/);
+  ok('the count beside the heading is the count of what is in the table',
+     !!said && Number(said[1]) === rows.length && rows.length > 1,
+     `heading says ${said?.[1]}, table holds ${rows.length}`);
+}
 
 // Everything the page does is in `touched` by now, and nothing this file does should be.
 const byThePage = [...new Set(touched)];
