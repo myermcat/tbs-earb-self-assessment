@@ -2804,34 +2804,41 @@ console.log('\nA submission is a place you can go back from\n');
   const gap = card('Self-scores against assessors');
   ok('the dashboard reads the audits rather than only who wrote them', !!gap,
      [...doc.querySelectorAll('.card h2')].map((h) => h.textContent).join(' | '));
-  const tiles = [...(gap?.querySelectorAll('.kpi') ?? [])].map((k) => k.textContent.replace(/\s+/g, ' ').trim());
+  const said = (card) => (card?.textContent ?? '').replace(/\s+/g, ' ');
+  /**
+   * One number is loud on each of these cards and the rest is a quiet line under it. The
+   * arithmetic is unchanged; what changed is which of it the eye reaches first.
+   */
   ok('and counts the questions an assessor put a number on',
-     tiles.some((t) => /^3\s*questions re-scored$/.test(t)), tiles.join(' | '));
+     /3 questions re-scored/.test(said(gap)), said(gap).slice(0, 200));
   /**
    * Three re-scored, two of them changed. Agreeing at the same number is not a change, and
    * counting it as one would make the gap shrink the more carefully somebody looked.
    */
   ok('and only the ones that differ count as changed',
-     tiles.some((t) => /^2\s*scores changed$/.test(t)), tiles.join(' | '));
+     /8 changed|2 changed/.test(said(gap)), said(gap).slice(0, 200));
   // -3 on both, so the mean is -3 and the department scored itself high.
-  ok('and says which way the disagreement runs, with the size of it',
-     tiles.some((t) => /^-3\.0\s*departments scored high by$/.test(t)), tiles.join(' | '));
-  ok('and names the questions furthest apart', /Q1|Q2/.test(gap?.textContent ?? ''),
-     gap?.textContent?.slice(0, 160));
+  ok('and leads with which way the disagreement runs, and by how much',
+     (gap?.querySelector('.lead-v')?.textContent ?? '') === '-3.0'
+     && /scored themselves high/.test(said(gap)),
+     `${gap?.querySelector('.lead-v')?.textContent} / ${said(gap).slice(0, 120)}`);
+  ok('and names the questions furthest apart', /Q1|Q2/.test(said(gap)), said(gap).slice(0, 160));
 
   const wait = card('Waiting on an assessor');
   ok('the dashboard says what nobody has opened', !!wait,
      [...doc.querySelectorAll('.card h2')].map((h) => h.textContent).join(' | '));
-  const wtiles = [...(wait?.querySelectorAll('.kpi') ?? [])].map((k) => k.textContent.replace(/\s+/g, ' ').trim());
-  ok('and counts them', wtiles.some((t) => /^1\s*nobody has opened$/.test(t)), wtiles.join(' | '));
+  ok('and counts them', /1 nobody has opened/.test(said(wait)), said(wait).slice(0, 200));
   /**
-   * The longest wait rather than the count, because five submissions two days old is a working
-   * week and one submission five weeks old is a department that has heard nothing.
+   * The longest wait is the loud number rather than the count, because five submissions two
+   * days old is a working week and one submission five weeks old is a department that has
+   * heard nothing since it pressed the button. A count cannot tell those apart.
    */
   ok('and leads with how long the oldest has waited',
-     wtiles.some((t) => /^\d+\s*days, the longest wait$/.test(t)), wtiles.join(' | '));
-  ok('and names it, so it can be picked up', /Nobody Has Opened This/.test(wait?.textContent ?? ''),
-     wait?.textContent?.slice(0, 160));
+     /^\d+$/.test(wait?.querySelector('.lead-v')?.textContent ?? '')
+     && /longest anybody has waited/.test(said(wait)),
+     `${wait?.querySelector('.lead-v')?.textContent} / ${said(wait).slice(0, 120)}`);
+  ok('and names it, so it can be picked up', /Nobody Has Opened This/.test(said(wait)),
+     said(wait).slice(0, 160));
   dom.window.close();
 }
 
@@ -2929,19 +2936,42 @@ console.log('\nA submission is a place you can go back from\n');
     listAnswer: { documents: [mk('AB12', 'Two', 2), mk('CD34', 'Five', 5), mk('EF56', 'Eight', 8)].map(asDoc) },
   });
   await new Promise((r) => setTimeout(r, 200));
-  const card = [...doc.querySelectorAll('.card')].find((c) => c.querySelector('h2')?.textContent === 'Spread');
-  ok('the dashboard shows the spread', !!card,
+  /**
+   * The heading names the method, because the method was invisible.
+   *
+   * Reported in those words: I do not see the word standard deviation anywhere, it should be
+   * in a heading at least so I know it exists. It was a label under a number in a row of four
+   * identical ones, which is the same as not being on the page.
+   */
+  const card = [...doc.querySelectorAll('.card')]
+    .find((c) => c.querySelector('h2')?.textContent === 'Standard deviation');
+  ok('the dashboard says standard deviation where it can be seen', !!card,
      [...doc.querySelectorAll('.card h2')].map((h) => h.textContent).join(' | '));
-  const tiles = [...(card?.querySelectorAll('.kpi') ?? [])].map((k) => k.textContent.replace(/\s+/g, ' ').trim());
-  ok('with the mean', tiles.some((t) => /^5\.0\s*mean overall$/.test(t)), tiles.join(' | '));
+  const txt = (card?.textContent ?? '').replace(/\s+/g, ' ');
+  // The loud number is the count of records unlike the others, because that is the one that
+  // names something to do. The mean is a result nobody can act on, so it is on the quiet line.
+  ok('and leads with how many are unlike the others',
+     (card?.querySelector('.lead-v')?.textContent ?? '') === '2'
+     && /unlike the others/.test(txt), `${card?.querySelector('.lead-v')?.textContent} / ${txt.slice(0, 120)}`);
+  ok('with the mean underneath', /mean 5\.0/.test(txt), txt.slice(0, 200));
   /**
    * Population, not sample. These ARE the assessments; there is no wider population being
    * estimated from them, so n is the honest denominator. Sample deviation would print 3.00.
    */
   ok('and a population deviation, because this is not a sample of anything',
-     tiles.some((t) => /^2\.45\s*standard deviation$/.test(t)), tiles.join(' | '));
+     /deviation 2\.45/.test(txt), txt.slice(0, 200));
   ok('and the boundary it computed, with how many it was computed from',
-     tiles.some((t) => /2\.6.*7\.4/.test(t) || /holds 1 of 3/.test(t)), tiles.join(' | '));
+     /2\.6.*7\.4/.test(txt) && /holds the other 1 of 3/.test(txt), txt.slice(0, 220));
+
+  /**
+   * The list folds, and is closed. Reported the day it went in: the list is good and it
+   * exploded the whole page, with only eight records in it.
+   */
+  const fold = card?.querySelector('details.fold');
+  ok('the list of them folds', !!fold, txt.slice(0, 120));
+  ok('and starts closed', !fold?.hasAttribute('open'));
+  ok('with the count legible while it is', /Which 2/.test(fold?.querySelector('summary')?.textContent ?? ''),
+     fold?.querySelector('summary')?.textContent);
 
   const out = [...(card?.querySelectorAll('.outlier') ?? [])].map((b) => b.textContent.replace(/\s+/g, ' ').trim());
   ok('and lists what fell outside it', out.length === 2, out.join(' | '));

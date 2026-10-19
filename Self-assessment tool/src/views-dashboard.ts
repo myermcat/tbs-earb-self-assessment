@@ -161,7 +161,14 @@ function paint(
   ]);
   const cuts = el('div', { class: 'cuts' });
   where.appendChild(cuts);
-  root.appendChild(where);
+  /**
+   * The averages are built here and appended last, under the cards that name something to do.
+   *
+   * Reading order is the strongest statement a page makes about what matters, and this had the
+   * averages at the top because that is the order they were written in. An average is a result
+   * nobody can act on. What is unlike the others, and who has been waiting a month, are both
+   * things somebody picks up on a Monday, so they come first and the context sits under them.
+   */
 
   /**
    * SPREAD, AND WHAT FALLS OUTSIDE IT.
@@ -213,18 +220,46 @@ function paint(
         .filter((row) => typeof row.r.overall === 'number'
                 && (row.r.overall < low || row.r.overall > high))
         .sort((a, b) => (a.r.overall as number) - (b.r.overall as number));
+      /**
+       * The heading names the method, because she could not tell the method was there.
+       *
+       * Reported in those words: I do not see the word standard deviation anywhere, it should
+       * be in a heading at least so I know it exists. It was a label under a number in a row
+       * of four identical ones, which is the same as not being on the page.
+       */
       const box = el('section', { class: 'card' }, [
-        el('h2', {}, ['Spread']),
-        el('div', { class: 'kpi-row' }, [
-          kpi(all.mean.toFixed(1), 'mean overall'),
-          kpi(all.sd.toFixed(2), 'standard deviation'),
-          kpi(`${low.toFixed(1)}\u2013${high.toFixed(1)}`, `holds ${all.n - out.length} of ${all.n}`),
-          kpi(String(out.length), out.length === 1 ? 'outside it' : 'outside it'),
-        ]),
+        el('h2', {}, ['Standard deviation']),
+        lead(
+          String(out.length),
+          out.length === 1 ? 'submission is unlike the others' : 'submissions are unlike the others',
+          [
+            `mean ${all.mean.toFixed(1)}`,
+            `deviation ${all.sd.toFixed(2)}`,
+            `${low.toFixed(1)}\u2013${high.toFixed(1)} holds the other ${all.n - out.length} of ${all.n}`,
+          ],
+          out.length ? 'warn' : '',
+        ),
       ]);
+      /**
+       * The six furthest from the mean, not all of them.
+       *
+       * Outside one deviation is about a third of any normal spread, so this list grows with
+       * the pool and stops being a list of anomalies and starts being most of the portfolio
+       * again. Six is enough to act on; the whole of it is the submissions list sorted by
+       * score, which is a thing that exists now.
+       */
       if (out.length) {
-        box.appendChild(el('div', { class: 'outliers' }, out.map(
-          (row) => outlierRow(row.rec, row.r.overall as number, all.mean))));
+        const far = [...out].sort((a, b) =>
+          Math.abs((b.r.overall as number) - all.mean) - Math.abs((a.r.overall as number) - all.mean));
+        const top = far.slice(0, 6);
+        box.appendChild(folded(
+          out.length > top.length
+            ? `The ${top.length} furthest out, of ${out.length}`
+            : out.length === 1 ? 'Which one' : `Which ${out.length}`,
+          [el('div', { class: 'outliers' }, top
+            .sort((a, b) => (a.r.overall as number) - (b.r.overall as number))
+            .map((row) => outlierRow(row.rec, row.r.overall as number, all.mean)))],
+        ));
       }
       root.appendChild(box);
     }
@@ -278,8 +313,11 @@ function paint(
                   && (x.v < sp.mean - sp.sd || x.v > sp.mean + sp.sd))
           .sort((a, b) => a.v - b.v);
         if (out.length) {
-          byCategory.appendChild(el('div', { class: 'outliers outliers-tight' },
-            out.map((x) => outlierRow(x.row.rec, x.v, sp.mean))));
+          byCategory.appendChild(folded(
+            `${out.length} outside \u00B1${sp.sd.toFixed(1)}`,
+            [el('div', { class: 'outliers outliers-tight' },
+              out.slice(0, 6).map((x) => outlierRow(x.row.rec, x.v, sp.mean)))],
+          ));
         }
       }
     }
@@ -353,13 +391,18 @@ function paint(
         .slice(0, 5);
       const box = el('section', { class: 'card' }, [
         el('h2', {}, ['Self-scores against assessors']),
-        el('div', { class: 'kpi-row' }, [
-          kpi(String(withAudit), withAudit === 1 ? 'record audited' : 'records audited'),
-          kpi(String(scored), 'questions re-scored'),
-          kpi(String(changed), 'scores changed'),
-          kpi(changed ? `${mean > 0 ? '+' : ''}${mean.toFixed(1)}` : '--',
-              mean < 0 ? 'departments scored high by' : 'departments scored low by'),
-        ]),
+        lead(
+          changed ? `${mean > 0 ? '+' : ''}${mean.toFixed(1)}` : '\u2014',
+          changed
+            ? mean < 0 ? 'points departments scored themselves high' : 'points departments scored themselves low'
+            : 'no assessor has changed a score',
+          [
+            `${withAudit} record${withAudit === 1 ? '' : 's'} audited`,
+            `${scored} question${scored === 1 ? '' : 's'} re-scored`,
+            `${changed} changed`,
+          ],
+          changed && Math.abs(mean) >= 2 ? 'warn' : '',
+        ),
       ]);
       if (worst.length) {
         const list = el('div', { class: 'cat-list' }, worst.map((g) => {
@@ -374,8 +417,7 @@ function paint(
             ]),
           ]);
         }));
-        box.appendChild(el('h3', {}, ['Furthest apart']));
-        box.appendChild(list);
+        box.appendChild(folded(`The ${worst.length} questions furthest apart`, [list]));
       }
       root.appendChild(box);
     }
@@ -399,26 +441,31 @@ function paint(
     const days = (t: number) => Math.floor((Date.now() - t) / 86400000);
     if (waiting.length || started || drafts) {
       const oldest = waiting[0];
-      root.appendChild(el('section', { class: 'card' }, [
+      const box = el('section', { class: 'card' }, [
         el('h2', {}, ['Waiting on an assessor']),
-        el('div', { class: 'kpi-row' }, [
-          kpi(String(waiting.length), 'nobody has opened'),
-          kpi(oldest ? String(days(oldest.since)) : '--', 'days, the longest wait'),
-          kpi(String(started), 'being audited'),
-          kpi(String(drafts), 'still drafts'),
-        ]),
-        oldest
-          ? el('p', { class: 'small' }, [
-              el('b', {}, [oldest.rec.assessment.initiative?.name || '(unnamed)']),
-              ' \u00B7 ',
-              oldest.rec.assessment.initiative?.department || '--',
-              ' \u00B7 ',
-              `marked ready ${new Date(oldest.since).toLocaleDateString()}`,
-            ])
-          : null,
-      ]));
+        lead(
+          oldest ? String(days(oldest.since)) : '\u2014',
+          oldest ? 'days, the longest anybody has waited' : 'nothing is waiting',
+          [
+            `${waiting.length} nobody has opened`,
+            `${started} being audited`,
+            `${drafts} still draft${drafts === 1 ? '' : 's'}`,
+          ],
+          oldest && days(oldest.since) >= 14 ? 'warn' : '',
+        ),
+      ]);
+      // The one that has waited longest, named and openable, because a number nobody can act
+      // on is the thing this card exists not to be.
+      if (oldest) {
+        box.appendChild(el('div', { class: 'outliers' }, [
+          outlierRow(oldest.rec, days(oldest.since), Number.POSITIVE_INFINITY),
+        ]));
+      }
+      root.appendChild(box);
     }
   }
+
+  root.appendChild(where);
 
   // What this role can do that an assessor cannot, and what nobody has decided yet.
   root.appendChild(el('section', { class: 'card' }, [
@@ -464,4 +511,45 @@ function kpi(value: string, label: string): HTMLElement {
     el('div', { class: 'kpi-v' }, [value]),
     el('div', { class: 'kpi-l' }, [label]),
   ]);
+}
+
+/**
+ * ONE NUMBER PER CARD IS LOUD AND THE REST IS A QUIET LINE UNDER IT.
+ *
+ * Her words, on the day three new readings landed on two screens: more data means more on the
+ * page, which means less readable, so it has to be obvious by looking which information
+ * matters more.
+ *
+ * What was wrong was not density. This page carried seventeen counters at one weight, in four
+ * identical rows, so nothing on it said what to look at first - and a screen where everything
+ * is emphasised is a screen where nothing is. The fix is hierarchy rather than deletion: each
+ * card keeps everything it had and says which of it is the point.
+ *
+ * The loud one is always the number that names something to do. Not the mean, which is a
+ * result nobody can act on; the count of records outside the usual range, the days the oldest
+ * has waited, the direction departments are scoring themselves in. The supporting numbers are
+ * still there, on one line, in the order somebody would ask for them.
+ */
+function lead(value: string, label: string, under: string[], tone = ''): HTMLElement {
+  return el('div', { class: 'lead' }, [
+    el('div', { class: `lead-v ${tone}` }, [value]),
+    el('div', {}, [
+      el('div', { class: 'lead-l' }, [label]),
+      under.filter(Boolean).length
+        ? el('div', { class: 'lead-sub' }, [under.filter(Boolean).join('  \u00B7  ')])
+        : null,
+    ]),
+  ]);
+}
+
+/**
+ * A list that is closed until somebody wants it.
+ *
+ * Reported the day the outlier lists went in: the list is good, but it exploded the whole page,
+ * and there are not even many examples yet. Both halves are true - a list of anomalies is the
+ * useful part of this screen and it is also the part that makes it unreadable at a glance, so
+ * it folds, with the count in the summary where it is legible closed.
+ */
+function folded(summary: string, kids: (Node | null)[]): HTMLElement {
+  return el('details', { class: 'fold' }, [el('summary', {}, [summary]), ...kids]);
 }

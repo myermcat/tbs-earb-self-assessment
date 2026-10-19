@@ -1739,6 +1739,30 @@ td.num { text-align: right; font-family: var(--mono); font-variant-numeric: tabu
   padding-bottom: .45rem; border-bottom: 1px solid var(--line); }
 .section-head button { margin-left: auto; }
 
+/**
+ * One number per card, loud, with the rest on a quiet line beside it.
+ *
+ * The page carried seventeen counters at one weight in four identical rows, so nothing on it
+ * said what to look at first. The loud one is always the number that names something to do.
+ */
+.lead { display: flex; align-items: baseline; gap: .9rem; margin: .1rem 0 .2rem; }
+.lead-v { font-family: var(--mono); font-size: 2.3rem; font-weight: 700; line-height: 1;
+  letter-spacing: -.02em; color: var(--ink); }
+.lead-v.warn { color: var(--warn); }
+.lead-l { font-size: 1rem; font-weight: 550; color: var(--ink); line-height: 1.25; }
+.lead-sub { font-size: .8rem; color: var(--ink-3); margin-top: .2rem; }
+
+/* A list nobody asked for yet. Closed, with its count legible while it is. */
+.fold { margin-top: .5rem; }
+.fold > summary { cursor: pointer; font-size: .83rem; color: var(--ink-2); padding: .25rem 0;
+  list-style: none; display: flex; align-items: center; gap: .4rem; }
+.fold > summary::-webkit-details-marker { display: none; }
+.fold > summary::before { content: ''; width: 0; height: 0; flex: 0 0 auto;
+  border-left: 5px solid var(--ink-3); border-top: 4px solid transparent;
+  border-bottom: 4px solid transparent; transition: transform .15s; transform-origin: 25% 50%; }
+.fold[open] > summary::before { transform: rotate(90deg); }
+.fold > summary:hover { color: var(--ink); }
+
 /* A thing that fell outside the spread, and a way into it. It is a row you press, so it is a
    button; it is in a list of its own, so it does not need to look like one. */
 .outliers { display: flex; flex-direction: column; gap: .15rem; margin-top: .6rem; }
