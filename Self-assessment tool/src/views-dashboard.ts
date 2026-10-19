@@ -229,9 +229,23 @@ function paint(
        */
       const box = el('section', { class: 'card' }, [
         el('h2', {}, ['Standard deviation']),
+        /**
+         * IT SAYS WHAT IT MEASURED, NOT WHAT THAT MEANS.
+         *
+         * This read "7 submissions are unlike the others", which is a claim about rarity the
+         * arithmetic underneath does not support. Measured on a pool of twenty: seven records
+         * fall outside one deviation, which is thirty-five per cent, and roughly a third of
+         * ANY distribution falls outside one deviation. A third of a portfolio is not a set of
+         * anomalies, it is the shape of a spread.
+         *
+         * The number was right and the sentence over it was not, so the sentence goes. Outside
+         * one deviation is exactly what was computed and it lets the reader judge what it is
+         * worth. Whether one deviation is the right boundary at all is a question for TBS,
+         * because anomaly is their word, and the tool should not answer it by wording.
+         */
         lead(
           String(out.length),
-          out.length === 1 ? 'submission is unlike the others' : 'submissions are unlike the others',
+          out.length === 1 ? 'submission outside one deviation' : 'submissions outside one deviation',
           [
             `mean ${all.mean.toFixed(1)}`,
             `deviation ${all.sd.toFixed(2)}`,
@@ -252,9 +266,16 @@ function paint(
         const far = [...out].sort((a, b) =>
           Math.abs((b.r.overall as number) - all.mean) - Math.abs((a.r.overall as number) - all.mean));
         const top = far.slice(0, 6);
+        /**
+         * The shortlist is the furthest from the mean, which is true at any pool size.
+         *
+         * A boundary answers "how many are unusual" and the answer moves with the shape of the
+         * pool. "The six furthest from the mean" answers "which ones should I look at first"
+         * and does not depend on a boundary being the right one.
+         */
         box.appendChild(folded(
           out.length > top.length
-            ? `The ${top.length} furthest out, of ${out.length}`
+            ? `The ${top.length} furthest from the mean, of ${out.length}`
             : out.length === 1 ? 'Which one' : `Which ${out.length}`,
           [el('div', { class: 'outliers' }, top
             .sort((a, b) => (a.r.overall as number) - (b.r.overall as number))
