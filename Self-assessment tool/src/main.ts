@@ -21,6 +21,9 @@ import { saveBadge } from './save-badge';
 import { SAD_CAT } from './cat';
 import { openShareDialog } from './views-share';
 import { hasAccounts, isDemo, mode as accessMode, opensOn } from './who';
+
+/** The build flag itself, for the one place a thing has to be absent from the file. */
+declare const __EARB_DEMO__: boolean;
 import { rememberSigner, signerFields, signerProblem } from './signer';
 import { showNewCode } from './views-share';
 import { bootLang, coverage, lang, type Lang, setLang } from './i18n';
@@ -1794,12 +1797,24 @@ function paneQuestions(pane: HTMLElement) {
       `${questionCount(rubric)} questions in ${rubric.domains.reduce((n, d) => n + d.sections.length, 0)} sections`,
     ]),
   ]));
-  if (rubric.provenance) pane.appendChild(el('p', { class: 'small muted' }, [rubric.provenance]));
-  if (rubric.importWarnings?.length) {
-    pane.appendChild(el('div', { class: 'card warn tight' }, [
-      el('strong', { class: 'small' }, ['Noted when this question set was imported']),
-      el('ul', { class: 'small' }, rubric.importWarnings.map((w) => el('li', {}, [w]))),
-    ]));
+  /**
+   * Where the question set came from, and what was wrong with it when it arrived. Both are
+   * true, both name the real workbook, and one of them states an arithmetic defect in it and
+   * then says the cause is unknown.
+   *
+   * Off on a demonstration. Settings is open there by design, and the room being shown it
+   * includes the people whose workbook it is, so this was the one thing on a page promising
+   * everything is invented that was real, unverified, and about them. The build strips both
+   * fields out of a demonstration bundle as well, so the words are not in the file either.
+   */
+  if (!isDemo()) {
+    if (rubric.provenance) pane.appendChild(el('p', { class: 'small muted' }, [rubric.provenance]));
+    if (rubric.importWarnings?.length) {
+      pane.appendChild(el('div', { class: 'card warn tight' }, [
+        el('strong', { class: 'small' }, ['Noted when this question set was imported']),
+        el('ul', { class: 'small' }, rubric.importWarnings.map((w) => el('li', {}, [w]))),
+      ]));
+    }
   }
 
   /**
@@ -2117,8 +2132,13 @@ function paneBuild(pane: HTMLElement) {
    * TOOL. It is published with no sign-in and its address is sent to people outside the team,
    * so this test was handing the backlog and the requirements to anybody who opened Settings
    * on it. Having no project configured is not the same as being trusted.
+   *
+   * The define is read here rather than isDemo(), so the arm folds and the two addresses are
+   * absent from a demonstration build instead of merely unrendered in it. Hiding a thing from
+   * the page leaves it in the page, and both pages are public.
    */
-  if (!isDemo() && (!firebaseConfigured() || grantsAccess(knownRole()))) {
+  if (!(typeof __EARB_DEMO__ === 'boolean' && __EARB_DEMO__)
+      && (!firebaseConfigured() || grantsAccess(knownRole()))) {
     pane.appendChild(el('h2', { class: 'set-sub' }, ['What is decided, and what is left']));
     pane.appendChild(el('div', { class: 'hub-cards' }, [
       linkCard({
@@ -2201,7 +2221,16 @@ function paneDocs(pane: HTMLElement) {
      * is the address being sent to people outside the team. The explanation above stays,
      * because it is a published page made to be shown.
      */
-    isDemo() ? null : linkCard({
+    /**
+     * The define is read here, at the use site, and not through isDemo() or through a constant
+     * at the top of this file. Neither folds: the first is a call into another module, and the
+     * second esbuild declined to inline across two thousand lines. What stayed behind was the
+     * address itself, sitting in a published page for anybody who opened the source, and the
+     * document on the other end of it takes comments from anybody holding the link. Written
+     * this way the condition is a literal after substitution and the whole arm is dropped.
+     * test/demo-storage.mjs greps the built file, because the screen looked right either way.
+     */
+    (typeof __EARB_DEMO__ === 'boolean' && __EARB_DEMO__) ? null : linkCard({
       accent: '#7C5CB8', ghost: '\u2261',
       eyebrow: 'For the question set \u00b7 Google Sheets',
       title: 'The question set, as a spreadsheet',

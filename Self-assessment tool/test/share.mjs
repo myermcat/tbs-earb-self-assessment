@@ -28,7 +28,7 @@ const dom = new JSDOM(html, {
     // assessment with no code shows the other half of this window, which says it has none yet.
     w.localStorage.setItem('gc-arch-assessment:draft', JSON.stringify({
       fileType: 'gc-arch-assessment', formatVersion: 1, ref: 'ZZ99', id: 'KFRM92TXBQ7H',
-      rubric: { id: 'gc-ea-selfassess', version: '1.0-dan', title: 'x' },
+      rubric: { id: 'gc-ea-selfassess', version: '1.0', title: 'x' },
       initiative: {
         name: 'Licensing Renewal', department: 'DFO', contact: 'a@b.gc.ca',
         lifecycleStage: 'beta', summary: 'A thing.', classification: 'Unclassified',

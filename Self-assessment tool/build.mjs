@@ -124,6 +124,47 @@ const FIREBASE_ORIGINS = FIREBASE
 
 const CONNECT = [ORIGIN, ...FIREBASE_ORIGINS].filter(Boolean).join(' ') || "'none'";
 
+/**
+ * The question set's own working notes, which are the team's and nobody else's.
+ *
+ * They are commentary written while the workbook was being read: which numbers are TBS's and
+ * which are ours, which answer types are a defect, which topics he has not tagged yet. Nothing
+ * renders them, so nobody saw them, and every one of them was inlined whole into a page
+ * published to the open internet. `picklistNote` is NOT in this list: views-submit.ts puts it
+ * on screen under a question, and stripping it would take that away.
+ *
+ * Done here rather than in the file, because the file is where the notes belong. They are read
+ * by whoever maintains the instrument and they should go on being written.
+ */
+const PRIVATE_NOTES = new Set([
+  'note', 'dlgBaseUrlNote', 'maturityBandsNote', 'bandsNote',
+  'stageMultipliersNote', 'answerTypesNote', 'topicsNote',
+]);
+
+/**
+ * And two more on a demonstration only, because these two ARE shown on the real pages.
+ *
+ * `provenance` names the real workbook it was imported from. `importWarnings` states a defect
+ * in that workbook's arithmetic and then says the cause is unknown. Both belong in front of
+ * whoever maintains the instrument and neither belongs on a page published with no sign-in to
+ * a room that includes the people whose workbook it is. Settings hides them there as well; this
+ * is what keeps them out of the file, which is the half that reading the screen cannot check.
+ */
+const DEMO_ONLY_STRIPPED = new Set(['provenance', 'importWarnings']);
+
+const withoutPrivateNotes = {
+  name: 'rubric-without-private-notes',
+  setup(b) {
+    b.onLoad({ filter: /rubric\.v1-dan\.json$/ }, async (args) => ({
+      contents: JSON.stringify(
+        JSON.parse(await readFile(args.path, 'utf8')),
+        (k, v) => (PRIVATE_NOTES.has(k) || (DEMO && DEMO_ONLY_STRIPPED.has(k)) ? undefined : v),
+      ),
+      loader: 'json',
+    }));
+  },
+};
+
 async function once() {
   const result = await build({
     entryPoints: ['src/main.ts'],
@@ -133,6 +174,7 @@ async function once() {
     target: ['es2020'],
     minify: !watch,
     loader: { '.json': 'json' },
+    plugins: [withoutPrivateNotes],
     define: {
       __EARB_ENDPOINT__: JSON.stringify(ENDPOINT),
       __EARB_FIREBASE__: JSON.stringify(FIREBASE),
