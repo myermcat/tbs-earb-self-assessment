@@ -202,7 +202,8 @@ export const sections = [
     title: 'Filling one in',
     lead: 'The submitter side.',
     reqs: [
-      { id: 'F1', state: 'built', text: 'Nobody has to finish it in one go. Work is kept as it is typed, and a reload loses nothing.' },
+      { id: 'F1', state: 'built', text: 'Nobody has to finish it in one go. Work is kept as it is typed, and a reload loses nothing. The home page says which assessment this browser is holding.',
+        note: 'The second sentence was added on 19 October, after this was reported: when I opened an assessment with a code and then I reloaded, I didn’t edit anything there, but I reloaded my browser tab and this assessment is gone. Nothing was gone. The questionnaire’s own address drew it in full, with the twelve-character code on screen. The home page, which is what the bare address opens, decided what this browser was holding by counting answers, and an assessment opened with a code arrives with a department, a contact and a summary and no answers at all. So it drew Fill it in and said nothing about the record in its own storage. It asks whether there is an assessment now, by the same test that stands in front of every act that destroys one, and it names the initiative and the department under the button.' },
       { id: 'F2', state: 'built', text: 'One weighted section per screen, with a rail that says where the gaps are.',
         note: '176 questions in one scroll is not a form anybody finishes.' },
       { id: 'F3', state: 'built', text: 'The overview asks six things before the questions: name, department, contact, summary, the marking of the evidence, and the lifecycle stage.' },

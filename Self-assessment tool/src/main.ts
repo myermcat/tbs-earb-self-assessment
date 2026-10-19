@@ -1102,7 +1102,18 @@ function draftNote(draft: Assessment, total: number): HTMLElement {
   // this line reading "0 of 176 answered", which looks like nothing was kept.
   const [ovDone, ovTotal] = overviewFieldProgress(draft);
 
+  /**
+   * Which assessment this is, above how much of it is done.
+   *
+   * An assessment opened with a code is somebody else's work arriving in your browser, and two
+   * counts and a timestamp do not answer the question that opening it raises, which is whether
+   * the thing now in hand is the thing you were sent.
+   */
+  const named = [draft.initiative?.name, draft.initiative?.department]
+    .map((s) => (s ?? '').trim()).filter(Boolean).join(', ');
+
   return el('div', { class: 'draft-note' }, [
+    named ? el('p', { class: 'small' }, [el('b', {}, [named])]) : null,
     el('p', { class: 'small' }, [
       el('b', {}, [
         ovDone < ovTotal
@@ -1164,7 +1175,22 @@ function warnGoneFromStore(): void {
 
 function renderHome(root: HTMLElement) {
   const draft = loadDraft();
-  const started = !!draft && Object.keys(draft.answers ?? {}).length > 0;
+  /**
+   * Whether this browser is holding an assessment, which is not the same question as whether
+   * anybody has answered one of its questions.
+   *
+   * Reported as: when I opened an assessment with a code and then I reloaded, I didn't edit
+   * anything there, but I reloaded my browser tab and this assessment is gone. It was not gone.
+   * An assessment opened with a code arrives with a department, a contact, a summary and its
+   * twelve-character name, and usually with no answers in it at all, and this line counted
+   * answers. So the page held her assessment, drew a button saying Fill it in, said nothing
+   * about what it was holding, and read as a browser that had lost the lot.
+   *
+   * hasWork is the predicate the guard in front of every destructive act already uses, which is
+   * the same question asked from the other end: it is there to refuse to throw away a thing
+   * this screen was refusing to mention.
+   */
+  const started = !!draft && hasWork(draft);
   const total = questionCount(rubric);
 
   root.appendChild(el('section', { class: 'hero' }, [
