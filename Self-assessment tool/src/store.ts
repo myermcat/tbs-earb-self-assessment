@@ -418,6 +418,12 @@ export async function deleteRecord(id: string): Promise<{ ok: true; already?: bo
 
 /** Where the numbers on screen came from, in the words the page uses. */
 export function sourceLine(records: StoredRecord[]): string {
+  /**
+   * Before the hosted test, because isHosted() is true on a demonstration. The dashboard read
+   * "20 records from the hosted store" directly under a banner saying nothing on the page comes
+   * from the real store, and of the two sentences the specific one is the one a room believes.
+   */
+  if (isDemo()) return `${records.length} invented records, from no store at all`;
   if (isHosted()) return `${records.length} records from the hosted store`;
   const here = records.filter((r) => r.source === 'this-browser').length;
   const files = records.filter((r) => r.source === 'session-files').length;

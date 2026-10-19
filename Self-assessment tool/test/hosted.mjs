@@ -1386,7 +1386,7 @@ console.log('\nThe published build, signed in\n');
       submittedAt: '2026-09-02T09:00:00.000Z', appVersion: '0.1.0' },
   };
   const invented = JSON.parse(JSON.stringify(real));
-  invented.id = 'DEMOAAAA1111';
+  invented.id = 'FAKEAAAA1111';
   invented.initiative.name = 'Permit Renewal Online';
   invented.initiative.department = 'Department of Invented Services';
   invented.meta.appVersion = 'demonstration';

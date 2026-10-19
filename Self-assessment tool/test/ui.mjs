@@ -97,8 +97,15 @@ function gotoQuestion(needle) {
 
 // ---- home ------------------------------------------------------------------------------
 ok('app mounted', !!q('#app .topbar'));
-ok('the header carries only the name, no version clutter', !q('.brand').textContent.includes('1.0-dan'));
-ok('the rubric version is available in the footer', q('.sitefoot').textContent.includes('1.0-dan'));
+ok('the header carries only the name, no version clutter', !q('.brand').textContent.includes(rubric.version));
+/**
+ * Read off the rubric rather than written down. This used to pin the literal '1.0-dan', which
+ * is the version string that carried a colleague's first name onto the footer of every screen,
+ * and the assertion held the mistake in place: changing the version to something that names
+ * nobody turned this check red, which reads as the footer having broken.
+ */
+ok('the rubric version is available in the footer', q('.sitefoot').textContent.includes(rubric.version));
+ok('and the version names nobody', !/\b(dan|nick|allison|john|patricia|mariia)\b/i.test(rubric.version), rubric.version);
 ok('draft status is reachable from the footer', !!byText('button', 'How that works'));
 ok('the question count is stated up front', view().includes(String(TOTAL)));
 
@@ -155,7 +162,7 @@ ok('the destructive pane is marked as dangerous in the rail itself',
   pane('Question set');
 }
 
-ok('settings shows the rubric version', view().includes('1.0-dan'));
+ok('settings shows the rubric version', view().includes(rubric.version));
 ok('settings surfaces the import warning about the Business weight gap', view().includes('80%'));
 // Replacing the question set belongs to whoever maintains the instrument, so a submitter is
 // told where it lives and not handed the control.
@@ -1375,7 +1382,7 @@ byText('.file-menu .menu-item', 'Download as a JSON file').click();
 ok('a file was produced', saved.length === 1, String(saved.length));
 const savedJson = JSON.parse(await text(saved[0]));
 ok('saved file is a self-assessment', savedJson.fileType === 'gc-arch-assessment');
-ok("saved file carries Dan's rubric version", savedJson.rubric.version === '1.0-dan');
+ok('saved file carries the rubric version', savedJson.rubric.version === rubric.version);
 ok('saved file holds every answer', Object.keys(savedJson.answers).length === TOTAL, String(Object.keys(savedJson.answers).length));
 ok('saved file carries the evidence reference', JSON.stringify(savedJson).includes('Current-state architecture diagram'));
 // Nothing is attached any more, so nothing large rides in the file. This is what keeps an

@@ -63,7 +63,7 @@ interface Sketch {
 
 const SKETCHES: Sketch[] = [
   {
-    id: 'DEMOAAAA1111', ref: 'DM01', name: 'Permit Renewal Online',
+    id: 'FAKEAAAA1111', ref: 'DM01', name: 'Permit Renewal Online',
     department: 'Department of Invented Services', stage: 'beta',
     summary: 'Moving a paper permit renewal to a digital service. Invented, for demonstration.',
     lean: 0, shape: 'middling', filled: 1, submitted: true, marking: 'Unclassified',
@@ -71,7 +71,7 @@ const SKETCHES: Sketch[] = [
     strongIn: ['official-languages'], weakIn: ['security'],
   },
   {
-    id: 'DEMOBBBB2222', ref: 'DM02', name: 'Grant Payments Platform',
+    id: 'FAKEBBBB2222', ref: 'DM02', name: 'Grant Payments Platform',
     // This said 'live', which is not one of the seven stages the rubric has. Nothing refused it
     // and the stage multipliers simply found nothing to apply, so a demonstration scored it on a
     // stage that does not exist.
@@ -82,14 +82,14 @@ const SKETCHES: Sketch[] = [
     strongIn: ['financial'], weakIn: ['accessibility'],
   },
   {
-    id: 'DEMOCCCC3333', ref: 'DM03', name: 'Case Management Replacement',
+    id: 'FAKECCCC3333', ref: 'DM03', name: 'Case Management Replacement',
     department: 'Office of Example Operations', stage: 'discovery',
     summary: 'Replacing a case management system at end of life. Invented, for demonstration.',
     lean: -1, shape: 'weak', filled: 1, submitted: true, marking: 'Unclassified',
     weakIn: ['security', 'privacy'],
   },
   {
-    id: 'DEMODDDD4444', ref: 'DM04', name: 'Inspections Mobile Tool',
+    id: 'FAKEDDDD4444', ref: 'DM04', name: 'Inspections Mobile Tool',
     department: 'Bureau of Illustrative Inspections', stage: 'alpha',
     summary: 'A tablet tool for field inspectors. Invented, and part-finished on purpose.',
     lean: -1, shape: 'middling', filled: 0.45, submitted: false, marking: 'Unclassified',
@@ -102,14 +102,14 @@ const SKETCHES: Sketch[] = [
    * it was done, or what a sunset solution looks like beside one still in discovery.
    */
   {
-    id: 'DEMOEEEE5555', ref: 'DM05', name: 'Benefits Eligibility Engine',
+    id: 'FAKEEEEE5555', ref: 'DM05', name: 'Benefits Eligibility Engine',
     department: 'Office of Illustrative Benefits', stage: 'stabilization',
     summary: 'Rules engine deciding benefit eligibility. Invented, for demonstration.',
     lean: 0, shape: 'weak', filled: 1, submitted: true, marking: 'Protected B',
     strongIn: ['privacy'], weakIn: ['official-languages', 'D'],
   },
   {
-    id: 'DEMOFFFF6666', ref: 'DM06', name: 'Records Retention Service',
+    id: 'FAKEFFFF6666', ref: 'DM06', name: 'Records Retention Service',
     department: 'Sample Records Authority', stage: 'maturity',
     summary: 'Retention and disposition across departmental records. Invented.',
     lean: 1, shape: 'strong', filled: 1, submitted: true, marking: 'Protected A',
@@ -117,7 +117,7 @@ const SKETCHES: Sketch[] = [
     strongIn: ['privacy', 'D'], weakIn: ['financial'],
   },
   {
-    id: 'DEMOGGGG7777', ref: 'DM07', name: 'Legacy Licensing Retirement',
+    id: 'FAKEGGGG7777', ref: 'DM07', name: 'Legacy Licensing Retirement',
     department: 'Example Licensing Directorate', stage: 'sunset',
     summary: 'Turning off a licensing system and moving its data. Invented.',
     lean: 1, shape: 'middling', filled: 0.92, submitted: true, marking: 'Unclassified',
@@ -126,7 +126,7 @@ const SKETCHES: Sketch[] = [
   },
   {
     // Sent while still unfinished, which a real pool holds and this one never did.
-    id: 'DEMOHHHH8888', ref: 'DM08', name: 'Client Notification Hub',
+    id: 'FAKEHHHH8888', ref: 'DM08', name: 'Client Notification Hub',
     department: 'Bureau of Demonstration Services', stage: 'beta',
     summary: 'One place for every notice a client receives. Invented, and sent part-finished.',
     lean: 0, shape: 'middling', filled: 0.7, submitted: true, marking: 'Protected B',
@@ -146,7 +146,7 @@ const SKETCHES: Sketch[] = [
    * and says how many there were.
    */
   {
-    id: 'DEMOJJJJ2345', ref: 'DM09', name: 'Travel Claims Modernization',
+    id: 'FAKEJJJJ2345', ref: 'DM09', name: 'Travel Claims Modernization',
     department: 'Office of Sample Travel', stage: 'growth',
     summary: 'Replacing the travel claim form and what is behind it. Invented.',
     lean: -1, shape: 'strong', filled: 1, submitted: true, marking: 'Protected A',
@@ -154,14 +154,14 @@ const SKETCHES: Sketch[] = [
     strongIn: ['financial', 'B'], weakIn: ['privacy'],
   },
   {
-    id: 'DEMOKKKK3456', ref: 'DM10', name: 'Shoreline Monitoring Network',
+    id: 'FAKEKKKK3456', ref: 'DM10', name: 'Shoreline Monitoring Network',
     department: 'Agency for Example Environment', stage: 'alpha',
     summary: 'Sensors along the coast, reporting into one place. Invented.',
     lean: -1, shape: 'middling', filled: 1, submitted: true, marking: 'Unclassified',
     strongIn: ['T'], weakIn: ['security', 'B'],
   },
   {
-    id: 'DEMOLLLL4567', ref: 'DM11', name: 'Pension Statement Rewrite',
+    id: 'FAKELLLL4567', ref: 'DM11', name: 'Pension Statement Rewrite',
     department: 'Illustrative Pensions Branch', stage: 'maturity',
     summary: 'The annual statement, rewritten and redelivered. Invented.',
     lean: -1, shape: 'strong', filled: 1, submitted: true, marking: 'Protected B',
@@ -169,7 +169,7 @@ const SKETCHES: Sketch[] = [
     strongIn: ['accessibility', 'official-languages'], weakIn: ['A'],
   },
   {
-    id: 'DEMOMMMM5678', ref: 'DM12', name: 'Border Declaration Kiosk',
+    id: 'FAKEMMMM5678', ref: 'DM12', name: 'Border Declaration Kiosk',
     department: 'Bureau of Sample Borders', stage: 'beta',
     summary: 'A kiosk taking declarations on arrival. Invented.',
     lean: 1, shape: 'middling', filled: 1, submitted: true, marking: 'Protected A',
@@ -178,14 +178,14 @@ const SKETCHES: Sketch[] = [
   },
   {
     // A draft, so the pool holds work nobody has sent yet at more than one stage of being done.
-    id: 'DEMONNNN6789', ref: 'DM13', name: 'Procurement Intake Portal',
+    id: 'FAKENNNN6789', ref: 'DM13', name: 'Procurement Intake Portal',
     department: 'Office of Demonstration Procurement', stage: 'stabilization',
     summary: 'One front door for procurement requests. Invented, and barely started.',
     lean: 0, shape: 'weak', filled: 0.3, submitted: false, marking: 'Unclassified',
     weakIn: ['financial', 'T'],
   },
   {
-    id: 'DEMOPPPP7892', ref: 'DM14', name: 'Veterans Benefits Lookup',
+    id: 'FAKEPPPP7892', ref: 'DM14', name: 'Veterans Benefits Lookup',
     department: 'Example Veterans Directorate', stage: 'growth',
     summary: 'Letting somebody see what they are entitled to. Invented.',
     lean: 0, shape: 'middling', filled: 1, submitted: true, marking: 'Protected B',
@@ -193,7 +193,7 @@ const SKETCHES: Sketch[] = [
   },
   {
     // Near the bottom of the range, which every portfolio of twenty has.
-    id: 'DEMOQQQQ8923', ref: 'DM15', name: 'Fisheries Quota Ledger',
+    id: 'FAKEQQQQ8923', ref: 'DM15', name: 'Fisheries Quota Ledger',
     department: 'Invented Fisheries Authority', stage: 'discovery',
     summary: 'Tracking quota against catch. Invented, and early.',
     lean: -1, shape: 'weak', filled: 1, submitted: true, marking: 'Unclassified',
@@ -201,7 +201,7 @@ const SKETCHES: Sketch[] = [
   },
   {
     // And near the top.
-    id: 'DEMORRRR9234', ref: 'DM16', name: 'Identity Credential Broker',
+    id: 'FAKERRRR9234', ref: 'DM16', name: 'Identity Credential Broker',
     department: 'Sample Identity Services', stage: 'maturity',
     summary: 'Brokering credentials between departments. Invented.',
     lean: 1, shape: 'strong', filled: 1, submitted: true, marking: 'Protected B',
@@ -209,14 +209,14 @@ const SKETCHES: Sketch[] = [
     strongIn: ['security', 'privacy'], weakIn: ['financial'],
   },
   {
-    id: 'DEMOSSSS2456', ref: 'DM17', name: 'Heritage Collections Catalogue',
+    id: 'FAKESSSS2456', ref: 'DM17', name: 'Heritage Collections Catalogue',
     department: 'Office of Illustrative Heritage', stage: 'beta',
     summary: 'A catalogue of what the collection holds. Invented, and sent part-finished.',
     lean: 1, shape: 'middling', filled: 0.6, submitted: true, marking: 'Unclassified',
     strongIn: ['official-languages'], weakIn: ['privacy'],
   },
   {
-    id: 'DEMOTTTT3567', ref: 'DM18', name: 'Payroll Exception Queue',
+    id: 'FAKETTTT3567', ref: 'DM18', name: 'Payroll Exception Queue',
     department: 'Demonstration Pay Centre', stage: 'stabilization',
     summary: 'The queue of pay cases that need a person. Invented.',
     lean: 0, shape: 'middling', filled: 1, submitted: true, marking: 'Protected A',
@@ -224,14 +224,14 @@ const SKETCHES: Sketch[] = [
     strongIn: ['financial'], weakIn: ['privacy', 'accessibility'],
   },
   {
-    id: 'DEMOUUUU4678', ref: 'DM19', name: 'Weather Alert Relay',
+    id: 'FAKEUUUU4678', ref: 'DM19', name: 'Weather Alert Relay',
     department: 'Agency for Invented Forecasting', stage: 'growth',
     summary: 'Getting an alert to the people under it. Invented.',
     lean: 2, shape: 'middling', filled: 1, submitted: true, marking: 'Unclassified',
     strongIn: ['T', 'accessibility'], weakIn: ['financial'],
   },
   {
-    id: 'DEMOVVVV5789', ref: 'DM20', name: 'Property Title Registry Move',
+    id: 'FAKEVVVV5789', ref: 'DM20', name: 'Property Title Registry Move',
     department: 'Example Title Registry', stage: 'sunset',
     summary: 'Moving a title registry off its last server. Invented, and unsent.',
     lean: 1, shape: 'middling', filled: 0.55, submitted: false, marking: 'Protected A',
@@ -386,7 +386,7 @@ const REVIEWED: Record<string, Array<{
   overall?: string;
 }>> = {
   // The strong one, read by two people who do not agree with each other.
-  DEMOBBBB2222: [
+  FAKEBBBB2222: [
     {
       who: 'reviewer.one@example.gc.ca', name: 'Reviewer One', at: '2026-09-22T14:10:00.000Z',
       on: [
@@ -407,7 +407,7 @@ const REVIEWED: Record<string, Array<{
     },
   ],
   // The weak one, read by one person, which is the ordinary case.
-  DEMOCCCC3333: [
+  FAKECCCC3333: [
     {
       who: 'reviewer.two@example.gc.ca', name: 'Reviewer Two', at: '2026-09-25T11:05:00.000Z',
       on: [
@@ -418,7 +418,7 @@ const REVIEWED: Record<string, Array<{
     },
   ],
   // Sent unfinished and already picked up, so a reader sees an audit on a part-finished record.
-  DEMOHHHH8888: [
+  FAKEHHHH8888: [
     {
       who: 'reviewer.one@example.gc.ca', name: 'Reviewer One', at: '2026-09-26T16:20:00.000Z',
       on: [['B-Q29', 2, 'adjust', 'Better than scored. The feedback loop is real and running.']],
@@ -428,7 +428,7 @@ const REVIEWED: Record<string, Array<{
    * The high one, read by three people, because the record at the top of the list is the one a
    * board argues over and a demonstration should have an argument in it.
    */
-  DEMORRRR9234: [
+  FAKERRRR9234: [
     {
       who: 'reviewer.one@example.gc.ca', name: 'Reviewer One', at: '2026-09-29T10:15:00.000Z',
       on: [
@@ -455,7 +455,7 @@ const REVIEWED: Record<string, Array<{
     },
   ],
   // The low one, read by two people who agree with each other, which also happens.
-  DEMOQQQQ8923: [
+  FAKEQQQQ8923: [
     {
       who: 'reviewer.two@example.gc.ca', name: 'Reviewer Two', at: '2026-09-28T11:45:00.000Z',
       on: [
@@ -470,7 +470,7 @@ const REVIEWED: Record<string, Array<{
     },
   ],
   // One reading on a strong record, so the list has an audit with no argument attached.
-  DEMOJJJJ2345: [
+  FAKEJJJJ2345: [
     {
       who: 'reviewer.three@example.gc.ca', name: 'Reviewer Three', at: '2026-09-27T14:00:00.000Z',
       on: [['B-Q40', 2, 'adjust', 'Satisfaction is measured every quarter and the last two rounds changed the roadmap.']],
@@ -478,7 +478,7 @@ const REVIEWED: Record<string, Array<{
     },
   ],
   // Two readings that move a record in opposite directions, which nets to almost nothing.
-  DEMOMMMM5678: [
+  FAKEMMMM5678: [
     {
       who: 'reviewer.one@example.gc.ca', name: 'Reviewer One', at: '2026-09-29T16:40:00.000Z',
       on: [['T-Q6', -2, 'adjust', 'On demand inside the data centre. Anything new takes six weeks.']],

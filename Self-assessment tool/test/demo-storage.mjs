@@ -248,6 +248,27 @@ ok('every stored name is made by the helper, and there is more than one',
    * decision that it announces itself the way Office of Example Operations does.
    */
   const INVENTED = ['Reviewer One', 'Reviewer Two', 'Reviewer Three'];
+  /**
+   * THE INVENTED IDS HAVE TO BE LEGAL CODES, OR HALF THE DEMONSTRATION IS A DEAD END.
+   *
+   * They began with DEMO, and O is one of the four characters the code alphabet leaves out so
+   * nobody misreads one aloud. Every screen that opens a submission by putting its code in the
+   * address therefore opened nothing: the anomaly rows on the dashboard, which are the one
+   * thing on that screen a person is invited to click, and reload and Back on an open record.
+   * Nothing errored. The address changed and the page stayed where it was.
+   */
+  const ID_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  const firstRow = [...document.querySelectorAll('.triage tbody tr.row-open')][0];
+  firstRow?.dispatchEvent(new window.MouseEvent('click', { bubbles: true }));
+  await new Promise((r) => setTimeout(r, 250));
+  const addressed = window.location.hash.replace(/^#assessor\//, '');
+  ok('opening an invented record puts a legal code in the address',
+     addressed.length > 0 && [...addressed].every((c) => ID_ALPHABET.includes(c)), addressed);
+  ok('and the record it names is on screen', !!document.querySelector('.crumbs'),
+     window.location.hash);
+  window.history.back();
+  await new Promise((r) => setTimeout(r, 250));
+
   // Off the chips read above, for the same reason they are.
   const names = [...new Set(auditCells.flat())];
   ok('every assessor in the column is one of the invented ones',
@@ -264,6 +285,77 @@ ok('every stored name is made by the helper, and there is more than one',
      out?.getAttribute('href') ?? 'none');
   ok('and it is on the strip that is on every screen',
      !!document.querySelector('.chrome .demo-banner .demo-out'));
+}
+
+/**
+ * WHAT IS NOT IN THE FILE, WHICH IS THE HALF READING THE SCREEN CANNOT CHECK.
+ *
+ * Hiding a thing from the page leaves it in the page. The spreadsheet card was taken off the
+ * demonstration and its address stayed compiled in, because the guard called isDemo() and
+ * esbuild will not fold a ternary behind a call, so anybody who opened the source still had a
+ * link to a document that accepts comments from anybody holding one. Every line here greps the
+ * built file rather than the DOM.
+ */
+{
+  const absent = (what, needle) =>
+    ok(what, !html.includes(needle), `${needle} appears ${html.split(needle).length - 1} time(s)`);
+
+  // A real document that takes comments from anybody with the link.
+  absent('the demonstration carries no address for the question set spreadsheet',
+         'docs.google.com');
+  // The team's own pages, which name colleagues and the state of internal decisions.
+  absent('nor for the backlog', 'backlog.html');
+  absent('nor for the requirements', 'requirements.html');
+  // An unverified reading of TBS's own workbook, and where it came from.
+  absent('nor the arithmetic finding about the workbook it was imported from',
+         'add up to 80%, not 100%');
+  absent('nor the line naming that workbook', 'GC_EA_Assessment_Tool');
+  // Working notes about which numbers are whose, and what the instrument still lacks.
+  absent('nor the question set\u2019s private notes', 'Asked for by name by TBS');
+
+  /**
+   * The version string. It read 1.0-dan, which is the first name of the director the page is
+   * being shown to, on the sticky footer of every screen and three times in Settings.
+   */
+  const named = /\b(dan|nick|allison|john|patricia|mariia)\b/i;
+  const foot = document.querySelector('.sitefoot')?.textContent ?? '';
+  ok('and the footer names nobody', !named.test(foot.replace(/Danger/gi, '')), foot.slice(0, 140));
+}
+
+/**
+ * WHAT THE DEMONSTRATION SAYS ABOUT ITSELF, AND WHAT IT OFFERS TO DO.
+ */
+{
+  const dash = [...document.querySelectorAll('.chrome button')]
+    .find((b) => /dashboard|tableau/i.test(b.textContent ?? ''));
+  dash?.dispatchEvent(new window.MouseEvent('click', { bubbles: true }));
+  await new Promise((r) => setTimeout(r, 300));
+  // app and not body: body.textContent in jsdom includes the inlined script, so every
+  // string in the bundle reads as something on screen.
+  const shown = app.textContent ?? '';
+  /**
+   * It read "20 records from the hosted store", under a banner saying nothing on the page comes
+   * from the real store. Of two sentences that contradict each other, a room believes the
+   * specific one.
+   */
+  ok('the dashboard says the records are invented and from no store',
+     /invented records, from no store at all/.test(shown) && !/from the hosted store/.test(shown),
+     (shown.match(/\d+ (invented )?records[^.]{0,40}/) ?? ['nothing'])[0]);
+
+  const back = [...document.querySelectorAll('.chrome button')]
+    .find((b) => /submissions|soumissions/i.test(b.textContent ?? ''));
+  back?.dispatchEvent(new window.MouseEvent('click', { bubbles: true }));
+  await new Promise((r) => setTimeout(r, 300));
+
+  /**
+   * Withdrawing was offered on all twenty rows. isHosted() is true on a demonstration, so the
+   * row menu walked somebody through a caution dialog about taking a department out of every
+   * average and then stopped at a browser alert asking them to sign in.
+   */
+  const menus = [...document.querySelectorAll('.triage tbody tr.row-open .row-menu, .triage tbody tr.row-open .menu-item')];
+  const offers = menus.map((m) => m.textContent ?? '').join(' | ');
+  ok('no row offers to stop counting a department, which it cannot do',
+     !/stop counting|count .* again/i.test(offers), offers.slice(0, 160));
 }
 
 /**

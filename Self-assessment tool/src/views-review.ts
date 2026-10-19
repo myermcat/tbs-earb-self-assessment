@@ -1162,8 +1162,14 @@ function paintList(rubric: Rubric, root: HTMLElement) {
                * of the same records. Nothing is deleted: the record comes out of every average
                * and every ranked list, goes to the foot of this one under its own heading, and
                * any assessor can put it back. Its access code keeps working throughout.
+               *
+               * Not on a demonstration. isHosted() is true there, so this was offered on all
+               * twenty rows, and pressing it walked somebody through a caution dialog about
+               * taking a department out of every average and then stopped at a browser alert
+               * asking them to sign in. The one move the demonstration cannot make should not
+               * be the one it offers on every row.
                */
-              l.a.id && isHosted()
+              l.a.id && isHosted() && !isDemo()
                 ? el('button', {
                     class: 'menu-item',
                     onclick: () => {

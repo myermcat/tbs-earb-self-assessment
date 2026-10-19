@@ -354,7 +354,7 @@ const rubric = {
   fileType: 'gc-arch-rubric',
   formatVersion: 2,
   id: 'gc-ea-assessment',
-  version: '1.0-dan',
+  version: '1.0',
   status: 'draft',
   title: 'GC EARB self-assessment',
   provenance:

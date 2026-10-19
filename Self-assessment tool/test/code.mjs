@@ -115,7 +115,7 @@ console.log('\nThe access code\n');
 {
   const withWork = {
     fileType: 'gc-arch-assessment', formatVersion: 1, ref: 'ZZ99',
-    rubric: { id: 'gc-ea-selfassess', version: '1.0-dan', title: 'x' },
+    rubric: { id: 'gc-ea-selfassess', version: '1.0', title: 'x' },
     initiative: {
       name: 'Licensing Renewal', department: 'DFO', contact: 'a@b.gc.ca',
       lifecycleStage: 'beta', summary: 'A thing.', classification: 'Unclassified',
@@ -148,7 +148,7 @@ console.log('\nThe access code\n');
                 fileType: { stringValue: 'gc-arch-assessment' },
                 ref: { stringValue: 'AB12' },
                 rubric: { mapValue: { fields: {
-                  id: { stringValue: 'gc-ea-selfassess' }, version: { stringValue: '1.0-dan' },
+                  id: { stringValue: 'gc-ea-selfassess' }, version: { stringValue: '1.0' },
                 } } },
                 initiative: { mapValue: { fields: {
                   name: { stringValue: 'Fleet Scheduling' }, department: { stringValue: 'DFO' },
@@ -248,7 +248,7 @@ console.log('\nThe access code\n');
 {
   const withCode = {
     fileType: 'gc-arch-assessment', formatVersion: 1, ref: 'ZZ99', id: 'KFRM92TXBQ7H',
-    rubric: { id: 'gc-ea-selfassess', version: '1.0-dan', title: 'x' },
+    rubric: { id: 'gc-ea-selfassess', version: '1.0', title: 'x' },
     initiative: {
       name: 'Licensing Renewal', department: 'DFO', contact: 'a@b.gc.ca',
       lifecycleStage: 'beta', summary: 'A thing.', classification: 'Unclassified',
