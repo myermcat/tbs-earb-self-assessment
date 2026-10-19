@@ -1806,17 +1806,21 @@ td.num { text-align: right; font-family: var(--mono); font-variant-numeric: tabu
  * brighter than the category's own name, which inverted that.
  */
 .fold { margin-top: .45rem; }
-.fold > summary { cursor: pointer; font-size: .76rem; color: var(--ink-3); padding: .2rem 0;
+/* `details.fold`, not `.fold`, because `.res-sub > details > summary` paints a summary in the
+   accent colour at weight 550 and matched these inside the category block. It was the thing
+   she was pointing at: the fold heading was brighter than the name of the category above it. */
+details.fold > summary { cursor: pointer; font-size: .76rem; color: var(--ink-3);
+  font-weight: 400; padding: .2rem 0;
   list-style: none; display: flex; align-items: center; gap: .35rem; }
-.fold > summary::-webkit-details-marker { display: none; }
-.fold > summary::before { content: ''; width: 0; height: 0; flex: 0 0 auto;
+details.fold > summary::-webkit-details-marker { display: none; }
+details.fold > summary::before { content: ''; width: 0; height: 0; flex: 0 0 auto;
   border-left: 4px solid var(--ink-3); border-top: 3.5px solid transparent;
   border-bottom: 3.5px solid transparent; opacity: .7;
   transition: transform .15s; transform-origin: 25% 50%; }
-.fold[open] > summary::before { transform: rotate(90deg); }
-.fold > summary:hover { color: var(--ink-2); }
+details.fold[open] > summary::before { transform: rotate(90deg); }
+details.fold > summary:hover { color: var(--ink-2); }
 /* Under a bar it is quieter still, because the bar's own label is what names the thing. */
-.cut .fold > summary { font-size: .72rem; }
+.cut details.fold > summary { font-size: .72rem; color: var(--ink-3); font-weight: 400; }
 
 /**
  * The three cards that lead with a number are one group and sit closer together.

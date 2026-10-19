@@ -2846,7 +2846,7 @@ console.log('\nA submission is a place you can go back from\n');
    */
   ok('and leads with how far apart they are, with no sign on it',
      (gap?.querySelector('.lead-v')?.textContent ?? '') === '3.0'
-     && /points higher departments scored themselves, where an assessor disagreed/.test(said(gap)),
+     && /points higher: departments than assessors/.test(said(gap)),
      `${gap?.querySelector('.lead-v')?.textContent} / ${said(gap).slice(0, 120)}`);
   ok('and names the questions furthest apart', /Q1|Q2/.test(said(gap)), said(gap).slice(0, 160));
 
@@ -3013,7 +3013,7 @@ console.log('\nA submission is a place you can go back from\n');
   const fold = card?.querySelector('details.fold');
   ok('the list of them folds', !!fold, txt.slice(0, 120));
   ok('and starts closed', !fold?.hasAttribute('open'));
-  ok('with the count legible while it is', /The 2 outliers/.test(fold?.querySelector('summary')?.textContent ?? ''),
+  ok('with the count legible while it is', /^2 outliers$/.test((fold?.querySelector('summary')?.textContent ?? '').trim()),
      fold?.querySelector('summary')?.textContent);
 
   const out = [...(card?.querySelectorAll('.outlier') ?? [])].map((b) => b.textContent.replace(/\s+/g, ' ').trim());

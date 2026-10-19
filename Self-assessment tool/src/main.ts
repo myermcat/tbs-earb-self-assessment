@@ -241,11 +241,29 @@ function pushRoute(): void {
     const hash = routeToHash(here);
     const url = hash || `${window.location.pathname}${window.location.search}`;
     const was = window.history.state as Partial<Route> | null;
-    // Every repaint of a submission comes back through here — a score click, a verdict, a note
-    // losing focus. Only a change of address is a place somebody can go back to, so an address
-    // that already says this adds nothing to the history.
-    if (was?.mode === mode && was?.side === side && was?.pane === settingsPane
-        && window.location.hash === hash) return;
+    const same = was?.mode === mode && was?.side === side && was?.pane === settingsPane;
+    /**
+     * AN ADDRESS THAT ALREADY SAYS THIS IS NOT A PLACE TO PUSH.
+     *
+     * Every repaint of a submission comes back through here - a score click, a verdict, a note
+     * losing focus - and only a change of address is somewhere to go back to.
+     *
+     * The second half of that was missing and it cost a Back press. A screen that navigates by
+     * setting window.location.hash, which is what the dashboard's outlier rows do, makes a
+     * history entry the browser fills with a NULL state. So `was` was null, the state test
+     * failed however right the hash was, and this pushed a second entry for the place the
+     * browser had just arrived at. Measured: one click on an outlier took history from 16
+     * entries to 18, and one Back undid only the duplicate - the address did not move and the
+     * submission stayed on screen.
+     *
+     * So the hash is asked first. When it already says this, the entry exists and the only
+     * thing missing is the state object on it, which replaceState attaches without making a
+     * second entry.
+     */
+    if (window.location.hash === hash) {
+      if (!same) window.history.replaceState(here, '', url);
+      return;
+    }
     window.history.pushState(here, '', url);
   } catch {
     /* file:// without history support. Navigation is unaffected. */
