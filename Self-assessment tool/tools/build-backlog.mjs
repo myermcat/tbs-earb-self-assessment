@@ -48,6 +48,14 @@ const FROM_KIDS = ['doing', 'open', 'wait', 'closed'];
 const RANK = { high: 0, medium: 1, low: 2 };
 /** One per block, so six cards are six colours. */
 const HUES = new Set(['green', 'blue', 'amber', 'purple', 'rose', 'teal']);
+/**
+ * A block nobody has taken is grey, and its colour waits for whoever takes it.
+ *
+ * Asked for on 19 October. Colour on this board means somebody owns the thing, so six coloured
+ * cards with four of them unowned was six cards saying the same nothing. Grey is the state the
+ * board is mostly in, and the two that have an owner are the ones that stand out.
+ */
+const UNOWNED = 'nobody yet';
 
 /**
  * Stops a typo becoming an item that exists in the file and appears on no page at all. A section
@@ -312,6 +320,7 @@ border:1px solid;border-radius:999px;padding:.07rem .42rem;white-space:nowrap}
    The colour is per card rather than per state. Six cards that look the same are six cards a
    reader has to read to tell apart, and the thing being chosen between is which block to pick
    up, not how any of them is going. */
+.h-none{--hue:var(--ink-3)}
 .h-green{--hue:#1f6b57}.h-blue{--hue:#1c5d93}.h-amber{--hue:#8a5a1e}
 .h-purple{--hue:#5b3e8e}.h-rose{--hue:#9a3b52}.h-teal{--hue:#1b6b6b}
 @media(prefers-color-scheme:dark){
@@ -674,7 +683,8 @@ const board = `<section class="pane board" data-track="blocks" hidden><main>`
       `<span>${mine.length} open</span>`,
       waiting ? `<span>${waiting} waiting on somebody</span>` : '',
     ].join('');
-    return `<details class="block h-${esc(b.hue)}" id="b-${esc(b.id)}"><summary>`
+    return `<details class="block h-${b.owner === UNOWNED ? 'none' : esc(b.hue)}" `
+      + `id="b-${esc(b.id)}"><summary>`
       + `<span class="ghost" aria-hidden="true">${b.n}</span>`
       + `<span class="bt"><span class="bk">${esc(b.owner)}</span>`
       + `<span class="bh">${esc(b.title)}</span>`

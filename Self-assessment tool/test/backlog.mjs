@@ -439,6 +439,17 @@ console.log('\nThe backlog page\n');
   ok('a card carries the owner and the next step',
      board.includes('>Mariia<') && board.includes('The next thing'));
   ok('and a colour of its own', board.includes('class="block h-green"'));
+
+  /**
+   * Colour on this board means somebody owns the block. Asked for on 19 October, after four of
+   * the six cards were coloured and unowned, which is four cards saying the same nothing.
+   */
+  const unowned = await build(fixture([
+    item({ id: 'a', track: 'engine', section: 'e-live' }),
+  ], SECS, [{ ...BLOCK[0], owner: 'nobody yet' }]));
+  ok('a block nobody has taken is grey', unowned.html.includes('class="block h-none"'));
+  ok('and its own colour is still on file for whoever takes it',
+     !unowned.html.includes('class="block h-green"'));
   ok('it gathers what its sections hold', board.includes('data-ref="a"'));
   ok('and nothing else', !board.includes('data-ref="b"'));
   /* A card holds pointers, so the item is drawn once, on its own tab, with its controls. */
