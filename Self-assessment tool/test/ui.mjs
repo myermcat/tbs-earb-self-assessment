@@ -2001,9 +2001,22 @@ ok('audited file keeps the self-score alongside the audited one',
    * should not be from a portfolio, but from the danger zone, that is the whole reason for
    * having it.
    */
-  ok('the admin-only actions are listed, with what is built marked',
-     view().includes('Admin actions') && view().includes('Mostly not built')
-     && view().includes('Question sets'));
+  /**
+   * AND NO LIST OF THINGS WE HAVE NOT BUILT.
+   *
+   * Admin actions was four bullets under a badge saying mostly not built. Two of them described
+   * things that ARE built - withdrawing a record is in the row menu on the submissions list,
+   * and question sets are in Settings. Of the other two, re-assigning an assessor cannot exist
+   * while nobody is assigned to anything, and clearing out test submissions in one go is a
+   * thing nobody wants.
+   *
+   * So it was two built things mislabelled as unbuilt, one that is not possible and one that
+   * is not wanted, on a screen four assessors see. It is #125 to #128 in the backlog, which is
+   * where a list of unbuilt things belongs.
+   */
+  ok('and no roadmap on the dashboard',
+     !view().includes('Admin actions') && !view().includes('Mostly not built'),
+     [...document.querySelectorAll('#app h2')].map((h) => h.textContent).join(' | '));
 }
 
 // ---- the page fits a phone sideways ------------------------------------------------------
