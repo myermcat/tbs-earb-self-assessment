@@ -2071,6 +2071,26 @@ console.log('\nThe published build, signed in\n');
   ok('and the cell says when one of them is you',
      !!doc.querySelector('.triage .audited-who.audited-mine'),
      [...doc.querySelectorAll('.triage .audited-who')].map((c) => c.className).join(' | '));
+  /**
+   * An audit written by somebody who typed no name carries their address, and an address is
+   * long enough to push the whole table out of the card it sits in. Measured on a real one:
+   * the column took the width of the address and the table drew over the card's right edge,
+   * with the wrapper set not to clip above 900px so there was no scrollbar either.
+   *
+   * The address is not written here, and that is deliberate. The first draft of this comment
+   * carried it, and its twin in styles.css went into the built page, where the gate below
+   * caught it: a stylesheet is inlined, so a comment in one is published. Nobody's address
+   * goes in the source, including in a sentence explaining why it was too long.
+   */
+  {
+    const chips = [...doc.querySelectorAll('.triage .audit-chip')];
+    const shown = chips.map((c) => c.querySelector('.audit-chip-name')?.textContent ?? '');
+    ok('an address shows the part in front of the at sign', !shown.some((t) => t.includes('@')),
+       shown.join(' | '));
+    ok('and the whole of it is on the hover',
+       chips.every((c) => (c.getAttribute('title') ?? '').length > 0),
+       chips.map((c) => c.getAttribute('title')).join(' | '));
+  }
   ok('and names them rather than counting them',
      auditedCells.some((x) => /Mariia/.test(x)) && !auditedCells.some((x) => /\d+ other/.test(x)),
      auditedCells.join(' | '));
