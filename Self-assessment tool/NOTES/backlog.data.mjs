@@ -91,55 +91,43 @@ export const updated = '2026-10-01';
 export const blocks = [
   {
     id: 'assessors', n: 1, owner: 'Mariia', title: 'Learning from the assessors',
-    kicker: 'Four assessors, and the ones after them',
-    what: 'Show the tool to the people who will use it and find out what they need from it. '
-      + 'A repeating loop rather than one meeting: meet a group, capture what they said, turn '
-      + 'it into work. Dan wants the latency out of a process that is claimed to cost 250 hours.',
+    hue: 'green',
+    what: 'Show the tool to the people who will use it and find out what they need from it.',
     next: 'Thursday afternoon, 90 minutes, with John, Nick, Allison and Patricia',
     sections: ['a-process'], also: [163],
   },
   {
     id: 'signin', n: 2, owner: 'nobody yet', title: 'Assessor sign-in',
-    kicker: 'How an assessor proves who they are',
-    what: 'An assessor writes a score against their own name, so the tool has to know who they '
-      + 'are. Somewhere in government this has already been solved by a team that had the same '
-      + 'problem, and the work starts by finding them and copying what they did.',
-    next: 'Ask Dan who to talk to',
+    hue: 'blue',
+    what: 'An assessor writes a score against their own name, so the tool has to know who they are.',
+    next: 'Ask Dan who already solved this',
     sections: ['a-signin'], except: [137],
   },
   {
     id: 'canada', n: 3, owner: 'nobody yet', title: 'The canada-ca repository',
-    kicker: 'Moving the code out of a personal account',
-    what: 'The tool lives in two repositories under a personal GitHub account. canada-ca already '
-      + 'publishes a tool as one file in a folder and the access is already granted, so this is '
-      + 'a commit rather than a transfer, once Dan clears the draft questions for public view.',
+    hue: 'amber',
+    what: 'Move the tool out of a personal GitHub account into the one government organisation.',
     next: 'Dan clears the 176 draft questions being visible',
     sections: ['a-publish'], except: [139, 163],
   },
   {
     id: 'ownership', n: 4, owner: 'nobody yet', title: 'Ownership and handover',
-    kicker: 'What happens to the store when the term ends',
-    what: 'A store on a personal account with no owner of record, no end date and no plan for '
-      + 'handing it over. The objection is never the account. Written down before anybody asks, '
-      + 'it stops being an objection, and at 40 KB a record the whole thing moves in an afternoon.',
+    hue: 'purple',
+    what: 'Who owns the store, when it gets deleted, and how it is handed over.',
     next: 'Name an owner of record, in writing',
     sections: ['a-owner'],
   },
   {
-    id: 'questions', n: 5, owner: 'Dan', title: 'The questions',
-    kicker: 'The instrument itself',
-    what: 'The 176 questions, what each one is worth, which answers are the ones that matter and '
-      + 'what shape each answer takes. None of it is ours to write. The tool carries our reading '
-      + 'of it, labelled provisional, until he says otherwise.',
+    id: 'questions', n: 5, owner: 'Dan', title: 'Question set',
+    hue: 'rose',
+    what: 'The 176 questions, what each is worth, and what shape each answer takes.',
     next: 'Confirm the answer type for every question',
     sections: ['q-behaviour', 'q-content'],
   },
   {
     id: 'publishing', n: 6, owner: 'nobody yet', title: 'Publishing, if we publish',
-    kicker: 'An open question, and what hangs off a yes',
-    what: 'Nobody has decided whether this becomes a published government instrument or stays a '
-      + 'prototype. A yes brings both official languages, a security review and a ruling on where '
-      + 'the data may live. Parking them here keeps them out of the list of things to get on with.',
+    hue: 'teal',
+    what: 'Nobody has decided whether this becomes a published government instrument.',
     next: 'Decide whether we are publishing at all',
     sections: ['q-french'], also: [139, 137],
   },
