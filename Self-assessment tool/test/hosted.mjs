@@ -2846,7 +2846,7 @@ console.log('\nA submission is a place you can go back from\n');
    */
   ok('and leads with how far apart they are, with no sign on it',
      (gap?.querySelector('.lead-v')?.textContent ?? '') === '3.0'
-     && /higher than assessors gave them/.test(said(gap)),
+     && /points higher departments scored themselves, where an assessor disagreed/.test(said(gap)),
      `${gap?.querySelector('.lead-v')?.textContent} / ${said(gap).slice(0, 120)}`);
   ok('and names the questions furthest apart', /Q1|Q2/.test(said(gap)), said(gap).slice(0, 160));
 
@@ -2983,9 +2983,15 @@ console.log('\nA submission is a place you can go back from\n');
    * support: roughly a third of any distribution falls outside one deviation, and on a pool of
    * twenty it was naming seven. The number was right and the sentence over it was not.
    */
-  ok('and leads with how many fell outside the deviation',
+  /**
+   * One word for the thing, everywhere it appears. The card said "outside one deviation", its
+   * own fold said "the furthest from the mean", and the category folds said "outside the
+   * deviation" - three names for one set, on one screen.
+   */
+  ok('and leads with how many outliers there are',
      (card?.querySelector('.lead-v')?.textContent ?? '') === '2'
-     && /outside one deviation/.test(txt), `${card?.querySelector('.lead-v')?.textContent} / ${txt.slice(0, 120)}`);
+     && /outliers, further than one deviation from the mean/.test(txt),
+     `${card?.querySelector('.lead-v')?.textContent} / ${txt.slice(0, 140)}`);
   ok('and claims nothing about them being rare',
      !/unlike the others|anomal/i.test(txt), txt.slice(0, 160));
   ok('with the mean underneath', /mean 5\.0/.test(txt), txt.slice(0, 200));
@@ -2995,8 +3001,10 @@ console.log('\nA submission is a place you can go back from\n');
    */
   ok('and a population deviation, because this is not a sample of anything',
      /deviation 2\.45/.test(txt), txt.slice(0, 200));
+  // Read as a sentence rather than as an equation: it said "2.6-7.4 holds the other 1 of 3",
+  // which asks the reader to work out that a range can hold things.
   ok('and the boundary it computed, with how many it was computed from',
-     /2\.6.*7\.4/.test(txt) && /holds the other 1 of 3/.test(txt), txt.slice(0, 220));
+     /1 of 3 score between 2\.6 and 7\.4/.test(txt), txt.slice(0, 220));
 
   /**
    * The list folds, and is closed. Reported the day it went in: the list is good and it
@@ -3005,7 +3013,7 @@ console.log('\nA submission is a place you can go back from\n');
   const fold = card?.querySelector('details.fold');
   ok('the list of them folds', !!fold, txt.slice(0, 120));
   ok('and starts closed', !fold?.hasAttribute('open'));
-  ok('with the count legible while it is', /Which 2/.test(fold?.querySelector('summary')?.textContent ?? ''),
+  ok('with the count legible while it is', /The 2 outliers/.test(fold?.querySelector('summary')?.textContent ?? ''),
      fold?.querySelector('summary')?.textContent);
 
   const out = [...(card?.querySelectorAll('.outlier') ?? [])].map((b) => b.textContent.replace(/\s+/g, ' ').trim());

@@ -159,7 +159,7 @@ function paint(
    * findings when they are the same answers grouped twice. The results page solved this already
    * with one bordered box and a rule between the halves, so this uses the same box.
    */
-  const where = el('section', { class: 'card' }, [
+  const where = el('section', { class: 'card after-leads' }, [
     // It was called Where the portfolio is weak and it is every average, strong ones included.
     // A magnifying glass over the weak ones would be a different screen.
     el('h2', {}, ['Averages']),
@@ -232,7 +232,7 @@ function paint(
        * be in a heading at least so I know it exists. It was a label under a number in a row
        * of four identical ones, which is the same as not being on the page.
        */
-      const box = el('section', { class: 'card' }, [
+      const box = el('section', { class: 'card lead-card' }, [
         el('h2', {}, ['Standard deviation']),
         /**
          * IT SAYS WHAT IT MEASURED, NOT WHAT THAT MEANS.
@@ -248,13 +248,28 @@ function paint(
          * worth. Whether one deviation is the right boundary at all is a question for TBS,
          * because anomaly is their word, and the tool should not answer it by wording.
          */
+        /**
+         * ONE WORD FOR THE THING, EVERYWHERE IT APPEARS.
+         *
+         * This card called them "submissions outside one deviation", its own fold called them
+         * "the furthest from the mean", and the category folds called them "outside the
+         * deviation". Three names for one set, on one screen. Asked for in those words: do you
+         * mean outliers, name them consistently throughout the blocks.
+         *
+         * Outlier, and the definition said once, here, where the method is named.
+         *
+         * And the band reads as a sentence rather than as an equation. It said "3.0-7.6 holds
+         * the other 13 of 20", which asked the reader to work out that a range can hold
+         * things.
+         */
         lead(
           String(out.length),
-          out.length === 1 ? 'submission outside one deviation' : 'submissions outside one deviation',
+          out.length === 1 ? 'outlier, further than one deviation from the mean'
+            : 'outliers, further than one deviation from the mean',
           [
             `mean ${all.mean.toFixed(1)}`,
             `deviation ${all.sd.toFixed(2)}`,
-            `${low.toFixed(1)}\u2013${high.toFixed(1)} holds the other ${all.n - out.length} of ${all.n}`,
+            `${all.n - out.length} of ${all.n} score between ${low.toFixed(1)} and ${high.toFixed(1)}`,
           ],
           out.length ? 'warn' : '',
         ),
@@ -280,8 +295,8 @@ function paint(
          */
         box.appendChild(folded(
           out.length > top.length
-            ? `The ${top.length} furthest from the mean, of ${out.length}`
-            : out.length === 1 ? 'Which one' : `Which ${out.length}`,
+            ? `The ${top.length} furthest of ${out.length} outliers`
+            : out.length === 1 ? 'The outlier' : `The ${out.length} outliers`,
           [el('div', { class: 'outliers' }, top
             .sort((a, b) => (a.r.overall as number) - (b.r.overall as number))
             .map((row) => outlierRow(row.rec, row.r.overall as number, all.mean)))],
@@ -339,8 +354,10 @@ function paint(
                   && (x.v < sp.mean - sp.sd || x.v > sp.mean + sp.sd))
           .sort((a, b) => a.v - b.v);
         if (out.length) {
+          // The deviation is already on the bar this sits under, so the summary is the count
+          // and the word, and nothing else.
           byCategory.appendChild(folded(
-            `${out.length} outside \u00B1${sp.sd.toFixed(1)}`,
+            out.length === 1 ? '1 outlier' : `${out.length} outliers`,
             [el('div', { class: 'outliers outliers-tight' },
               out.slice(0, 6).map((x) => outlierRow(x.row.rec, x.v, sp.mean)))],
           ));
@@ -415,7 +432,7 @@ function paint(
       const worst = [...gaps.values()]
         .sort((a, b) => Math.abs(b.sum / b.n) - Math.abs(a.sum / a.n) || b.n - a.n)
         .slice(0, 5);
-      const box = el('section', { class: 'card' }, [
+      const box = el('section', { class: 'card lead-card' }, [
         el('h2', {}, ['Self-scores against assessors']),
         /**
          * THE NUMBER IS A SIZE AND THE WORDS CARRY THE DIRECTION.
@@ -430,10 +447,17 @@ function paint(
          */
         lead(
           changed ? Math.abs(mean).toFixed(1) : '\u2014',
+          /**
+           * It said "0.9 points higher than assessors gave them" and was asked what that
+           * means. Two things were missing: who, and on what. It is the departments, and it is
+           * only the questions where an assessor wrote a different number - a question nobody
+           * changed contributes nothing, which is what keeps the figure from shrinking the
+           * more carefully somebody looks.
+           */
           changed
             ? mean < 0
-              ? 'points higher than assessors gave them'
-              : 'points lower than assessors gave them'
+              ? 'points higher departments scored themselves, where an assessor disagreed'
+              : 'points lower departments scored themselves, where an assessor disagreed'
             : 'no assessor has changed a score',
           [
             `${withAudit} record${withAudit === 1 ? '' : 's'} audited`,
@@ -480,7 +504,7 @@ function paint(
     const days = (t: number) => Math.floor((Date.now() - t) / 86400000);
     if (waiting.length || started || drafts) {
       const oldest = waiting[0];
-      const box = el('section', { class: 'card' }, [
+      const box = el('section', { class: 'card lead-card' }, [
         el('h2', {}, ['Waiting on an assessor']),
         lead(
           oldest ? String(days(oldest.since)) : '\u2014',
@@ -493,12 +517,32 @@ function paint(
           oldest && days(oldest.since) >= 14 ? 'warn' : '',
         ),
       ]);
-      // The one that has waited longest, named and openable, because a number nobody can act
-      // on is the thing this card exists not to be.
+      /**
+       * The same shape as the cards above it: one row shown, the rest behind a fold.
+       *
+       * Asked, looking at it: the outliers here are not in a toggle, it is just one - does it
+       * become one when there are more than some number. It should, and the answer is one.
+       * The longest wait is the number the card leads with, so the submission it belongs to is
+       * on screen without being asked for; everything else waiting is behind the fold, the way
+       * the outliers are. Six of them, for the same reason.
+       *
+       * They are not outliers and are not called outliers. Everything waiting is waiting; what
+       * makes the oldest worth naming is that it is the oldest, not that it is unusual.
+       */
       if (oldest) {
         box.appendChild(el('div', { class: 'outliers' }, [
           outlierRow(oldest.rec, days(oldest.since), Number.POSITIVE_INFINITY),
         ]));
+      }
+      if (waiting.length > 1) {
+        const rest = waiting.slice(1, 7);
+        box.appendChild(folded(
+          waiting.length - 1 > rest.length
+            ? `The next ${rest.length} waiting, of ${waiting.length - 1}`
+            : `The other ${rest.length} waiting`,
+          [el('div', { class: 'outliers' }, rest.map(
+            (x) => outlierRow(x.rec, days(x.since), Number.POSITIVE_INFINITY)))],
+        ));
       }
       root.appendChild(box);
     }
@@ -506,32 +550,19 @@ function paint(
 
   root.appendChild(where);
 
-  // What this role can do that an assessor cannot, and what nobody has decided yet.
-  root.appendChild(el('section', { class: 'card' }, [
-    el('h2', {}, ['Admin actions']),
-    el('span', { class: 'badge badge-warn' }, ['Mostly not built']),
-    el('ul', { class: 'steps' }, [
-      el('li', {}, [el('b', {}, ['Withdraw a record. ']), 'Out of every statistic on this page, still in the list. Nothing is deleted.']),
-      el('li', {}, [el('b', {}, ['Re-assign an assessor. ']), 'When somebody leaves, or a file needs a second pair of eyes.']),
-      el('li', {}, [
-        el('b', {}, ['Question sets. ']),
-        'Built. Settings holds every set this browser knows, marks the active one, and takes a new one. Adding a set keeps the old ones, and deleting one asks twice.',
-      ]),
-      /**
-       * What this line was: "Clear out test submissions. Raised at TBS and parked." Nobody
-       * reading it could tell what had been raised, with whom, or what parked meant. It was
-       * about removing many records at once, which nothing here does: they go one at a time,
-       * and each one makes you type its code out.
-       */
-      el('li', {}, [
-        el('b', {}, ['Clear out test submissions in one go. ']),
-        'Not built. A prototype fills up with them, and today each is deleted on its own row, which asks you to type its code out first.',
-      ]),
-    ]),
-    el('p', { class: 'small muted' }, [
-      'Open question for TBS: is this a separate role, or an assessor with more buttons?',
-    ]),
-  ]));
+  /**
+   * ADMIN ACTIONS IS NOT HERE. IT WAS A ROADMAP ON A DASHBOARD.
+   *
+   * Four bullets, two of them describing things that are built - withdrawing a record is in
+   * the row menu on the submissions list, and question sets are in Settings - under a badge
+   * saying mostly not built. Of the other two, re-assigning an assessor cannot exist yet
+   * because nobody is assigned to anything, and clearing out test submissions in one go is a
+   * thing nobody wants: deleting is per row and asks for the code.
+   *
+   * So it was two built things mislabelled as unbuilt, one that is not possible, and one that
+   * is not wanted, on a screen four assessors see. The four are already #125 to #128 in the
+   * backlog, which is where a list of unbuilt things belongs.
+   */
 
 }
 
