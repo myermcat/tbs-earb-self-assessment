@@ -474,6 +474,50 @@ ok('every stored name is made by the helper, and there is more than one',
      reached.slice(before).join(' | '));
 }
 
+/**
+ * EVERY ANOMALY ROW ON THE DASHBOARD OPENS THE SUBMISSION IT NAMES.
+ *
+ * The check beside the list covers the cause - an id the alphabet cannot express - from the
+ * one control that was already driven. This covers the control that was actually dead, and
+ * covers all of it: the anomaly rows are the one thing on that screen a person is invited to
+ * press, there were thirty-seven of them across the card and the five categories, and not one
+ * of them opened anything. Nothing errored and nothing was logged. The address changed and the
+ * page stayed where it was.
+ *
+ * Every row rather than the first, because a scheme can be wrong for some ids and right for
+ * others, and because the first row is the one anybody checks by hand. These are presses on a
+ * page that reaches no network, so the only thing they cost is time.
+ *
+ * It asks the one question that matters and not how the answer is arrived at: did the
+ * submission this row names come up. That holds whether a future break is in the ids, the
+ * alphabet, the address grammar, the fold or the row itself.
+ */
+{
+  window.location.hash = '#assessor/dashboard';
+  await new Promise((r) => setTimeout(r, 400));
+  // Open every fold, because a row inside a closed one is not a row anybody can press.
+  for (const f of document.querySelectorAll('details.fold')) f.setAttribute('open', '');
+  const total = document.querySelectorAll('.card .outlier').length;
+  ok('the dashboard offers anomalies to open', total > 0,
+     [...document.querySelectorAll('.card h2')].map((h) => h.textContent).join(' | '));
+
+  const dead = [];
+  for (let i = 0; i < total; i++) {
+    window.location.hash = '#assessor/dashboard';
+    await new Promise((r) => setTimeout(r, 200));
+    for (const f of document.querySelectorAll('details.fold')) f.setAttribute('open', '');
+    const row = [...document.querySelectorAll('.card .outlier')][i];
+    const name = row?.querySelector('.outlier-name')?.textContent?.trim() ?? '';
+    row?.dispatchEvent(new window.MouseEvent('click', { bubbles: true }));
+    await new Promise((r) => setTimeout(r, 250));
+    if (!document.querySelector('.crumbs') || !app.textContent.includes(name)) {
+      dead.push(`${name} -> ${window.location.hash}`);
+    }
+  }
+  ok('and pressing any of them opens the one it names', dead.length === 0,
+     dead.slice(0, 4).join(' | ') || `${total} opened`);
+}
+
 ok('the demonstration reached nothing at all, from first paint to here',
    reached.length === 0, reached.join(' | '));
 

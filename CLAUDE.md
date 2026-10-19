@@ -221,6 +221,33 @@ that was mutated, the state that was seeded, the file that is about to run. When
 helper that encodes a value's options, check it knows all of them. One line of evidence is worth
 more than the whole chain of reasoning that says it should have worked.
 
+## A test built on a fixture the code generates cannot touch the data
+
+On 21 October every anomaly row on the assessor's dashboard opened nothing, on all thirty-seven
+of them, for as long as the list had existed. The invented ids began with `DEMO`, and `O` is
+one of the four characters the code alphabet leaves out so nobody misreads one aloud. The
+address changed and the page stayed where it was. Nothing errored and nothing was logged.
+
+There was a check for exactly this, written the same hour as the feature, and it passed every
+time. It built its fixture with `codeFor()` - **the function cannot produce an illegal code**.
+So it proved the mechanism and never once touched the data, and a mechanism that works on legal
+input is precisely what you have when the input is illegal.
+
+**When a check and the thing it checks share a generator, the check is about the generator.**
+Ask what input it is impossible for the fixture to produce, and whether that is the input that
+breaks. Where the real data is somewhere else - an invented pool, a seeded store, a file
+somebody sends - the honest check runs there, however much less convenient that is.
+
+The same failure wears a second costume. Three tests pinned the rubric version as the literal
+`1.0-dan`, which turned out to be a colleague's first name on a page he was about to be shown.
+Correcting it turned them red, so the red read as the fix being wrong. **A test that pins a
+value holds the value in place; it does not guard it.** Read it off the thing that owns it.
+
+And both were found the same way, which is the part to copy: by handing the built page to
+readers who had not built it, one of them looking only for controls that go nowhere. Neither of
+us applied that lens to our own work, because we were each checking that the thing we made was
+there.
+
 ## Do not explain yourself, or the thing you built
 
 Asked for on 1 October, after a page printed a sentence explaining why one of its sections was
