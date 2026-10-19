@@ -2055,7 +2055,25 @@ console.log('\nThe published build, signed in\n');
   const auditedCells = [...doc.querySelectorAll('.triage tbody tr')]
     .map((tr) => tr.querySelector('.audited-who, .muted[title*="audit"]')?.textContent?.trim() ?? '');
   ok('the list has a column saying who audited each one', auditedCells.length === 2, auditedCells.join(' | '));
-  ok('and yours says so in the first person', auditedCells.some((x) => /^You/.test(x)), auditedCells.join(' | '));
+  /**
+   * Every assessor is a chip with their own name, and one of them being you marks the cell.
+   *
+   * It said "You, and 1 other", which answered the question an assessor asks first and hid who
+   * the other was. With twenty records and two assessors on a row, the names ran into one
+   * another as four lines of plain text that had to be read to be counted, so each one is a
+   * chip on its own line now. Which chip is yours cannot honestly be worked out here -
+   * auditedBy holds display names and auditedByMe was worked out from addresses - so the cell
+   * carries the mark rather than a guess at the chip.
+   */
+  ok('and every assessor on a row is separable from the next',
+     [...doc.querySelectorAll('.triage .audited-who')].some((c) => c.querySelectorAll('.audit-chip').length >= 1),
+     auditedCells.join(' | '));
+  ok('and the cell says when one of them is you',
+     !!doc.querySelector('.triage .audited-who.audited-mine'),
+     [...doc.querySelectorAll('.triage .audited-who')].map((c) => c.className).join(' | '));
+  ok('and names them rather than counting them',
+     auditedCells.some((x) => /Mariia/.test(x)) && !auditedCells.some((x) => /\d+ other/.test(x)),
+     auditedCells.join(' | '));
   ok('and somebody else is named rather than counted', auditedCells.some((x) => /Nick/.test(x)), auditedCells.join(' | '));
   ok('and a row nobody has touched says so in words rather than leaving a blank',
      !auditedCells.some((x) => x === ''), auditedCells.join(' | '));
@@ -2818,9 +2836,17 @@ console.log('\nA submission is a place you can go back from\n');
   ok('and only the ones that differ count as changed',
      /8 changed|2 changed/.test(said(gap)), said(gap).slice(0, 200));
   // -3 on both, so the mean is -3 and the department scored itself high.
-  ok('and leads with which way the disagreement runs, and by how much',
-     (gap?.querySelector('.lead-v')?.textContent ?? '') === '-3.0'
-     && /scored themselves high/.test(said(gap)),
+  /**
+   * The number is a size and the words carry the direction.
+   *
+   * It printed -3.0 beside "points departments scored themselves high", which is two
+   * directions in one sentence: the minus belongs to the subtraction it came from, the word
+   * high belongs to the department. Asked, in those words: what does it mean, why is the
+   * number negative.
+   */
+  ok('and leads with how far apart they are, with no sign on it',
+     (gap?.querySelector('.lead-v')?.textContent ?? '') === '3.0'
+     && /higher than assessors gave them/.test(said(gap)),
      `${gap?.querySelector('.lead-v')?.textContent} / ${said(gap).slice(0, 120)}`);
   ok('and names the questions furthest apart', /Q1|Q2/.test(said(gap)), said(gap).slice(0, 160));
 

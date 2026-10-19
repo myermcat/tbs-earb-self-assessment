@@ -660,6 +660,17 @@ let lastAgree: { section: string; agreed: number; kept: number } | null = null;
  * forgotten. It lasts as long as the screen does.
  */
 let listSort: { key: string; dir: 1 | -1 } | null = null;
+/**
+ * Which group of submissions the list is showing.
+ *
+ * Asked for once the pool reached twenty: the drafts should be a tab of their own rather than
+ * a band at the foot, because finding one meant scrolling past everything finished. A band
+ * works at eight rows and stops working at twenty, which is the ordinary life of a grouping.
+ *
+ * Not in the address, for the same reason the sort is not: this is a way of looking at what is
+ * already on screen rather than a place somebody is.
+ */
+let listTab: 'ready' | 'draft' | 'withdrawn' | null = null;
 export function setAuditor(name: string): void { auditor = name; }
 
 /**
@@ -942,8 +953,16 @@ function paintList(rubric: Rubric, root: HTMLElement) {
    * the rows keep their own marks - the dashed edge and the plain-ink score on a draft - which
    * are true in any order.
    */
+  const everything = ordered;
+  /**
+   * A tab that has emptied is not a tab anybody chose, so the list falls back to showing all.
+   * It can empty under somebody: withdraw the last withdrawn record and the tab it was on is
+   * gone while they are standing on it.
+   */
+  if (listTab && !everything.some((l) => groupOf(l) === listTab)) listTab = null;
+  const picked = listTab ? everything.filter((l) => groupOf(l) === listTab) : everything;
   const rows = listSort
-    ? [...ordered].sort((x, y) => {
+    ? [...picked].sort((x, y) => {
         const by = columns.find((c) => c.label === listSort!.key)?.by;
         if (!by) return 0;
         const a = by(x);
@@ -957,8 +976,8 @@ function paintList(rubric: Rubric, root: HTMLElement) {
           : String(a).localeCompare(String(b));
         return cmp * listSort!.dir;
       })
-    : ordered;
-  const sizes = rows.reduce<Record<string, number>>(
+    : picked;
+  const sizes = everything.reduce<Record<string, number>>(
     (n, l) => ({ ...n, [groupOf(l)]: (n[groupOf(l)] ?? 0) + 1 }), {});
 
   /**
@@ -969,8 +988,15 @@ function paintList(rubric: Rubric, root: HTMLElement) {
    * lines, while "Must ask" held a column wide enough for its heading to hold a single digit.
    * Reported in exactly those terms. A heading is allowed to wrap; a button is not.
    */
-  const widths = ['auto', '5.2rem', '9rem', '5.4rem', '7.2rem', '6rem', '3.6rem', '7rem',
-    '3.4rem', '4.2rem', '4.4rem', '6.6rem'];
+  /**
+   * Audited is the widest it has been and the department is narrower, which is the trade.
+   *
+   * A name at 6.6rem is an ellipsis with two letters in front of it, and the point of the
+   * column is who. Department names are long and repeat down the column, so they are the ones
+   * that can afford to wrap.
+   */
+  const widths = ['auto', '5.2rem', '7.6rem', '5.4rem', '6.4rem', '5.6rem', '3.6rem', '6.4rem',
+    '3.4rem', '4.2rem', '4.4rem', '9.4rem'];
   const table = el('table', { class: 'triage' }, [
     el('colgroup', {}, widths.map((w) => el('col', { style: `width:${w}` }))),
     el('thead', {}, [el('tr', {}, columns.map((c) => {
@@ -1010,7 +1036,9 @@ function paintList(rubric: Rubric, root: HTMLElement) {
     const group = groupOf(l);
     // A band is not drawn over the first group when it is the only one: a list that is all
     // finished work does not need a heading saying the whole of it is finished work.
-    if (!listSort && group !== wasGroup
+    // A band describes a group WITHIN the list. On a tab there is only one group, so the band
+    // would be a heading over the whole thing saying what the tab already says.
+    if (!listSort && !listTab && group !== wasGroup
         && !(wasGroup === null && Object.keys(sizes).length === 1)) {
       tb.appendChild(el('tr', { class: `group-band band-${group}` }, [
         el('td', { colspan: '13' }, [
@@ -1232,6 +1260,35 @@ function paintList(rubric: Rubric, root: HTMLElement) {
         html: `${ICON_DOWN}<span>Export as CSV</span>`,
         onclick: () => askExportCsv(rubric),
       }),
+      /**
+       * READY AND DRAFTS ARE TABS ONCE THERE ARE ENOUGH ROWS TO SCROLL.
+       *
+       * They were bands down one list, which works at eight rows: you can see where one group
+       * stops. At twenty it stopped working, and it was reported in exactly those terms - the
+       * drafts are below everything finished and I have to scroll a long way to find one.
+       *
+       * All first, because somebody arriving has not chosen to exclude anything, and the band
+       * headings still do their job on it. Each tab carries its own count, so the shape of the
+       * pool is readable without pressing anything, and a group with nothing in it is not
+       * offered at all.
+       */
+      el('nav', { class: 'list-tabs', 'aria-label': 'Which submissions' }, [
+        ...([null, 'ready', 'draft', 'withdrawn'] as const)
+          .filter((g) => g === null || sizes[g])
+          .map((g) => {
+            const on = listTab === g;
+            const label = g === null ? 'All'
+              : g === 'ready' ? 'Ready'
+              : g === 'draft' ? 'Drafts'
+              : 'Withdrawn';
+            const n = g === null ? everything.length : sizes[g] ?? 0;
+            return el('button', {
+              class: `tab ${on ? 'on' : ''}`,
+              'aria-current': on ? 'page' : undefined,
+              onclick: () => { listTab = g; repaint(); },
+            }, [label, el('span', { class: 'tab-n' }, [String(n)])]);
+          }),
+      ]),
       /**
        * TAKEN OUT ON 1 OCTOBER WITH THE DROP ZONE, and coming back with it.
        *
@@ -1942,13 +1999,38 @@ function auditedCell(l: Loaded): HTMLElement {
    * absence of one is what recedes.
    */
   if (!who.length) return el('span', { class: 'audited-none', title: 'Nobody has written an audit on this one' }, ['Nobody yet']);
-  const title = `Audited by ${who.join(', ')}`;
-  if (!l.auditedByMe) return el('span', { class: 'audited-who', title }, [who.join(', ')]);
-  const others = who.length - 1;
-  return el('span', { class: 'audited-who audited-mine', title }, [
-    el('b', {}, ['You']),
-    others ? `, and ${others} other${others === 1 ? '' : 's'}` : '',
-  ]);
+  /**
+   * ONE NAME PER LINE, AND EACH ONE A SHAPE RATHER THAN A RUN OF WORDS.
+   *
+   * Reported with twenty records in the pool: full names are right and two of them run into
+   * one another, so there are four lines of text in the cell and nothing separates the people
+   * at a glance - you have to read it to count them. And the column grew tall enough to set
+   * the height of the whole row.
+   *
+   * So each assessor is a chip on its own line, at the smallest size in the table, with their
+   * initials in front of the name. Two chips read as two people before a word of either is
+   * read, which is the thing that was missing.
+   *
+   * Yours is marked rather than replaced by the word You. Which rows you have touched is what
+   * an assessor looks for first, and the old form said "You, and 1 other", which answered that
+   * and hid who the other was.
+   */
+  /**
+   * Whether one of them is you marks the CELL, not a chip.
+   *
+   * auditedBy holds display names and auditedByMe was worked out from addresses, so there is
+   * no honest way from here to say which chip is yours. Marking the first one would be a guess
+   * that is right most of the time, which is the worst kind.
+   */
+  return el('span', {
+    class: `audited-who ${l.auditedByMe ? 'audited-mine' : ''}`,
+    title: l.auditedByMe
+      ? `Audited by ${who.join(', ')}, including you`
+      : `Audited by ${who.join(', ')}`,
+  }, who.map((name) => el('span', { class: 'audit-chip' }, [
+    el('span', { class: 'audit-chip-ini' }, [initialsFor(name)]),
+    el('span', { class: 'audit-chip-name' }, [name]),
+  ])));
 }
 
 /** Two letters for a face, from a name or an address. */

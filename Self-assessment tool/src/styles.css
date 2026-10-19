@@ -1745,7 +1745,10 @@ td.num { text-align: right; font-family: var(--mono); font-variant-numeric: tabu
  * The page carried seventeen counters at one weight in four identical rows, so nothing on it
  * said what to look at first. The loud one is always the number that names something to do.
  */
-.lead { display: flex; align-items: baseline; gap: .9rem; margin: .1rem 0 .2rem; }
+/* The big number and the words beside it sat on one baseline, which is typographically
+   correct and reads as misaligned: a 2.3rem figure next to 1rem text puts the words at the
+   foot of the figure rather than against the middle of it. Centred against each other. */
+.lead { display: flex; align-items: center; gap: .9rem; margin: .1rem 0 .2rem; }
 .lead-v { font-family: var(--mono); font-size: 2.3rem; font-weight: 700; line-height: 1;
   letter-spacing: -.02em; color: var(--ink); }
 .lead-v.warn { color: var(--warn); }
@@ -2292,7 +2295,32 @@ tr.row-open:hover td { background: var(--surface-2); }
 tr.row-open:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
 /* Controls inside it keep their own cursor, because they do something else. */
 tr.row-open button, tr.row-open summary, tr.row-open label { cursor: pointer; }
-.audited-who { display: inline-block; max-width: 14rem; overflow-wrap: anywhere; }
+/* Ready, drafts and withdrawn as tabs in the toolbar, each carrying its own count so the
+   shape of the pool is readable without pressing anything. */
+.list-tabs { display: flex; gap: .2rem; align-items: center; margin-left: .5rem; }
+.list-tabs .tab { display: inline-flex; align-items: center; gap: .3rem;
+  padding: .3rem .55rem; border-radius: var(--radius-sm); background: none;
+  border: 1px solid transparent; color: var(--ink-2); cursor: pointer; font-size: .83rem; }
+.list-tabs .tab:hover { color: var(--ink); border-color: var(--line); }
+.list-tabs .tab.on { background: var(--surface-2); border-color: var(--line); color: var(--ink);
+  font-weight: 600; }
+.list-tabs .tab-n { font-family: var(--mono); font-size: .72rem; color: var(--ink-3); }
+.list-tabs .tab.on .tab-n { color: var(--ink-2); }
+
+/* One chip per assessor, each on its own line, at the smallest size in the table. Two names
+   ran into one another as four lines of plain text that had to be read to be counted, and the
+   column set the height of the row. A chip is a shape before it is a word. */
+.audited-who { display: flex; flex-direction: column; gap: .15rem; align-items: flex-start; }
+.audit-chip { display: inline-flex; align-items: center; gap: .25rem; max-width: 100%;
+  padding: .05rem .3rem .05rem .05rem; border: 1px solid var(--line);
+  border-radius: var(--radius-sm); background: var(--surface-2); font-size: .7rem;
+  line-height: 1.25; }
+.audit-chip-ini { font-family: var(--mono); font-size: .62rem; font-weight: 700;
+  background: var(--line); color: var(--ink-2); border-radius: 2px; padding: .05rem .18rem;
+  flex: 0 0 auto; }
+.audit-chip-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* One of them is you. The cell says so, because nothing here knows which chip. */
+.audited-mine .audit-chip { border-color: var(--accent-line); }
 /* Nobody yet, almost down to the background. It is the answer on most rows, and a column of
    the same three words at ordinary muted weight buries the names somebody is scanning for.
    Mixed toward the surface rather than given a flat value, so it holds in both themes. */
