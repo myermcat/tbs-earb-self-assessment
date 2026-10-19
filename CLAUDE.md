@@ -264,6 +264,43 @@ readers who had not built it, one of them looking only for controls that go nowh
 us applied that lens to our own work, because we were each checking that the thing we made was
 there.
 
+## A selector is a guess at a question
+
+A check counted the finished requirements on a built page by counting everything wearing
+`st-done`, and reported one more than there were. The legend at the top of the page explaining
+what `st-done` means wears it too. The page was right and the check was wrong, which is the
+wrong way round for an hour of somebody's confidence.
+
+**A selector is not a question. It is a guess at a question, and the guess is wrong the moment
+the page puts the same clothes on two different things.** Count the rows, not the class. Ask
+the thing that owns the answer, not the thing that happens to look like it.
+
+This is the same family as the fixture rule above, and the tell is the same: the number came
+out too clean, or too close, for what had just been reasoned out.
+
+## A string inside somebody else's saved record is a key
+
+The question set was renamed from `1.0-dan` to `1.0` on 19 October, because the first half was a
+colleague's first name printing on every screen he was about to be shown. The rename was right
+and it was still the wrong move, because every assessment already saved carries the version it
+was answered against, inside the record, and the code matched that string exactly. Overnight,
+every submission in the live store said NOT COMPARABLE, with not a word of the questions
+changed.
+
+**Anything written into a department's own saved record is permanent, because their records are
+not ours to migrate.** Ids, version strings, field names, the spelling of an enum. There is no
+release that fixes those; there is only code that goes on answering to the old spelling for
+ever.
+
+So: **a version is renamed never.** Change the questions and the new set gets a new version.
+Change what it is called and you are writing an alias that can never be removed, and
+`ALSO_KNOWN_AS` in `src/library.ts` is where the first one lives, with that written on it.
+
+And when something is renamed anyway, taking the old name off the screens is only half of it.
+The column that printed it was showing the string the record carries; it shows the set that did
+the arithmetic now, which is the honest answer to what a reader is asking and does not put the
+old name back the moment somebody opens an old record.
+
 ## Do not explain yourself, or the thing you built
 
 Asked for on 1 October, after a page printed a sentence explaining why one of its sections was
