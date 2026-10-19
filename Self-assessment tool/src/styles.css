@@ -2412,3 +2412,10 @@ summary.section-head button { margin-left: 0; }
 /* The same initials on a question as on the byline, so the mark means one thing. */
 .q-faces { margin-left: auto; }
 .q-faces .face { width: 1.3rem; height: 1.3rem; font-size: .58rem; }
+
+/* The one tool question, in the dialog that marks an assessment ready. It sits under the two
+   signer fields and is the quieter of the two things in there, because the signer is required
+   and this is not. */
+.ready-fields { display: grid; gap: .7rem; }
+.took-row { display: grid; gap: .25rem; font-size: .86rem; color: var(--ink-2); }
+.took-row select { width: 100%; }
