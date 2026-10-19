@@ -61,11 +61,12 @@ const item = (o) => ({
   t: 'A thing', why: 'Because.', n: ++serial, ...o,
 });
 
-const fixture = (items, sections) => `
+const fixture = (items, sections, blocks = []) => `
 export const updated = '2026-10-01';
 export const tracks = [{ id: 'engine', title: 'The engine' }];
 export const sections = ${JSON.stringify(sections)};
 export const items = ${JSON.stringify(items)};
+export const blocks = ${JSON.stringify(blocks)};
 `;
 
 const SECS = [
@@ -409,6 +410,57 @@ console.log('\nThe backlog page\n');
        `rebuilt ${elsewhere.html.length} bytes against ${live.length} committed. `
        + 'Something in the builder is reading the clock off the machine.');
   }
+}
+
+/* ---------- the board of blocks ----------------------------------------------------------- */
+{
+  /**
+   * Asked for on 19 October: a separate view of the blocks, in front of To go live, with cards
+   * the way the course hub has cards, so two or three people can each take one block.
+   *
+   * A block is a view over items filed elsewhere, like the first tab. The things that can go
+   * wrong are the things that make it stop being a view: a card that draws its own copy of an
+   * item, a card whose number double-counts the work, and a block pointing at a section or an
+   * item number that does not exist, which draws an empty card on a page that looks finished.
+   */
+  const BLOCK = [{
+    id: 'one', n: 1, owner: 'Mariia', title: 'A block', kicker: 'A kicker',
+    what: 'What it is.', next: 'The next thing', sections: ['e-live'], also: [], except: [],
+  }];
+  const { html } = await build(fixture([
+    item({ id: 'a', track: 'engine', section: 'e-live', t: 'In the block' }),
+    item({ id: 'b', track: 'engine', section: 'e-two', t: 'Not in the block' }),
+  ], SECS, BLOCK));
+
+  // Split on the pane, not on the tab button, which carries the same data-track.
+  const board = (html.split('class="pane board"')[1] ?? '').split('</section>')[0];
+  ok('the board is the first tab',
+     html.indexOf('class="pane board"') < html.indexOf('data-track="engine" hidden'));
+  ok('a card carries the owner and the next step',
+     board.includes('<b>Owner</b> Mariia') && board.includes('The next thing'));
+  ok('it gathers what its sections hold', board.includes('data-ref="a"'));
+  ok('and nothing else', !board.includes('data-ref="b"'));
+  /* A card holds pointers, so the item is drawn once, on its own tab, with its controls. */
+  ok('a card draws no second copy of the item', !/<div class="row"/.test(board));
+  ok('and owns no anchor, so an address still finds the item itself', !/ id="n\d+"/.test(board));
+
+  const broken = await build(fixture([
+    item({ id: 'a', track: 'engine', section: 'e-live' }),
+  ], SECS, [{ ...BLOCK[0], sections: ['e-nowhere'] }]));
+  ok('a block drawing from a section nobody has stops the build',
+     !broken.html && /no section called/.test(broken.stderr), broken.stderr.slice(0, 120));
+
+  const ghost = await build(fixture([
+    item({ id: 'a', track: 'engine', section: 'e-live' }),
+  ], SECS, [{ ...BLOCK[0], also: [9999] }]));
+  ok('and so does one naming an item number that does not exist',
+     !ghost.html && /no item numbered 9999/.test(ghost.stderr));
+
+  const nameless = await build(fixture([
+    item({ id: 'a', track: 'engine', section: 'e-live' }),
+  ], SECS, [{ ...BLOCK[0], owner: '' }]));
+  ok('a block with no owner stops the build too',
+     !nameless.html && /no owner/.test(nameless.stderr));
 }
 
 console.log(fails ? `\n${fails} backlog check(s) failed\n` : '\nthe page keeps its sections\n');

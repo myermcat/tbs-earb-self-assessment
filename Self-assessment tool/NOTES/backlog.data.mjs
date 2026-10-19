@@ -68,6 +68,83 @@
 export const updated = '2026-10-01';
 
 /** The tabs, across the top. Dan's three, and the critical path he asked for on top of them. */
+/**
+ * THE BLOCKS. Six pieces of work, each one a thing a single person can pick up and carry.
+ *
+ * Asked for on 19 October, to make a backlog that two or three people can share: a mental map
+ * of separate blocks, so one person takes one block rather than one item. The first tab is the
+ * board. A block is a view over items that already exist somewhere else, the way To go live is,
+ * so nothing is filed twice and finishing something is still one edit.
+ *
+ * A block is not a tidy box for everything. About two thirds of the open work belongs to one;
+ * the rest is the running polish of the two screens, which nobody picks up as a project.
+ *
+ * `sections` is what the block draws from, `also` adds an item by number and `except` takes one
+ * out, because three of the six cross a section boundary for a reason:
+ *   - the store moving off Firestore (#139) only matters if this is published, so it sits with
+ *     publishing rather than with the repository move;
+ *   - French (q-french) is not a question about the questions, it is a condition of publishing
+ *     a government instrument, and parking it there says so;
+ *   - what the production intake should be (#163) is one of the things the assessors are being
+ *     asked, so it sits with them.
+ */
+export const blocks = [
+  {
+    id: 'assessors', n: 1, owner: 'Mariia', title: 'Learning from the assessors',
+    kicker: 'Four assessors, and the ones after them',
+    what: 'Show the tool to the people who will use it and find out what they need from it. '
+      + 'A repeating loop rather than one meeting: meet a group, capture what they said, turn '
+      + 'it into work. Dan wants the latency out of a process that is claimed to cost 250 hours.',
+    next: 'Thursday afternoon, 90 minutes, with John, Nick, Allison and Patricia',
+    sections: ['a-process'], also: [163],
+  },
+  {
+    id: 'signin', n: 2, owner: 'nobody yet', title: 'Assessor sign-in',
+    kicker: 'How an assessor proves who they are',
+    what: 'An assessor writes a score against their own name, so the tool has to know who they '
+      + 'are. Somewhere in government this has already been solved by a team that had the same '
+      + 'problem, and the work starts by finding them and copying what they did.',
+    next: 'Ask Dan who to talk to',
+    sections: ['a-signin'], except: [137],
+  },
+  {
+    id: 'canada', n: 3, owner: 'nobody yet', title: 'The canada-ca repository',
+    kicker: 'Moving the code out of a personal account',
+    what: 'The tool lives in two repositories under a personal GitHub account. canada-ca already '
+      + 'publishes a tool as one file in a folder and the access is already granted, so this is '
+      + 'a commit rather than a transfer, once Dan clears the draft questions for public view.',
+    next: 'Dan clears the 176 draft questions being visible',
+    sections: ['a-publish'], except: [139, 163],
+  },
+  {
+    id: 'ownership', n: 4, owner: 'nobody yet', title: 'Ownership and handover',
+    kicker: 'What happens to the store when the term ends',
+    what: 'A store on a personal account with no owner of record, no end date and no plan for '
+      + 'handing it over. The objection is never the account. Written down before anybody asks, '
+      + 'it stops being an objection, and at 40 KB a record the whole thing moves in an afternoon.',
+    next: 'Name an owner of record, in writing',
+    sections: ['a-owner'],
+  },
+  {
+    id: 'questions', n: 5, owner: 'Dan', title: 'The questions',
+    kicker: 'The instrument itself',
+    what: 'The 176 questions, what each one is worth, which answers are the ones that matter and '
+      + 'what shape each answer takes. None of it is ours to write. The tool carries our reading '
+      + 'of it, labelled provisional, until he says otherwise.',
+    next: 'Confirm the answer type for every question',
+    sections: ['q-behaviour', 'q-content'],
+  },
+  {
+    id: 'publishing', n: 6, owner: 'nobody yet', title: 'Publishing, if we publish',
+    kicker: 'An open question, and what hangs off a yes',
+    what: 'Nobody has decided whether this becomes a published government instrument or stays a '
+      + 'prototype. A yes brings both official languages, a security review and a ruling on where '
+      + 'the data may live. Parking them here keeps them out of the list of things to get on with.',
+    next: 'Decide whether we are publishing at all',
+    sections: ['q-french'], also: [139, 137],
+  },
+];
+
 export const tracks = [
   { id: 'golive', title: 'To go live' },
   { id: 'questions', title: 'The questions' },
@@ -936,6 +1013,13 @@ export const items = [
     why: "Four routes, and they are a sequence rather than a choice. Each was argued on its own and the cheapest was never costed.",
   },
   {
+    id: "ask-dan-who-solved-this", n: 209,
+    track: "admin", section: "a-signin", kind: "question", parent: "assessor-sign",
+    status: "open", priority: "high", owner: "ours", golive: false,
+    t: "Ask Dan who already solved sign-in, and copy them",
+    why: "Step one, and it comes before any of the options below it. Somewhere in government a team has already signed people in to a tool of this shape, and Dan knows who. What they used decides this rather than what we would choose.\n\nNick named somebody for the identity side in September and that was the wrong lead: his answer was about which third-party services are authorised, which is a different conversation and now sits with publishing. The name is not worth recovering. Dan has a better one.",
+  },
+  {
     id: "sign-link-sent-work", n: 134, track: "admin", section: "a-signin", kind: "feature",
     status: "open", priority: "high", owner: "ours", golive: false, parent: "assessor-sign",
     t: "Sign in with a link sent to your work address",
@@ -1045,6 +1129,34 @@ export const items = [
     status: "open", priority: "low", owner: "Dan", golive: false,
     t: "Which initiatives must submit",
     why: "His call. Blocks nothing we build.",
+  },
+  {
+    id: "seed-what-the-assessors-open", n: 210,
+    track: "admin", section: "a-process", kind: "chore",
+    status: "open", priority: "high", owner: "ours", golive: false,
+    t: "Seed what the assessors will open before the session",
+    why: "Four of them are asked to spend twenty minutes in the tool before the meeting, ten as a submitter and ten as an assessor. An assessor who signs in to an empty pool reads it as a broken tool rather than an empty one, which is the first impression the session cannot afford.\n\nThere is no seeding tool for the submitter side, so test submissions are made through the submitter page, which needs no account. What is in the store now was made to exercise the code rather than to be read by somebody deciding whether this replaces their process.",
+  },
+  {
+    id: "turn-what-they-say-into-items", n: 211,
+    track: "admin", section: "a-process", kind: "chore",
+    status: "open", priority: "high", owner: "ours", golive: false,
+    t: "Turn what the assessors say into items",
+    why: "The session produces answers to two questions: what they want this to tell them that they cannot get today, and what they do when a submission turns up in front of them. Answers that stay in a transcript are not work, and the thing that makes the next session worth holding is that the last one visibly changed something.\n\nCosmetic feedback is wanted and written down, and it is not what the session is for.",
+  },
+  {
+    id: "follow-up-the-quiet-ones", n: 212,
+    track: "admin", section: "a-process", kind: "chore",
+    status: "open", priority: "medium", owner: "ours", golive: false,
+    t: "Follow up with whoever says nothing in the room",
+    why: "Four people in ninety minutes with one of them required and three optional. The ones who do not speak are not the ones with no opinion, and an assessment tool that only hears the loudest assessor is an assessment tool built for one person.",
+  },
+  {
+    id: "run-the-next-round", n: 213,
+    track: "admin", section: "a-process", kind: "feature",
+    status: "open", priority: "low", owner: "ours", golive: false,
+    t: "Run the next round with the next group",
+    why: "The block is a loop rather than a meeting. Who the next group is has not been decided: the rest of the assessor team, a department that would submit, or the same four once they have seen what changed.",
   },
   {
     id: "personal-accounts", n: 152, track: "admin", section: "a-owner", kind: "chore", status: "open",
