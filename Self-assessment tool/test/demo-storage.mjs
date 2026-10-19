@@ -194,10 +194,51 @@ ok('every stored name is made by the helper, and there is more than one',
    named.length >= 10, `${named.length}: ${named.join(', ')}`);
 
 /**
+ * THE POOL LOOKS LIKE A PORTFOLIO AND NOT LIKE A GENERATOR.
+ *
+ * Everything below was a column with one value down the page at some point. Eight records at
+ * three shapes gave three scores twenty times, every row was Unclassified, every row had
+ * nothing attached, and the five category readings printed the same average and the same names
+ * under all five. None of that fails a test on its own, and all of it reads to a room as a tool
+ * that cannot tell its own records apart.
+ */
+{
+  const rows = [...document.querySelectorAll('.triage tbody tr.row-open')];
+  const col = (i) => rows.map((r) => r.children[i]?.textContent?.trim() ?? '');
+  const spread = (xs) => new Set(xs.filter(Boolean)).size;
+
+  ok('the pool is twenty records', rows.length === 20, String(rows.length));
+  ok('at more than three stages of life', spread(col(5)) >= 6, [...new Set(col(5))].join(', '));
+  ok('carrying more than one marking', spread(col(3)) === 3, [...new Set(col(3))].join(', '));
+  ok('and more than one answer in the evidence column', spread(col(9)) > 2,
+     [...new Set(col(9))].join(', '));
+
+  const scores = col(6).map(Number).filter((n) => !Number.isNaN(n));
+  ok('the scores run across the range and not around one number',
+     Math.max(...scores) - Math.min(...scores) > 5,
+     `${Math.min(...scores)} to ${Math.max(...scores)}`);
+
+  const audited = col(11).filter((t) => t && !/Nobody yet/.test(t));
+  ok('several have been read, by more than two people', audited.length >= 5
+     && spread(audited.flatMap((t) => t.split(','))) >= 3, audited.join(' | '));
+  ok('and one of them by three', audited.some((t) => t.split(',').length === 3),
+     audited.join(' | '));
+
+  /**
+   * The invented assessors are named nobody. They carried the first names of two people who
+   * will be in the room the day this is shown, which puts an invented opinion against a real
+   * person on a screen they are looking at.
+   */
+  ok('and none of them is named after somebody who will be in the room',
+     !/\b(Dan|Nick|Allison|John|Patricia|Mariia)\b/.test(col(11).join(' ')),
+     col(11).join(' | '));
+}
+
+/**
  * THE INVENTED POOL CARRIES INVENTED AUDITS, AND READING THEM REACHES NOTHING.
  *
  * The audits are the point of the demonstration now: four assessors are shown it on 22 October
- * and two of the eight submissions have been read by two people who disagree. The screens that
+ * and seven of the twenty submissions have been read, some by people who disagree. The screens that
  * say so were both dark, for two different reasons, and only one of them was the one anybody
  * expected.
  *
