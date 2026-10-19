@@ -76,6 +76,46 @@ console.log('\nThe submitter, with no account\n');
 }
 
 /* --------------------------------------------------------------------------------------- */
+/**
+ * An assessment opened with a code, before anybody has answered anything in it.
+ *
+ * Reported as: when I opened an assessment with a code and then I reloaded, I didn't edit
+ * anything there, but I reloaded my browser tab and this assessment is gone. Nothing was gone.
+ * One opened with a code arrives with a department, a contact and a summary and no answers at
+ * all, and the home page decided what it was holding by counting answers, so it drew Fill it
+ * in, said nothing about the assessment in its own storage, and read as a browser that had
+ * lost the lot.
+ *
+ * The questionnaire's own address was right the whole time, which is why this is seeded with no
+ * hash: the address somebody types, or opens from a bookmark, is the one that was wrong.
+ */
+{
+  const opened = {
+    fileType: 'gc-arch-assessment', id: 'KFRM92TXBQ7H', ref: 'AB12',
+    rubric: { id: 'gc-ea-selfassess', version: '1.0', title: 'x' },
+    initiative: {
+      name: 'Fleet Scheduling', department: 'DFO', contact: 'a@dfo-mpo.gc.ca',
+      summary: 'A thing.', classification: 'Unclassified', lifecycleStage: 'beta',
+    },
+    answers: {},
+    meta: { createdAt: 'x', updatedAt: 'x', appVersion: 'test' },
+  };
+  const dom = await open({ 'gc-arch-assessment:draft': JSON.stringify(opened) });
+  const { document } = dom.window;
+  const hero = document.querySelector('.hero-actions button');
+  const note = document.querySelector('.draft-note');
+  ok('an assessment with no answers in it is still one this browser is holding',
+     /Continue/.test(hero?.textContent ?? ''), hero?.textContent ?? 'no button');
+  ok('and the page says which one it is',
+     /Fleet Scheduling/.test(note?.textContent ?? '') && /DFO/.test(note?.textContent ?? ''),
+     note?.textContent?.slice(0, 80) ?? 'no note');
+  ok('and how much of it is done', /0 of 176 answered/.test(note?.textContent ?? ''),
+     note?.textContent?.slice(0, 120) ?? '');
+  ok('and it is still in the browser after the page has drawn',
+     !!dom.window.localStorage.getItem('gc-arch-assessment:draft'));
+}
+
+/* --------------------------------------------------------------------------------------- */
 // The two sides are two published pages now, so the submitter's home page has no door to the
 // other one. It had a testing door, which was right while there was one page and one build.
 {
