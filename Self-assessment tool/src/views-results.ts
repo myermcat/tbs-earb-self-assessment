@@ -393,6 +393,41 @@ export function renderResults(
   ]));
 }
 
+/**
+ * How long this took, asked once and never again.
+ *
+ * It sits in the dialog that marks an assessment ready because that is the one moment somebody
+ * is certainly finishing. Optional, and it gates nothing: a question that blocks the most
+ * important button in the tool to collect a statistic has its priorities the wrong way round.
+ *
+ * The value stored is the band's key rather than its words, so the same answer reads the same
+ * whichever language the tool was in when it was given.
+ */
+function howLongField(a: Assessment): { node: HTMLElement; value: () => Assessment['meta']['tookAbout'] } {
+  const bands: Array<[NonNullable<Assessment['meta']['tookAbout']>, string, string]> = [
+    ['under-1', 'Under an hour', 'Moins d\u2019une heure'],
+    ['1-2', 'One to two hours', 'Une à deux heures'],
+    ['2-4', 'Two to four hours', 'Deux à quatre heures'],
+    ['4-8', 'Four to eight hours', 'Quatre à huit heures'],
+    ['over-8', 'More than eight hours', 'Plus de huit heures'],
+  ];
+  const sel = el('select', {
+    class: 'signer-box',
+    'aria-label': t('Roughly how long this took', 'Environ combien de temps cela a pris'),
+  }, [
+    el('option', { value: '' }, [t('Rather not say', 'Je préfère ne pas le dire')]),
+    ...bands.map(([k, en, fr]) => el('option', { value: k }, [t(en, fr)])),
+  ]) as HTMLSelectElement;
+  if (a.meta?.tookAbout) sel.value = a.meta.tookAbout;
+  return {
+    node: el('label', { class: 'took-row' }, [
+      el('span', {}, [t('Roughly how long did this take?', 'Environ combien de temps cela a-t-il pris?')]),
+      sel,
+    ]),
+    value: () => (sel.value || undefined) as Assessment['meta']['tookAbout'],
+  };
+}
+
 function submitBlock(rubric: Rubric, a: Assessment, r: Result, blocked: boolean): HTMLElement {
   const box = el('div', { class: 'res-sub submit-box' });
   const submitted = !!a.meta.submittedAt;
@@ -503,12 +538,13 @@ function submitBlock(rubric: Rubric, a: Assessment, r: Result, blocked: boolean)
       // Marking ready saves online, so it asks the same question saving online asks. An
       // assessor opening this version has to be able to see whose it is.
       const who = signerFields();
+      const took = howLongField(a);
       const first = !savedOnline(a);
       confirmStep({
         tier: 'caution',
         title: t('Mark this ready to review?', 'Marquer ceci comme pr\u00eat \u00e0 \u00e9valuer?'),
         body: `${r.answered} of ${r.scoreable} answers, ${ev} piece${ev === 1 ? '' : 's'} of evidence, and everything you wrote about the initiative. Anybody who opens this assessment sees all of it. Marking it ready saves it online and puts "Ready to review" beside it in the assessor\u2019s list. Nothing is sent, and you can keep working on it afterwards.`,
-        extra: who.node,
+        extra: el('div', { class: 'ready-fields' }, [who.node, took.node]),
         focusFirst: () => who.focus(),
         gate: () => signerProblem(who.value()),
         note: a.id
@@ -521,6 +557,8 @@ function submitBlock(rubric: Rubric, a: Assessment, r: Result, blocked: boolean)
         cancelLabel: t('Not yet', 'Pas encore'),
         onCommit: () => {
           a.meta.submittedAt = new Date().toISOString();
+          const band = took.value();
+          if (band) a.meta.tookAbout = band;
           autosave(a);
           const signer = who.value();
           rememberSigner(signer);

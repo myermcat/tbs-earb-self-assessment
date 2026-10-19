@@ -953,6 +953,25 @@ console.log('\nThe published build, signed in\n');
     ok('while Tab fills both boxes where the person can read them',
        b2[0].value === 'Mariia Yermolenko' && b2[1].value === 'someone@sen.parl.gc.ca',
        `${b2[0].value} / ${b2[1].value}`);
+    /**
+     * The one question the tool asks on its own behalf, in the same dialog.
+     *
+     * It is optional and it gates nothing: a question that blocks the most important button in
+     * the tool to collect a statistic has its priorities the wrong way round. So the check is
+     * that it is there, that it starts unanswered, and that committing without touching it is
+     * allowed.
+     */
+    const took = w2.querySelector('.took-row select');
+    ok('the dialog asks how long it took', !!took,
+       [...w2.querySelectorAll('label')].map((l) => l.textContent.trim()).join(' | ').slice(0, 120));
+    ok('and starts unanswered, so nothing is claimed on the department\u2019s behalf',
+       took?.value === '', JSON.stringify(took?.value));
+    ok('and offers bands rather than a box asking for minutes',
+       [...(took?.options ?? [])].length === 6
+       && [...(took?.options ?? [])].slice(1).every((o) => /hour/i.test(o.textContent)),
+       [...(took?.options ?? [])].map((o) => o.value).join(','));
+    took.value = '2-4';
+
     acts.find((b) => /Not yet/i.test(b.textContent))?.click();
     await new Promise((r) => setTimeout(r, 30));
   }

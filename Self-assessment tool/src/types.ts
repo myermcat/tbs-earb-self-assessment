@@ -321,6 +321,20 @@ export interface Assessment {
      */
     savedOnlineAt?: string;
     /**
+     * Roughly how long the department spent filling this in, as a band they picked.
+     *
+     * Asked once, when somebody marks an assessment ready, and optional. It is the tool's own
+     * question rather than one of Dan's, so it is here and not in `answers`, and nothing scores
+     * it. A claim doing the rounds is that assessing costs TBS 250 hours a year and nobody has
+     * a number behind it; the honest first step is asking, because elapsed time is not effort
+     * and an assessment filled in over three weeks of odd afternoons has no measurable duration.
+     *
+     * A band rather than a number of minutes, because the answer is a recollection. Somebody
+     * who spent an afternoon on it knows which band and does not know whether it was 185
+     * minutes, and a box asking for minutes gets a number made up to fill it.
+     */
+    tookAbout?: 'under-1' | '1-2' | '2-4' | '4-8' | 'over-8';
+    /**
      * The document name this record used to have, when that name could not be read to anybody.
      *
      * Records made before 14 September are named with twenty mixed-case characters. They are
