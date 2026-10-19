@@ -79,6 +79,9 @@ export const updated = '2026-10-01';
  * A block is not a tidy box for everything. About two thirds of the open work belongs to one;
  * the rest is the running polish of the two screens, which nobody picks up as a project.
  *
+ * Blocks with an owner are drawn first, and the number on a card is its place on the board
+ * rather than a field of its own, so the two cannot disagree.
+ *
  * `sections` is what the block draws from, `also` adds an item by number and `except` takes one
  * out, because three of the six cross a section boundary for a reason:
  *   - the store moving off Firestore (#139) only matters if this is published, so it sits with
@@ -90,42 +93,42 @@ export const updated = '2026-10-01';
  */
 export const blocks = [
   {
-    id: 'assessors', n: 1, owner: 'Mariia', title: 'Learning from the assessors',
+    id: 'assessors', owner: 'Mariia', title: 'Learning from the assessors',
     hue: 'green',
     what: 'Show the tool to the people who will use it and find out what they need from it.',
     next: 'Thursday afternoon, 90 minutes, with John, Nick, Allison and Patricia',
     sections: ['a-process'], also: [163],
   },
   {
-    id: 'signin', n: 2, owner: 'nobody yet', title: 'Assessor sign-in',
+    id: 'signin', owner: 'nobody yet', title: 'Assessor sign-in',
     hue: 'blue',
     what: 'An assessor writes a score against their own name, so the tool has to know who they are.',
     next: 'Ask Dan who already solved this',
     sections: ['a-signin'], except: [137],
   },
   {
-    id: 'canada', n: 3, owner: 'nobody yet', title: 'The canada-ca repository',
+    id: 'canada', owner: 'nobody yet', title: 'The canada-ca repository',
     hue: 'amber',
     what: 'Move the tool out of a personal GitHub account into the one government organisation.',
     next: 'Dan clears the 176 draft questions being visible',
     sections: ['a-publish'], except: [139, 163],
   },
   {
-    id: 'ownership', n: 4, owner: 'nobody yet', title: 'Ownership and handover',
+    id: 'ownership', owner: 'nobody yet', title: 'Ownership and handover',
     hue: 'purple',
     what: 'Who owns the store, when it gets deleted, and how it is handed over.',
     next: 'Name an owner of record, in writing',
     sections: ['a-owner'],
   },
   {
-    id: 'questions', n: 5, owner: 'Dan', title: 'Question set',
+    id: 'questions', owner: 'Dan', title: 'Question set',
     hue: 'rose',
     what: 'The 176 questions, what each is worth, and what shape each answer takes.',
     next: 'Confirm the answer type for every question',
     sections: ['q-behaviour', 'q-content'],
   },
   {
-    id: 'publishing', n: 6, owner: 'nobody yet', title: 'Publishing, if we publish',
+    id: 'publishing', owner: 'nobody yet', title: 'Publishing, if we publish',
     hue: 'teal',
     what: 'Nobody has decided whether this becomes a published government instrument.',
     next: 'Decide whether we are publishing at all',
