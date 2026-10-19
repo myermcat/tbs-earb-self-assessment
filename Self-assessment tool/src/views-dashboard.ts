@@ -120,10 +120,22 @@ function paint(
        * number is the only thing it is about, so it is marked on the number, and the sentence
        * that could not say which one is gone.
        */
+      /**
+       * The word provisional was on the tile with nothing saying what it described, and was
+       * asked exactly that. What is provisional is the 3: it was drawn between two numbers
+       * TBS gave at different times and nobody has confirmed it. That is a fact about the
+       * rubric rather than about this page, so it is on the hover and the tile says what the
+       * number counts.
+       */
       kpi(below === null ? '--' : String(below),
-          threshold === null ? 'below the threshold'
-            : provisional ? `below ${threshold}, provisional` : `below ${threshold}, for the board`),
-      kpi(String(rows.reduce((n, row) => n + row.redFlags, 0)), 'answered no'),
+          threshold === null ? 'below the threshold' : `below ${threshold}, for the board`,
+          provisional
+            ? `The ${threshold} is provisional. It was filled in between two numbers TBS named at different times, and nobody has confirmed it.`
+            : ''),
+      // "answered no" with no noun was asked what it counted and where. It counts questions,
+      // and only the ones the set asks as a yes or a no.
+      kpi(String(rows.reduce((n, row) => n + row.redFlags, 0)), 'questions answered no',
+          'Questions the set asks as a yes or a no, where a department answered no.'),
       kpi(String(records.filter((rec) => rec.status === 'audited').length), 'audited'),
     ]),
   ]));
@@ -205,13 +217,16 @@ function paint(
     window.location.hash = `#assessor/${addressOf(rec.assessment.id)}`;
   };
 
-  const outlierRow = (rec: StoredRecord, value: number, mean: number) =>
+  const outlierRow = (rec: StoredRecord, value: number, mean: number, unit = '') =>
     el('button', {
       class: 'outlier',
       title: `Open ${rec.assessment.initiative?.name || 'this assessment'}`,
       onclick: () => openRecord(rec),
     }, [
-      el('span', { class: `outlier-n ${value < mean ? 'red' : ''}` }, [value.toFixed(1)]),
+      // A number with no unit beside it is a number nobody can read. On the waiting card this
+      // was 21.0, which asked what 21 was, and which is not a score to one decimal place.
+      el('span', { class: `outlier-n ${value < mean ? 'red' : ''}` },
+         [unit ? `${Math.round(value)} ${unit}` : value.toFixed(1)]),
       el('span', { class: 'outlier-name' }, [rec.assessment.initiative?.name || '(unnamed)']),
       el('span', { class: 'outlier-dept' }, [rec.assessment.initiative?.department || '--']),
     ]);
@@ -295,8 +310,8 @@ function paint(
          */
         box.appendChild(folded(
           out.length > top.length
-            ? `The ${top.length} furthest of ${out.length} outliers`
-            : out.length === 1 ? 'The outlier' : `The ${out.length} outliers`,
+            ? `${top.length} furthest of ${out.length} outliers`
+            : out.length === 1 ? '1 outlier' : `${out.length} outliers`,
           [el('div', { class: 'outliers' }, top
             .sort((a, b) => (a.r.overall as number) - (b.r.overall as number))
             .map((row) => outlierRow(row.rec, row.r.overall as number, all.mean)))],
@@ -454,10 +469,18 @@ function paint(
            * changed contributes nothing, which is what keeps the figure from shrinking the
            * more carefully somebody looks.
            */
+          /**
+           * Asked twice, and the second time the question was whether 2.8 meant 2.8 points or
+           * 28. A big figure with the word points three words further along does that: the
+           * unit is not beside the number it belongs to.
+           *
+           * So the label starts with the unit, and what is being compared comes next in the
+           * fewest words that are still true. The counts underneath already say the work was
+           * only on the questions an assessor re-scored.
+           */
           changed
-            ? mean < 0
-              ? 'points higher departments scored themselves, where an assessor disagreed'
-              : 'points lower departments scored themselves, where an assessor disagreed'
+            ? mean < 0 ? 'points higher: departments than assessors'
+              : 'points lower: departments than assessors'
             : 'no assessor has changed a score',
           [
             `${withAudit} record${withAudit === 1 ? '' : 's'} audited`,
@@ -470,9 +493,15 @@ function paint(
       if (worst.length) {
         const list = el('div', { class: 'cat-list' }, worst.map((g) => {
           const avg = g.sum / g.n;
+          /**
+           * A word rather than a sign, for the reason the headline lost its minus: a bare -2.1
+           * asks the reader to remember which way the subtraction ran. Per question, because
+           * departments over-claim on some and under-claim on others, and that difference is
+           * the whole value of the list.
+           */
           return el('div', { class: 'cat-q cat-q-flat' }, [
             el('span', { class: `cat-q-score ${avg < 0 ? 'red' : ''}` }, [
-              `${avg > 0 ? '+' : ''}${avg.toFixed(1)}`,
+              `${Math.abs(avg).toFixed(1)} ${avg < 0 ? 'high' : 'low'}`,
             ]),
             el('span', { class: 'cat-q-text' }, [
               g.label,
@@ -480,7 +509,15 @@ function paint(
             ]),
           ]);
         }));
-        box.appendChild(folded(`The ${worst.length} questions furthest apart`, [list]));
+        /**
+         * Not outliers, and not called outliers. An outlier on this page is a submission
+         * further than one deviation from the mean. These are the questions the two sides
+         * disagree about most, which is a different thing measured a different way, and giving
+         * them the same name would be the consistency she asked for spent on the wrong word.
+         */
+        box.appendChild(folded(
+          worst.length === 1 ? '1 biggest disagreement' : `${worst.length} biggest disagreements`,
+          [list]));
       }
       root.appendChild(box);
     }
@@ -531,17 +568,17 @@ function paint(
        */
       if (oldest) {
         box.appendChild(el('div', { class: 'outliers' }, [
-          outlierRow(oldest.rec, days(oldest.since), Number.POSITIVE_INFINITY),
+          outlierRow(oldest.rec, days(oldest.since), Number.POSITIVE_INFINITY, 'days'),
         ]));
       }
       if (waiting.length > 1) {
         const rest = waiting.slice(1, 7);
         box.appendChild(folded(
           waiting.length - 1 > rest.length
-            ? `The next ${rest.length} waiting, of ${waiting.length - 1}`
-            : `The other ${rest.length} waiting`,
+            ? `${rest.length} more waiting, of ${waiting.length - 1}`
+            : `${rest.length} more waiting`,
           [el('div', { class: 'outliers' }, rest.map(
-            (x) => outlierRow(x.rec, days(x.since), Number.POSITIVE_INFINITY)))],
+            (x) => outlierRow(x.rec, days(x.since), Number.POSITIVE_INFINITY, 'days')))],
         ));
       }
       root.appendChild(box);
@@ -576,8 +613,8 @@ function barRow(label: string, sub: string, v: number | null): HTMLElement {
   ]);
 }
 
-function kpi(value: string, label: string): HTMLElement {
-  return el('div', { class: 'kpi' }, [
+function kpi(value: string, label: string, note = ''): HTMLElement {
+  return el('div', { class: 'kpi', ...(note ? { title: note } : {}) }, [
     el('div', { class: 'kpi-v' }, [value]),
     el('div', { class: 'kpi-l' }, [label]),
   ]);
