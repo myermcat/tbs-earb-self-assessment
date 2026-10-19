@@ -48,7 +48,7 @@ import BUILTIN from '../rubric/rubric.v1-dan.json';
 import { currentUser, deleteAssessment, getAssessment, isConfigured, listAssessments, listAudits,
   putAssessment, storeHost, type AssessorAudit } from './firebase';
 import { hasAccounts, isDemo, nameIsChecked } from './who';
-import { demoAssessments } from './demo-pool';
+import { demoAssessments, demoAudits } from './demo-pool';
 
 /**
  * The store, and how to point at one.
@@ -204,11 +204,8 @@ export type PoolAnswer =
 export async function poolRecords(): Promise<PoolAnswer> {
   // A demonstration build answers from its own invented pool and never reaches the store.
   if (isDemo()) {
-    return {
-      state: 'ok',
-      records: demoAssessments(BUILTIN as unknown as Rubric)
-        .map((a, i) => recordOf(a, 'hosted', a.id ?? `demo-${i}`)),
-    };
+    return { state: 'ok', records: withDemoAudits(demoAssessments(BUILTIN as unknown as Rubric)
+      .map((a, i) => recordOf(a, 'hosted', a.id ?? `demo-${i}`))) };
   }
   if (!isConfigured()) return { state: 'off' };
   if (!currentUser()) return { state: 'anonymous' };
@@ -257,10 +254,30 @@ async function withAudits(rows: StoredRecord[]): Promise<StoredRecord[]> {
   return rows;
 }
 
+/**
+ * The invented audits, put on the invented records.
+ *
+ * withAudits() below cannot do this: it asks the store, and a demonstration never reaches one,
+ * so both demonstration paths returned records that nobody had ever audited. The dashboard then
+ * said none of them had been looked at, which is the one thing a demonstration of an assessor's
+ * tool should not say.
+ */
+function withDemoAudits(rows: StoredRecord[]): StoredRecord[] {
+  const all = demoAudits(BUILTIN as unknown as Rubric);
+  for (const rec of rows) {
+    const mine = all[rec.assessment.id ?? ''];
+    if (!mine?.length) continue;
+    rec.audits = mine;
+    rec.auditedBy = mine.map((x) => x.reviewerName?.trim() || x.reviewer);
+    rec.status = statusOf(rec.assessment, true);
+  }
+  return rows;
+}
+
 export async function listRecords(sessionFiles: Assessment[] = []): Promise<StoredRecord[]> {
   if (isDemo()) {
-    return demoAssessments(BUILTIN as unknown as Rubric)
-      .map((a, i) => recordOf(a, 'hosted', a.id ?? `demo-${i}`));
+    return withDemoAudits(demoAssessments(BUILTIN as unknown as Rubric)
+      .map((a, i) => recordOf(a, 'hosted', a.id ?? `demo-${i}`)));
   }
   const out: StoredRecord[] = [];
   if (isConfigured()) {
