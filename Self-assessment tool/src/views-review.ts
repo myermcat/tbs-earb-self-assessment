@@ -570,6 +570,15 @@ function poolState(): { title: string; detail: string; badge: string; tone: stri
 let auditor = '';
 /** What the last Agree-with-all did, so the button reports itself instead of going quiet. */
 let lastAgree: { section: string; agreed: number; kept: number } | null = null;
+/**
+ * Which column the submissions list is sorted by, or null for the order it arrives in.
+ *
+ * Not in the address and not in storage. Sorting a list is a way of looking at what is already
+ * on screen rather than a place somebody is, so it should not add an entry to the browser's
+ * history, and it should not still be in force tomorrow when the reason for it has been
+ * forgotten. It lasts as long as the screen does.
+ */
+let listSort: { key: string; dir: 1 | -1 } | null = null;
 export function setAuditor(name: string): void { auditor = name; }
 
 /**
@@ -773,43 +782,6 @@ function paintList(rubric: Rubric, root: HTMLElement) {
    * apart was the portfolio's own copy of this table, which is gone. A record somebody took
    * out of the counting is not work, and it is here so it can be put back.
    */
-  const rows = triageOrder(loaded)
-    .sort((x, y) => Number(!!x.a.withdrawnAt) - Number(!!y.a.withdrawnAt));
-
-  /**
-   * Twelve columns, given widths instead of left to fight each other.
-   *
-   * Without these the browser shares the width out by content, and the things that lose are the
-   * ones with the shortest content: the actions column shrank until "Open" broke across two
-   * lines, while "Must ask" held a column wide enough for its heading to hold a single digit.
-   * Reported in exactly those terms. A heading is allowed to wrap; a button is not.
-   */
-  const widths = ['auto', '5.2rem', '9rem', '5.4rem', '7.2rem', '6rem', '3.6rem', '7rem',
-    '3.4rem', '4.2rem', '4.4rem', '6.6rem'];
-  const table = el('table', { class: 'triage' }, [
-    el('colgroup', {}, widths.map((w) => el('col', { style: `width:${w}` }))),
-    el('thead', {}, [el('tr', {}, [
-      el('th', {}, ['Initiative']),
-      /**
-       * NO COLUMN NOTES. The hover machinery stays; nothing is hanging off it.
-       *
-       * Three of these columns carried a note and a fourth carried a sub-line under its word,
-       * and between them they said that the submitter marks their own state, that two question
-       * set versions are not comparable, and that Audited means somebody has written an audit.
-       * Each of those is the column heading again in a longer sentence. The State one was the
-       * clearest case: it said self-marked by submitter over a column whose own group heading,
-       * four rows up, reads Marked ready to review.
-       */
-      el('th', {}, ['State']),
-      el('th', {}, ['Department']), el('th', {}, ['Marking']),
-      el('th', {}, ['Question set']),
-      el('th', {}, ['Stage']), el('th', {}, ['Score']), el('th', {}, ['Routing']),
-      el('th', {}, ['Must ask']), el('th', {}, ['Evidence']), el('th', {}, ['Complete']),
-      el('th', {}, ['Audited']),
-      el('th', {}, ['']),
-    ])]),
-  ]);
-  const tb = el('tbody', {});
   /**
    * THE GROUPS ARE NAMED, NOT IMPLIED.
    *
@@ -829,14 +801,136 @@ function paintList(rubric: Rubric, root: HTMLElement) {
   };
   const groupOf = (l: Loaded) =>
     l.a.withdrawnAt ? 'withdrawn' : l.a.meta?.submittedAt ? 'ready' : 'draft';
+
+  /**
+   * The columns are declared before anything sorts by them.
+   *
+   * They were below, next to the table they draw, which reads better and is wrong: the sort
+   * runs its comparator the moment rows is evaluated, and a const declared further down the
+   * function is in the temporal dead zone when it does. The first paint was fine because
+   * nothing was sorted; the first press threw inside the repaint and the whole screen went
+   * blank. Caught by a test that pressed a heading, which is the only way it could have been.
+   */
+  /**
+   * EVERY COLUMN SORTS, AND THE DEFAULT ORDER IS SOMEWHERE YOU CAN GET BACK TO.
+   *
+   * Reported from the meeting on 19 October: the submissions page is static and people like to
+   * sort. True of every table anybody has ever been handed.
+   *
+   * Three states per column rather than two, which is one more than a web table usually has and
+   * is here for a reason. The order this list arrives in is not alphabetical and not arbitrary:
+   * it is ready work first, then weakest first, then drafts, then withdrawn, and it is the
+   * closest thing the screen has to a recommendation about what to pick up. A two-state sort
+   * would let somebody leave it by accident and have no way back short of a reload. So the
+   * third press restores it.
+   *
+   * Each column declares how it sorts beside its own heading, so a heading and its comparator
+   * cannot drift apart - which is the ordinary way a sortable table ends up sorting one column
+   * by the contents of another.
+   *
+   * NO COLUMN NOTES. The hover machinery stays; nothing is hanging off it. Three of these
+   * carried a note and a fourth carried a sub-line under its word, and between them they said
+   * that the submitter marks their own state, that two question set versions are not
+   * comparable, and that Audited means somebody has written an audit. Each was the column
+   * heading again in a longer sentence.
+   */
+  const columns: { label: string; by?: (l: Loaded) => string | number | null }[] = [
+    { label: 'Initiative', by: (l) => l.a.initiative?.name || l.file },
+    { label: 'State', by: (l) => ['ready', 'draft', 'withdrawn'].indexOf(groupOf(l)) },
+    { label: 'Department', by: (l) => l.a.initiative?.department ?? null },
+    { label: 'Marking', by: (l) => l.a.initiative?.classification || '' },
+    { label: 'Question set', by: (l) => l.a.rubric.version },
+    { label: 'Stage', by: (l) => l.rubric.lifecycleStages.findIndex((x) => x.id === l.a.initiative.lifecycleStage) },
+    { label: 'Score', by: (l) => l.r.overall },
+    { label: 'Routing', by: (l) => l.r.band?.label ?? null },
+    { label: 'Must ask', by: (l) => l.fs.filter((f) => f.severity === 'high').length },
+    { label: 'Evidence', by: (l) => Object.values(l.a.answers).reduce((n, x) => n + (x.evidence ?? []).length, 0) },
+    { label: 'Complete', by: (l) => l.r.completeness },
+    { label: 'Audited', by: (l) => (l.auditedBy ?? []).length },
+    { label: '' },
+  ];
+
+  const ordered = triageOrder(loaded)
+    .sort((x, y) => Number(!!x.a.withdrawnAt) - Number(!!y.a.withdrawnAt));
+  /**
+   * A sorted list is one list, not three.
+   *
+   * The bands describe the order the list arrives in. Sort by score and a draft lands between
+   * two ready submissions, so a heading saying "marked ready to review" over the group it
+   * started in is no longer true of what is under it. The headings go while a sort is on, and
+   * the rows keep their own marks - the dashed edge and the plain-ink score on a draft - which
+   * are true in any order.
+   */
+  const rows = listSort
+    ? [...ordered].sort((x, y) => {
+        const by = columns.find((c) => c.label === listSort!.key)?.by;
+        if (!by) return 0;
+        const a = by(x);
+        const b = by(y);
+        // Nothing to sort by goes to the foot whichever way the column is pointing, because a
+        // blank is not smaller than a 2, it is an absence.
+        if (a === null || a === '') return b === null || b === '' ? 0 : 1;
+        if (b === null || b === '') return -1;
+        const cmp = typeof a === 'number' && typeof b === 'number'
+          ? a - b
+          : String(a).localeCompare(String(b));
+        return cmp * listSort!.dir;
+      })
+    : ordered;
   const sizes = rows.reduce<Record<string, number>>(
     (n, l) => ({ ...n, [groupOf(l)]: (n[groupOf(l)] ?? 0) + 1 }), {});
+
+  /**
+   * Twelve columns, given widths instead of left to fight each other.
+   *
+   * Without these the browser shares the width out by content, and the things that lose are the
+   * ones with the shortest content: the actions column shrank until "Open" broke across two
+   * lines, while "Must ask" held a column wide enough for its heading to hold a single digit.
+   * Reported in exactly those terms. A heading is allowed to wrap; a button is not.
+   */
+  const widths = ['auto', '5.2rem', '9rem', '5.4rem', '7.2rem', '6rem', '3.6rem', '7rem',
+    '3.4rem', '4.2rem', '4.4rem', '6.6rem'];
+  const table = el('table', { class: 'triage' }, [
+    el('colgroup', {}, widths.map((w) => el('col', { style: `width:${w}` }))),
+    el('thead', {}, [el('tr', {}, columns.map((c) => {
+      if (!c.by) return el('th', {}, [c.label]);
+      const on = listSort?.key === c.label;
+      return el('th', {
+        class: `sortable ${on ? 'sorted' : ''}`,
+        tabindex: '0',
+        role: 'button',
+        'aria-sort': on ? (listSort!.dir === 1 ? 'ascending' : 'descending') : 'none',
+        title: on && listSort!.dir === -1
+          ? `${c.label}, descending. Press again for the order this list arrives in.`
+          : on
+          ? `${c.label}, ascending. Press again to reverse.`
+          : `Sort by ${c.label}`,
+        onclick: () => {
+          if (!on) listSort = { key: c.label, dir: 1 };
+          else if (listSort!.dir === 1) listSort = { key: c.label, dir: -1 };
+          else listSort = null;
+          repaint();
+        },
+        onkeydown: (e: Event) => {
+          const k = (e as KeyboardEvent).key;
+          if (k !== 'Enter' && k !== ' ') return;
+          e.preventDefault();
+          (e.currentTarget as HTMLElement).click();
+        },
+      }, [
+        c.label,
+        on ? el('span', { class: 'sort-mark', 'aria-hidden': true }, [listSort!.dir === 1 ? '\u2191' : '\u2193']) : null,
+      ]);
+    }))]),
+  ]);
+  const tb = el('tbody', {});
   let wasGroup: string | null = null;
   for (const l of rows) {
     const group = groupOf(l);
     // A band is not drawn over the first group when it is the only one: a list that is all
     // finished work does not need a heading saying the whole of it is finished work.
-    if (group !== wasGroup && !(wasGroup === null && Object.keys(sizes).length === 1)) {
+    if (!listSort && group !== wasGroup
+        && !(wasGroup === null && Object.keys(sizes).length === 1)) {
       tb.appendChild(el('tr', { class: `group-band band-${group}` }, [
         el('td', { colspan: '13' }, [
           el('span', { class: 'band-name' }, [bands[group]]),

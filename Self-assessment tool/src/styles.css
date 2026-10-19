@@ -1241,6 +1241,14 @@ code.mark-subject { display: block; margin: .25rem 0; }
 .triage td { overflow-wrap: break-word; }
 /* A qualifier under a column heading, for a word that would otherwise read as the tool's own
    finding: State is what the department said about itself. */
+/* A sortable heading is a control and says so on hover, without becoming a button-looking
+   thing in a row of plain words. The arrow only appears on the column actually in force. */
+.triage th.sortable { cursor: pointer; user-select: none; }
+.triage th.sortable:hover, .triage th.sortable:focus-visible { color: var(--ink); }
+.triage th.sortable:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.triage th.sorted { color: var(--ink); }
+.triage th .sort-mark { margin-left: .2rem; font-family: var(--mono); font-weight: 400; }
+
 /* A heading may wrap onto two lines. A button in a cell may not: "Open" broke in half. */
 .triage th { white-space: normal; line-height: 1.15; vertical-align: bottom; }
 
@@ -1730,6 +1738,20 @@ td.num { text-align: right; font-family: var(--mono); font-variant-numeric: tabu
 .section-head { display: flex; align-items: center; gap: .5rem; margin: 1.9rem 0 .75rem;
   padding-bottom: .45rem; border-bottom: 1px solid var(--line); }
 .section-head button { margin-left: auto; }
+
+/* A thing that fell outside the spread, and a way into it. It is a row you press, so it is a
+   button; it is in a list of its own, so it does not need to look like one. */
+.outliers { display: flex; flex-direction: column; gap: .15rem; margin-top: .6rem; }
+.outliers-tight { margin: .2rem 0 .5rem 0; }
+.outlier { display: flex; align-items: baseline; gap: .6rem; width: 100%; text-align: left;
+  background: none; border: 0; border-left: 2px solid var(--line-2); border-radius: 0;
+  padding: .25rem .5rem; cursor: pointer; font-size: .85rem; color: var(--ink-2); }
+.outlier:hover, .outlier:focus-visible { background: var(--accent-soft); color: var(--ink);
+  border-left-color: var(--accent); }
+.outlier-n { font-family: var(--mono); font-weight: 700; color: var(--ink); min-width: 2.2rem; }
+.outlier-n.red { color: var(--bad); }
+.outlier-name { font-weight: 550; color: var(--ink); }
+.outlier-dept { color: var(--ink-3); font-size: .78rem; margin-left: auto; }
 
 .kpi-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: .5rem;
   margin-bottom: .2rem; }
