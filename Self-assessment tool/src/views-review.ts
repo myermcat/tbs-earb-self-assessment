@@ -14,7 +14,7 @@ import { ICON_DOWN } from './icons';
 import { addressOf, currentUser, formatCode, listAudits, putAudit, setWithdrawn, type AssessorAudit } from './firebase';
 import { isHosted, poolRecords, type PoolAnswer } from './store';
 import { repaint } from './views-submit';
-import { nameIsChecked } from './who';
+import { isDemo, nameIsChecked } from './who';
 import BUILTIN from '../rubric/rubric.v1-dan.json';
 import { DEMO_MARK, storeKey } from './keys';
 
@@ -46,6 +46,15 @@ interface Loaded {
   others?: AssessorAudit[];
   /** Whether the audits for this one have been fetched, so an empty list means empty. */
   auditsRead?: boolean;
+  /**
+   * What the pool handed over with the record, before anybody asked for it separately.
+   *
+   * The store reads the audits beside every record to answer "has anybody looked at this", so
+   * they are in hand by the time this list is drawn. A demonstration has no store to ask and
+   * invents them, which is the case this exists for: without it the screen whose entire point
+   * is two assessors disagreeing said nobody had audited anything.
+   */
+  fromPool?: AssessorAudit[];
   /** Everybody who has written an audit against this one, for the list to say so. */
   auditedBy?: string[];
   /** Whether this assessor is one of them, which is the thing they look for first. */
@@ -177,7 +186,50 @@ const auditTimers = new Map<string, ReturnType<typeof setTimeout>>();
  */
 let listAuditsRead = false;
 async function readListAudits(after: () => void): Promise<void> {
-  if (listAuditsRead || !isHosted() || !currentUser()) return;
+  if (listAuditsRead) return;
+  /**
+   * A DEMONSTRATION ANSWERS FROM WHAT IT HOLDS AND ASKS NOBODY.
+   *
+   * isHosted() is true in a demonstration - store.ts has it as isDemo() || isConfigured() ||
+   * ENDPOINT - so the hosted check below is not the thing that was stopping this. It was the
+   * account check, and readAudits had nothing stopping it at all: it fell through to a real
+   * request, from a page whose entire promise is that no path through it reaches real work.
+   * That is worse than the dark column it was causing, and it is worth saying here because
+   * the next person will read the hosted guard as covering it.
+   *
+   * So the short-circuit comes first, before both checks, and reads what the pool already
+   * handed over rather than relaxing anything.
+   */
+  if (isDemo()) {
+    /**
+     * Not marked read until there is something to have read.
+     *
+     * The first render runs this before the pool has answered, so loaded is empty. Marking the
+     * flag there means the redraw that follows the answer finds it already set and returns
+     * without doing the work, and the column says nobody yet for ever. The hosted path below
+     * guards the same way for the same reason, one line further down than it looks.
+     */
+    if (!loaded.length) return;
+    listAuditsRead = true;
+    const me = currentUser()?.email ?? '';
+    for (const l of loaded) {
+      if (!l.fromPool) continue;
+      l.auditedBy = l.fromPool.map((x) => x.reviewerName?.trim() || x.reviewer);
+      l.auditedByMe = l.fromPool.some((x) => x.reviewer === me);
+    }
+    /**
+     * And no redraw, because there is nothing to wait for.
+     *
+     * This is called from the top of renderReview, before the table is built, so a
+     * demonstration has its answer in hand by the time anything is drawn and the first paint
+     * is already right. Calling `after` here drew the list TWICE: the hosted path reaches it
+     * after an await, so the outer render has finished by then, and this path reached it
+     * synchronously in the middle of one. Measured on the built page - two tables, sixteen
+     * rows, under a heading that said eight.
+     */
+    return;
+  }
+  if (!isHosted() || !currentUser()) return;
   const rows = loaded.filter((l) => l.a.id);
   if (!rows.length) return;
   listAuditsRead = true;
@@ -200,6 +252,13 @@ async function readAudits(l: Loaded): Promise<void> {
   // repaint comes back here. Left until after the first early return, it never got marked at
   // all on a build with no store, and the redraw called it again for as long as the page lived.
   l.auditsRead = true;
+  // The same short-circuit, and for the same reason: nothing below this line stops a
+  // demonstration reaching the store, because isHosted() is true for one.
+  if (isDemo()) {
+    const me = currentUser()?.email ?? '';
+    l.others = (l.fromPool ?? []).filter((x) => x.reviewer !== me);
+    return;
+  }
   const code = l.a.id;
   if (!isHosted() || !code) return;
   try {
@@ -422,6 +481,16 @@ function absorb(rubric: Rubric, answer: PoolAnswer): void {
     const row: Loaded = {
       file: a.initiative?.name?.trim() || a.ref || rec.id,
       a, rubric: use, substituted: !own, r, fs: flags(use, a, r), fromStore: true,
+      /**
+       * The audits the pool already handed over, carried across rather than fetched again.
+       *
+       * This read rec.assessment and nothing else, so everything the store had already said
+       * about who audited the record was dropped on the floor here and asked for a second time
+       * one request per row. On a demonstration there is nothing to ask - the audits are
+       * invented and arrive with the records - so dropping them left the Audited column saying
+       * nobody yet about a pool whose whole point is that two assessors disagree on it.
+       */
+      ...(rec.audits ? { fromPool: rec.audits } : {}),
     };
     /**
      * A submission is no longer a thing that stops moving. A submitter keeps working after
@@ -444,6 +513,18 @@ function absorb(rubric: Rubric, answer: PoolAnswer): void {
       seen.add(mine);
       mine.fromStore = true;
       if (a.id && mine.a.id !== a.id) mine.a.id = a.id;
+      /**
+       * The audits come across even when the record itself has not moved.
+       *
+       * Everything below this point is about which COPY of the assessment wins, and it stops
+       * at `continue` when the store's copy is not newer. The audits are not part of that
+       * question - they are new information about a row this browser already had - so they are
+       * taken here, above the comparison. Measured on the demonstration, where every row is
+       * restored from the session before the pool answers: without this the whole list said
+       * nobody had audited anything, because the branch that could have carried them had
+       * already returned.
+       */
+      if (rec.audits) mine.fromPool = rec.audits;
       const theirs = a.meta?.updatedAt ?? '';
       const ours = mine.a.meta?.updatedAt ?? '';
       if (!(theirs > ours)) continue;

@@ -57,6 +57,8 @@ const touched = [];
  * the first run of this file did.
  */
 const unwrap = [];
+/** Everything the page tried to fetch, so "it reaches nothing" can be checked and not asserted. */
+const reached = [];
 
 const dom = new JSDOM(html, {
   runScripts: 'dangerously',
@@ -80,7 +82,10 @@ const dom = new JSDOM(html, {
     w.scrollTo = () => {};
     w.alert = () => {};
     w.print = () => {};
-    w.fetch = () => Promise.reject(new Error('the demonstration reached for the network'));
+    w.fetch = (...args) => {
+      reached.push(String(args[0]));
+      return Promise.reject(new Error('the demonstration reached for the network'));
+    };
   },
 });
 
@@ -187,6 +192,48 @@ const named = [...new Set(sources.flatMap((src) =>
   [...src.matchAll(/storeKey\('([a-z-]+)'\)/g)].map((m) => m[1])))].sort();
 ok('every stored name is made by the helper, and there is more than one',
    named.length >= 10, `${named.length}: ${named.join(', ')}`);
+
+/**
+ * THE INVENTED POOL CARRIES INVENTED AUDITS, AND READING THEM REACHES NOTHING.
+ *
+ * The audits are the point of the demonstration now: four assessors are shown it on 22 October
+ * and two of the eight submissions have been read by two people who disagree. The screens that
+ * say so were both dark, for two different reasons, and only one of them was the one anybody
+ * expected.
+ *
+ * isHosted() is TRUE in a demonstration - store.ts has it as isDemo() || isConfigured() ||
+ * ENDPOINT - so the hosted guard on these reads was never what stopped them. readListAudits
+ * was stopped by its account check; readAudits was stopped by nothing at all and fell through
+ * to a real request, from the one build whose whole promise is that no path through it reaches
+ * real work. That is the half worth a test, because the guard reads as though it covers it.
+ */
+{
+  const rows = [...document.querySelectorAll('.triage tbody tr.row-open')];
+  const audited = rows.map((r) => r.children[11]?.textContent?.trim() ?? '');
+  ok('the invented pool says who audited what', audited.some((t) => /\w/.test(t) && !/Nobody yet/.test(t)),
+     audited.join(' | '));
+  ok('including one two people have both read',
+     audited.some((t) => t.split(',').length > 1), audited.join(' | '));
+  ok('and the rest honestly say nobody has', audited.some((t) => /Nobody yet/.test(t)),
+     audited.join(' | '));
+
+  const before = reached.length;
+  const two = rows.find((r) => (r.children[11]?.textContent ?? '').split(',').length > 1);
+  two?.dispatchEvent(new window.MouseEvent('click', { bubbles: true }));
+  await new Promise((r) => setTimeout(r, 300));
+  const said = app.textContent;
+  ok('opening one shows what the other assessors wrote on it',
+     document.querySelectorAll('.other-audit').length > 0,
+     String(document.querySelectorAll('.other-audit').length));
+  ok('and marks the questions they wrote on', document.querySelectorAll('.audit-row .q-faces').length > 0,
+     String(document.querySelectorAll('.audit-row .q-faces').length));
+  ok('and offers the filter onto just those', /Audited by others/.test(said), said.slice(0, 120));
+  ok('and none of it reached the network', reached.length === before,
+     reached.slice(before).join(' | '));
+}
+
+ok('the demonstration reached nothing at all, from first paint to here',
+   reached.length === 0, reached.join(' | '));
 
 window.close();
 console.log(fails ? `\n${fails} demonstration storage check(s) failed\n` : '\nthe demonstration keeps to itself\n');
