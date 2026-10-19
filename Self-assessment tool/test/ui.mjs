@@ -2148,6 +2148,40 @@ ok('audited file keeps the self-score alongside the audited one',
   }
 
   /**
+   * Nothing in the marking tag is at the ink File is.
+   *
+   * Reported the day the tag went up: it now looks the same as file, but file is clickable and
+   * that one is not, and they carry completely different functions. The note was --ink-2,
+   * which is File's own colour, and it is the longer half of the line.
+   */
+  {
+    const fileInk = lastDecl('\\.file-menu > \\.file-btn', 'color');
+    const tagInks = [...sheet.matchAll(/\.mark-tag[a-z-]*\s*\{([^}]*)\}/g)]
+      .map((m) => (m[1].match(/(?:^|;)\s*color:\s*([^;]+)/) ?? [])[1])
+      .filter(Boolean).map((v) => v.trim());
+    ok('the marking tag is quieter than the control beside it',
+       !!fileInk && tagInks.length > 0 && tagInks.every((c) => c !== fileInk),
+       `File ${fileInk} / tag ${tagInks.join(', ') || 'no colour of its own'}`);
+  }
+
+  /**
+   * One solid accent on the page, and it is the button that takes you out of the questionnaire.
+   *
+   * Reported as: whatever I have picked, that highlight is as bright as see my results. The
+   * chip and the button were the same declaration. The filter row is below the domain tabs and
+   * well below the primary action, so it is a tint.
+   */
+  {
+    const chipBg = lastDecl('\\.lens-chip\\.on', 'background');
+    const primaryBg = lastDecl('button\\.primary', 'background');
+    ok('the filter that is on is not painted with the primary button',
+       !!chipBg && !!primaryBg && chipBg !== primaryBg && !/var\(--accent\)/.test(chipBg),
+       `chip ${chipBg} / button ${primaryBg}`);
+    ok('and it is still a box, so the row shows which one is on',
+       /var\(--accent-soft\)/.test(chipBg ?? ''), chipBg ?? 'nothing');
+  }
+
+  /**
    * Every phone rule stays inside its query.
    *
    * Read over what is left after the media blocks are removed, and not over the first match.

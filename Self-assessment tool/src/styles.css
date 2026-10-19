@@ -1133,15 +1133,22 @@ button.marking-banner:hover { filter: brightness(1.25); background: #2a1414; }
  * The marking of a marked file, beside File.
  *
  * Asked for in these words: very faint, so it's not really important information, make it very
- * low weight, it's taking up a lot of weight right now, unnecessarily. So it is a line of
- * small capitals at the colour of a caption, with no box, no fill and no border: the lightest
- * thing the header has. The evidence note keeps the darker of the two inks, because the file
- * is always unclassified and what is behind it is the half nobody can work out for themselves.
+ * low weight, it's taking up a lot of weight right now, unnecessarily. So it is small, at the
+ * colour of a caption, with no box, no fill and no border.
+ *
+ * Nothing in it may be at the ink File is, which is --ink-2. Reported the day it went up: it
+ * now looks the same as file, but file is clickable and that one is not, and they carry
+ * completely different functions. Two things had made them alike. The note under it was
+ * --ink-2 exactly, and it is the longer half of the line. And the whole tag was set in
+ * capitals, which is a thing somebody has decided to draw your eye to. The marking itself
+ * keeps its capitals because that is how a marking is written. The sentence after it is a
+ * sentence.
  */
-.mark-tag { display: inline-flex; align-items: baseline; gap: .4rem; min-width: 0;
-  font-size: .66rem; font-weight: 500; letter-spacing: .09em; text-transform: uppercase;
+.mark-tag { display: inline-flex; align-items: baseline; gap: .45rem; min-width: 0;
+  font-size: .7rem; font-weight: 400;
   color: var(--ink-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.mark-tag-note { color: var(--ink-2); letter-spacing: .05em; }
+.mark-tag-mark { font-size: .66rem; font-weight: 500; letter-spacing: .09em;
+  text-transform: uppercase; }
 .marking-row { display: flex; gap: .35rem; flex-wrap: wrap; margin-bottom: .45rem; }
 
 /* Unclassified is the answer, so it is one row on its own and carries the weight of one. */
@@ -2289,9 +2296,20 @@ dialog.confirm.shake { animation: cf-shake .34s cubic-bezier(.36, .07, .19, .97)
   border: 1px solid transparent; background: none; color: var(--ink-3);
   display: inline-flex; align-items: baseline; gap: .3rem; white-space: nowrap; }
 .lens-chip:hover { color: var(--ink); background: var(--surface-2); }
-.lens-chip.on { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+/**
+ * The chip that is on is a tint, and the only solid accent on the page is the button that
+ * takes you out of it.
+ *
+ * Reported as: whatever I have picked, that highlight is as bright as see my results. It was
+ * the same declaration, var(--accent) filled with var(--accent-ink) on top, so the filter and
+ * the primary action of the whole screen were drawn with one paint. Three things on this page
+ * are accented and they rank: the button is filled, the domain tab that is open is ringed, and
+ * the filter is tinted. That row is below both of them, which is what was asked for.
+ */
+.lens-chip.on { background: var(--accent-soft); border-color: var(--accent-line);
+  color: var(--ink); font-weight: 600; }
 .lens-n { font-family: var(--mono); font-size: .7rem; opacity: .6; }
-.lens-chip.on .lens-n { opacity: .85; }
+.lens-chip.on .lens-n { opacity: .8; }
 .lens-empty { font-size: .875rem; color: var(--ink-2); margin: .4rem 0 1rem; }
 
 /* ---------- the chrome at phone width ---------------------------------------------------- */
