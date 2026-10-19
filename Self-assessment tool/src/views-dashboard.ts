@@ -1,4 +1,5 @@
 import type { Assessment, Rubric } from './types';
+import { addressOf } from './firebase';
 import { el, clear, tone, bar } from './dom';
 import { score, isRedFlag, allQuestionScores, type Result } from './scoring';
 import { csvHeader, csvRow, toCsv } from './csv';
@@ -162,6 +163,73 @@ function paint(
   where.appendChild(cuts);
   root.appendChild(where);
 
+  /**
+   * SPREAD, AND WHAT FALLS OUTSIDE IT.
+   *
+   * Asked for on 19 October: standard deviation on the dashboard and on each category, with
+   * anything outside it treated as an anomaly that can be opened from here.
+   *
+   * Population rather than sample, because this is not a sample of anything. These ARE the
+   * assessments; there is no wider population being estimated from them, so dividing by n is
+   * the honest denominator and dividing by n-1 would be answering a question nobody asked.
+   *
+   * ONE STANDARD DEVIATION IS A WIDE NET AT THIS SIZE AND THE SCREEN SAYS SO RATHER THAN
+   * HIDING IT. With ten records a single submission moves the mean visibly and moves the
+   * spread with it, so "outside one deviation" can mean "unlike the others" or it can mean
+   * "there are not enough others yet". The boundary is printed with the count it was computed
+   * from, which is the only honest way to show a statistic over ten things.
+   */
+  const spread = (vals: (number | null)[]) => {
+    const xs = vals.filter((v): v is number => typeof v === 'number');
+    if (xs.length < 2) return null;
+    const mean = xs.reduce((a, b) => a + b, 0) / xs.length;
+    const sd = Math.sqrt(xs.reduce((a, b) => a + (b - mean) ** 2, 0) / xs.length);
+    return { mean, sd, n: xs.length };
+  };
+
+  /** Opening a submission from here, through the address, so Back works out of it. */
+  const openRecord = (rec: StoredRecord) => {
+    if (!rec.assessment.id) return;
+    window.location.hash = `#assessor/${addressOf(rec.assessment.id)}`;
+  };
+
+  const outlierRow = (rec: StoredRecord, value: number, mean: number) =>
+    el('button', {
+      class: 'outlier',
+      title: `Open ${rec.assessment.initiative?.name || 'this assessment'}`,
+      onclick: () => openRecord(rec),
+    }, [
+      el('span', { class: `outlier-n ${value < mean ? 'red' : ''}` }, [value.toFixed(1)]),
+      el('span', { class: 'outlier-name' }, [rec.assessment.initiative?.name || '(unnamed)']),
+      el('span', { class: 'outlier-dept' }, [rec.assessment.initiative?.department || '--']),
+    ]);
+
+  {
+    const all = spread(rows.map((row) => row.r.overall));
+    if (all) {
+      const low = all.mean - all.sd;
+      const high = all.mean + all.sd;
+      const out = rows
+        .filter((row) => typeof row.r.overall === 'number'
+                && (row.r.overall < low || row.r.overall > high))
+        .sort((a, b) => (a.r.overall as number) - (b.r.overall as number));
+      const box = el('section', { class: 'card' }, [
+        el('h2', {}, ['Spread']),
+        el('div', { class: 'kpi-row' }, [
+          kpi(all.mean.toFixed(1), 'mean overall'),
+          kpi(all.sd.toFixed(2), 'standard deviation'),
+          kpi(`${low.toFixed(1)}\u2013${high.toFixed(1)}`, `holds ${all.n - out.length} of ${all.n}`),
+          kpi(String(out.length), out.length === 1 ? 'outside it' : 'outside it'),
+        ]),
+      ]);
+      if (out.length) {
+        box.appendChild(el('div', { class: 'outliers' }, out.map(
+          (row) => outlierRow(row.rec, row.r.overall as number, all.mean))));
+      }
+      root.appendChild(box);
+    }
+  }
+
   const byDomain = el('div', { class: 'res-sub cut' }, [
     el('h3', {}, ['By architecture domain']),
   ]);
@@ -191,7 +259,29 @@ function paint(
     for (const t of shown) {
       const v = avgOf((row) => scoreOf(row, t.id)?.score ?? null);
       const flagged = rows.reduce((n, row) => n + (scoreOf(row, t.id)?.redFlags.length ?? 0), 0);
-      byCategory.appendChild(barRow(t.label, flagged ? `${flagged} answered no` : '', v));
+      /**
+       * The spread goes beside the average, because an average alone cannot tell a category
+       * everybody is mediocre at from one where half are excellent and half have not started.
+       * Those are different problems and only the second has anybody to ask.
+       */
+      const sp = spread(rows.map((row) => scoreOf(row, t.id)?.score ?? null));
+      byCategory.appendChild(barRow(
+        t.label,
+        [flagged ? `${flagged} answered no` : '', sp ? `\u00B1${sp.sd.toFixed(1)}` : '']
+          .filter(Boolean).join(' \u00B7 '),
+        v,
+      ));
+      if (sp) {
+        const out = rows
+          .map((row) => ({ row, v: scoreOf(row, t.id)?.score ?? null }))
+          .filter((x): x is { row: Row; v: number } => typeof x.v === 'number'
+                  && (x.v < sp.mean - sp.sd || x.v > sp.mean + sp.sd))
+          .sort((a, b) => a.v - b.v);
+        if (out.length) {
+          byCategory.appendChild(el('div', { class: 'outliers outliers-tight' },
+            out.map((x) => outlierRow(x.row.rec, x.v, sp.mean))));
+        }
+      }
     }
     cuts.appendChild(byCategory);
   }

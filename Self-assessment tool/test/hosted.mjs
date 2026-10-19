@@ -2816,6 +2816,134 @@ console.log('\nA submission is a place you can go back from\n');
   dom.window.close();
 }
 
+/* --------------------------------------------------------------------------------------- */
+/**
+ * Sorting the submissions list, and the way back to the order it arrives in.
+ *
+ * Reported from the meeting on 19 October: the page is static and people like to sort.
+ */
+{
+  const mk = (ref, name, dept, score) => {
+    const one = submission(ref, name);
+    one.initiative.department = dept;
+    one.answers = { 'B-Q1': { score, evidence: [], justification: 'x' } };
+    return one;
+  };
+  const three = [mk('AB12', 'Middle', 'Zed Agency', 5),
+                 mk('CD34', 'Lowest', 'Alpha Agency', 1),
+                 mk('EF56', 'Highest', 'Mid Agency', 9)];
+  const { doc, dom } = await boot({
+    session: live, side: 'assess', role: 'assessor',
+    listAnswer: { documents: three.map(asDoc) },
+  });
+  await new Promise((r) => setTimeout(r, 160));
+  const names = () => [...doc.querySelectorAll('.triage tbody tr.row-open td:first-child')]
+    .map((td) => td.textContent.trim());
+  const head = (label) => [...doc.querySelectorAll('.triage thead th')]
+    .find((th) => th.textContent.trim().replace(/[\u2191\u2193]/g, '') === label);
+  const press = async (label) => {
+    head(label).dispatchEvent(new dom.window.MouseEvent('click', { bubbles: true }));
+    await new Promise((r) => setTimeout(r, 400));
+  };
+
+  const arrival = names();
+  ok('every column that holds anything offers to sort by it',
+     doc.querySelectorAll('.triage thead th.sortable').length === 12,
+     String(doc.querySelectorAll('.triage thead th.sortable').length));
+
+  await press('Department');
+  ok('sorting by a column sorts by that column, not another',
+     names().join('|') === 'Lowest|Highest|Middle', names().join('|'));
+  ok('and the heading says which way it is pointing',
+     head('Department').getAttribute('aria-sort') === 'ascending',
+     head('Department').getAttribute('aria-sort'));
+  /**
+   * The bands describe the order the list arrives in, so they go while a sort is on. Sort by
+   * score and a draft lands between two ready submissions, and a heading over the group it
+   * started in is no longer true of what is under it.
+   */
+  ok('and the group headings go, because they describe the other order',
+     doc.querySelectorAll('.triage tr.group-band').length === 0,
+     String(doc.querySelectorAll('.triage tr.group-band').length));
+
+  await press('Department');
+  ok('pressing it again reverses it',
+     names().join('|') === 'Middle|Highest|Lowest', names().join('|'));
+
+  /**
+   * And the third press is the whole reason this is three states rather than two. The order
+   * the list arrives in is a recommendation about what to pick up, and a two-state sort would
+   * let somebody lose it with no way back short of a reload.
+   */
+  await press('Department');
+  ok('and the third press gives back the order the list arrives in',
+     names().join('|') === arrival.join('|'), `${names().join('|')} vs ${arrival.join('|')}`);
+  ok('headings along with it', doc.querySelectorAll('.triage thead th[aria-sort="ascending"], .triage thead th[aria-sort="descending"]').length === 0);
+
+  await press('Score');
+  ok('a number column sorts as numbers', names().join('|') === 'Lowest|Middle|Highest',
+     names().join('|'));
+  dom.window.close();
+}
+
+/* --------------------------------------------------------------------------------------- */
+/**
+ * Spread, and what falls outside it.
+ *
+ * Asked for on 19 October: standard deviation on the dashboard and on each category, with the
+ * anomalies able to be opened from here.
+ *
+ * The fixture's arithmetic is checkable by hand, which is the point of choosing these numbers:
+ * one question answered at 2, 5 and 8 across three records. The overall is the score of the
+ * answered part, so the three overalls are 2, 5 and 8, the mean is 5 and the population
+ * deviation is sqrt(6) = 2.449. One deviation out is 2.55 to 7.45, so the 2 and the 8 fall
+ * outside it and the 5 does not.
+ */
+{
+  const mk = (ref, name, score) => {
+    const one = submission(ref, name);
+    one.answers = { 'B-Q1': { score, evidence: [], justification: 'x' } };
+    return one;
+  };
+  const { doc, dom } = await boot({
+    session: live, side: 'assess', role: 'assessor', hash: '#assessor/dashboard',
+    listAnswer: { documents: [mk('AB12', 'Two', 2), mk('CD34', 'Five', 5), mk('EF56', 'Eight', 8)].map(asDoc) },
+  });
+  await new Promise((r) => setTimeout(r, 200));
+  const card = [...doc.querySelectorAll('.card')].find((c) => c.querySelector('h2')?.textContent === 'Spread');
+  ok('the dashboard shows the spread', !!card,
+     [...doc.querySelectorAll('.card h2')].map((h) => h.textContent).join(' | '));
+  const tiles = [...(card?.querySelectorAll('.kpi') ?? [])].map((k) => k.textContent.replace(/\s+/g, ' ').trim());
+  ok('with the mean', tiles.some((t) => /^5\.0\s*mean overall$/.test(t)), tiles.join(' | '));
+  /**
+   * Population, not sample. These ARE the assessments; there is no wider population being
+   * estimated from them, so n is the honest denominator. Sample deviation would print 3.00.
+   */
+  ok('and a population deviation, because this is not a sample of anything',
+     tiles.some((t) => /^2\.45\s*standard deviation$/.test(t)), tiles.join(' | '));
+  ok('and the boundary it computed, with how many it was computed from',
+     tiles.some((t) => /2\.6.*7\.4/.test(t) || /holds 1 of 3/.test(t)), tiles.join(' | '));
+
+  const out = [...(card?.querySelectorAll('.outlier') ?? [])].map((b) => b.textContent.replace(/\s+/g, ' ').trim());
+  ok('and lists what fell outside it', out.length === 2, out.join(' | '));
+  ok('lowest first, because that is the one worth opening',
+     /^2\.0 ?Two/.test(out[0] ?? ''), out.join(' | '));
+  ok('and the one in the middle is not in the list',
+     !out.some((t) => /Five/.test(t)), out.join(' | '));
+
+  /**
+   * Dan asked to click straight through to the assessment. It goes through the address rather
+   * than reaching into the other screen, so Back comes out of it the way it does everywhere.
+   */
+  [...(card?.querySelectorAll('.outlier') ?? [])][0].dispatchEvent(new dom.window.MouseEvent('click', { bubbles: true }));
+  await new Promise((r) => setTimeout(r, 200));
+  ok('an anomaly opens the assessment it is about',
+     /Two/.test(body(doc)) && !!doc.querySelector('.crumbs'), body(doc).slice(0, 140));
+  ok('through the address, so Back comes out of it',
+     /^#assessor\//.test(dom.window.location.hash), dom.window.location.hash);
+  dom.window.close();
+}
+
 console.log(fails ? `\n${fails} hosted check(s) failed\n` : '\nall hosted checks passed\n');
 process.exit(fails ? 1 : 0);
 
