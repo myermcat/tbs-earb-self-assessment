@@ -356,10 +356,17 @@ export function demoAssessments(rubric: Rubric): Assessment[] {
  * The pool had none, so "Audited by others" never appeared and the dashboard counted nothing
  * re-scored. Asked for directly: show different people who audited.
  *
- * The assessors here are named nobody. They were first given the first names of two people who
- * will be in the room when this is shown, which puts an invented opinion against a real
- * person's name on a screen they are looking at. The departments in this file are invented for
- * the same reason, and `test/smoke.ts` already refuses a rubric that names anybody.
+ * THE ASSESSORS HERE ARE NOT NAMED AFTER ANYBODY, AND THEY DO NOT READ AS PEOPLE EITHER.
+ *
+ * Two mistakes in a row, both the same mistake. They were first given the first names of two
+ * people who will be in the room when this is shown, against invented opinions, on a screen
+ * those two are looking at. Correcting that to a different set of ordinary-looking names fixed
+ * nothing: a plausible name is a claim that a person said this, and a room cannot tell which
+ * plausible names are real.
+ *
+ * So the names announce themselves the way the departments do. Office of Example Operations
+ * fools nobody and neither does Reviewer Two. The column still shows what it is there to show,
+ * which is that different people read the same submission and disagreed.
  *
  * TWO THINGS MAKE A DISAGREEMENT VISIBLE RATHER THAN MERELY PRESENT, and both are easy to miss.
  *
@@ -381,7 +388,7 @@ const REVIEWED: Record<string, Array<{
   // The strong one, read by two people who do not agree with each other.
   DEMOBBBB2222: [
     {
-      who: 'margaret.shaw@example.gc.ca', name: 'Margaret Shaw', at: '2026-09-22T14:10:00.000Z',
+      who: 'reviewer.one@example.gc.ca', name: 'Reviewer One', at: '2026-09-22T14:10:00.000Z',
       on: [
         ['B-Q16', -2, 'adjust', 'The business case is there. The benefits are not measurable as written.'],
         ['D-Q25', -1, 'adjust', 'Encryption in transit is evidenced. At rest is asserted.'],
@@ -390,19 +397,19 @@ const REVIEWED: Record<string, Array<{
       overall: 'Strong overall. Two of the three I moved are about the evidence behind a score.',
     },
     {
-      who: 'owen.fitzgerald@example.gc.ca', name: 'Owen Fitzgerald', at: '2026-09-24T09:40:00.000Z',
+      who: 'reviewer.two@example.gc.ca', name: 'Reviewer Two', at: '2026-09-24T09:40:00.000Z',
       on: [
         ['B-Q16', 0, 'agree', 'Reads fine to me. The benefits section is thin but it is there.'],
         ['D-Q25', -3, 'adjust', 'At rest is not evidenced at all. Lower than my colleague has it.'],
         ['A-Q20', -1, 'adjust', 'Gates exist. They are not enforced on every branch.'],
       ],
-      overall: 'I read D-Q25 harder than Margaret does. Worth settling before the board.',
+      overall: 'I read D-Q25 harder than Reviewer One does. Worth settling before the board.',
     },
   ],
   // The weak one, read by one person, which is the ordinary case.
   DEMOCCCC3333: [
     {
-      who: 'owen.fitzgerald@example.gc.ca', name: 'Owen Fitzgerald', at: '2026-09-25T11:05:00.000Z',
+      who: 'reviewer.two@example.gc.ca', name: 'Reviewer Two', at: '2026-09-25T11:05:00.000Z',
       on: [
         ['B-Q1', -1, 'adjust', 'Current state is partly documented. Dependencies are not.'],
         ['T-Q29', -2, 'insufficient', 'No threat and risk assessment attached.'],
@@ -413,7 +420,7 @@ const REVIEWED: Record<string, Array<{
   // Sent unfinished and already picked up, so a reader sees an audit on a part-finished record.
   DEMOHHHH8888: [
     {
-      who: 'margaret.shaw@example.gc.ca', name: 'Margaret Shaw', at: '2026-09-26T16:20:00.000Z',
+      who: 'reviewer.one@example.gc.ca', name: 'Reviewer One', at: '2026-09-26T16:20:00.000Z',
       on: [['B-Q29', 2, 'adjust', 'Better than scored. The feedback loop is real and running.']],
     },
   ],
@@ -423,7 +430,7 @@ const REVIEWED: Record<string, Array<{
    */
   DEMORRRR9234: [
     {
-      who: 'margaret.shaw@example.gc.ca', name: 'Margaret Shaw', at: '2026-09-29T10:15:00.000Z',
+      who: 'reviewer.one@example.gc.ca', name: 'Reviewer One', at: '2026-09-29T10:15:00.000Z',
       on: [
         ['A-Q14', -2, 'adjust', 'The interfaces are governed inside the department. Across departments they are agreements on paper.'],
         ['T-Q17', -1, 'adjust', 'Recovery time is stated. The test that proves it was last run a year ago.'],
@@ -431,15 +438,15 @@ const REVIEWED: Record<string, Array<{
       overall: 'Good work, scored a little generously at the top end.',
     },
     {
-      who: 'owen.fitzgerald@example.gc.ca', name: 'Owen Fitzgerald', at: '2026-09-30T13:05:00.000Z',
+      who: 'reviewer.two@example.gc.ca', name: 'Reviewer Two', at: '2026-09-30T13:05:00.000Z',
       on: [
         ['A-Q14', -1, 'adjust', 'Governed well enough for what it does today. It will strain when a second department joins.'],
         ['A-Q5', -3, 'insufficient', 'The remediation status is a date with nothing behind it.'],
       ],
-      overall: 'Closer to the department than Margaret is, apart from A-Q5.',
+      overall: 'Closer to the department than Reviewer One is, apart from A-Q5.',
     },
     {
-      who: 'dana.whitfield@example.gc.ca', name: 'Dana Whitfield', at: '2026-10-01T09:30:00.000Z',
+      who: 'reviewer.three@example.gc.ca', name: 'Reviewer Three', at: '2026-10-01T09:30:00.000Z',
       on: [
         ['A-Q5', -1, 'adjust', 'There is a remediation plan. It has slipped twice.'],
         ['D-Q31', 1, 'adjust', 'More reusable than scored. The schemas are published.'],
@@ -450,7 +457,7 @@ const REVIEWED: Record<string, Array<{
   // The low one, read by two people who agree with each other, which also happens.
   DEMOQQQQ8923: [
     {
-      who: 'owen.fitzgerald@example.gc.ca', name: 'Owen Fitzgerald', at: '2026-09-28T11:45:00.000Z',
+      who: 'reviewer.two@example.gc.ca', name: 'Reviewer Two', at: '2026-09-28T11:45:00.000Z',
       on: [
         ['B-Q22', -1, 'insufficient', 'No funding named past the first year.'],
         ['T-Q33', -1, 'insufficient', 'Monitoring is on the list of things to do.'],
@@ -458,14 +465,14 @@ const REVIEWED: Record<string, Array<{
       overall: 'Early, and the department has said so in its own scores.',
     },
     {
-      who: 'dana.whitfield@example.gc.ca', name: 'Dana Whitfield', at: '2026-10-02T15:20:00.000Z',
+      who: 'reviewer.three@example.gc.ca', name: 'Reviewer Three', at: '2026-10-02T15:20:00.000Z',
       on: [['B-Q22', -1, 'insufficient', 'Same reading as my colleague. One year of funding against a five year plan.']],
     },
   ],
   // One reading on a strong record, so the list has an audit with no argument attached.
   DEMOJJJJ2345: [
     {
-      who: 'dana.whitfield@example.gc.ca', name: 'Dana Whitfield', at: '2026-09-27T14:00:00.000Z',
+      who: 'reviewer.three@example.gc.ca', name: 'Reviewer Three', at: '2026-09-27T14:00:00.000Z',
       on: [['B-Q40', 2, 'adjust', 'Satisfaction is measured every quarter and the last two rounds changed the roadmap.']],
       overall: 'Scored lower than it deserves on the client side.',
     },
@@ -473,13 +480,13 @@ const REVIEWED: Record<string, Array<{
   // Two readings that move a record in opposite directions, which nets to almost nothing.
   DEMOMMMM5678: [
     {
-      who: 'margaret.shaw@example.gc.ca', name: 'Margaret Shaw', at: '2026-09-29T16:40:00.000Z',
+      who: 'reviewer.one@example.gc.ca', name: 'Reviewer One', at: '2026-09-29T16:40:00.000Z',
       on: [['T-Q6', -2, 'adjust', 'On demand inside the data centre. Anything new takes six weeks.']],
     },
     {
-      who: 'owen.fitzgerald@example.gc.ca', name: 'Owen Fitzgerald', at: '2026-10-03T10:10:00.000Z',
+      who: 'reviewer.two@example.gc.ca', name: 'Reviewer Two', at: '2026-10-03T10:10:00.000Z',
       on: [['T-Q6', 2, 'adjust', 'Six weeks is the old number. The self serve path went in this spring.']],
-      overall: 'Margaret and I are two rungs apart on one question and together everywhere else.',
+      overall: 'Reviewer One and I are two rungs apart on one question and together everywhere else.',
     },
   ],
 };
