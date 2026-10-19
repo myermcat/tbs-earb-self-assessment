@@ -107,7 +107,19 @@
 .head-row { display: flex; align-items: baseline; gap: .55rem; flex-wrap: wrap; }
 .head-row > .badge { align-self: center; }
 
-html { -webkit-text-size-adjust: 100%; }
+/**
+ * The page keeps room for its scrollbar whether or not it needs one.
+ *
+ * Reported as: when I switch All, Ready and Drafts, the box with the submissions moves to the
+ * right and left. Twenty rows are taller than the window and three are not, so the scrollbar
+ * arrived and left with the tab, and the content is centred - so every appearance took about
+ * fifteen pixels off the width and shifted the card half of that. Nothing was moving; the
+ * window was getting narrower.
+ *
+ * stable keeps the gutter reserved at all times, so the width is the same on every tab. It is
+ * also right for the rest of the tool, where a list growing past the fold does the same thing.
+ */
+html { -webkit-text-size-adjust: 100%; scrollbar-gutter: stable; }
 /**
  * Wide content scrolls inside its own container; the page itself never does.
  *
