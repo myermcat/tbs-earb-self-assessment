@@ -100,14 +100,22 @@ function paint(
           download('gc-arch-portfolio.csv', csv, 'text/csv');
         },
       }),
-      el('span', { class: 'spacer' }),
-      isHosted()
-        ? el('button', {
-            class: 'ghost small',
-            title: 'A submission sent in the last minute may not be in this read yet, and longer if this page read the list a moment ago.',
-            onclick: () => renderDashboard(root, rubric, sessionFiles),
-          }, ['Check again'])
-        : null,
+      /**
+       * CHECK AGAIN IS NOT HERE. IT WAS THE RELOAD BUTTON.
+       *
+       * Asked twice: is it the same as reload, it looks redundant. It was not quite the same,
+       * and the difference did not matter here. It re-read the store without rebuilding the
+       * page, which is worth having on a screen holding something a reload would lose. This
+       * screen holds nothing: every number on it is computed from the records as it draws, so
+       * a reload reads the store afresh and arrives at exactly the same place.
+       *
+       * The eventual-consistency caveat it carried is still true - a submission sent in the
+       * last minute may not be in this read - and it is true of a reload as well, so it was
+       * never this button that answered it.
+       *
+       * The submissions list keeps its own, which is a different question on a screen that
+       * does hold session state.
+       */
     ]),
     el('div', { class: 'kpi-row' }, [
       kpi(String(live.length), live.length === 1 ? 'record' : 'records'),
@@ -478,9 +486,19 @@ function paint(
            * fewest words that are still true. The counts underneath already say the work was
            * only on the questions an assessor re-scored.
            */
+          /**
+           * Third wording, and the question each time was the same one: what are those points.
+           *
+           * "points higher than assessors gave them" left out who. "points higher: departments
+           * than assessors" fixed who and left out that it is an average, which is the thing
+           * somebody asks next of any single number standing for twenty-one of them. The label
+           * says both now, and reads as a sentence from the figure: 2.8 points - how much
+           * higher departments scored themselves, on average.
+           */
           changed
-            ? mean < 0 ? 'points higher: departments than assessors'
-              : 'points lower: departments than assessors'
+            ? mean < 0
+              ? 'points: how much higher departments scored themselves, on average'
+              : 'points: how much lower departments scored themselves, on average'
             : 'no assessor has changed a score',
           [
             `${withAudit} record${withAudit === 1 ? '' : 's'} audited`,

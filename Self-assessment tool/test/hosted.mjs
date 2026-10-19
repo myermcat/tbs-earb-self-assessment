@@ -2866,7 +2866,7 @@ console.log('\nA submission is a place you can go back from\n');
    */
   ok('and leads with how far apart they are, with no sign on it',
      (gap?.querySelector('.lead-v')?.textContent ?? '') === '3.0'
-     && /points higher: departments than assessors/.test(said(gap)),
+     && /points: how much higher departments scored themselves, on average/.test(said(gap)),
      `${gap?.querySelector('.lead-v')?.textContent} / ${said(gap).slice(0, 120)}`);
   ok('and names the questions furthest apart', /Q1|Q2/.test(said(gap)), said(gap).slice(0, 160));
 
