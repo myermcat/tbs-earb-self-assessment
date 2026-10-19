@@ -931,7 +931,8 @@ function paintList(rubric: Rubric, root: HTMLElement) {
     { label: 'State', by: (l) => ['ready', 'draft', 'withdrawn'].indexOf(groupOf(l)) },
     { label: 'Department', by: (l) => l.a.initiative?.department ?? null },
     { label: 'Marking', by: (l) => l.a.initiative?.classification || '' },
-    { label: 'Question set', by: (l) => l.a.rubric.version },
+    // The set the row's numbers were worked out WITH, which is the one worth sorting by.
+    { label: 'Question set', by: (l) => l.rubric.version },
     { label: 'Stage', by: (l) => l.rubric.lifecycleStages.findIndex((x) => x.id === l.a.initiative.lifecycleStage) },
     { label: 'Score', by: (l) => l.r.overall },
     { label: 'Routing', by: (l) => l.r.band?.label ?? null },
@@ -1120,7 +1121,21 @@ function paintList(rubric: Rubric, root: HTMLElement) {
        */
       el('td', { class: 'small mono' }, [
         el('div', { class: 'dim' }, [
-          l.a.rubric.version,
+          /**
+           * The set the numbers were worked out WITH, not the string the record happens to
+           * carry.
+           *
+           * Those were the same thing until the set was renamed from 1.0-dan to 1.0, which was
+           * done because the first half of it is a colleague's name and it was printing on
+           * every screen he was about to be shown. Every record saved before that still says
+           * 1.0-dan inside it, so printing the record's own string put the name straight back
+           * on the list it had just been taken off. The two names are one set, which is said
+           * once in library.ts, and this column says which set did the arithmetic.
+           *
+           * Where a row really was scored with something else, substituted is true and the
+           * badge beside this says so, which is the case this column is for.
+           */
+          l.rubric.version,
           l.substituted
             ? el('span', {
                 class: 'badge badge-warn tiny tag',

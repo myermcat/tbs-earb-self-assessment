@@ -136,10 +136,39 @@ export function entryOf(builtin: Rubric, id: string): LibraryEntry | undefined {
  * nothing in the file to tell them apart: worth knowing, and the reason the ingest warning
  * says which set it scored with.
  */
+/**
+ * A VERSION STRING INSIDE SAVED WORK IS A KEY, AND RENAMING A KEY ORPHANS EVERYTHING UNDER IT.
+ *
+ * The set was called 1.0-dan until 19 October, when it was renamed to 1.0 because the first
+ * half of it is a colleague's name and it was printing on every screen he was about to be
+ * shown. The rename was right. What it did not account for is that every assessment already
+ * saved carries the version it was answered against, inside the record, and the matching below
+ * is an exact string comparison.
+ *
+ * So on the morning after, every submission in the live store said NOT COMPARABLE, on every
+ * row of the assessor's list, because none of them could find the set they were answered
+ * against any more. The questions had not changed by a word. Reported with a screenshot of ten
+ * rows all carrying the badge.
+ *
+ * These two names are one set, and saying so here is cheaper and safer than rewriting twenty
+ * departments' records to agree with us. It is also the honest statement: nothing about the
+ * questions changed, only what we call them.
+ *
+ * ANYTHING ADDED HERE IS PERMANENT. A record saved under an old name is out of our hands, so
+ * the row it needs can never be removed, and the way to avoid adding another is to not rename
+ * a version again. Change the questions and give the new set a new version; change the name
+ * and you are here.
+ */
+const ALSO_KNOWN_AS: Record<string, string> = {
+  '1.0-dan': '1.0',
+};
+
 export function rubricFor(
   builtin: Rubric,
   want: { id: string; version: string },
 ): Rubric | undefined {
+  const wanted = ALSO_KNOWN_AS[want.version] ?? want.version;
   return libraryList(builtin)
-    .find((x) => x.rubric.id === want.id && x.rubric.version === want.version)?.rubric;
+    .find((x) => x.rubric.id === want.id
+                 && (ALSO_KNOWN_AS[x.rubric.version] ?? x.rubric.version) === wanted)?.rubric;
 }

@@ -221,6 +221,22 @@ that was mutated, the state that was seeded, the file that is about to run. When
 helper that encodes a value's options, check it knows all of them. One line of evidence is worth
 more than the whole chain of reasoning that says it should have worked.
 
+## Words share a baseline; a box is centred
+
+Said on 21 October, after the third time: *they are not aligned with their numbers. You hit
+this problem quite often.* Three in a fortnight — a badge beside a heading, a large figure
+beside its label, a count beside a tab's word — and each was fixed on its own as though it were
+a one-off.
+
+It is one rule. **Two pieces of TEXT beside each other align on their baselines**, because that
+is what puts them on one line to a reader; centring them hangs the smaller one low, and worse
+when the faces differ, since a mono digit and a sans word have different cap heights and their
+optical centres do not agree even when their boxes do. **A BOX beside text — a badge, a pill,
+anything with a border and a fill — is centred**, because a box has no baseline worth sharing
+and aligning its text baseline to its neighbour's drops the whole box below the line.
+
+Before writing `align-items`, ask which of the two it is.
+
 ## A test built on a fixture the code generates cannot touch the data
 
 On 21 October every anomaly row on the assessor's dashboard opened nothing, on all thirty-seven
