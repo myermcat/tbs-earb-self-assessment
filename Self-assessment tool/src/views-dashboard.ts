@@ -112,15 +112,20 @@ function paint(
     el('div', { class: 'kpi-row' }, [
       kpi(String(live.length), live.length === 1 ? 'record' : 'records'),
       kpi(avg === null ? '--' : avg.toFixed(1), 'average overall'),
-      kpi(below === null ? '--' : String(below), threshold === null ? 'below the threshold' : `below ${threshold}, for the board`),
+      /**
+       * The caveat goes on the number it is about, not in a line underneath the row.
+       *
+       * It was a sentence below five tiles reading "that threshold is provisional", and asked:
+       * which threshold, and who is it for. Neither was answerable from where it sat. The
+       * number is the only thing it is about, so it is marked on the number, and the sentence
+       * that could not say which one is gone.
+       */
+      kpi(below === null ? '--' : String(below),
+          threshold === null ? 'below the threshold'
+            : provisional ? `below ${threshold}, provisional` : `below ${threshold}, for the board`),
       kpi(String(rows.reduce((n, row) => n + row.redFlags, 0)), 'answered no'),
       kpi(String(records.filter((rec) => rec.status === 'audited').length), 'audited'),
     ]),
-    provisional
-      ? el('p', { class: 'tiny dim' }, [
-          'That threshold is provisional: it was filled in between two numbers TBS named, and nobody has confirmed it.',
-        ])
-      : null,
   ]));
 
   if (!rows.length) {
@@ -412,10 +417,23 @@ function paint(
         .slice(0, 5);
       const box = el('section', { class: 'card' }, [
         el('h2', {}, ['Self-scores against assessors']),
+        /**
+         * THE NUMBER IS A SIZE AND THE WORDS CARRY THE DIRECTION.
+         *
+         * It printed -1.4 beside "points departments scored themselves high", which is two
+         * directions in one sentence: the minus belongs to the subtraction it came from
+         * (assessor minus department) and the word high belongs to the department. Asked, in
+         * those words: what does it mean, why is the number negative, how does it work.
+         *
+         * Neither half was wrong and together they were unreadable, so the sign goes. How far
+         * apart they are is the size; which way round is what the words say.
+         */
         lead(
-          changed ? `${mean > 0 ? '+' : ''}${mean.toFixed(1)}` : '\u2014',
+          changed ? Math.abs(mean).toFixed(1) : '\u2014',
           changed
-            ? mean < 0 ? 'points departments scored themselves high' : 'points departments scored themselves low'
+            ? mean < 0
+              ? 'points higher than assessors gave them'
+              : 'points lower than assessors gave them'
             : 'no assessor has changed a score',
           [
             `${withAudit} record${withAudit === 1 ? '' : 's'} audited`,

@@ -218,11 +218,22 @@ ok('every stored name is made by the helper, and there is more than one',
      Math.max(...scores) - Math.min(...scores) > 5,
      `${Math.min(...scores)} to ${Math.max(...scores)}`);
 
-  const audited = col(11).filter((t) => t && !/Nobody yet/.test(t));
+  /**
+   * Counted from the chips rather than from commas.
+   *
+   * Each assessor on a row is its own element now, because two full names run together were
+   * four lines of plain text that had to be read to be counted. Splitting the cell's text on
+   * a comma stopped working the moment the comma went, and it would have gone on passing if
+   * the names had happened to contain one.
+   */
+  const auditCells = [...document.querySelectorAll('.triage tbody tr.row-open')]
+    .map((r) => [...(r.children[11]?.querySelectorAll('.audit-chip-name') ?? [])]
+      .map((n) => n.textContent.trim()));
+  const audited = auditCells.filter((names) => names.length);
   ok('several have been read, by more than two people', audited.length >= 5
-     && spread(audited.flatMap((t) => t.split(','))) >= 3, audited.join(' | '));
-  ok('and one of them by three', audited.some((t) => t.split(',').length === 3),
-     audited.join(' | '));
+     && spread(audited.flat()) >= 3, audited.map((n) => n.join('+')).join(' | '));
+  ok('and one of them by three', audited.some((names) => names.length === 3),
+     audited.map((n) => n.join('+')).join(' | '));
 
   /**
    * The invented assessors are named nobody. They carried the first names of two people who
@@ -250,16 +261,17 @@ ok('every stored name is made by the helper, and there is more than one',
  */
 {
   const rows = [...document.querySelectorAll('.triage tbody tr.row-open')];
+  const chips = (r) => (r.children[11]?.querySelectorAll('.audit-chip') ?? []).length;
   const audited = rows.map((r) => r.children[11]?.textContent?.trim() ?? '');
-  ok('the invented pool says who audited what', audited.some((t) => /\w/.test(t) && !/Nobody yet/.test(t)),
+  ok('the invented pool says who audited what', rows.some((r) => chips(r) > 0),
      audited.join(' | '));
-  ok('including one two people have both read',
-     audited.some((t) => t.split(',').length > 1), audited.join(' | '));
+  ok('including one two people have both read', rows.some((r) => chips(r) > 1),
+     audited.join(' | '));
   ok('and the rest honestly say nobody has', audited.some((t) => /Nobody yet/.test(t)),
      audited.join(' | '));
 
   const before = reached.length;
-  const two = rows.find((r) => (r.children[11]?.textContent ?? '').split(',').length > 1);
+  const two = rows.find((r) => chips(r) > 1);
   two?.dispatchEvent(new window.MouseEvent('click', { bubbles: true }));
   await new Promise((r) => setTimeout(r, 300));
   const said = app.textContent;
