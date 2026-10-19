@@ -36,7 +36,24 @@ interface Sketch {
   lean: number;
   /** How much of it is filled in, as a fraction. A real pool holds unfinished work. */
   filled: number;
-  submitted: boolean;
+  /**
+   * When it was started, last touched, and sent. No sentAt means it is still a draft, which is
+   * also what `submitted: boolean` used to mean, except that the boolean carried no date and
+   * every record therefore shared one.
+   *
+   * They all read 2026-09-18, so the card that leads with how long the longest wait has been
+   * printed the same number against every initiative under it. The arithmetic was right and the
+   * card still read true, and a column of identical numbers reads as a broken screen whether or
+   * not it is one. It is also the only shape in which that number is worth a decision: five
+   * submissions sent on Tuesday is a working week, one sent nine weeks ago is a department that
+   * has heard nothing.
+   *
+   * Fixed dates rather than offsets from today, so the pool is the same on every repaint. The
+   * waits therefore lengthen as the weeks pass, which is true of a real queue nobody empties.
+   */
+  madeAt: string;
+  touchedAt: string;
+  sentAt?: string;
   /** Every one of these was Unclassified, so the marking column had one value down the page. */
   marking: 'Unclassified' | 'Protected A' | 'Protected B';
   /**
@@ -66,7 +83,9 @@ const SKETCHES: Sketch[] = [
     id: 'FAKEAAAA1111', ref: 'DM01', name: 'Permit Renewal Online',
     department: 'Department of Invented Services', stage: 'beta',
     summary: 'Moving a paper permit renewal to a digital service. Invented, for demonstration.',
-    lean: 0, shape: 'middling', filled: 1, submitted: true, marking: 'Unclassified',
+    lean: 0, shape: 'middling', filled: 1, marking: 'Unclassified',
+    madeAt: '2026-07-30T09:00:00.000Z', touchedAt: '2026-08-14T15:00:00.000Z',
+    sentAt: '2026-08-14T15:00:00.000Z',
     evidence: 2,
     strongIn: ['official-languages'], weakIn: ['security'],
   },
@@ -77,7 +96,9 @@ const SKETCHES: Sketch[] = [
     // stage that does not exist.
     department: 'Agency for Sample Programmes', stage: 'growth',
     summary: 'A payments platform for grants and contributions. Invented, for demonstration.',
-    lean: 0, shape: 'strong', filled: 1, submitted: true, marking: 'Protected A',
+    lean: 0, shape: 'strong', filled: 1, marking: 'Protected A',
+    madeAt: '2026-08-25T09:00:00.000Z', touchedAt: '2026-09-15T15:00:00.000Z',
+    sentAt: '2026-09-15T15:00:00.000Z',
     evidence: 6,
     strongIn: ['financial'], weakIn: ['accessibility'],
   },
@@ -85,14 +106,17 @@ const SKETCHES: Sketch[] = [
     id: 'FAKECCCC3333', ref: 'DM03', name: 'Case Management Replacement',
     department: 'Office of Example Operations', stage: 'discovery',
     summary: 'Replacing a case management system at end of life. Invented, for demonstration.',
-    lean: -1, shape: 'weak', filled: 1, submitted: true, marking: 'Unclassified',
+    lean: -1, shape: 'weak', filled: 1, marking: 'Unclassified',
+    madeAt: '2026-09-02T09:00:00.000Z', touchedAt: '2026-09-19T15:00:00.000Z',
+    sentAt: '2026-09-19T15:00:00.000Z',
     weakIn: ['security', 'privacy'],
   },
   {
     id: 'FAKEDDDD4444', ref: 'DM04', name: 'Inspections Mobile Tool',
     department: 'Bureau of Illustrative Inspections', stage: 'alpha',
     summary: 'A tablet tool for field inspectors. Invented, and part-finished on purpose.',
-    lean: -1, shape: 'middling', filled: 0.45, submitted: false, marking: 'Unclassified',
+    lean: -1, shape: 'middling', filled: 0.45, marking: 'Unclassified',
+    madeAt: '2026-09-02T09:00:00.000Z', touchedAt: '2026-10-08T15:00:00.000Z',
     strongIn: ['A'], weakIn: ['accessibility'],
   },
   /**
@@ -105,14 +129,18 @@ const SKETCHES: Sketch[] = [
     id: 'FAKEEEEE5555', ref: 'DM05', name: 'Benefits Eligibility Engine',
     department: 'Office of Illustrative Benefits', stage: 'stabilization',
     summary: 'Rules engine deciding benefit eligibility. Invented, for demonstration.',
-    lean: 0, shape: 'weak', filled: 1, submitted: true, marking: 'Protected B',
+    lean: 0, shape: 'weak', filled: 1, marking: 'Protected B',
+    madeAt: '2026-08-10T09:00:00.000Z', touchedAt: '2026-08-28T15:00:00.000Z',
+    sentAt: '2026-08-28T15:00:00.000Z',
     strongIn: ['privacy'], weakIn: ['official-languages', 'D'],
   },
   {
     id: 'FAKEFFFF6666', ref: 'DM06', name: 'Records Retention Service',
     department: 'Sample Records Authority', stage: 'maturity',
     summary: 'Retention and disposition across departmental records. Invented.',
-    lean: 1, shape: 'strong', filled: 1, submitted: true, marking: 'Protected A',
+    lean: 1, shape: 'strong', filled: 1, marking: 'Protected A',
+    madeAt: '2026-08-19T09:00:00.000Z', touchedAt: '2026-09-08T15:00:00.000Z',
+    sentAt: '2026-09-08T15:00:00.000Z',
     evidence: 5,
     strongIn: ['privacy', 'D'], weakIn: ['financial'],
   },
@@ -120,7 +148,9 @@ const SKETCHES: Sketch[] = [
     id: 'FAKEGGGG7777', ref: 'DM07', name: 'Legacy Licensing Retirement',
     department: 'Example Licensing Directorate', stage: 'sunset',
     summary: 'Turning off a licensing system and moving its data. Invented.',
-    lean: 1, shape: 'middling', filled: 0.92, submitted: true, marking: 'Unclassified',
+    lean: 1, shape: 'middling', filled: 0.92, marking: 'Unclassified',
+    madeAt: '2026-08-31T09:00:00.000Z', touchedAt: '2026-09-16T15:00:00.000Z',
+    sentAt: '2026-09-16T15:00:00.000Z',
     evidence: 1,
     strongIn: ['financial'], weakIn: ['T'],
   },
@@ -129,7 +159,9 @@ const SKETCHES: Sketch[] = [
     id: 'FAKEHHHH8888', ref: 'DM08', name: 'Client Notification Hub',
     department: 'Bureau of Demonstration Services', stage: 'beta',
     summary: 'One place for every notice a client receives. Invented, and sent part-finished.',
-    lean: 0, shape: 'middling', filled: 0.7, submitted: true, marking: 'Protected B',
+    lean: 0, shape: 'middling', filled: 0.7, marking: 'Protected B',
+    madeAt: '2026-09-04T09:00:00.000Z', touchedAt: '2026-09-21T15:00:00.000Z',
+    sentAt: '2026-09-21T15:00:00.000Z',
     strongIn: ['accessibility'], weakIn: ['official-languages'],
   },
   /**
@@ -149,7 +181,9 @@ const SKETCHES: Sketch[] = [
     id: 'FAKEJJJJ2345', ref: 'DM09', name: 'Travel Claims Modernization',
     department: 'Office of Sample Travel', stage: 'growth',
     summary: 'Replacing the travel claim form and what is behind it. Invented.',
-    lean: -1, shape: 'strong', filled: 1, submitted: true, marking: 'Protected A',
+    lean: -1, shape: 'strong', filled: 1, marking: 'Protected A',
+    madeAt: '2026-09-01T09:00:00.000Z', touchedAt: '2026-09-20T15:00:00.000Z',
+    sentAt: '2026-09-20T15:00:00.000Z',
     evidence: 3,
     strongIn: ['financial', 'B'], weakIn: ['privacy'],
   },
@@ -157,14 +191,18 @@ const SKETCHES: Sketch[] = [
     id: 'FAKEKKKK3456', ref: 'DM10', name: 'Shoreline Monitoring Network',
     department: 'Agency for Example Environment', stage: 'alpha',
     summary: 'Sensors along the coast, reporting into one place. Invented.',
-    lean: -1, shape: 'middling', filled: 1, submitted: true, marking: 'Unclassified',
+    lean: -1, shape: 'middling', filled: 1, marking: 'Unclassified',
+    madeAt: '2026-09-11T09:00:00.000Z', touchedAt: '2026-09-30T15:00:00.000Z',
+    sentAt: '2026-09-30T15:00:00.000Z',
     strongIn: ['T'], weakIn: ['security', 'B'],
   },
   {
     id: 'FAKELLLL4567', ref: 'DM11', name: 'Pension Statement Rewrite',
     department: 'Illustrative Pensions Branch', stage: 'maturity',
     summary: 'The annual statement, rewritten and redelivered. Invented.',
-    lean: -1, shape: 'strong', filled: 1, submitted: true, marking: 'Protected B',
+    lean: -1, shape: 'strong', filled: 1, marking: 'Protected B',
+    madeAt: '2026-09-14T09:00:00.000Z', touchedAt: '2026-10-05T15:00:00.000Z',
+    sentAt: '2026-10-05T15:00:00.000Z',
     evidence: 4,
     strongIn: ['accessibility', 'official-languages'], weakIn: ['A'],
   },
@@ -172,7 +210,9 @@ const SKETCHES: Sketch[] = [
     id: 'FAKEMMMM5678', ref: 'DM12', name: 'Border Declaration Kiosk',
     department: 'Bureau of Sample Borders', stage: 'beta',
     summary: 'A kiosk taking declarations on arrival. Invented.',
-    lean: 1, shape: 'middling', filled: 1, submitted: true, marking: 'Protected A',
+    lean: 1, shape: 'middling', filled: 1, marking: 'Protected A',
+    madeAt: '2026-09-07T09:00:00.000Z', touchedAt: '2026-09-25T15:00:00.000Z',
+    sentAt: '2026-09-25T15:00:00.000Z',
     evidence: 2,
     strongIn: ['security'], weakIn: ['accessibility', 'official-languages'],
   },
@@ -181,14 +221,17 @@ const SKETCHES: Sketch[] = [
     id: 'FAKENNNN6789', ref: 'DM13', name: 'Procurement Intake Portal',
     department: 'Office of Demonstration Procurement', stage: 'stabilization',
     summary: 'One front door for procurement requests. Invented, and barely started.',
-    lean: 0, shape: 'weak', filled: 0.3, submitted: false, marking: 'Unclassified',
+    lean: 0, shape: 'weak', filled: 0.3, marking: 'Unclassified',
+    madeAt: '2026-10-10T09:00:00.000Z', touchedAt: '2026-10-14T15:00:00.000Z',
     weakIn: ['financial', 'T'],
   },
   {
     id: 'FAKEPPPP7892', ref: 'DM14', name: 'Veterans Benefits Lookup',
     department: 'Example Veterans Directorate', stage: 'growth',
     summary: 'Letting somebody see what they are entitled to. Invented.',
-    lean: 0, shape: 'middling', filled: 1, submitted: true, marking: 'Protected B',
+    lean: 0, shape: 'middling', filled: 1, marking: 'Protected B',
+    madeAt: '2026-09-18T09:00:00.000Z', touchedAt: '2026-10-09T15:00:00.000Z',
+    sentAt: '2026-10-09T15:00:00.000Z',
     strongIn: ['accessibility'], weakIn: ['security'],
   },
   {
@@ -196,7 +239,9 @@ const SKETCHES: Sketch[] = [
     id: 'FAKEQQQQ8923', ref: 'DM15', name: 'Fisheries Quota Ledger',
     department: 'Invented Fisheries Authority', stage: 'discovery',
     summary: 'Tracking quota against catch. Invented, and early.',
-    lean: -1, shape: 'weak', filled: 1, submitted: true, marking: 'Unclassified',
+    lean: -1, shape: 'weak', filled: 1, marking: 'Unclassified',
+    madeAt: '2026-09-05T09:00:00.000Z', touchedAt: '2026-09-24T15:00:00.000Z',
+    sentAt: '2026-09-24T15:00:00.000Z',
     weakIn: ['security', 'T'],
   },
   {
@@ -204,7 +249,9 @@ const SKETCHES: Sketch[] = [
     id: 'FAKERRRR9234', ref: 'DM16', name: 'Identity Credential Broker',
     department: 'Sample Identity Services', stage: 'maturity',
     summary: 'Brokering credentials between departments. Invented.',
-    lean: 1, shape: 'strong', filled: 1, submitted: true, marking: 'Protected B',
+    lean: 1, shape: 'strong', filled: 1, marking: 'Protected B',
+    madeAt: '2026-09-03T09:00:00.000Z', touchedAt: '2026-09-23T15:00:00.000Z',
+    sentAt: '2026-09-23T15:00:00.000Z',
     evidence: 6,
     strongIn: ['security', 'privacy'], weakIn: ['financial'],
   },
@@ -212,14 +259,18 @@ const SKETCHES: Sketch[] = [
     id: 'FAKESSSS2456', ref: 'DM17', name: 'Heritage Collections Catalogue',
     department: 'Office of Illustrative Heritage', stage: 'beta',
     summary: 'A catalogue of what the collection holds. Invented, and sent part-finished.',
-    lean: 1, shape: 'middling', filled: 0.6, submitted: true, marking: 'Unclassified',
+    lean: 1, shape: 'middling', filled: 0.6, marking: 'Unclassified',
+    madeAt: '2026-09-23T09:00:00.000Z', touchedAt: '2026-10-13T15:00:00.000Z',
+    sentAt: '2026-10-13T15:00:00.000Z',
     strongIn: ['official-languages'], weakIn: ['privacy'],
   },
   {
     id: 'FAKETTTT3567', ref: 'DM18', name: 'Payroll Exception Queue',
     department: 'Demonstration Pay Centre', stage: 'stabilization',
     summary: 'The queue of pay cases that need a person. Invented.',
-    lean: 0, shape: 'middling', filled: 1, submitted: true, marking: 'Protected A',
+    lean: 0, shape: 'middling', filled: 1, marking: 'Protected A',
+    madeAt: '2026-09-28T09:00:00.000Z', touchedAt: '2026-10-16T15:00:00.000Z',
+    sentAt: '2026-10-16T15:00:00.000Z',
     evidence: 1,
     strongIn: ['financial'], weakIn: ['privacy', 'accessibility'],
   },
@@ -227,14 +278,17 @@ const SKETCHES: Sketch[] = [
     id: 'FAKEUUUU4678', ref: 'DM19', name: 'Weather Alert Relay',
     department: 'Agency for Invented Forecasting', stage: 'growth',
     summary: 'Getting an alert to the people under it. Invented.',
-    lean: 2, shape: 'middling', filled: 1, submitted: true, marking: 'Unclassified',
+    lean: 2, shape: 'middling', filled: 1, marking: 'Unclassified',
+    madeAt: '2026-09-29T09:00:00.000Z', touchedAt: '2026-10-17T15:00:00.000Z',
+    sentAt: '2026-10-17T15:00:00.000Z',
     strongIn: ['T', 'accessibility'], weakIn: ['financial'],
   },
   {
     id: 'FAKEVVVV5789', ref: 'DM20', name: 'Property Title Registry Move',
     department: 'Example Title Registry', stage: 'sunset',
     summary: 'Moving a title registry off its last server. Invented, and unsent.',
-    lean: 1, shape: 'middling', filled: 0.55, submitted: false, marking: 'Protected A',
+    lean: 1, shape: 'middling', filled: 0.55, marking: 'Protected A',
+    madeAt: '2026-08-20T09:00:00.000Z', touchedAt: '2026-09-29T15:00:00.000Z',
     strongIn: ['D'], weakIn: ['security'],
   },
 ];
@@ -341,10 +395,10 @@ export function demoAssessments(rubric: Rubric): Assessment[] {
       },
       answers,
       meta: {
-        createdAt: '2026-09-01T09:00:00.000Z',
-        updatedAt: '2026-09-18T15:00:00.000Z',
+        createdAt: sk.madeAt,
+        updatedAt: sk.touchedAt,
         appVersion: DEMO_MARK,
-        ...(sk.submitted ? { submittedAt: '2026-09-18T15:00:00.000Z' } : {}),
+        ...(sk.sentAt ? { submittedAt: sk.sentAt } : {}),
       },
     } as Assessment;
   });
