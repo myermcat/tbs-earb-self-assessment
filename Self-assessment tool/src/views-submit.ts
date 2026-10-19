@@ -869,13 +869,24 @@ function footerBar(
     secBar.classList.toggle('done', nowComplete);
   };
 
+  /**
+   * The bars share the line with the score and the buttons, where there is room for them.
+   *
+   * Reported from a screenshot: the header and footer together take up majority of the page,
+   * and i can see maximum two questions per screen. The bars were a row of their own, 34px of
+   * a 91px bar, to carry two captions and two 5px rails that the buttons beside them had
+   * height to spare for. Where the line cannot hold all three the row wraps and the bars take
+   * the top line back, which is where they were. No width is written down for that: the French
+   * buttons are 158px wider than the English ones, so the wrapping is left to what each
+   * language actually measures.
+   */
   const node = el('div', { class: 'sticky-footer' }, [
     gate,
-    el('div', { class: 'progress-row' }, [
-      el('div', { class: 'pbar' }, [secLabel, el('div', { class: 'progress-shell' }, [secBar])]),
-      el('div', { class: 'pbar' }, [allLabel, el('div', { class: 'progress-shell' }, [allBar])]),
-    ]),
     el('div', { class: 'footer-inner' }, [
+      el('div', { class: 'progress-row' }, [
+        el('div', { class: 'pbar' }, [secLabel, el('div', { class: 'progress-shell' }, [secBar])]),
+        el('div', { class: 'pbar' }, [allLabel, el('div', { class: 'progress-shell' }, [allBar])]),
+      ]),
       el('div', { class: 'footer-score' }, [
         pill,
         readout,

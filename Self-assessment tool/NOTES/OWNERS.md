@@ -10,7 +10,7 @@ anybody. They are chosen so two people are rarely in the same file on the same d
 |---|---|---|
 | Rubric and import | `rubric/`, `tools/import-rubric.mjs`, the topics and domains, Dan's workbook | Mariia |
 | Store and access | `src/store.ts`, `src/firebase.ts`, `src/signer.ts`, `deploy/firestore.rules` | Mariia |
-| Questionnaire | `src/views-submit.ts`, `src/views-results.ts`, scoring and flags | |
+| Questionnaire | `src/views-submit.ts`, `src/views-results.ts`, scoring and flags | Mariia |
 | Assessor and admin | `src/views-review.ts`, `src/views-dashboard.ts`, the audit | |
 | Requirements and risks | `NOTES/requirements.data.mjs`, the risk register | Mariia |
 

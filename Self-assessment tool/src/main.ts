@@ -863,6 +863,29 @@ function header(bare = false): HTMLElement {
           ]),
         ])
       : null,
+    /**
+     * The marking of a marked file, beside File, at the weight it is worth.
+     *
+     * It was a band across the frame, 28px of every screen on a page where the header and the
+     * footer already took 283 of 800 and two questions fitted between them. Asked for in these
+     * words: on the right of the file in the header, very faint, so it's not really important
+     * information, it's taking up a lot of weight right now, unnecessarily.
+     *
+     * An unmarked file keeps the band. That one is a warning and the only thing on the page
+     * that needs doing, so it stays the size of a warning.
+     */
+    !bare && side === 'submit' && (mode === 'submit' || mode === 'results')
+      && bannerFor(assessment) !== 'UNMARKED'
+      ? el('span', { class: 'mark-tag' }, [
+          el('span', {}, [bannerFor(assessment)]),
+          // The file is always unclassified; what the evidence behind it is marked is the
+          // half of this somebody could not work out for themselves, so it is the half that
+          // keeps the darker ink.
+          evidenceNote(assessment)
+            ? el('span', { class: 'mark-tag-note' }, [evidenceNote(assessment)])
+            : null,
+        ])
+      : null,
     el('div', { class: 'topbar-right' }, [
       // Where the work is kept, on every screen, and one click from the detail.
       // The save state is the submitter's. An assessor has nothing of their own open here,
@@ -1010,7 +1033,13 @@ function banner(extra = ''): HTMLElement {
   const unmarked = mark === 'UNMARKED';
   if (!unmarked || extra) {
     const note = evidenceNote(assessment);
-    return el('div', { class: `marking-banner ${unmarked ? 'unmarked' : ''} ${extra}` }, [
+    /**
+     * A marked file says so beside File in the header now, so the band it used to draw is held
+     * back from the screen. It is still built and still in the page, because paper has no
+     * header and a printed assessment carries its marking at the head as well as the foot.
+     */
+    const held = !unmarked && !extra ? ' screen-off' : '';
+    return el('div', { class: `marking-banner ${unmarked ? 'unmarked' : ''}${held} ${extra}` }, [
       unmarked ? 'Unmarked' : mark,
       note ? el('span', { class: 'mark-note' }, [note]) : null,
     ]);

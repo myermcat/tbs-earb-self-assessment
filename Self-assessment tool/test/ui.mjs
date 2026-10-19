@@ -465,6 +465,35 @@ ok('marking from the gate clears the gate', !q('.gate'));
   ok('the marking is Protected B again, acknowledged', !q('dialog.pledge'));
 }
 
+/**
+ * A marked file carries its marking as a tag beside File, and not as a band across the frame.
+ *
+ * Reported from a screenshot: the header and footer together take up majority of the page, and
+ * i can see maximum two questions per screen. The band was 28px of every screen, saying
+ * UNCLASSIFIED to the person who had just marked it that themselves. Asked for: on the right of
+ * the file in the header, very faint, it's not really important information.
+ *
+ * The band is still built and still in the page. Paper has no header, and a printed assessment
+ * carries its marking at the head as well as the foot.
+ */
+{
+  const tag = q('.topbar .mark-tag');
+  ok('a marked file names its marking beside File',
+     !!tag && tag.textContent.includes('UNCLASSIFIED'), tag?.textContent ?? 'no tag');
+  ok('and says what the evidence behind it is marked',
+     (tag?.textContent ?? '').includes('evidence up to Protected B'), tag?.textContent ?? '');
+  ok('and File is what it stands beside',
+     tag?.previousElementSibling?.classList.contains('file-menu') === true,
+     tag?.previousElementSibling?.className ?? 'nothing before it');
+  const band = q('.chrome .marking-banner');
+  ok('the band it replaces is held back from the screen',
+     !!band && band.classList.contains('screen-off'), band?.className ?? 'no band');
+  ok('and is still in the page, so the printed copy keeps it',
+     (band?.textContent ?? '').includes('UNCLASSIFIED'), band?.textContent ?? '');
+  ok('and the screen is not carrying both', qa('.chrome .mark-tag').length === 1,
+     String(qa('.chrome .mark-tag').length));
+}
+
 // Step three, the lifecycle, with the guide beside it.
 byText('.ov-nav button', 'Next').click();
 ok('step three asks where it is in the lifecycle', view().includes('Where is it in the lifecycle'));
@@ -532,6 +561,16 @@ ok('the rail shows every section of the current domain as done',
 {
   const bars = qa('.progress-row .pbar');
   ok('two progress bars, one for the page and one for the whole', bars.length === 2, String(bars.length));
+  /**
+   * And they stand beside the score and the buttons rather than on a row of their own. The row
+   * they had cost 34px of a 91px bar to carry two captions over two 5px rails, beside buttons
+   * 38px tall with the height to spare for both.
+   */
+  ok('the bars are in the action row',
+     !!q('.sticky-footer .footer-inner > .progress-row'),
+     q('.sticky-footer > .progress-row') ? 'still a row of its own' : 'not in the bar at all');
+  ok('and the score and the buttons are on that line with them',
+     !!q('.footer-inner > .footer-score') && !!q('.footer-inner > .footer-actions'));
   ok('the section bar counts this page', bars[0].textContent.startsWith('This section'), bars[0].textContent);
   /**
    * Read in two parts, because the caption carries two wordings now and a phone reveals the
@@ -2072,6 +2111,43 @@ ok('audited file keeps the self-score alongside the audited one',
      /min-width:\s*0/.test(rail), rail.trim().slice(0, 160));
 
   /**
+   * The categories sit on the tabs' line, and the bars take a share of the action row.
+   *
+   * Read as the last rule with anything to say about each property. An earlier rule in this
+   * file stacked the two bands of the header in a column and a grep would find that one first,
+   * which is the failure this idiom exists for.
+   */
+  const lastDecl = (sel, prop) => [...sheet.matchAll(new RegExp(`${sel}\\s*\\{([^}]*)\\}`, 'g'))]
+    .map((m) => (m[1].match(new RegExp(`(?:^|;)\\s*${prop}:\\s*([^;]+)`)) ?? [])[1])
+    .filter(Boolean).map((v) => v.trim()).pop();
+  ok('the tabs and the categories are one row that wraps',
+     lastDecl('\\.stepper-stack', 'display') === 'flex'
+     && lastDecl('\\.stepper-stack', 'flex-wrap') === 'wrap'
+     && lastDecl('\\.stepper-stack', 'flex-direction') === undefined,
+     `${lastDecl('\\.stepper-stack', 'display')} / ${lastDecl('\\.stepper-stack', 'flex-wrap')}`
+     + ` / ${lastDecl('\\.stepper-stack', 'flex-direction') ?? 'no direction'}`);
+  ok('and the strip sits at the far end of it, or at the near end of a line of its own',
+     lastDecl('\\.stepper-stack', 'justify-content') === 'space-between',
+     lastDecl('\\.stepper-stack', 'justify-content') ?? 'nothing');
+  {
+    /**
+     * Neither of the two may be sized by its own contents. Both are scrollers at phone width,
+     * and a flex item that cannot shrink is as wide as everything inside it, which puts the
+     * last tab and the last categories past the right edge with no scroller engaged.
+     */
+    const kids = [...sheet.matchAll(/\.chrome \.stepper-stack > [^{]*\{([^}]*)\}/g)]
+      .map((m) => (m[1].match(/(?:^|;)\s*flex:\s*([^;]+)/) ?? [])[1])
+      .filter(Boolean).map((v) => v.trim());
+    ok('and both of them may shrink inside it', kids.length > 0 && kids.every((f) => /^0 1 /.test(f)),
+       kids.join(' | ') || 'no flex on either');
+  }
+  {
+    const progFlex = lastDecl('\\.progress-row', 'flex');
+    ok('the bars take a share of the action row and wrap whole where it is short',
+       !!progFlex && /^1 1 \d/.test(progFlex), progFlex ?? 'no flex on the bars');
+  }
+
+  /**
    * Every phone rule stays inside its query.
    *
    * Read over what is left after the media blocks are removed, and not over the first match.
@@ -2094,8 +2170,15 @@ ok('audited file keeps the self-score alongside the audited one',
       outside('\\.chrome \\.step-label', 'line-height'), (v) => v.length === 0],
     ['the rail chips still fill the column rail', outside('\\.toc-row', 'width'),
       (v) => v.length > 0 && v.every((x) => x === '100%')],
-    ['the two progress columns are still uneven', outside('\\.progress-row', 'grid-template-columns'),
-      (v) => v.length > 0 && v.every((x) => x.includes('14rem'))],
+    /**
+     * The two progress columns were uneven, 14rem and whatever was left, which was right while
+     * the pair had a row of the page to itself. On the action row it left the longer caption
+     * 87px in French and three lines of it. They are even now, with a floor, and the phone rule
+     * at 480 asks for the same thing by hand.
+     */
+    ['the two progress columns are still even and floored',
+      outside('\\.progress-row', 'grid-template-columns'),
+      (v) => v.length > 0 && v.every((x) => /auto-fit/.test(x) && /minmax\(\s*\d/.test(x))],
     ['the short wording is still hidden', outside('\\.fb-short', 'display'),
       (v) => v.length > 0 && v.every((x) => x === 'none')],
     ['and the score sentence is still in the flow', outside('\\.footer-readout', 'position'),

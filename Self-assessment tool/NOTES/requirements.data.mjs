@@ -211,6 +211,8 @@ export const sections = [
       { id: 'F5', state: 'built', text: 'Nothing is destroyed in one step, and the window that asks says what will be lost and offers a copy first where there is one to offer.' },
       { id: 'F6', state: 'agreed', text: 'Submitting is one deliberate act. The first press names what is about to go online and asks the person to confirm it is unclassified.' },
       { id: 'F7', state: 'agreed', text: 'After the first submit, later changes write through as they are made.' },
+      { id: 'F8', state: 'built', text: 'The frame charges the questions as little as it can. On a laptop window the header is two bands and the bar at the foot is one line.',
+        note: 'Reported on 19 October from a screenshot: the header and footer together take up majority of the page, and i can see maximum two questions per screen. Measured at 1440x800: the header stood 192px and the bar 91px of an 800px window, and an answered question is 239px, so two fitted. Three things came off. The classification band became a tag beside File in the header, 28px. The six category chips moved onto the line the five domain tabs were already on, 40px. The two progress bars moved onto the line that already carried the score and the buttons, 34px. 283px became 180px and the band left for reading went from 517px to 620px. Below about 1240px each of the three falls back to the row it had, and the bar at the top wraps, so a 1024px laptop is where it was. Offered and declined: the tabs and the categories sliding away while the page scrolls down, worth another 105px. The tabs stay on screen for the whole scroll.' },
     ],
   },
   {
@@ -225,7 +227,8 @@ export const sections = [
       { id: 'E4', state: 'built', text: 'Choosing a marking above unclassified takes over the screen once, explains what to do instead, and cannot be dismissed until the person says they understand.' },
       { id: 'E5', state: 'built', text: 'A file attached while a row was unclassified cannot stay once that row is marked higher. Saving is blocked and the row says why.' },
       { id: 'E6', state: 'built', text: 'Evidence marked above the answer given on the overview asks which of the two is wrong.' },
-      { id: 'E7', state: 'built', text: 'The document itself is marked unclassified on screen and on every printout, with the evidence marking beside it.' },
+      { id: 'E7', state: 'built', text: 'The document itself is marked unclassified on screen and on every printout, with the evidence marking beside it.',
+        note: 'Where it says so on screen changed on 19 October. A marked file carries the marking as a faint tag beside File in the header, asked for in those words: very faint, it is not really important information, and it was taking a lot of weight unnecessarily. An unmarked file keeps the band across the frame, because that one is a warning. Every printout carries the band at the head and at the foot as before.' },
     ],
   },
   {
