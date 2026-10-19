@@ -131,7 +131,14 @@ border:1px solid;border-radius:999px;padding:.07rem .42rem;white-space:nowrap}
    The colour is per card rather than per state. Six cards that look the same are six cards a
    reader has to read to tell apart, and the thing being chosen between is which block to pick
    up, not how any of them is going. */
+/* A block nobody has taken is faded, and the whole card fades rather than its stripe alone.
+   Copied from the out-of-scope card on the reading hub, opacity and hover included: there a
+   week that may not be examined is dimmed entire, so the eye passes over it without having to
+   read it first. Pointing at it brings it back, and so does opening it, because once somebody
+   is reading the items the card is no longer a thing being skipped. */
 .h-none{--hue:var(--ink-3)}
+.block.h-none>summary{opacity:.62;transition:opacity .18s}
+.block.h-none:hover>summary,.block.h-none[open]>summary{opacity:1}
 .h-green{--hue:#1f6b57}.h-blue{--hue:#1c5d93}.h-amber{--hue:#8a5a1e}
 .h-purple{--hue:#5b3e8e}.h-rose{--hue:#9a3b52}.h-teal{--hue:#1b6b6b}
 @media(prefers-color-scheme:dark){
