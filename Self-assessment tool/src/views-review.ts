@@ -2048,9 +2048,17 @@ function auditedCell(l: Loaded): HTMLElement {
     title: l.auditedByMe
       ? `Audited by ${who.join(', ')}, including you`
       : `Audited by ${who.join(', ')}`,
-  }, who.map((name) => el('span', { class: 'audit-chip' }, [
+  }, who.map((name) => el('span', { class: 'audit-chip', title: name }, [
     el('span', { class: 'audit-chip-ini' }, [initialsFor(name)]),
-    el('span', { class: 'audit-chip-name' }, [name]),
+    /**
+     * An address shows the part in front of the @, and the whole of it is on the hover.
+     *
+     * An audit carries the name its author typed, and where nobody typed one it carries their
+     * address instead. A full address is both long and mostly the same characters as the one
+     * above it - the domain is what every colleague shares and the only part that tells them
+     * apart is at the front, which is the part a column this width would cut off.
+     */
+    el('span', { class: 'audit-chip-name' }, [name.includes('@') ? name.split('@')[0] : name]),
   ])));
 }
 

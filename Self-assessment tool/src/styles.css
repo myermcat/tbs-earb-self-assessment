@@ -1734,7 +1734,19 @@ td.t0, td.t1, td.t2, td.t3, td.t4, td.t5, td.t6, td.t7, td.t8, td.t9, td.t10 { f
  * Above the width where the table fits, nothing needs to scroll, so nothing needs to clip. The
  * phone keeps the scroll, which is the sanctioned exception: a table, in its own container.
  */
-@media (min-width: 900px) { .body-review .table-wrap, .body-admin .table-wrap { overflow: visible; } }
+/**
+ * 1240px, and the number is measured rather than chosen.
+ *
+ * It was 900, which was the width the table fitted in when it had fewer columns. The
+ * submissions table needs about 1150px of its own, so between 900 and roughly 1230 the wrapper
+ * stopped clipping while the table was still wider than the card it sits in - and the table
+ * simply drew over the card's right edge, with no scrollbar to say so and nothing to drag.
+ * Reported with a screenshot: why do those things come out of the box on the right.
+ *
+ * Measured at 1100, where it stood 70px proud of the card, and at 1280, where it sits 19px
+ * inside it. A laptop at 1280 keeps the menus; anything narrower gets the scroll it needs.
+ */
+@media (min-width: 1240px) { .body-review .table-wrap, .body-admin .table-wrap { overflow: visible; } }
 .row-menu .set-menu-pop { z-index: 40; }
 table { border-collapse: collapse; width: 100%; font-size: .875rem; }
 th, td { text-align: left; padding: .4rem .55rem; border-bottom: 1px solid var(--line); vertical-align: top; }
@@ -2443,15 +2455,30 @@ tr.row-open button, tr.row-open summary, tr.row-open label { cursor: pointer; }
 /* One chip per assessor, each on its own line, at the smallest size in the table. Two names
    ran into one another as four lines of plain text that had to be read to be counted, and the
    column set the height of the row. A chip is a shape before it is a word. */
-.audited-who { display: flex; flex-direction: column; gap: .15rem; align-items: flex-start; }
+/**
+ * The chip stays inside its column, which it was not doing.
+ *
+ * Above 900px the table's wrapper is `overflow: visible` on purpose, so a row menu can open
+ * outside it, and `table` has no fixed layout - so the colgroup widths are advice and a cell
+ * wide enough to need more simply takes it. An audit written by somebody with no display name
+ * shows their address instead, and a real one was wide enough to push the whole table out
+ * past the right edge of the card it sits in.
+ *
+ * The ellipsis was already asked for and could never fire: a flex child will not shrink below
+ * its content without min-width 0, so the name kept its full width and the chip grew with it.
+ */
+.audited-who { display: flex; flex-direction: column; gap: .15rem; align-items: flex-start;
+  max-width: 100%; min-width: 0; }
 .audit-chip { display: inline-flex; align-items: center; gap: .25rem; max-width: 100%;
+  min-width: 0;
   padding: .05rem .3rem .05rem .05rem; border: 1px solid var(--line);
   border-radius: var(--radius-sm); background: var(--surface-2); font-size: .7rem;
   line-height: 1.25; }
 .audit-chip-ini { font-family: var(--mono); font-size: .62rem; font-weight: 700;
   background: var(--line); color: var(--ink-2); border-radius: 2px; padding: .05rem .18rem;
   flex: 0 0 auto; }
-.audit-chip-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.audit-chip-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  min-width: 0; }
 /* One of them is you. The cell says so, because nothing here knows which chip. */
 .audited-mine .audit-chip { border-color: var(--accent-line); }
 /* Nobody yet, almost down to the background. It is the answer on most rows, and a column of
