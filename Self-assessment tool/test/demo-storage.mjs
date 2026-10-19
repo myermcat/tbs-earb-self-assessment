@@ -342,6 +342,29 @@ ok('every stored name is made by the helper, and there is more than one',
      /invented records, from no store at all/.test(shown) && !/from the hosted store/.test(shown),
      (shown.match(/\d+ (invented )?records[^.]{0,40}/) ?? ['nothing'])[0]);
 
+  /**
+   * How long people have been waiting, which was one number repeated.
+   *
+   * Every invented submission carried the same submittedAt, so the card that leads with the
+   * longest wait printed it against all seven initiatives under it. The arithmetic was right
+   * and the card read true, and a column of identical numbers reads as a broken screen whether
+   * or not it is one. It is also the only shape in which the number is worth a decision: five
+   * sent on Tuesday is a working week, one sent nine weeks ago is a department that has heard
+   * nothing.
+   */
+  [...document.querySelectorAll('details')].forEach((d) => { d.open = true; });
+  await new Promise((r) => setTimeout(r, 200));
+  const waiting = [...document.querySelectorAll('section')]
+    .find((x) => /Waiting on an assessor/i.test(x.textContent ?? ''));
+  const waits = [...(waiting?.querySelectorAll('.outlier') ?? [])]
+    .map((r) => (r.textContent ?? '').match(/(\d+)\s*days?/)?.[1] ?? '')
+    .filter(Boolean);
+  ok('the waiting card lists more than one submission', waits.length > 2, waits.join(', '));
+  ok('and they have not all waited the same number of days',
+     new Set(waits).size === waits.length, waits.join(', '));
+  ok('with the longest at the top, which is the number the card leads with',
+     waits.map(Number).every((n, i, a) => i === 0 || a[i - 1] >= n), waits.join(', '));
+
   const back = [...document.querySelectorAll('.chrome button')]
     .find((b) => /submissions|soumissions/i.test(b.textContent ?? ''));
   back?.dispatchEvent(new window.MouseEvent('click', { bubbles: true }));
