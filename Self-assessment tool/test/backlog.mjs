@@ -424,7 +424,7 @@ console.log('\nThe backlog page\n');
    * item number that does not exist, which draws an empty card on a page that looks finished.
    */
   const BLOCK = [{
-    id: 'one', n: 1, owner: 'Mariia', title: 'A block', kicker: 'A kicker',
+    id: 'one', n: 1, owner: 'Mariia', title: 'A block', hue: 'green',
     what: 'What it is.', next: 'The next thing', sections: ['e-live'], also: [], except: [],
   }];
   const { html } = await build(fixture([
@@ -437,12 +437,30 @@ console.log('\nThe backlog page\n');
   ok('the board is the first tab',
      html.indexOf('class="pane board"') < html.indexOf('data-track="engine" hidden'));
   ok('a card carries the owner and the next step',
-     board.includes('<b>Owner</b> Mariia') && board.includes('The next thing'));
+     board.includes('>Mariia<') && board.includes('The next thing'));
+  ok('and a colour of its own', board.includes('class="block h-green"'));
   ok('it gathers what its sections hold', board.includes('data-ref="a"'));
   ok('and nothing else', !board.includes('data-ref="b"'));
   /* A card holds pointers, so the item is drawn once, on its own tab, with its controls. */
   ok('a card draws no second copy of the item', !/<div class="row"/.test(board));
   ok('and owns no anchor, so an address still finds the item itself', !/ id="n\d+"/.test(board));
+
+  /**
+   * One sentence on a card. Asked for on 19 October: the card should be quickly scannable, and
+   * related information that is not important enough to be there costs more attention than it
+   * returns, because it is read before it can be dismissed.
+   */
+  const wordy = await build(fixture([
+    item({ id: 'a', track: 'engine', section: 'e-live' }),
+  ], SECS, [{ ...BLOCK[0], what: 'One thing. And another thing.' }]));
+  ok('a card with two sentences on it stops the build',
+     !wordy.html && /more than one sentence/.test(wordy.stderr), wordy.stderr.slice(0, 120));
+
+  const uncoloured = await build(fixture([
+    item({ id: 'a', track: 'engine', section: 'e-live' }),
+  ], SECS, [{ ...BLOCK[0], hue: 'beige' }]));
+  ok('and so does a colour that is not one of the six',
+     !uncoloured.html && /hue "beige"/.test(uncoloured.stderr));
 
   const broken = await build(fixture([
     item({ id: 'a', track: 'engine', section: 'e-live' }),

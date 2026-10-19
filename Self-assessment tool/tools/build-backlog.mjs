@@ -46,6 +46,8 @@ const STATUS = { wait: 'Waiting', doing: 'Doing', closed: 'Closed', open: '' };
 /** Which status a heading takes from the items under it: the furthest along anything below it. */
 const FROM_KIDS = ['doing', 'open', 'wait', 'closed'];
 const RANK = { high: 0, medium: 1, low: 2 };
+/** One per block, so six cards are six colours. */
+const HUES = new Set(['green', 'blue', 'amber', 'purple', 'rose', 'teal']);
 
 /**
  * Stops a typo becoming an item that exists in the file and appears on no page at all. A section
@@ -167,6 +169,12 @@ const RANK = { high: 0, medium: 1, low: 2 };
     if (blockIds.has(b.id)) wrong.push(`block ${b.id}: written twice`);
     blockIds.add(b.id);
     if (!b.owner) wrong.push(`block ${b.id}: no owner. Say 'nobody yet' rather than leaving it off.`);
+    if (!HUES.has(b.hue)) wrong.push(`block ${b.id}: hue ${JSON.stringify(b.hue)}`);
+    /**
+     * One sentence. A card is read at a glance, and a second sentence is related information
+     * that is not important enough to be there, which costs more attention than it returns.
+     */
+    if ((b.what.match(/\./g) ?? []).length > 1) wrong.push(`block ${b.id}: more than one sentence`);
     for (const x of b.sections) if (!secIds.has(x)) wrong.push(`block ${b.id}: no section called ${x}`);
     for (const n of (b.also ?? []).concat(b.except ?? [])) {
       if (!numbers.has(n)) wrong.push(`block ${b.id}: no item numbered ${n}`);
@@ -297,35 +305,42 @@ border:1px solid;border-radius:999px;padding:.07rem .42rem;white-space:nowrap}
 /* A pointer at an item that lives further down. Flat, no fold, no buttons, and set lighter than
    a row, so the eye reads the whole section as a gathering rather than as work of its own. */
 /* ---------- the board ----------
-   Six cards, one per block, borrowed from the course hub: an accent stripe down the left, the
-   number ghosted behind the corner, a kicker over the title, a sentence of what the block is,
-   and a meta row. A card is a summary, so the whole thing is the control and the items are
-   folded inside it. */
-/* One column: the board has no list down the left, because the cards are the list. */
+   Six cards, one per block, borrowed from the course hub: a colour of its own down the left,
+   the number ghosted behind the corner, the owner over a large title, and one sentence. The
+   whole card is the control, and the items it gathers are folded inside it.
+
+   The colour is per card rather than per state. Six cards that look the same are six cards a
+   reader has to read to tell apart, and the thing being chosen between is which block to pick
+   up, not how any of them is going. */
+.h-green{--hue:#1f6b57}.h-blue{--hue:#1c5d93}.h-amber{--hue:#8a5a1e}
+.h-purple{--hue:#5b3e8e}.h-rose{--hue:#9a3b52}.h-teal{--hue:#1b6b6b}
+@media(prefers-color-scheme:dark){
+.h-green{--hue:#64bfa1}.h-blue{--hue:#6bb4e8}.h-amber{--hue:#d9a957}
+.h-purple{--hue:#a98bd6}.h-rose{--hue:#e08ca0}.h-teal{--hue:#5fc9c9}}
 .pane.board{display:block}
 .board main{max-width:62rem;margin:0 auto;padding-bottom:4rem}
 .block{position:relative;border:1px solid var(--line);border-radius:10px;background:var(--surface);
-margin:0 0 1rem;overflow:hidden;transition:border-color .18s,transform .18s}
-.block::before{content:"";position:absolute;inset:0 auto 0 0;width:4px;background:var(--accent);
+margin:0 0 1.1rem;overflow:hidden;transition:border-color .18s,transform .18s}
+.block::before{content:"";position:absolute;inset:0 auto 0 0;width:4px;background:var(--hue);
 transition:width .18s}
-.block:hover{border-color:var(--accent-line);transform:translateY(-2px)}
-.block:hover::before{width:6px}
+.block:hover{border-color:var(--hue);transform:translateY(-2px)}
+.block:hover::before{width:7px}
 .block[open]{transform:none}
-.block>summary{cursor:pointer;list-style:none;position:relative;padding:1.3rem 1.4rem 1.3rem 1.9rem}
+.block>summary{cursor:pointer;list-style:none;position:relative;padding:1.5rem 1.5rem 1.4rem 2rem}
 .block>summary::-webkit-details-marker{display:none}
-.ghost{position:absolute;right:1rem;top:.3rem;font:700 3.4rem/1 var(--mono);color:var(--line);
-pointer-events:none;user-select:none}
-.bt{display:flex;flex-direction:column;gap:.45rem;position:relative}
-.bk{font:600 .66rem/1 var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--accent)}
-.bh{font-size:1.45rem;font-weight:680;letter-spacing:-.01em}
-.bw{color:var(--ink-2);font-size:.92rem;max-width:58ch;text-wrap:pretty}
-.bmeta{display:flex;flex-wrap:wrap;gap:.3rem 1.2rem;font-size:.82rem;color:var(--ink-3);margin-top:.15rem}
-.bmeta b{color:var(--ink-2);font-weight:600}
-.bnext{font-size:.82rem;color:var(--ink-3)}
-.bnext b{color:var(--accent);font-weight:600;letter-spacing:.04em;font-size:.7rem;
-text-transform:uppercase;font-family:var(--mono);margin-right:.35rem}
-.block>.card{margin:0 1rem 1rem 1.9rem}
-@media(max-width:620px){.ghost{display:none}.bh{font-size:1.2rem}}
+.ghost{position:absolute;right:1.1rem;top:.2rem;font:700 4rem/1 var(--mono);color:var(--hue);
+opacity:.13;pointer-events:none;user-select:none}
+.bt{display:flex;flex-direction:column;gap:.5rem;position:relative}
+/* The owner, which is the second thing a reader needs after the name of the block. */
+.bk{font:600 .68rem/1 var(--mono);letter-spacing:.11em;text-transform:uppercase;color:var(--hue)}
+.bh{font-size:clamp(1.6rem,3.4vw,2rem);font-weight:650;line-height:1.12;letter-spacing:-.015em}
+.bw{color:var(--ink-2);font-size:.95rem;max-width:56ch;text-wrap:pretty}
+.bnext{font-size:.85rem;color:var(--ink-2);margin-top:.15rem}
+.bnext b{color:var(--hue);font:600 .66rem/1 var(--mono);letter-spacing:.11em;
+text-transform:uppercase;margin-right:.5rem}
+.bmeta{display:flex;flex-wrap:wrap;gap:.3rem 1rem;font-size:.78rem;color:var(--ink-3)}
+.block>.card{margin:0 1.1rem 1.1rem 2rem}
+@media(max-width:620px){.ghost{display:none}}
 /* Behind glass. Asked for in those words: I want the broken section to be seen like behind a
    mirror or a glass, this is just a view into something else. So the card is tinted and set
    back, its rows are flat, and everything in them is drawn at reduced contrast: you can read
@@ -656,17 +671,16 @@ const board = `<section class="pane board" data-track="blocks" hidden><main>`
     const mine = inBlock(b);
     const waiting = mine.filter((i) => i.status === 'wait').length;
     const meta = [
-      `<span><b>Owner</b> ${esc(b.owner)}</span>`,
-      `<span><b>Open</b> ${mine.length}</span>`,
-      waiting ? `<span><b>Waiting on somebody</b> ${waiting}</span>` : '',
+      `<span>${mine.length} open</span>`,
+      waiting ? `<span>${waiting} waiting on somebody</span>` : '',
     ].join('');
-    return `<details class="block" id="b-${esc(b.id)}"><summary>`
+    return `<details class="block h-${esc(b.hue)}" id="b-${esc(b.id)}"><summary>`
       + `<span class="ghost" aria-hidden="true">${b.n}</span>`
-      + `<span class="bt"><span class="bk">${esc(b.kicker)}</span>`
+      + `<span class="bt"><span class="bk">${esc(b.owner)}</span>`
       + `<span class="bh">${esc(b.title)}</span>`
       + `<span class="bw">${esc(b.what)}</span>`
-      + `<span class="bmeta">${meta}</span>`
-      + `<span class="bnext"><b>Next</b> ${esc(b.next)}</span></span>`
+      + `<span class="bnext"><b>Next</b> ${esc(b.next)}</span>`
+      + `<span class="bmeta">${meta}</span></span>`
       + '</summary>'
       + `<div class="card glass">${mine.map(pointer).join('')
         || '<p class="settled"></p>'}</div></details>`;
