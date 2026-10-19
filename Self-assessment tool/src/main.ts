@@ -895,10 +895,9 @@ function header(bare = false): HTMLElement {
     !bare && side === 'submit' && (mode === 'submit' || mode === 'results')
       && bannerFor(assessment) !== 'UNMARKED'
       ? el('span', { class: 'mark-tag' }, [
-          el('span', {}, [bannerFor(assessment)]),
-          // The file is always unclassified; what the evidence behind it is marked is the
-          // half of this somebody could not work out for themselves, so it is the half that
-          // keeps the darker ink.
+          // The marking is written the way a marking is written, in capitals. What follows it
+          // is a sentence about the evidence, so it is set as one.
+          el('span', { class: 'mark-tag-mark' }, [bannerFor(assessment)]),
           evidenceNote(assessment)
             ? el('span', { class: 'mark-tag-note' }, [evidenceNote(assessment)])
             : null,
