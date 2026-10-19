@@ -2950,9 +2950,18 @@ console.log('\nA submission is a place you can go back from\n');
   const txt = (card?.textContent ?? '').replace(/\s+/g, ' ');
   // The loud number is the count of records unlike the others, because that is the one that
   // names something to do. The mean is a result nobody can act on, so it is on the quiet line.
-  ok('and leads with how many are unlike the others',
+  /**
+   * And says what it measured rather than what that means.
+   *
+   * It read "unlike the others", which is a claim about rarity the arithmetic does not
+   * support: roughly a third of any distribution falls outside one deviation, and on a pool of
+   * twenty it was naming seven. The number was right and the sentence over it was not.
+   */
+  ok('and leads with how many fell outside the deviation',
      (card?.querySelector('.lead-v')?.textContent ?? '') === '2'
-     && /unlike the others/.test(txt), `${card?.querySelector('.lead-v')?.textContent} / ${txt.slice(0, 120)}`);
+     && /outside one deviation/.test(txt), `${card?.querySelector('.lead-v')?.textContent} / ${txt.slice(0, 120)}`);
+  ok('and claims nothing about them being rare',
+     !/unlike the others|anomal/i.test(txt), txt.slice(0, 160));
   ok('with the mean underneath', /mean 5\.0/.test(txt), txt.slice(0, 200));
   /**
    * Population, not sample. These ARE the assessments; there is no wider population being
