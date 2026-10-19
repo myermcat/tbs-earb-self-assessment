@@ -27,7 +27,7 @@
 import { readFileSync, writeFileSync, existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
-import { tracks, sections, items, updated } from '../NOTES/backlog.data.mjs';
+import { blocks, tracks, sections, items, updated } from '../NOTES/backlog.data.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const out = join(here, '..', 'NOTES', 'backlog.html');
@@ -156,6 +156,22 @@ const RANK = { high: 0, medium: 1, low: 2 };
   }
   for (const i of items) if (i.parent && !seen.has(i.parent)) wrong.push(`${i.id}: parent ${i.parent} does not exist`);
   for (const s of sections) if (!trackIds.has(s.track)) wrong.push(`section ${s.id}: no tab called ${s.track}`);
+  /**
+   * A block that draws from a section nobody has, or names an item by a number that does not
+   * exist, is a card that comes out empty on a page that looks finished.
+   */
+  const secIds = new Set(sections.map((x) => x.id));
+  const numbers = new Set(items.map((i) => i.n));
+  const blockIds = new Set();
+  for (const b of blocks) {
+    if (blockIds.has(b.id)) wrong.push(`block ${b.id}: written twice`);
+    blockIds.add(b.id);
+    if (!b.owner) wrong.push(`block ${b.id}: no owner. Say 'nobody yet' rather than leaving it off.`);
+    for (const x of b.sections) if (!secIds.has(x)) wrong.push(`block ${b.id}: no section called ${x}`);
+    for (const n of (b.also ?? []).concat(b.except ?? [])) {
+      if (!numbers.has(n)) wrong.push(`block ${b.id}: no item numbered ${n}`);
+    }
+  }
   if (wrong.length) { console.error('backlog.data.mjs:\n  ' + wrong.join('\n  ')); process.exit(1); }
 }
 
@@ -280,6 +296,36 @@ border:1px solid;border-radius:999px;padding:.07rem .42rem;white-space:nowrap}
 .n:hover,.n:focus-visible{color:var(--accent);text-decoration:underline}
 /* A pointer at an item that lives further down. Flat, no fold, no buttons, and set lighter than
    a row, so the eye reads the whole section as a gathering rather than as work of its own. */
+/* ---------- the board ----------
+   Six cards, one per block, borrowed from the course hub: an accent stripe down the left, the
+   number ghosted behind the corner, a kicker over the title, a sentence of what the block is,
+   and a meta row. A card is a summary, so the whole thing is the control and the items are
+   folded inside it. */
+/* One column: the board has no list down the left, because the cards are the list. */
+.pane.board{display:block}
+.board main{max-width:62rem;margin:0 auto;padding-bottom:4rem}
+.block{position:relative;border:1px solid var(--line);border-radius:10px;background:var(--surface);
+margin:0 0 1rem;overflow:hidden;transition:border-color .18s,transform .18s}
+.block::before{content:"";position:absolute;inset:0 auto 0 0;width:4px;background:var(--accent);
+transition:width .18s}
+.block:hover{border-color:var(--accent-line);transform:translateY(-2px)}
+.block:hover::before{width:6px}
+.block[open]{transform:none}
+.block>summary{cursor:pointer;list-style:none;position:relative;padding:1.3rem 1.4rem 1.3rem 1.9rem}
+.block>summary::-webkit-details-marker{display:none}
+.ghost{position:absolute;right:1rem;top:.3rem;font:700 3.4rem/1 var(--mono);color:var(--line);
+pointer-events:none;user-select:none}
+.bt{display:flex;flex-direction:column;gap:.45rem;position:relative}
+.bk{font:600 .66rem/1 var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--accent)}
+.bh{font-size:1.45rem;font-weight:680;letter-spacing:-.01em}
+.bw{color:var(--ink-2);font-size:.92rem;max-width:58ch;text-wrap:pretty}
+.bmeta{display:flex;flex-wrap:wrap;gap:.3rem 1.2rem;font-size:.82rem;color:var(--ink-3);margin-top:.15rem}
+.bmeta b{color:var(--ink-2);font-weight:600}
+.bnext{font-size:.82rem;color:var(--ink-3)}
+.bnext b{color:var(--accent);font-weight:600;letter-spacing:.04em;font-size:.7rem;
+text-transform:uppercase;font-family:var(--mono);margin-right:.35rem}
+.block>.card{margin:0 1rem 1rem 1.9rem}
+@media(max-width:620px){.ghost{display:none}.bh{font-size:1.2rem}}
 /* Behind glass. Asked for in those words: I want the broken section to be seen like behind a
    mirror or a glass, this is just a view into something else. So the card is tinted and set
    back, its rows are flat, and everything in them is drawn at reduced contrast: you can read
@@ -587,6 +633,46 @@ function row(i, tabId) {
     + `data-group="${isGroup(i)}"${i.owes ? ' data-owes="1"' : ''}>${inner}${prio(i)}</div>`;
 }
 
+/**
+ * What a block gathers. Sections it draws from, plus anything named by number, less anything
+ * taken out by number. Headings are left out of the count the way they are everywhere else:
+ * a heading is a container, and counting it as well says there is more work than there is.
+ */
+function inBlock(b) {
+  const mine = items.filter((i) => (b.sections.includes(i.section) && !(b.except ?? []).includes(i.n))
+    || (b.also ?? []).includes(i.n));
+  return mine.filter((i) => i.status !== 'closed' && !isGroup(i)).sort(order);
+}
+
+/**
+ * The board. Six cards, one per block, each opening onto the items it gathers.
+ *
+ * Asked for on 19 October: a separate view of the blocks, in front of To go live, with cards
+ * the way the course hub has cards. A card is a summary and the items under it are pointers, so
+ * pressing one goes to the item where it lives rather than making a second copy of it here.
+ */
+const board = `<section class="pane board" data-track="blocks" hidden><main>`
+  + blocks.map((b) => {
+    const mine = inBlock(b);
+    const waiting = mine.filter((i) => i.status === 'wait').length;
+    const meta = [
+      `<span><b>Owner</b> ${esc(b.owner)}</span>`,
+      `<span><b>Open</b> ${mine.length}</span>`,
+      waiting ? `<span><b>Waiting on somebody</b> ${waiting}</span>` : '',
+    ].join('');
+    return `<details class="block" id="b-${esc(b.id)}"><summary>`
+      + `<span class="ghost" aria-hidden="true">${b.n}</span>`
+      + `<span class="bt"><span class="bk">${esc(b.kicker)}</span>`
+      + `<span class="bh">${esc(b.title)}</span>`
+      + `<span class="bw">${esc(b.what)}</span>`
+      + `<span class="bmeta">${meta}</span>`
+      + `<span class="bnext"><b>Next</b> ${esc(b.next)}</span></span>`
+      + '</summary>'
+      + `<div class="card glass">${mine.map(pointer).join('')
+        || '<p class="settled"></p>'}</div></details>`;
+  }).join('')
+  + '</main></section>';
+
 const panes = tracks.map((tr) => {
   /**
    * The first tab is a view and not a place. Its headings are Dan's three categories, because
@@ -795,7 +881,9 @@ const SCRIPT = `<script>
   // What a tab says is what its own pane holds, counted the same way the bar at the bottom
   // counts it, so the two can never disagree.
   panes.forEach(function (p) {
-    var open = p.querySelectorAll('.row:not([data-status=closed]):not([data-group=true])').length;
+    var open = p.classList.contains('board')
+      ? p.querySelectorAll('.ref').length
+      : p.querySelectorAll('.row:not([data-status=closed]):not([data-group=true])').length;
     var tab = document.querySelector('.tab[data-track="' + p.dataset.track + '"] .c');
     if (tab) tab.textContent = String(open);
     // Section counts include what is folded inside an item, for the same reason: a heading that
@@ -866,7 +954,10 @@ const SCRIPT = `<script>
   function count() {
     var pane = document.querySelector('.pane:not([hidden])');
     if (!pane) return;
-    var rows = [].slice.call(pane.querySelectorAll('.row')).filter(function (r) {
+    // The board is made of pointers rather than rows, so it counts those. Everywhere else a
+    // pointer is deliberately uncounted, because the item it points at is counted where it is.
+    var sel = pane.classList.contains('board') ? '.ref' : '.row';
+    var rows = [].slice.call(pane.querySelectorAll(sel)).filter(function (r) {
       return r.dataset.group !== 'true';
     });
     Object.keys(MATCH).forEach(function (k) {
@@ -1115,10 +1206,11 @@ const html = [
   '<header class="top"><div class="top-in">',
   `<div class="brand">EARB self-assessment <span>&middot; backlog &middot; ${esc(updated)}</span></div>`,
   '<nav class="tabs" role="tablist">',
-  tracks.map((t) => `<button class="tab" role="tab" data-track="${esc(t.id)}" aria-selected="false">`
+  [{ id: 'blocks', title: 'The blocks' }].concat(tracks)
+    .map((t) => `<button class="tab" role="tab" data-track="${esc(t.id)}" aria-selected="false">`
     + `${esc(t.title)}<span class="c">0</span></button>`).join(''),
   '</nav></div></header>',
-  '<div class="cols">', panes, '</div>',
+  '<div class="cols">', board, panes, '</div>',
   '<footer class="foot"><div class="foot-in">',
   [
     ['open', 'open'], ['wait', 'waiting on somebody'], ['doing', 'doing'],
