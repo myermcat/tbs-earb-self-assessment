@@ -3078,6 +3078,45 @@ console.log('\nA submission is a place you can go back from\n');
   j.window.close();
 }
 
+/* --------------------------------------------------------------------------------------- */
+/**
+ * A SUBMISSION ANSWERED UNDER THE SET'S OLD NAME IS STILL ANSWERED AGAINST THAT SET.
+ *
+ * The set was called 1.0-dan until 19 October and was renamed to 1.0, because the first half
+ * of it is a colleague's name and it was printing on every screen he was about to be shown.
+ * The rename was right and it orphaned every record already saved: an assessment carries the
+ * version it was answered against, inside the record, and rubricFor matched on the exact
+ * string. So the morning after, every submission in the live store carried NOT COMPARABLE,
+ * on every row, with not a word of the questions changed.
+ *
+ * Reported with a screenshot of ten rows all wearing the badge.
+ */
+{
+  const old = submission('KL12', 'Answered Before The Rename');
+  old.rubric = { id: old.rubric.id, version: '1.0-dan' };
+  old.answers = { 'B-Q1': { score: 6, evidence: [], justification: 'Before the rename.' } };
+  const now = submission('MN34', 'Answered After');
+  now.answers = { 'B-Q1': { score: 6, evidence: [], justification: 'After it.' } };
+  const { doc, dom } = await boot({
+    session: live, side: 'assess', role: 'assessor',
+    listAnswer: { documents: [old, now].map(asDoc) },
+  });
+  await new Promise((r) => setTimeout(r, 160));
+  const rows = [...doc.querySelectorAll('.triage tbody tr.row-open')];
+  ok('both submissions are listed', rows.length === 2, String(rows.length));
+  const warned = rows.filter((r) => /not comparable/i.test(r.textContent));
+  ok('and neither is called not comparable, because the questions did not change',
+     warned.length === 0,
+     warned.map((r) => r.children[0]?.textContent?.trim()).join(' | '));
+  /**
+   * And the old name is not printed back at anybody. It is a key we still answer to, not a
+   * thing to show: the whole reason for the rename was that it is somebody's first name.
+   */
+  ok('and the old name is nowhere on the screen', !/1\.0-dan/.test(body(doc)),
+     body(doc).match(/.{0,30}1\.0-dan.{0,30}/)?.[0] ?? '');
+  dom.window.close();
+}
+
 console.log(fails ? `\n${fails} hosted check(s) failed\n` : '\nall hosted checks passed\n');
 process.exit(fails ? 1 : 0);
 

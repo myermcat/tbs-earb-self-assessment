@@ -2423,7 +2423,15 @@ tr.row-open button, tr.row-open summary, tr.row-open label { cursor: pointer; }
 /* Ready, drafts and withdrawn as tabs in the toolbar, each carrying its own count so the
    shape of the pool is readable without pressing anything. */
 .list-tabs { display: flex; gap: .2rem; align-items: center; margin-left: .5rem; }
-.list-tabs .tab { display: inline-flex; align-items: center; gap: .3rem;
+/**
+ * Words beside words share a baseline. A box beside words is centred.
+ *
+ * The count is text, in the mono face at a smaller size, and centring it against the label
+ * hung it low: the two faces have different cap heights, so their optical centres do not
+ * agree even when their boxes do. It reads as the number having slipped. Baseline is what
+ * puts two pieces of text on the same line to a reader.
+ */
+.list-tabs .tab { display: inline-flex; align-items: baseline; gap: .3rem;
   padding: .3rem .55rem; border-radius: var(--radius-sm); background: none;
   border: 1px solid transparent; color: var(--ink-2); cursor: pointer; font-size: .83rem; }
 .list-tabs .tab:hover { color: var(--ink); border-color: var(--line); }
