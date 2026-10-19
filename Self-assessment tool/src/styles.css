@@ -152,9 +152,18 @@ li { margin-bottom: .22rem; }
 /* Header and marking banner as one sticky block, so neither can cover the other. */
 .chrome { position: sticky; top: 0; z-index: 30; }
 
+/**
+ * The row gap is half the gap between two controls standing side by side, which is the
+ * distance a phone was already given at 480 and had the reasoning written out for: 1rem is
+ * what separates the brand from File, and a bar that has to give way downward was being
+ * charged it twice over. The marking tag made that bill a wide one. The bar holds brand, File,
+ * tag and the right-hand group on one line at 1280 and wraps below about 1240, and a wrapped
+ * line now costs what is on it.
+ */
 .topbar {
   background: var(--chrome-bg);
-  display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap;
+  display: flex; align-items: center; justify-content: space-between; gap: .5rem 1rem;
+  flex-wrap: wrap;
   padding: .55rem 1.25rem;
   border-bottom: 1px solid var(--chrome-line);
 }
@@ -1117,6 +1126,22 @@ button.marking-banner:hover { filter: brightness(1.25); background: #2a1414; }
 }
 
 .marking-banner.print-only { display: none; }
+/* Held back from the screen, kept in the page, so it is still on the paper. */
+.marking-banner.screen-off { display: none; }
+
+/**
+ * The marking of a marked file, beside File.
+ *
+ * Asked for in these words: very faint, so it's not really important information, make it very
+ * low weight, it's taking up a lot of weight right now, unnecessarily. So it is a line of
+ * small capitals at the colour of a caption, with no box, no fill and no border: the lightest
+ * thing the header has. The evidence note keeps the darker of the two inks, because the file
+ * is always unclassified and what is behind it is the half nobody can work out for themselves.
+ */
+.mark-tag { display: inline-flex; align-items: baseline; gap: .4rem; min-width: 0;
+  font-size: .66rem; font-weight: 500; letter-spacing: .09em; text-transform: uppercase;
+  color: var(--ink-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mark-tag-note { color: var(--ink-2); letter-spacing: .05em; }
 .marking-row { display: flex; gap: .35rem; flex-wrap: wrap; margin-bottom: .45rem; }
 
 /* Unclassified is the answer, so it is one row on its own and carries the weight of one. */
@@ -1168,7 +1193,6 @@ code.mark-subject { display: block; margin: .25rem 0; }
   padding: 0 1.15rem;
   box-shadow: 0 -12px 22px -12px rgba(16, 24, 40, .5);
 }
-.sticky-footer > .progress-row,
 .sticky-footer > .footer-inner { max-width: 1200px; margin-inline: auto; }
 /* The gate is a band across the whole bar. Capping it at the content width left the colour
    stopping short of both edges, which read as a mistake. */
@@ -1176,8 +1200,8 @@ code.mark-subject { display: block; margin: .25rem 0; }
 @media (prefers-color-scheme: dark) {
   .sticky-footer { box-shadow: 0 -14px 26px -12px rgba(0, 0, 0, .85); }
 }
-.footer-inner { display: flex; justify-content: space-between; align-items: center; gap: 1rem;
-  flex-wrap: wrap; padding: .5rem 0 .6rem; }
+.footer-inner { display: flex; justify-content: space-between; align-items: center;
+  gap: .45rem 1.6rem; flex-wrap: wrap; padding: .5rem 0 .6rem; }
 .sticky-footer .pill { background: var(--surface); }
 .footer-score { display: flex; align-items: center; gap: .6rem; flex-wrap: wrap; }
 /* Where the work is kept. It sits in the chrome, so every screen carries it, and it never
@@ -1506,8 +1530,27 @@ button.is-mockup, a.is-mockup { opacity: .62; cursor: not-allowed; }
    .save-state and .lang-link already carry two lengths, so the bar joins a pattern the chrome
    already has. */
 .fb-short { display: none; }
-.progress-row { display: grid; grid-template-columns: minmax(0, 14rem) minmax(0, 1fr);
-  gap: .5rem 1rem; padding: .5rem 0 0; }
+/**
+ * The bars are a third group on the action row, beside the score and the buttons.
+ *
+ * 20rem is what the pair needs before a caption sets to three lines, and it is a floor and not
+ * a width: the bars take the slack on a wide window, and where 20rem will not fit beside the
+ * other two groups the row wraps and they take the line above, which is the row they used to
+ * have. The buttons are 38px tall and a caption over a 5px rail is 25px, so the line they now
+ * share is no taller than the buttons made it.
+ */
+/**
+ * Two tracks of the same width, each with a floor, and the row decides how many fit.
+ *
+ * The first track used to be capped at 14rem and the second took everything left, which was
+ * right while the pair had a row of the full page to itself. As one group of three on the
+ * action row the pair is 328px wide in French, so the fixed track took 224 of it and left the
+ * longer of the two captions 87px: "Evaluation entiere 2 sur 176" set to three lines and the
+ * bar stood 80px tall. Equal tracks give that caption 156px and two lines, and the phone, where
+ * the pair is 338px wide, gets the 161px it was given at 480 by a rule of its own.
+ */
+.progress-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
+  gap: .5rem 1rem; padding: 0; flex: 1 1 20rem; }
 .pbar { display: grid; gap: .2rem; }
 .pbar-label { font-size: .72rem; color: var(--ink-3); font-weight: 600;
   font-variant-numeric: tabular-nums; }
@@ -1841,6 +1884,8 @@ td.num { text-align: right; font-family: var(--mono); font-variant-numeric: tabu
   input, select, textarea, .score-row, .chosen, .evidence .ev-item, .ev-head, .note-secure { display: none !important; }
   .print-only { display: block; }
   ul.print-only { display: block; padding-left: 1.1rem; }
+  /* Paper has no header to carry the tag, so the band comes back for the printed copy. */
+  .marking-banner.screen-off { display: block; }
   .print-answer { font-weight: 700; margin: .2rem 0; }
   .print-said { margin: .1rem 0 .2rem; }
   .print-evidence { margin: .1rem 0 .3rem; font-size: 10pt; }
@@ -2194,10 +2239,36 @@ dialog.confirm.shake { animation: cf-shake .34s cubic-bezier(.36, .07, .19, .97)
  *
  * The block carries the ground now and the two rows inside it carry none.
  */
-.stepper-stack { display: flex; flex-direction: column; min-width: 0;
+/**
+ * And the categories sit at the far end of the tabs, on the tabs' own line.
+ *
+ * Asked for: maybe it can be on the same line with overview business data application
+ * technology, but on the right of it. Two bands were 105px of a 192px header, on a page where
+ * the header and the footer took 283px of 800 and two questions fitted between them.
+ *
+ * Measured at 1440: the five tabs are 465px and the six chips 623px, so one line holds both
+ * with room over, and the French chips are 45px wider than the English ones and still fit.
+ * Which line each lands on is settled before either can shrink, so a window too narrow for
+ * both puts the strip back under the tabs whole, which is where it was. space-between is what
+ * holds it at the far end of a shared line and at the near end of a line of its own, and no
+ * width is written down for either case.
+ *
+ * The hairline that used to run under the tabs has gone with the second row. A rule across
+ * half a row separates nothing, and the gap between the two groups is 2.3rem of the side
+ * padding they each already carry.
+ */
+.stepper-stack { display: flex; flex-wrap: wrap; justify-content: space-between;
+  align-items: center; min-width: 0;
   background: var(--chrome-bg); border-bottom: 1px solid var(--chrome-line); }
-.chrome .stepper-stack > .stepper { background: none;
-  border-bottom: 1px solid color-mix(in srgb, var(--chrome-line) 55%, transparent);
+/**
+ * Neither may be sized by its own contents, because both are scrollers at phone width: a flex
+ * item that cannot shrink is as wide as everything inside it, which would leave Technology and
+ * the last categories past the right edge of a 375px screen with no scroller engaged to reach
+ * them.
+ */
+.chrome .stepper-stack > .stepper,
+.chrome .stepper-stack > .lens-strip { flex: 0 1 auto; min-width: 0; }
+.chrome .stepper-stack > .stepper { background: none; border-bottom: 0;
   padding-bottom: .35rem; }
 /* Aligned with the tabs above it, which means the same side padding they have. */
 /**
