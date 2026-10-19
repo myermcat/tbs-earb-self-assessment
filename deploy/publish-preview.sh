@@ -130,8 +130,18 @@ for page in dist/index.html dist/assessor.html; do
   fi
 done
 
-( cd "$HERE/Self-assessment tool" && node tools/build-backlog.mjs >/dev/null )
-( cd "$HERE/Self-assessment tool" && node tools/build-requirements.mjs >/dev/null )
+# The two generated pages are COPIED and not rebuilt.
+#
+# This used to run both generators here, which is after the gate at the top of this file has
+# checked that the tree is clean. Both write tracked files. So a successful publish left the
+# repository dirty, the next publish refused on its own leavings, and the person who met that
+# refusal fixed the refusal rather than the cause, because the cause was two lines further down
+# than anybody reads. That happened twice in one afternoon to two different sessions.
+#
+# Nothing rebuilds them now. `npm test` above holds both committed pages byte for byte against
+# their data files, so a stale page stops the publish before it starts and says which generator
+# to run. A publish that silently regenerates a tracked file is a publish that can put work on
+# the live site which is in nobody's commit.
 
 echo "Cloning $REPO..."
 git clone --quiet --depth 1 "https://github.com/$REPO.git" "$WORK/site"

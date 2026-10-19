@@ -145,9 +145,9 @@ background:var(--surface);border:1px solid var(--line);border-radius:10px;list-s
 .kpi a{color:inherit;text-decoration:none}
 </style>
 <div class="head"><div class="head-in"><h1>GC EA self-assessment: requirements specification</h1>
-<p class="sub">Living document, updated 2026-09-28. 136 requirements, baselined at each release. Following ISO/IEC/IEEE 29148:2018, tailored.</p></div></div>
+<p class="sub">Living document, updated 2026-09-28. 137 requirements, baselined at each release. Following ISO/IEC/IEEE 29148:2018, tailored.</p></div></div>
 <nav class="topnav"><div class="topnav-in">
-<span class="nav-kpi"><b>82</b><span>built</span></span>
+<span class="nav-kpi"><b>83</b><span>built</span></span>
 <span class="nav-kpi"><b>30</b><span>agreed, not built</span></span>
 <span class="nav-kpi"><b>3</b><span>proposed</span></span>
 <span class="nav-kpi"><b>21</b><span>open</span></span>
@@ -771,7 +771,7 @@ Two departures worth naming. The audit saves itself a moment after typing stops,
 <span class="req-id mono">E7</span>
 <span class="req-t">The document itself is marked unclassified on screen and on every printout, with the evidence marking beside it.</span>
 <span class="st st-done">Built</span>
-<span class="req-note">Where it says so on screen changed on 19 October. A marked file carries the marking as a faint tag beside File in the header, asked for in those words: very faint, it is not really important information, and it was taking a lot of weight unnecessarily. An unmarked file keeps the band across the frame, because that one is a warning. Every printout carries the band at the head and at the foot as before.</span>
+<span class="req-note">Where it says so on screen changed on 19 October. A marked file carries the marking as a faint tag beside File in the header, asked for in those words: very faint, it is not really important information, and it was taking a lot of weight unnecessarily. An unmarked file keeps the band across the frame, because that one is a warning. Every printout carries the band at the head and at the foot as before. Corrected the same day: the tag read as a control. The evidence note was at the ink File uses and the whole line was set in capitals, so a thing you cannot click looked like the menu beside it. Nothing in the tag is at that ink now, and only the marking itself is in capitals.</span>
 </div>
 </div>
 <h2 id="assessing">7. Assessing</h2>
@@ -1007,6 +1007,12 @@ Two departures worth naming. The audit saves itself a moment after typing stops,
 <span class="req-t">The results page has one dominant element, one box for anything that blocks, and four regions with no box at all.</span>
 <span class="st st-done">Built</span>
 <span class="req-note">It was ten cards of one size, one fill and one width, with the gap between them equal to the padding inside them, so proximity said nothing and the whole page read as one striped surface. The number first, the diagnosis second, the raw record last, and a box around the number only, which is what every results page that works does. The rhythm is the ratio: .5rem inside a part, 1.9rem between parts, 2.9rem and a rule between regions. The gates are numeric relations, because the gate written before this one grepped for a declaration another rule was cancelling and passed on a broken page.</span>
+</div>
+<div class="req">
+<span class="req-id mono">X17</span>
+<span class="req-t">One solid accent on a screen, and it is the primary action. Anything else that is on is ringed or tinted.</span>
+<span class="st st-done">Built</span>
+<span class="req-note">Added 19 October. The category chip that was on and the See my results button were the same declaration, a solid accent with accent ink on it, so a filter nobody had deliberately set was as loud as the thing that ends the questionnaire. Reported as: whatever I have picked, that highlight is as bright as see my results, and that row is less important than the domain tabs and especially the results button. The three ranks are the button filled, the open domain tab ringed, the filter tinted. Held by a gate that compares the two declarations instead of naming a colour.</span>
 </div>
 <div class="req">
 <span class="req-id mono">X10</span>
