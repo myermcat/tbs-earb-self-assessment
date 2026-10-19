@@ -1358,6 +1358,37 @@ function go2home(): void {
   paint();
 }
 
+/**
+ * Where the demonstration lives, relative to the page asking.
+ *
+ * The published site puts the assessor at /assessor/ and the demonstration at /demo/, and a
+ * local build puts them beside each other as assessor.html and demo.html. Both are reachable
+ * from the other without knowing the site root, which a published preview and a file opened
+ * off a laptop do not agree on.
+ */
+function demoAddress(): string {
+  const path = location.pathname;
+  if (/\/assessor\/?$/.test(path)) return path.replace(/\/assessor\/?$/, '/demo/');
+  if (/assessor\.html$/.test(path)) return path.replace(/assessor\.html$/, 'demo.html');
+  return 'demo/';
+}
+
+/**
+ * The second door, for somebody who has no account and is not getting one today.
+ *
+ * Four people were asked to spend twenty minutes in the tool before a meeting, and none of
+ * them can be granted a role in time. It is under the card and not in it: signing in is what
+ * this screen is for, and a person who belongs here should not have to read past an offer
+ * meant for somebody else to find the button.
+ */
+function demoDoor(): HTMLElement {
+  return el('p', { class: 'signin-demo' }, [
+    t('No account yet? The demonstration opens on invented departments with invented scores, and asks nobody to sign in. ',
+      'Pas encore de compte ? La d\u00e9monstration s\u2019ouvre sur des minist\u00e8res et des cotes invent\u00e9s, et ne demande \u00e0 personne de se connecter. '),
+    el('a', { href: demoAddress() }, [t('Open the demonstration', 'Ouvrir la d\u00e9monstration')]),
+  ]);
+}
+
 function renderRealSignIn(root: HTMLElement) {
   const problem = lastSignInProblem();
 
@@ -1414,6 +1445,7 @@ function renderRealSignIn(root: HTMLElement) {
     otherWaysToSignIn(),
   ]);
   root.appendChild(card);
+  root.appendChild(demoDoor());
   // The header carries nothing on this screen, so the way into the other language is here.
   root.appendChild(el('p', { class: 'card-lang' }, [languageLink()]));
 }

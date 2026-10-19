@@ -2963,6 +2963,48 @@ console.log('\nA submission is a place you can go back from\n');
   dom.window.close();
 }
 
+/**
+ * The way into the demonstration, on the screen where somebody without an account arrives.
+ *
+ * Four people were asked to spend twenty minutes in the tool before a meeting and none of them
+ * has a role granted. Everybody who is sent the assessor address meets the sign-in, so that is
+ * where the other door has to be, and the address it points at has to be worked out from the
+ * page rather than guessed, because the published site and a laptop build disagree on the root.
+ */
+{
+  const page = await readFile('dist/assessor.html', 'utf8');
+  const j = new JSDOM(page, {
+    runScripts: 'dangerously', url: 'https://example.gc.ca/tool/assessor/', pretendToBeVisual: true,
+    beforeParse(w) {
+      w.scrollTo = () => {}; w.alert = () => {}; w.print = () => {};
+      w.fetch = () => Promise.reject(new Error('the sign-in screen reached for the network'));
+    },
+  });
+  await new Promise((r) => setTimeout(r, 200));
+  const d = j.window.document;
+  const card = d.querySelector('.card.signin');
+  ok('nobody signed in meets the sign-in card, so the checks below mean something', !!card);
+
+  const door = d.querySelector('.signin-demo a');
+  ok('and a way into the demonstration is on that screen', !!door, body(d).slice(0, 160));
+  ok('pointing at the demonstration beside this page',
+     door?.getAttribute('href') === '/tool/demo/', door?.getAttribute('href') ?? 'none');
+  ok('reached without being asked who you are',
+     /demonstration/i.test(d.querySelector('.signin-demo')?.textContent ?? ''),
+     d.querySelector('.signin-demo')?.textContent ?? 'none');
+
+  /**
+   * The offer is under the card and not in it. Somebody who does have an account should not
+   * have to read past an invitation meant for somebody else to find the button they came for.
+   */
+  ok('and it is under the card, so it is not competing with signing in',
+     !card?.querySelector('.signin-demo'));
+  ok('the only primary button on the screen is still the one that signs you in',
+     [...d.querySelectorAll('button.primary')].length === 1,
+     String([...d.querySelectorAll('button.primary')].length));
+  j.window.close();
+}
+
 console.log(fails ? `\n${fails} hosted check(s) failed\n` : '\nall hosted checks passed\n');
 process.exit(fails ? 1 : 0);
 
