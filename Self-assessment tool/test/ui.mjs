@@ -968,20 +968,27 @@ ok('and one click opens the detail', q('.save-state').tagName === 'BUTTON');
    * it should not be written with words, make it grey if there is nothing and blue if there is.
    * It used to spell the contents out beside the heading on every one of the 176.
    */
-  ok('the fold names itself and counts nothing',
-     box.querySelector('summary').textContent.trim() === 'Reasoning and evidence',
+  /**
+   * Two words, two lights, so the row says which of the two is there. Asked for: reasoning and
+   * evidence should light up separately, reasoning only if there's reasoning, evidence only if
+   * evidence is present. The space between them is a margin on the join, so textContent reads
+   * them with nothing between.
+   */
+  const flags = () => [...box.querySelectorAll('.q-flag')];
+  ok('the fold names both halves and counts nothing',
+     flags().map((f) => f.textContent).join('|') === 'Reasoning|evidence',
      box.querySelector('summary').textContent);
-  ok('and an empty one is not marked as holding anything',
-     !box.querySelector('summary').classList.contains('has'),
-     box.querySelector('summary').className);
+  ok('and neither half of an empty one is lit',
+     flags().every((f) => !f.classList.contains('on')),
+     flags().map((f) => f.className).join(' / '));
 
   box.open = true;
   const ta = box.querySelector('textarea');
   ta.value = 'Owned by the platform team.';
   fire(ta, 'input');
-  ok('writing in it marks the fold',
-     box.querySelector('summary').classList.contains('has'),
-     box.querySelector('summary').className);
+  ok('writing reasoning lights the reasoning half only',
+     flags()[0].classList.contains('on') && !flags()[1].classList.contains('on'),
+     flags().map((f) => f.className).join(' / '));
 
   byText('.stepper .step', 'Data').click();
   byText('.stepper .step', 'Business').click();
@@ -992,11 +999,12 @@ ok('and one click opens the detail', q('.save-state').tagName === 'BUTTON');
    * toggles need to be closed".
    */
   ok('a question with reasoning in it comes back folded', reopened.open === false);
-  ok('and says so without opening', reopened.querySelector('summary').classList.contains('has'),
-     reopened.querySelector('summary').className);
-  ok('and one with nothing in it is folded and unmarked',
+  ok('and says so without opening',
+     reopened.querySelector('.q-flag').classList.contains('on'),
+     reopened.querySelector('.q-extras-summary').textContent);
+  ok('and one with nothing in it is folded and unlit',
      qa('.question')[1].querySelector('.q-extras-box').open === false
-     && !qa('.question')[1].querySelector('.q-extras-summary').classList.contains('has'));
+     && [...qa('.question')[1].querySelectorAll('.q-flag')].every((f) => !f.classList.contains('on')));
 
   const ta2 = reopened.querySelector('textarea');
   ta2.value = '';
@@ -1092,8 +1100,8 @@ ok('and one click opens the detail', q('.save-state').tagName === 'BUTTON');
      * the fact that the work is there, which the mark carries whether the fold is open or shut.
      */
     ok('and the fold still says something is in it',
-       after.querySelector('.q-extras-summary').classList.contains('has'),
-       after.querySelector('.q-extras-summary').className);
+       [...after.querySelectorAll('.q-flag')].some((f) => f.classList.contains('on')),
+       [...after.querySelectorAll('.q-flag')].map((f) => f.className).join(' / '));
     na.checked = false;
     fire(na, 'change');
     const back = qa('.question')[0];
@@ -2362,9 +2370,26 @@ ok('audited file keeps the self-score alongside the audited one',
      */
     {
       const plain = lastDecl('\\.q-extras-summary', 'color');
-      const filled = lastDecl('\\.q-extras-summary\\.has', 'color');
-      ok('an empty reasoning fold is the quiet ink and a filled one is the accent',
-         plain === 'var(--ink-3)' && filled === 'var(--accent)', `${plain} / ${filled}`);
+      const lit = lastDecl('\\.q-extras-summary \\.q-flag\\.on', 'color');
+      ok('an unlit half of the fold is the caption ink and a lit one is the accent',
+         plain === 'var(--ink-3)' && lit === 'var(--accent)', `${plain} / ${lit}`);
+    }
+
+    /**
+     * The scale has no ground of its own and the squares are a hairline. Asked for: remove the
+     * grey box behind 1-10 numbers, and make the boxes themselves lower weight in the block
+     * overall and less bright. The squares themselves stay: they were asked for on 19 October.
+     */
+    {
+      const ansBg = lastDecl('\\.q-ans', 'background');
+      const btnBg = lastDecl('\\.score-btn', 'background');
+      const btnBorder = lastDecl('\\.score-btn', 'border');
+      ok('the answering has no tinted ground', ansBg === 'none', ansBg ?? 'nothing');
+      ok('and a score square has no fill of its own', btnBg === 'none', btnBg ?? 'nothing');
+      ok('but it is still a square, at a hairline',
+         /1px solid var\(--line\)/.test(btnBorder ?? ''), btnBorder ?? 'nothing');
+      ok('and a chosen one still carries the ramp',
+         !!lastDecl('\\.score-btn\\.on', 'background'));
     }
 
     ok('the filter that is on is not painted with the primary button',

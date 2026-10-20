@@ -1672,17 +1672,31 @@ function questionBlock(rubric: Rubric, a: Assessment, q: Question, refresh: () =
    * So the safety that justified opening itself is now carried by the colour, which is on
    * screen whether the fold is open or shut and costs no line of its own.
    */
+  /**
+   * TWO WORDS, TWO LIGHTS.
+   *
+   * Asked for: reasoning and evidence should light up separately, reasoning only if there's
+   * reasoning, evidence only if evidence is present. One light for both answered a question
+   * nobody has, which is whether anything at all is attached; what a reader wants from this
+   * line is which of the two is there, and the line already names them both.
+   *
+   * The join between them is never lit. It belongs to neither.
+   */
+  const wordReasoning = el('span', { class: 'q-flag' }, [t('Reasoning', 'Justification')]);
+  const wordEvidence = el('span', { class: 'q-flag' }, [t('evidence', 'preuves')]);
   const summary = el('summary', { class: 'q-extras-summary' }, [
-    el('span', {}, [t('Reasoning and evidence', 'Justification et preuves')]),
+    wordReasoning,
+    el('span', { class: 'q-flag-join' }, [t('and', 'et')]),
+    wordEvidence,
   ]);
   /**
    * Not applicable is an answer, so the reasoning and evidence behind a score are not part of
    * this question any more. They are kept, because deleting somebody's work because they
-   * ticked a box is not a decision the tool gets to make. The colour says they are there.
+   * ticked a box is not a decision the tool gets to make. The lights say they are there.
    */
   const paintState = () => {
-    const filled = !!(ans.justification ?? '').trim() || (ans.evidence ?? []).length > 0;
-    summary.classList.toggle('has', filled);
+    wordReasoning.classList.toggle('on', !!(ans.justification ?? '').trim());
+    wordEvidence.classList.toggle('on', (ans.evidence ?? []).length > 0);
   };
   paintState();
   extras.addEventListener('input', paintState);

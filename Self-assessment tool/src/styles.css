@@ -1122,12 +1122,23 @@ tr.red-flag td:first-child { box-shadow: inset 2px 0 0 var(--bad); }
 .score-line { display: flex; gap: .5rem; flex-wrap: wrap; align-items: center; margin: .5rem 0 .35rem; }
 .score-row { display: flex; gap: .2rem; flex-wrap: wrap; align-items: center; }
 .score-btn[aria-disabled='true'] { opacity: .3; }
+/**
+ * The squares stay, and they weigh less.
+ *
+ * Asked for: make the boxes themselves lower weight in the block overall and less bright. The
+ * squares themselves were asked for on 19 October and are not up for removal, so what comes
+ * down is the paint on them: a hairline where there was a line, no fill of their own now that
+ * there is no tinted ground to sit on, and the number at the ink of a caption. The one that is
+ * chosen keeps the ramp, which is the only thing in the row that has to be seen at a glance.
+ *
+ * The target is untouched: same width, same padding, same text.
+ */
 .score-btn {
   width: 2.05rem; padding: .3rem 0; text-align: center; border-radius: 7px;
-  font-family: var(--mono); font-size: .82rem; font-weight: 600;
-  border: 1px solid var(--line-2); background: var(--surface); color: var(--ink-2);
+  font-family: var(--mono); font-size: .82rem; font-weight: 500;
+  border: 1px solid var(--line); background: none; color: var(--ink-3);
 }
-.score-btn:hover:not(:disabled) { border-color: currentColor; }
+.score-btn:hover:not(:disabled) { border-color: var(--line-2); color: var(--ink); }
 /**
  * A chosen score is filled, and the fill has a floor.
  *
@@ -1161,8 +1172,14 @@ tr.red-flag td:first-child { box-shadow: inset 2px 0 0 var(--bad); }
  * and it was accent on all 176 whether anything was there or not.
  */
 .q-extras-summary { cursor: pointer; list-style: none; display: flex; align-items: center;
-  gap: .45rem; font-size: .82rem; color: var(--ink-3); padding: .2rem 0; }
-.q-extras-summary.has { color: var(--accent); font-weight: 550; }
+  gap: 0; font-size: .82rem; color: var(--ink-3); padding: .2rem 0; }
+/* The marker keeps the gap the row used to have between all of its parts, because the two
+   words and the join between them are one sentence and must not be spaced apart. */
+.q-extras-summary::before { margin-right: .45rem; }
+.q-extras-summary .q-flag.on { color: var(--accent); font-weight: 550; }
+/* A flex row eats the space around a word, and the two words with their join are a sentence.
+   The space is a margin on the join, so neither word can be lit with it. */
+.q-flag-join { margin: 0 .3em; }
 .q-extras-summary::-webkit-details-marker { display: none; }
 .q-extras-summary::before { content: '+'; font-family: var(--mono); font-weight: 700; }
 details[open] > .q-extras-summary::before { content: '\2212'; }
@@ -1175,8 +1192,15 @@ details[open] > .q-extras-summary::before { content: '\2212'; }
    answering, and the evidence sits on the card's own ground with a border. */
 .evidence { background: var(--surface); border: 1px dashed var(--line-2);
   border-radius: var(--radius-sm); padding: .55rem .65rem; margin: .5rem 0 .2rem; }
-.q-ans { background: var(--surface-2); border: 1px solid var(--line);
-  border-radius: var(--radius-sm); padding: .55rem .7rem .3rem; margin: .5rem 0 .3rem; }
+/**
+ * The answering has no ground of its own.
+ *
+ * Asked for: remove the grey box behind 1-10 numbers. It was a tinted, bordered box inside the
+ * question's own card, so a question was a box inside a box, and the eleven score boxes inside
+ * that made three. The row sits on the card now and the scale is the only thing in it with an
+ * edge. Its spacing stays, because the gap is what separates the question from the answering.
+ */
+.q-ans { background: none; border: 0; padding: 0; margin: .5rem 0 .3rem; }
 .q-ans .field { margin-bottom: .5rem; }
 .q-ans .chosen { margin-bottom: .5rem; }
 .ev-head { display: flex; gap: .5rem; flex-wrap: wrap; align-items: baseline; margin-bottom: .3rem; }
