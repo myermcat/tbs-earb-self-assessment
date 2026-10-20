@@ -109,9 +109,20 @@ ok('so did the question sets',
    window.localStorage.getItem(`${MINE}rubric-library`) === bare[`${THEIRS}rubric-library`]);
 ok('and the language',
    window.localStorage.getItem(`${MINE}lang`) === 'fr');
-ok('and the page is signed in, which is the point of carrying the session',
-   !/Sign in/.test(dom.window.document.getElementById('app')?.textContent ?? ''),
-   (dom.window.document.getElementById('app')?.textContent ?? '').slice(0, 80));
+/**
+ * Asked as two facts about the screen, and not as the words "Sign in" being absent from it.
+ *
+ * The first version of this check read the page's text for that phrase. Run against the
+ * published page it reported a signed-out assessor, and the page was nothing of the kind: it
+ * was on "this account does not have access", which only renders for an account the page knows
+ * about, and which offers to sign in as somebody else further down. The phrase was there and
+ * the conclusion was wrong. The sign-in form has a class, and the account has an address.
+ */
+const seenBy = () => dom.window.document.getElementById('app')?.textContent ?? '';
+ok('and the page is past the sign-in form, which is the point of carrying the session',
+   !dom.window.document.querySelector('.card.signin'), seenBy().slice(0, 80));
+ok('and it knows whose session it carried', seenBy().includes(session.email),
+   seenBy().slice(0, 100));
 window.close();
 
 /* ----------------------------------------------------------------------------------------- */
