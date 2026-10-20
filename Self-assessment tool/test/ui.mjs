@@ -2174,6 +2174,16 @@ ok('audited file keeps the self-score alongside the audited one',
   {
     const chipBg = lastDecl('\\.lens-chip\\.on', 'background');
     const primaryBg = lastDecl('button\\.primary', 'background');
+    /**
+     * Every chosen score has a fill, including the assessor's Clear, which carries `on` and no
+     * rung of the ramp. White text on whatever fill the rule above happens to give it was a
+     * white pill on a white card in light mode, and that control has been invisible there for
+     * as long as the audit row has existed.
+     */
+    ok('a chosen score always has a fill under its white text',
+       !!lastDecl('\\.score-btn\\.on', 'background'),
+       lastDecl('\\.score-btn\\.on', 'background') ?? 'nothing');
+
     ok('the filter that is on is not painted with the primary button',
        !!chipBg && !!primaryBg && chipBg !== primaryBg && !/var\(--accent\)/.test(chipBg),
        `chip ${chipBg} / button ${primaryBg}`);

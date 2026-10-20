@@ -965,6 +965,19 @@ dialog.confirm.tier-danger .danger-solid:hover, dialog.confirm.tier-danger .dang
 details[open] > .section-summary::before { transform: rotate(90deg); }
 .section-title { font-weight: 650; flex: 1 1 13rem; font-size: .95rem; }
 
+/**
+ * A question is a card, and the cards stay separate.
+ *
+ * Tried on 19 October and taken back the same evening: one surface with hairlines between the
+ * rows, the list group a run of items of one kind usually gets, to answer "everything's pretty
+ * much the same brightness, the same weight on the page". Her verdict on seeing it was i also
+ * don't like that questions merge into one, i liked everything about the body better as it
+ * was. Reverted whole in #168.
+ *
+ * So the separation is the decision, and the flatness that prompted the attempt is to be
+ * answered somewhere other than here. The eleven score boxes went the same way: i liked it
+ * more with the squares around numbers.
+ */
 .question {
   position: relative;
   background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius);
@@ -1049,7 +1062,17 @@ tr.red-flag td:first-child { box-shadow: inset 2px 0 0 var(--bad); }
   border: 1px solid var(--line-2); background: var(--surface); color: var(--ink-2);
 }
 .score-btn:hover:not(:disabled) { border-color: currentColor; }
-.score-btn.on { color: #fff; border-color: transparent; box-shadow: var(--shadow); }
+/**
+ * A chosen score is filled, and the fill has a floor.
+ *
+ * The eleven scores take their colour from the ramp below. The assessor's row has a twelfth
+ * button, Clear, which carries `on` and no rung, so it took white text on whatever the rule
+ * above happened to give it: in light that is a white fill on a white card, and the control
+ * saying an assessor has changed nothing has been invisible there since the row existed. It
+ * inherits a fill now, and the ramp paints over the eleven that have a rung.
+ */
+.score-btn.on { color: #fff; border-color: transparent; box-shadow: var(--shadow);
+  background: var(--ink-3); }
 .score-btn.on.v0  { background: var(--s0); }  .score-btn.on.v1  { background: var(--s1); }
 .score-btn.on.v2  { background: var(--s2); }  .score-btn.on.v3  { background: var(--s3); }
 .score-btn.on.v4  { background: var(--s4); }  .score-btn.on.v5  { background: var(--s5); }
