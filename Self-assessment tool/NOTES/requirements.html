@@ -145,9 +145,9 @@ background:var(--surface);border:1px solid var(--line);border-radius:10px;list-s
 .kpi a{color:inherit;text-decoration:none}
 </style>
 <div class="head"><div class="head-in"><h1>GC EA self-assessment: requirements specification</h1>
-<p class="sub">Living document, updated 2026-09-28. 139 requirements, baselined at each release. Following ISO/IEC/IEEE 29148:2018, tailored.</p></div></div>
+<p class="sub">Living document, updated 2026-09-28. 140 requirements, baselined at each release. Following ISO/IEC/IEEE 29148:2018, tailored.</p></div></div>
 <nav class="topnav"><div class="topnav-in">
-<span class="nav-kpi"><b>84</b><span>built</span></span>
+<span class="nav-kpi"><b>85</b><span>built</span></span>
 <span class="nav-kpi"><b>31</b><span>agreed, not built</span></span>
 <span class="nav-kpi"><b>3</b><span>proposed</span></span>
 <span class="nav-kpi"><b>21</b><span>open</span></span>
@@ -689,6 +689,12 @@ Two departures worth naming. The audit saves itself a moment after typing stops,
 <h2 id="filling">5. Filling one in</h2>
 <p class="hint">The submitter side.</p>
 <div class="card reqs">
+<div class="req">
+<span class="req-id mono">F9</span>
+<span class="req-t">The assessor’s page never writes the submitter’s draft. The two products share one address, so they share one key, and only the page that loaded it may write it.</span>
+<span class="st st-done">Built</span>
+<span class="req-note">Added 19 October, after the same loss was reported twice. In September a control on the assessor’s page called clearDraft and took the submitter’s answers with it, in a tab nobody was looking at. Tonight: it is the second time already when I opened a tab with an existing submission in the submitter view, and I reloaded the page, and the submission was not there anymore, and it opened a new empty one. The assessor’s page boots with a blank assessment on purpose, and adoptSignedIn, which runs at the top of every paint, stamped the signed-in address onto that blank and autosaved it, with no click and no warning. Measured on the built assessor page: a draft of two answers came back with no initiative, no answers, no reference, and the account’s address on it. The guard is in storage.ts and refuses every write and every clear from a page that did not load the draft, because two different call sites have now done this and the next one would be a third. The gate seeds a draft and a session, opens the built assessor page, and reads the draft back.</span>
+</div>
 <div class="req">
 <span class="req-id mono">F1</span>
 <span class="req-t">Nobody has to finish it in one go. Work is kept as it is typed, and a reload loses nothing. The home page says which assessment this browser is holding.</span>

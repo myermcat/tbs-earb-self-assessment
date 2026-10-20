@@ -34,8 +34,8 @@ import { addressOf, isAddressSegment, canSignIn, CODE_LENGTH, currentUser, forma
   addressTheLinkNames, finishSignInLink, finishSignInLinkWith, forgetLinkCode, linkEmailWaiting,
   linkNeedsAddress, sendSignInLink } from './firebase';
 import { t } from './i18n';
-import { answeredCount, APP_VERSION, autosave, blankAssessment, clearDraft, download, ensureRef,
-  hasWork, loadDraft, saveAssessmentFile, slug } from './storage';
+import { answeredCount, APP_VERSION, autosave, blankAssessment, clearDraft, draftIsOursToWrite,
+  download, ensureRef, hasWork, loadDraft, saveAssessmentFile, slug } from './storage';
 import { bannerFor, evidenceNote } from './marking';
 import BUILTIN from '../rubric/rubric.v1-dan.json';
 import { storeKey } from './keys';
@@ -179,6 +179,17 @@ let mode: Mode = booted.mode;
 
 // The set in use is remembered, so a reload does not silently go back to the built-in one.
 let rubric: Rubric = currentRubric(BUILTIN as unknown as Rubric);
+/**
+ * The assessor's page does not write the submitter's draft, and says so before anything runs.
+ *
+ * Both products are served from one address, so they share one key, and this page holds a
+ * blank assessment it never loaded. Twice now something has written that blank over somebody's
+ * answers: clearDraft from the question-set picker in September, and tonight the line below
+ * that stamps a signed-in address onto whatever this page is holding. The guard is in
+ * storage.ts and the reasoning is written there.
+ */
+draftIsOursToWrite(opensOn() !== 'assess');
+
 /**
  * An assessor has no draft of their own on this screen. Reading one is how somebody else's
  * work reached a page that was never going to show it, and a blank one costs nothing: crossing

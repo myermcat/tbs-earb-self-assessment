@@ -208,6 +208,71 @@ console.log('\nThe submitter, with no account\n');
   ok('and not on the questionnaire', !/Start an assessment|What to expect/.test(said), said.slice(0, 90));
   ok('and offers no way out of it, because there is nothing at this address to go to',
      !/Leave assessor view/.test(said), said.slice(0, 120));
+
+  /**
+   * AND IT DOES NOT TOUCH THE SUBMITTER'S DRAFT. SIGNED IN, ON ITS OWN, WITH NO CLICK.
+   *
+   * Reported twice. The second time: it's the second time already when i opened a tab with an
+   * existing submission in the submitter view, and i reloaded the page, and the submission
+   * wasn't there anymore, and it opened a new empty one.
+   *
+   * Both products are one address and therefore one key. This page boots with a blank
+   * assessment on purpose, and adoptSignedIn, which runs at the top of every paint, stamped
+   * the signed-in address onto that blank and autosaved it. Measured on the built assessor
+   * page before the fix: a draft of two answers came back with no initiative, no answers, no
+   * reference and the account's address on it.
+   *
+   * The session is seeded because the write needed somebody to be signed in, which is the
+   * state an assessor is in every time they open this page.
+   */
+  const hers = {
+    fileType: 'gc-arch-assessment', id: 'KFRM92TXBQ7H', ref: 'AB12',
+    rubric: { id: 'gc-ea-selfassess', version: '1.0', title: 'x' },
+    initiative: {
+      name: 'Fleet Scheduling', department: 'DFO', contact: 'a@dfo-mpo.gc.ca',
+      summary: 'A thing.', classification: 'Unclassified', lifecycleStage: 'beta',
+    },
+    answers: { 'B-Q1': { score: 7, evidence: [] }, 'B-Q2': { score: 4, evidence: [] } },
+    meta: { createdAt: 'x', updatedAt: 'x', appVersion: 'test' },
+  };
+  /**
+   * Built again WITH a store address, because the page above has none.
+   *
+   * The first version of this check ran against that build and passed on the broken code. With
+   * no Firebase config the session in storage is never read, so currentUser() is nobody,
+   * adoptSignedIn returns before it reaches the line that writes, and the fixture could not
+   * produce the input that breaks. An assessor's own page always has an address compiled into
+   * it, which is the state the defect was reported from.
+   */
+  const hosted = join(mkdtempSync(join(tmpdir(), 'earb-')), 'assessor.html');
+  execFileSync(process.execPath, ['build.mjs'], {
+    env: {
+      ...process.env, EARB_OUT: hosted, EARB_ACCESS: 'accounts', EARB_SIDE: 'assess',
+      EARB_FIREBASE: '{"apiKey":"test-key","projectId":"test-project"}',
+    },
+    stdio: 'ignore',
+  });
+  const withDraft = new JSDOM(readFileSync(hosted, 'utf8'), {
+    runScripts: 'dangerously', url: 'https://example.gc.ca/tool/assessor/', pretendToBeVisual: true,
+    beforeParse(w) {
+      w.scrollTo = () => {};
+      w.alert = () => {};
+      w.localStorage.setItem('gc-arch-assessment:draft', JSON.stringify(hers));
+      w.localStorage.setItem('gc-arch-assessment:firebase-session', JSON.stringify({
+        email: 'someone@tbs-sct.gc.ca', idToken: 't', refreshToken: 'r', expiresAt: Date.now() + 36e5,
+      }));
+      w.fetch = async () => ({ ok: true, status: 200, json: async () => ({}), text: async () => '{}' });
+    },
+  });
+  await settle();
+  const kept = JSON.parse(withDraft.window.localStorage.getItem('gc-arch-assessment:draft'));
+  ok('the assessor page leaves the submitter’s draft exactly as it found it',
+     kept.ref === 'AB12' && Object.keys(kept.answers ?? {}).length === 2
+     && kept.initiative.name === 'Fleet Scheduling',
+     `${kept.initiative?.name || '(no name)'} / ${Object.keys(kept.answers ?? {}).length} answers / ref ${kept.ref}`);
+  ok('and puts no address of its own on it', !kept.ownerEmail, kept.ownerEmail ?? '');
+  withDraft.window.close();
+  page.window.close();
 }
 
 /* --------------------------------------------------------------------------------------- */
