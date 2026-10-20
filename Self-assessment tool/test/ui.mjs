@@ -1615,6 +1615,16 @@ ok('and an empty screen centres its one card', !!q('main.body-empty'));
    * is too close to the block under it, This build too, and the distances should be the same
    * on every tab. jsdom lays nothing out, so the rule is read rather than the gap measured.
    */
+  /**
+   * The quiet pair in a row menu is smaller and dimmer than the item above them.
+   *
+   * Asked for in those words: move them to the bottom and make them less bright, smaller. The
+   * order is asserted in hosted.mjs where all three items exist; this is the weight, read off
+   * the stylesheet because jsdom lays nothing out.
+   */
+  const second = (html.match(/\.menu-item\.menu-second\s*\{[^}]*\}/) ?? ['no rule'])[0];
+  ok('the rarely wanted menu items are smaller and quieter than the one above them',
+     /font-size:\s*\.7\d*rem/.test(second) && /color:\s*var\(--ink-2\)/.test(second), second);
   ok('the two settings heading classes share one spacing',
      /\.set-h2,\s*\.set-sub\s*\{[^}]*margin:/.test(html)
      && !/\n\.set-sub\s*\{/.test(html),
