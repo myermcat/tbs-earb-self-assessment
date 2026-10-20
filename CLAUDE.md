@@ -300,6 +300,19 @@ the thing that owns the answer, not the thing that happens to look like it.
 This is the same family as the fixture rule above, and the tell is the same: the number came
 out too clean, or too close, for what had just been reasoned out.
 
+**A pull request number is a selector too, and this is not a CSS rule.** On 21 October a change
+sat open for an hour while its author reported it shipped: the pull request tool printed the
+new number, the number was not read, one was guessed, and the wait-and-merge loop then watched
+somebody else's branch. It went green, it reported MERGED, and both were true of the branch it
+was addressing. Two other sessions' work was merged by that loop, on days nobody had asked for
+it.
+
+**Reading MERGED tells you the thing you addressed is merged. It does not tell you your thing
+is.** Take the identifier from the output of the call that created it, never from memory and
+never from a sequence. And when a tool reports success about work you care about, check the
+work rather than the report: the live page did not have the change, which is what finally said
+so.
+
 ## A string inside somebody else's saved record is a key
 
 The question set was renamed from `1.0-dan` to `1.0` on 19 October, because the first half was a
