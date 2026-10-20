@@ -8,7 +8,7 @@
     "build": "node build.mjs",
     "dev": "node build.mjs --watch",
     "check": "tsc --noEmit",
-    "test": "npm run lint:prose && npm run check && npm run test:wiring && npm run test:logic && npm run test:lock && npm run test:backlog && npm run test:requirements && npm run test:firestore && npm run test:firestore:code && npm run test:ui && npm run test:routes && npm run test:share && npm run test:code && npm run test:submitter && npm run test:hosted && npm run test:demo && npm run test:print",
+    "test": "npm run lint:prose && npm run check && npm run test:wiring && npm run test:logic && npm run test:lock && npm run test:backlog && npm run test:requirements && npm run test:firestore && npm run test:firestore:code && npm run test:ui && npm run test:routes && npm run test:share && npm run test:code && npm run test:submitter && npm run test:hosted && npm run test:demo && npm run test:assessor-storage && npm run test:print",
     "test:logic": "esbuild test/smoke.ts --bundle --platform=node --format=esm --outfile=test/.smoke.mjs --log-level=warning --loader:.json=json && node test/.smoke.mjs",
     "test:wiring": "node test/suite-builds.mjs",
     "test:lock": "node test/rubric-lock.mjs",
@@ -27,7 +27,8 @@
     "test:code": "EARB_FIREBASE='{\"apiKey\":\"test-key\",\"projectId\":\"test-project\"}' node build.mjs && node test/code.mjs",
     "check:published": "node test/published.mjs",
     "test:rules": "bash ../deploy/java-for-emulator.sh firebase emulators:exec --only firestore --project demo-earb --config ../deploy/firebase.json \"node test/rules.mjs\"",
-    "test:demo": "EARB_FIREBASE= EARB_DEMO=1 EARB_SIDE=assess EARB_OUT=dist/demo.html node build.mjs && node test/demo-storage.mjs"
+    "test:demo": "EARB_FIREBASE= EARB_DEMO=1 EARB_SIDE=assess EARB_OUT=dist/demo.html node build.mjs && node test/demo-storage.mjs",
+    "test:assessor-storage": "EARB_FIREBASE='{\"apiKey\":\"test-key\",\"projectId\":\"test-project\"}' node build.mjs && EARB_FIREBASE='{\"apiKey\":\"test-key\",\"projectId\":\"test-project\"}' EARB_ACCESS=accounts EARB_SIDE=assess EARB_OUT=dist/assessor.html node build.mjs && node test/assessor-storage.mjs"
   },
   "devDependencies": {
     "@types/jsdom": "^30.0.0",
