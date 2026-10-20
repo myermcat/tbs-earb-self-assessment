@@ -13,6 +13,30 @@ const KEY = storeKey('draft');
 export const APP_VERSION = '0.1.0';
 
 /**
+ * WHOSE DRAFT THIS IS, AND WHICH PAGE MAY WRITE IT.
+ *
+ * The submitter's page and the assessor's page are two products on one address, so they are one
+ * localStorage and this is one key between them. The assessor's page boots with a blank
+ * assessment on purpose, because reading the submitter's draft there is how somebody else's
+ * work reached a screen that was never going to show it. A blank one costs nothing to hold. It
+ * costs everything the moment anything writes it.
+ *
+ * Reported twice. The first time, September: making a question set active called clearDraft(),
+ * and somebody halfway through 176 questions lost all of it in a tab they were not looking at.
+ * The second time, tonight: it's the second time already when i opened a tab with an existing
+ * submission in the submitter view, and i reloaded the page, and the submission wasn't there
+ * anymore, and it opened a new empty one. adoptSignedIn() runs at the top of every paint, and
+ * on a signed-in assessor page it stamped the account's address onto that blank and autosaved
+ * it. No click, no warning, and the submitter's tab read the blank on its next reload.
+ *
+ * So the rule is not about any one call site. A page that did not load this draft may not write
+ * it, and the page itself says which it is. Both of those defects were a write from the
+ * assessor's page, and neither of them is reachable from here again.
+ */
+let mayWrite = true;
+export function draftIsOursToWrite(ours: boolean): void { mayWrite = ours; }
+
+/**
  * A short code somebody can read aloud, and that never changes.
  *
  * No I, O, 0 or 1, because this gets typed into an email subject and read back off a screen.
@@ -103,6 +127,7 @@ function setSaveState(state: SaveState, detail = '') {
  * thing to tell somebody who is watching the badge.
  */
 export function keepDraft(a: Assessment): boolean {
+  if (!mayWrite) return false;
   try {
     localStorage.setItem(KEY, JSON.stringify(a));
     return true;
@@ -123,6 +148,9 @@ let afterSave: AfterSave | null = null;
 export function registerAfterSave(fn: AfterSave): void { afterSave = fn; }
 
 export function autosave(a: Assessment): void {
+  // Silent, because there is nothing to report: this page is not holding anybody's draft, and
+  // the save badge belongs to the person whose draft it is.
+  if (!mayWrite) return;
   a.meta.updatedAt = new Date().toISOString();
   if (keepDraft(a)) {
     // Where the work stands is store.ts's answer, because only it knows whether there is a
@@ -167,6 +195,9 @@ export function loadDraft(): Assessment | null {
  * they had been erased. Both go now.
  */
 export function clearDraft(): void {
+  // The September one: a control on the assessor's page called this and took the submitter's
+  // answers with it, in a tab nobody was looking at.
+  if (!mayWrite) return;
   try {
     localStorage.removeItem(KEY);
   } catch {
