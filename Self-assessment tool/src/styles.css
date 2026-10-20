@@ -1021,7 +1021,16 @@ details[open] > .section-summary::before { transform: rotate(90deg); }
 .yn-btn:disabled { opacity: .3; }
 
 /* The flag, in the three places a section appears: the page, the rail, the domain tab. */
-.question.red-flag { box-shadow: var(--shadow), inset 0 0 0 1px color-mix(in srgb, var(--bad) 45%, transparent); }
+/**
+ * A flagged question is tinted, and its status edge is red.
+ *
+ * The ring used to ride on the same declaration as the card's lift:
+ * `box-shadow: var(--shadow), inset 0 0 0 1px <bad>`. So the one state that has to stay
+ * legible was tied to a shadow that is coming off every question on the page, and taking the
+ * lift away would have left flagged questions raised and everything else flat. A tint and the
+ * edge are what a list row is marked with, and neither needs a box to sit in.
+ */
+.question.red-flag { background: var(--bad-bg); }
 .question.red-flag::before { background: var(--bad); }
 .section-head-card.red-flag { border-color: color-mix(in srgb, var(--bad) 40%, var(--line)); }
 .flag-note { border-left: 3px solid var(--bad); background: var(--bad-bg); color: var(--ink);
