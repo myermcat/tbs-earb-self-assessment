@@ -621,6 +621,8 @@ code.mono { background: var(--surface-2); border: 1px solid var(--line);
 .toc-row.done .toc-bar i { background: color-mix(in srgb, var(--good) 45%, var(--surface-2)); }
 
 .section-head-card .eyebrow { margin-bottom: .3rem; }
+/* The scale, once for the page, under the line saying what the page is worth. */
+.section-ladder { margin-top: .5rem; }
 
 /* Moving on is a pair of buttons, not a card with a button rattling around in it. */
 .pager { justify-content: space-between; gap: .5rem;
@@ -1151,15 +1153,19 @@ tr.red-flag td:first-child { box-shadow: inset 2px 0 0 var(--bad); }
 .chosen b { color: var(--ink); }
 
 .q-extras-box { margin-top: .1rem; }
+/**
+ * The state of this fold is its colour, and there are two: grey for nothing in it, accent for
+ * something in it. Asked for in these words: it should not be written with words, make the
+ * toggle grey if there is no evidence attached and blue if it is attached, show don't tell.
+ * It replaces a sentence beside the heading that spelled the contents out on every question,
+ * and it was accent on all 176 whether anything was there or not.
+ */
 .q-extras-summary { cursor: pointer; list-style: none; display: flex; align-items: center;
-  gap: .45rem; font-size: .82rem; color: var(--accent); padding: .2rem 0; }
+  gap: .45rem; font-size: .82rem; color: var(--ink-3); padding: .2rem 0; }
+.q-extras-summary.has { color: var(--accent); font-weight: 550; }
 .q-extras-summary::-webkit-details-marker { display: none; }
-/* Started or not started, in the words a task list uses. The arrow means open and closed. */
-.q-extras-count.empty { color: var(--ink-3); }
-.q-extras-count.filled { color: var(--accent); font-weight: 600; }
 .q-extras-summary::before { content: '+'; font-family: var(--mono); font-weight: 700; }
 details[open] > .q-extras-summary::before { content: '\2212'; }
-.q-extras-count { color: var(--ink-3); font-size: .76rem; }
 .q-extras { padding-top: .2rem; }
 
 /* ---------- evidence -------------------------------------------------------------------- */
@@ -1738,8 +1744,16 @@ button.is-mockup, a.is-mockup { opacity: .62; cursor: not-allowed; }
 .progress-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
   gap: .5rem 1rem; padding: 0; flex: 1 1 20rem; }
 .pbar { display: grid; gap: .2rem; }
+/**
+ * The words are the label and the number is the value, so they are not drawn alike. Asked
+ * about: this section is always the same on each section, i guess they should be styled
+ * differently. Nothing in the design systems checked prescribes this for a progress caption;
+ * what they do ask for is a concise label and a value that stays readable, so the value is the
+ * part carrying the ink.
+ */
 .pbar-label { font-size: .72rem; color: var(--ink-3); font-weight: 600;
   font-variant-numeric: tabular-nums; }
+.pbar-count { color: var(--ink-2); font-weight: 700; }
 .progress-shell { height: 5px; border-radius: 999px; background: var(--surface-2);
   box-shadow: inset 0 0 0 1px var(--line); overflow: hidden; }
 .progress-shell i { display: block; height: 100%; border-radius: 999px; background: var(--accent);

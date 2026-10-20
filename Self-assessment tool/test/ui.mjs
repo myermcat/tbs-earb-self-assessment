@@ -647,8 +647,15 @@ ok('the rail shows every section of the current domain as done',
     q('.lang-link').click();
     const fr = qa('.progress-row .pbar-label').map((l) => l.textContent.replace(/\s+/g, ' ').trim());
     ok('and both progress captions are French in French', fr.every((x) => / sur /.test(x)), fr.join(' | '));
-    ok('and the score sentence with them',
-       / sur .* remplies/.test(q('.footer-readout')?.textContent ?? ''), q('.footer-readout')?.textContent);
+    /**
+     * The readout is the maturity band on its own now, so what is asserted is that the band is
+     * translated. Its count went: reported as "here you're saying 176 out of 176, but also on
+     * the left you're saying whole assessment 176 of 176 on top of the progress line, which is
+     * duplicate information".
+     */
+    ok('and the band beside the score is not left in English',
+       !/answered|not scored yet/.test(q('.footer-readout')?.textContent ?? ''),
+       q('.footer-readout')?.textContent);
     q('.lang-link').click();
     const en = qa('.progress-row .pbar-label').map((l) => l.textContent.replace(/\s+/g, ' ').trim());
     ok('and back to English on both', en.every((x) => / of /.test(x)), en.join(' | '));
@@ -767,8 +774,15 @@ ok('footer reflects the sweep: a shade over 7', (() => {
 })(), q('.footer-score .pill').textContent);
 ok("footer shows Dan's maturity label for that score", q('.footer-score .muted').textContent.includes('Advanced'),
    q('.footer-score .muted').textContent);
-ok('footer counts every answer', q('.footer-score .muted').textContent.includes(`${TOTAL} of ${TOTAL}`),
-   q('.footer-score .muted').textContent);
+/**
+ * The count is on the bar beside it and nowhere else. Two inches apart, the bar said
+ * "Whole assessment 176 of 176" and this said "176 of 176 answered", which is one number in
+ * three places counting the track under the bar.
+ */
+ok('the count is on the bar, once',
+   qa('.progress-row .pbar-label').some((l) => l.textContent.includes(`${TOTAL} of ${TOTAL}`))
+   && !q('.footer-score .muted').textContent.includes(`${TOTAL} of ${TOTAL}`),
+   `${qa('.progress-row .pbar-label').map((l) => l.textContent).join(' | ')} / ${q('.footer-score .muted').textContent}`);
 ok('all four domain tabs read complete', qa('.stepper .step.complete:not(:first-child)').length === 4,
    String(qa('.stepper .step.complete').length));
 // Three save states, never silent.
@@ -835,15 +849,23 @@ ok('and one click opens the detail', q('.save-state').tagName === 'BUTTON');
 
   const tabOf = (d) => qa('.stepper .step').find((t) => t.textContent.includes(shortName(d.label)));
   const footerText = () => q('.footer-score .muted').textContent;
-  /** Only the count. The maturity label beside it is expected to move when a score changes. */
-  const footerCount = () => (footerText().match(/\d+ of \d+ answered/) ?? [''])[0];
+  /**
+   * The count is on the whole-assessment bar and nowhere else now, so that is where it is read
+   * from. It used to be read off the sentence beside the score, which said it a second time.
+   */
+  const footerCount = () => (qa('.progress-row .pbar-label')
+    .map((l) => l.textContent).join(' ').match(/\d+ of \d+/g) ?? []).pop() ?? '';
   const railCounts = () => qa('.toc-sec .toc-count').map((n) => n.textContent);
 
   // Stamp identity onto live nodes. If the page is rebuilt these become detached.
   const probeQuestion = qa('.question')[0];
-  const probeLadder = probeQuestion.querySelector('.ladder-box');
+  /**
+   * The reasoning fold, because the scale is on the section heading now and a question has one
+   * disclosure of its own. This is the one a repaint would close under somebody mid-sentence.
+   */
+  const probeLadder = probeQuestion.querySelector('.q-extras-box');
   const probeTextarea = probeQuestion.querySelector('textarea');
-  probeLadder.open = true;                        // the reader opens the scale on a question
+  probeLadder.open = true;                        // the reader opens the reasoning on a question
   probeTextarea.value = 'typed by the reader';
   fire(probeTextarea, 'input');
   probeTextarea.focus();
@@ -885,15 +907,20 @@ ok('and one click opens the detail', q('.save-state').tagName === 'BUTTON');
      `${scoreBefore} -> ${footerText()}`);
 
   // Readouts must agree with each other after the change.
-  ok('the footer still counts every answer', footerCount().includes(`${TOTAL} of ${TOTAL}`), footerCount());
+  ok('the bar still counts every answer', footerCount() === `${TOTAL} of ${TOTAL}`, footerCount());
   ok('the domain tab still counts every answer in its domain',
      tabOf(currentDomain).textContent.includes(`${domainTotal} of ${domainTotal}`),
      tabOf(currentDomain).textContent);
   ok('every section in the rail reads fully answered',
      railCounts().every((t) => { const [a2, b2] = t.split('/'); return a2 === b2; }),
      railCounts().join(' '));
-  ok('the section heading agrees with the rail',
-     view().includes('answered on this page'));
+  /**
+   * And the section heading does not say it a third time. It carried "14 of 14 answered on
+   * this page" under a bar that says the same thing, reported as: i feel like this is also a
+   * duplicate.
+   */
+  ok('the section heading leaves the counting to the bar',
+     !view().includes('answered on this page'));
 
   // Not applicable is the case that moves the denominator, so it is the one most likely to rot.
   const naQ = qa('.question')[2];
@@ -903,8 +930,8 @@ ok('and one click opens the detail', q('.save-state').tagName === 'BUTTON');
 
   // Marking a question not applicable is a decision, so it counts as dealt with. Shrinking the
   // denominator instead made a question look like it had gone missing.
-  ok('n/a keeps the footer denominator whole',
-     footerCount().includes(`${TOTAL} of ${TOTAL}`), footerCount());
+  ok('n/a keeps the bar denominator whole',
+     footerCount() === `${TOTAL} of ${TOTAL}`, footerCount());
   ok('n/a keeps the domain tab denominator whole',
      tabOf(currentDomain).textContent.includes(`${domainTotal} of ${domainTotal}`),
      tabOf(currentDomain).textContent);
@@ -934,25 +961,42 @@ ok('and one click opens the detail', q('.save-state').tagName === 'BUTTON');
   const box = qa('.question')[0].querySelector('.q-extras-box');
   ok('reasoning and evidence are folded by default', !!box && box.open === false);
   ok('the score itself is not folded', !!qa('.question')[0].querySelector('.score-row'));
-  // The heading is stable and a status follows it, so a filled section does not look like an
-  // empty one. It used to say "Add reasoning or evidence" either way.
-  ok('the fold names itself and says it is empty',
-     box.querySelector('summary').textContent.includes('Reasoning and evidence')
-     && box.querySelector('.q-extras-count.empty').textContent === 'nothing yet',
+  /**
+   * The fold names itself and says nothing else. What is inside it is said by its colour.
+   *
+   * Asked for: what we need to know from looking at a toggle is whether there is evidence, and
+   * it should not be written with words, make it grey if there is nothing and blue if there is.
+   * It used to spell the contents out beside the heading on every one of the 176.
+   */
+  ok('the fold names itself and counts nothing',
+     box.querySelector('summary').textContent.trim() === 'Reasoning and evidence',
      box.querySelector('summary').textContent);
+  ok('and an empty one is not marked as holding anything',
+     !box.querySelector('summary').classList.contains('has'),
+     box.querySelector('summary').className);
 
-  // Anything already written must never hide behind a closed fold.
   box.open = true;
   const ta = box.querySelector('textarea');
   ta.value = 'Owned by the platform team.';
   fire(ta, 'input');
+  ok('writing in it marks the fold',
+     box.querySelector('summary').classList.contains('has'),
+     box.querySelector('summary').className);
 
   byText('.stepper .step', 'Data').click();
   byText('.stepper .step', 'Business').click();
   const reopened = qa('.question')[0].querySelector('.q-extras-box');
-  ok('a question with reasoning in it comes back open', reopened.open === true);
-  ok('and one without stays folded',
-     qa('.question')[1].querySelector('.q-extras-box').open === false);
+  /**
+   * Closed, even with something in it. The fold opening itself was the old safety against work
+   * hiding behind it, and the colour is that safety now: asked for as "by default all those
+   * toggles need to be closed".
+   */
+  ok('a question with reasoning in it comes back folded', reopened.open === false);
+  ok('and says so without opening', reopened.querySelector('summary').classList.contains('has'),
+     reopened.querySelector('summary').className);
+  ok('and one with nothing in it is folded and unmarked',
+     qa('.question')[1].querySelector('.q-extras-box').open === false
+     && !qa('.question')[1].querySelector('.q-extras-summary').classList.contains('has'));
 
   const ta2 = reopened.querySelector('textarea');
   ta2.value = '';
@@ -1042,9 +1086,14 @@ ok('and one click opens the detail', q('.save-state').tagName === 'BUTTON');
     ok('not applicable folds the reasoning away rather than deleting it',
        after.querySelector('.q-extras-box').open === false
        && after.querySelector('textarea').value.includes('must survive'));
-    ok('and says it is kept and not counted',
-       after.querySelector('.q-extras-count').textContent.includes('kept and not counted'),
-       after.querySelector('.q-extras-count')?.textContent);
+    /**
+     * And the fold still says something is in it, in colour. The sentence that said "kept and
+     * not counted" went with the rest of the words beside the heading; what has to survive is
+     * the fact that the work is there, which the mark carries whether the fold is open or shut.
+     */
+    ok('and the fold still says something is in it',
+       after.querySelector('.q-extras-summary').classList.contains('has'),
+       after.querySelector('.q-extras-summary').className);
     na.checked = false;
     fire(na, 'change');
     const back = qa('.question')[0];
@@ -1083,14 +1132,27 @@ ok('and one click opens the detail', q('.save-state').tagName === 'BUTTON');
 
 // ---- the ladder is Dan's, and it is visible --------------------------------------------
 {
-  const first = qa('.question')[0];
-  ok('the chosen rung is named back to the user', first.querySelector('.chosen').textContent.includes('Scalable'),
-     first.querySelector('.chosen').textContent.slice(0, 60));
-  ok("the full ladder uses Dan's maturity names", first.textContent.includes('Symbiotic'));
+  /**
+   * The ladder is on the section heading, once for the page, and no longer under every answer.
+   *
+   * Asked for: we duplicate it on each question, for now move this toggle to the header of the
+   * body. All 176 questions answer to one scale, so the fold said the same eleven rungs 14
+   * times in a section. The sentence naming the chosen rung under the numbers went with it:
+   * all of the descriptions are the same, and it is only taking the space from you.
+   */
+  const head = q('.section-head-card');
+  ok('the scale is on the section heading', !!head.querySelector('.ladder-box'));
+  ok('and no question repeats it',
+     qa('.question').every((n) => !n.querySelector('.ladder-box')),
+     String(qa('.question .ladder-box').length));
+  ok('and the chosen rung is not described under the numbers',
+     qa('.question').every((n) => (n.querySelector('.chosen')?.textContent ?? '') === ''),
+     qa('.question')[0].querySelector('.chosen')?.textContent ?? '(no node)');
+  ok("the full ladder uses Dan's maturity names", head.textContent.includes('Symbiotic'));
   // Each rung is one grid row: the number, then everything else. A third child became a
   // third grid item and dropped onto its own line under the number.
   {
-    const rows = [...first.querySelectorAll('.ladder li')];
+    const rows = [...head.querySelectorAll('.ladder li')];
     ok('eleven rungs are listed', rows.length === 11, String(rows.length));
     ok('and each rung is exactly two grid children, so nothing wraps under the number',
        rows.every((r) => r.children.length === 2),
@@ -1112,8 +1174,8 @@ naBox.checked = true;
 fire(naBox, 'change');
 ok("n/a disables that question's buttons", [...tra.querySelectorAll('.score-btn')].every((b) => b.disabled));
 ok('n/a counts as dealt with, so the denominator stays whole',
-   q('.footer-score .muted').textContent.includes(`of ${TOTAL}`),
-   q('.footer-score .muted').textContent);
+   qa('.progress-row .pbar-label').some((l) => l.textContent.includes(`of ${TOTAL}`)),
+   qa('.progress-row .pbar-label').map((l) => l.textContent).join(' | '));
 
 const hosting = gotoQuestion('hosting environment');
 byText('.evidence button', 'Add a piece of evidence').click();
@@ -2293,6 +2355,17 @@ ok('audited file keeps the self-score alongside the audited one',
     ok('a chosen score always has a fill under its white text',
        !!lastDecl('\\.score-btn\\.on', 'background'),
        lastDecl('\\.score-btn\\.on', 'background') ?? 'nothing');
+
+    /**
+     * The reasoning fold says what is in it by its colour, because the words that said it were
+     * on every one of the 176 questions. Grey for empty, accent for holding something.
+     */
+    {
+      const plain = lastDecl('\\.q-extras-summary', 'color');
+      const filled = lastDecl('\\.q-extras-summary\\.has', 'color');
+      ok('an empty reasoning fold is the quiet ink and a filled one is the accent',
+         plain === 'var(--ink-3)' && filled === 'var(--accent)', `${plain} / ${filled}`);
+    }
 
     ok('the filter that is on is not painted with the primary button',
        !!chipBg && !!primaryBg && chipBg !== primaryBg && !/var\(--accent\)/.test(chipBg),

@@ -268,7 +268,7 @@ export function renderSubmit(
     const ss = ds?.sections.find((x) => x.section.id === here.sectionId);
     if (!ds || !ss) { page = 'about'; repaintApp(); return; }
     if (!lens) {
-      sheet.appendChild(sectionHead(ds, ss, r, here));
+      sheet.appendChild(sectionHead(ds, ss, r, here, rubric));
       for (const qs of ss.questions) {
         sheet.appendChild(questionBlock(rubric, a, qs.question, refresh));
       }
@@ -352,6 +352,7 @@ function sectionHead(
   ss: SectionScore,
   r: Result,
   here: Stop,
+  rubric: Rubric,
 ): HTMLElement {
   const pill = el('span', { class: 'pill', 'aria-hidden': true });
   const srPill = el('span', { class: 'sr-only' });
@@ -374,9 +375,13 @@ function sectionHead(
     pill.textContent = cur.score === null ? '--' : cur.score.toFixed(1);
     srPill.textContent = cur.score === null ? 'not scored yet' : `${cur.score.toFixed(1)} out of 10`;
     const share = cur.section.shareOfDomain ?? cur.weight;
+    /**
+     * How much of this section is answered is on the bar at the foot of the same screen, and
+     * saying it twice was the third copy of one number on this page. Reported as: i feel like
+     * this is also a duplicate.
+     */
     counts.textContent =
-      `${share}% of ${d.domain.label}, which is ${d.domain.weight}% of the total. ` +
-      `${cur.answered} of ${cur.total} answered on this page.`;
+      `${share}% of ${d.domain.label}, which is ${d.domain.weight}% of the total.`;
   };
 
   const stageNote = (() => {
@@ -386,6 +391,31 @@ function sectionHead(
       exp === 'critical' ? 'Counts more at your stage' : 'Counts less at your stage',
     ]);
   })();
+
+  /**
+   * The scale, once for the page, on the heading of the page.
+   *
+   * It was a fold on every question, saying the same eleven rungs 14 times in a section.
+   * Asked for: move this toggle to the header of the body, defining the current state for
+   * example. A question carrying anchors of its own keeps its own copy beside it, which is in
+   * the question builder and is a guard against a set nobody has written yet.
+   */
+  const scaleFold = el('details', { class: 'ladder-box section-ladder' }, [
+    el('summary', {}, [t('What the numbers mean', 'Ce que les chiffres veulent dire')]),
+    (() => {
+      const list = el('ul', { class: 'ladder' });
+      for (const anchor of rubric.scale.anchors.slice().sort((x, y) => x.value - y.value)) {
+        list.appendChild(el('li', {}, [
+          el('b', {}, [String(anchor.value)]),
+          el('span', { lang: 'en' }, [
+            anchor.name ? el('i', {}, [`${anchor.name}. `]) : null,
+            anchor.label,
+          ]),
+        ]));
+      }
+      return list;
+    })(),
+  ]);
 
   const flagNote = el('div', {});
   const node = el('section', { class: 'card section-head-card' }, [
@@ -397,6 +427,7 @@ function sectionHead(
       stageNote,
     ]),
     counts,
+    scaleFold,
     flagNote,
   ]);
   register(apply, r);
@@ -805,9 +836,18 @@ function footerBar(
     }
     pill.className = `pill ${tone(rr.overall)}`;
     pill.textContent = rr.overall === null ? '--' : rr.overall.toFixed(1);
+    /**
+     * The maturity band, and not the count beside it.
+     *
+     * Reported as: here you're saying 176 out of 176, but also on the left you're saying whole
+     * assessment 176 of 176 on top of the progress line, which is duplicate information. The
+     * bar two inches to the left of this is the count, with a track showing the same fact
+     * again, so this said it a third time. What only this can say is which band the score is
+     * in, which is what the pill beside it is a number for.
+     */
     readout.textContent = rr.maturity
-      ? `${rr.maturity.label} - ${rr.answered} ${t('of', 'sur')} ${rr.scoreable} ${t('answered', 'remplies')}`
-      : `${t('not scored yet', 'pas encore noté')} - ${rr.answered} ${t('of', 'sur')} ${rr.scoreable} ${t('answered', 'remplies')}`;
+      ? rr.maturity.label
+      : t('not scored yet', 'pas encore noté');
     save.disabled = problems.length > 0;
     save.title = problems.length
       ? problems.map((p) => p.message).join('\n')
@@ -1198,7 +1238,7 @@ function markingChoices(a: Assessment, rebuild: () => void): HTMLElement {
       ]),
       el('ol', { class: 'steps small' }, [
         el('li', {}, [
-          el('b', {}, ['Link to it where it already lives, ']),
+          el('b', {}, ['Link to the artefact where it is kept, ']),
           'and make sure your assessor can open it. The link is unclassified even when the ',
           'document is not.',
         ]),
@@ -1372,7 +1412,19 @@ function questionBlock(rubric: Rubric, a: Assessment, q: Question, refresh: () =
     ? el('span', { class: 'q-cats' }, cats.map((c) => el('span', { class: 'q-cat' }, [c.label])))
     : null;
 
-  if (q.answerType !== 'yesno') {
+  /**
+   * What the numbers mean is on the section heading now, once for the page.
+   *
+   * Asked for: we duplicate it on each question, and the logic behind it makes sense, if i need
+   * to look at it from each question i should be able to, but for now move this toggle to the
+   * header of the body. It is the same eleven rungs every time: all 176 questions in the set
+   * answer to rubric.scale.anchors and not one of them carries anchors of its own.
+   *
+   * A question that does carry its own keeps its own copy, because then the section heading
+   * would be describing a scale this question is not answered on. Nothing in the set does
+   * today, which is why this is a guard and not a feature.
+   */
+  if (q.anchors?.length) {
     wrap.appendChild(el('div', { class: 'ladder-row' }, [
       el('details', { class: 'ladder-box' }, [
         el('summary', {}, [t('What the numbers mean', 'Ce que les chiffres veulent dire')]),
@@ -1518,12 +1570,22 @@ function questionBlock(rubric: Rubric, a: Assessment, q: Question, refresh: () =
       ]));
       return;
     }
-    if (rung) {
-      chosen.appendChild(el('span', {}, [
-        rung.name ? el('b', {}, [`${rung.value} - ${rung.name}. `]) : '',
-        rung.label,
-      ]));
-    }
+    /**
+     * THE RUNG'S DESCRIPTION IS NOT PRINTED UNDER THE NUMBERS. IT USED TO BE.
+     *
+     * Asked for in these words: all of the descriptions are the same, and the first time you
+     * need it, the second maybe too, the third you might not need it anymore, and it might get
+     * redundant, and it's only taking the space from you. Having relevant but not important
+     * information is worse than not having it at all, because it takes up my brain power to
+     * read it, and it takes space on the page.
+     *
+     * It is two lines under every answered question, and the scale it describes is one scale
+     * for all 176: the whole of it is on the section heading now, once, behind What the
+     * numbers mean. Said to be worth trying and adding back only if it turns out to be needed.
+     *
+     * printScore above is untouched. A printed page cannot show which button is pressed, so
+     * the answer still goes onto paper in words.
+     */
   };
   /**
    * The answering apparatus goes on its own tinted ground, so the question reads as the
@@ -1596,46 +1658,36 @@ function questionBlock(rubric: Rubric, a: Assessment, q: Question, refresh: () =
   /**
    * A score is the answer. Reasoning and evidence are optional, and 176 questions each showing
    * a textarea and an evidence editor is most of the page given over to fields most questions
-   * will not use. They fold, and open on their own wherever there is already something inside,
-   * so nothing a person wrote can hide behind a closed disclosure.
+   * will not use.
+   *
+   * CLOSED, ALWAYS, AND THE STATE IS THE COLOUR OF THE WORDS.
+   *
+   * It used to open itself wherever something was inside, so that nothing somebody wrote could
+   * hide behind a closed fold, and it used to spell the contents out beside the heading:
+   * "reasoning written, 2 pieces of evidence", or "nothing yet". Asked for: by default all
+   * those toggles need to be closed, and what we need to know from looking at a toggle is
+   * whether there is evidence, and it should not be written with words, make the toggle grey
+   * if there is nothing and blue if there is. Show, do not tell.
+   *
+   * So the safety that justified opening itself is now carried by the colour, which is on
+   * screen whether the fold is open or shut and costs no line of its own.
    */
-  const hasExtras = !!(ans.justification ?? '').trim() || (ans.evidence ?? []).length > 0;
+  const summary = el('summary', { class: 'q-extras-summary' }, [
+    el('span', {}, [t('Reasoning and evidence', 'Justification et preuves')]),
+  ]);
   /**
    * Not applicable is an answer, so the reasoning and evidence behind a score are not part of
    * this question any more. They are kept, because deleting somebody's work because they
-   * ticked a box is not a decision the tool gets to make, and they are folded away with a
-   * line saying so. Untick it and everything is where it was.
+   * ticked a box is not a decision the tool gets to make. The colour says they are there.
    */
-  const extrasBox = el('details', { class: 'q-extras-box', open: hasExtras && !ans.na }, [
-    /**
-     * The heading stays put and a short status follows it, which is how a government task
-     * list marks a section as started. The label used to read "Add reasoning or evidence"
-     * whether or not anything was there, so a filled section looked exactly like an empty
-     * one. The arrow is left to mean open and closed, and nothing else.
-     */
-    el('summary', { class: 'q-extras-summary' }, [
-      el('span', {}, [t('Reasoning and evidence', 'Justification et preuves')]),
-      (() => {
-        const badge = el('span', { class: 'q-extras-count' });
-        const paintBadge = () => {
-          const n = (ans.evidence ?? []).length;
-          const words = (ans.justification ?? '').trim() ? 1 : 0;
-          const parts: string[] = [];
-          if (words) parts.push('reasoning written');
-          if (n) parts.push(`${n} piece${n === 1 ? '' : 's'} of evidence`);
-          badge.className = `q-extras-count ${parts.length ? 'filled' : 'empty'}`;
-          badge.textContent = parts.length
-            ? (ans.na ? `${parts.join(', ')}, kept and not counted` : parts.join(', '))
-            : 'nothing yet';
-        };
-        paintBadge();
-        extras.addEventListener('input', paintBadge);
-        extras.addEventListener('click', () => setTimeout(paintBadge, 0));
-        return badge;
-      })(),
-    ]),
-    extras,
-  ]);
+  const paintState = () => {
+    const filled = !!(ans.justification ?? '').trim() || (ans.evidence ?? []).length > 0;
+    summary.classList.toggle('has', filled);
+  };
+  paintState();
+  extras.addEventListener('input', paintState);
+  extras.addEventListener('click', () => setTimeout(paintState, 0));
+  const extrasBox = el('details', { class: 'q-extras-box' }, [summary, extras]);
   wrap.appendChild(extrasBox);
   return wrap;
 }
@@ -1648,7 +1700,7 @@ function evidenceEditor(a: Assessment, q: Question, list: EvidenceRef[], refresh
     box.appendChild(el('div', { class: 'ev-head' }, [
       el('strong', {}, [t('Link to the evidence', 'Le lien vers la preuve')]),
       el('span', { class: 'muted small' }, [
-        t('Point at where it already lives, and make sure your assessor can open it. ', 'Indiquez où elle se trouve déjà, et assurez-vous que votre évaluateur peut l\u2019ouvrir. '),
+        t('Point at the artefact where it is kept, and make sure your assessor can open it. ', 'Indiquez où elle se trouve déjà, et assurez-vous que votre évaluateur peut l\u2019ouvrir. '),
         q.evidencePrompt ? q.evidencePrompt : '',
       ]),
     ]));
