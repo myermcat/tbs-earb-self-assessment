@@ -571,8 +571,15 @@ code.mono { background: var(--surface-2); border: 1px solid var(--line);
 .toc-dom { font-weight: 650; color: var(--ink); font-size: .86rem; margin-top: .35rem; }
 .toc-dom.open { color: var(--accent); }
 .toc-sec { padding-left: .9rem; }
-.toc-sec .toc-bar, .toc-overview .toc-bar { grid-column: 1 / -1; height: 2px; border-radius: 999px;
-  background: var(--surface-2); overflow: hidden; }
+/**
+ * The rail counts, and the counts are the whole report.
+ *
+ * Every section row carried a two-pixel bar under a count that already said the same thing, so
+ * a rail of ten sections drew ten extra marks saying what ten numbers beside them said. The
+ * rail is third in the order of what this screen is for, and a thing that is third does not get
+ * to say itself twice.
+ */
+.toc-sec .toc-bar, .toc-overview .toc-bar { display: none; }
 .toc-sec .toc-bar i, .toc-overview .toc-bar i { display: block; height: 100%;
   background: var(--accent); transition: width .3s ease; }
 .toc-row.on { background: var(--accent-soft); color: var(--ink); font-weight: 600;
@@ -1035,7 +1042,16 @@ details[open] > .section-summary::before { transform: rotate(90deg); }
 .badge-soft { color: var(--ink-3); border-color: var(--line); background: var(--surface-2); }
 
 .ladder-box { margin: .25rem 0 .5rem; font-size: .84rem; }
-.ladder-box summary { cursor: pointer; color: var(--accent); font-weight: 550; }
+/**
+ * The two folds on a question are quieter than the question.
+ *
+ * Both were accent, which is 28 accent-coloured lines on a section of fourteen questions, so
+ * the brightest text in the list was the two things a reader opens least and the question
+ * itself came third. A disclosure that is closed is a label with a marker on it, and it takes
+ * the weight of a label.
+ */
+.ladder-box summary { cursor: pointer; color: var(--ink-2); font-weight: 550; }
+.ladder-box summary:hover { color: var(--ink); }
 .ladder { margin: .5rem 0 .3rem; padding: .5rem .7rem; list-style: none;
   background: var(--surface-2); border: 1px solid var(--line); border-radius: var(--radius-sm); }
 .ladder li { display: grid; grid-template-columns: 1.6rem minmax(0, 1fr); gap: .1rem .6rem;
@@ -1116,7 +1132,8 @@ tr.red-flag td:first-child { box-shadow: inset 2px 0 0 var(--bad); }
 
 .q-extras-box { margin-top: .1rem; }
 .q-extras-summary { cursor: pointer; list-style: none; display: flex; align-items: center;
-  gap: .45rem; font-size: .82rem; color: var(--accent); padding: .2rem 0; }
+  gap: .45rem; font-size: .82rem; color: var(--ink-2); padding: .2rem 0; }
+.q-extras-summary:hover { color: var(--ink); }
 .q-extras-summary::-webkit-details-marker { display: none; }
 /* Started or not started, in the words a task list uses. The arrow means open and closed. */
 .q-extras-count.empty { color: var(--ink-3); }
