@@ -100,8 +100,10 @@ const dialogs = () => [...document.querySelectorAll('dialog')].map((d) => d.text
 ok('it opens in the language the real pages were left in',
    document.documentElement.getAttribute('lang') === 'fr',
    document.documentElement.getAttribute('lang'));
+// A record on the tab the list opens on, which is Ready. Bureau of Illustrative Inspections
+// is a draft, and naming it here made this fail for the tab rather than for the pool.
 ok('the demonstration lists its own invented submissions',
-   view().includes('Bureau of Illustrative Inspections'));
+   view().includes('Invented Fisheries Authority'), view().slice(0, 160));
 ok('and says on its face that it is a demonstration', !!document.querySelector('.demo-banner'));
 ok('nothing on the page names the real submission',
    !view().includes('Coastal Permits Replacement'), view().slice(0, 160));
@@ -113,16 +115,26 @@ ok('no window about an assessment that has gone from the store',
    !/no longer in the shared store/.test(dialogs()), dialogs().slice(0, 120));
 // French, because the browser this test seeds had been left in French, which is the whole
 // point of the one name that crosses.
-// Counted off the table rather than written in, so widening the invented pool does not make it
-// fail for the one reason it is not testing. row-open, because the banded list also puts a
-// group row in the body and those are not submissions.
-// this fail for the one reason it is not testing.
+/**
+ * EVERY COUNT ON THE SCREEN MATCHES WHAT IS UNDER IT.
+ *
+ * The heading used to carry the size of the whole pool, which matched the table while All was
+ * the tab a page opened on. All went on 20 October and the heading would have said 20 over a
+ * table of 17, which is the thing the count was put there to stop. It is off the heading now,
+ * and the tabs carry the only counts on the screen.
+ *
+ * Counted off the table rather than written in, so widening the invented pool does not make
+ * this fail for the one reason it is not testing.
+ */
 {
   const rows = document.querySelectorAll('.triage tbody tr.row-open');
   const said = view().replace(/\s+/g, ' ').match(/Soumissions\s+(\d+)/);
-  ok('the count beside the heading is the count of what is in the table',
-     !!said && Number(said[1]) === rows.length && rows.length > 1,
-     `heading says ${said?.[1]}, table holds ${rows.length}`);
+  ok('no count beside the heading, because it would be the one number nothing explains',
+     !said, `heading says ${said?.[1] ?? 'nothing'}`);
+  const on = [...document.querySelectorAll('.list-tabs .tab')].find((b) => b.classList.contains('on'));
+  ok('and the tab that is on counts exactly the rows under it',
+     Number(on?.querySelector('.tab-n')?.textContent) === rows.length && rows.length > 1,
+     `tab says ${on?.querySelector('.tab-n')?.textContent}, table holds ${rows.length}`);
 }
 
 // Everything the page does is in `touched` by now, and nothing this file does should be.
@@ -203,11 +215,33 @@ ok('every stored name is made by the helper, and there is more than one',
  * that cannot tell its own records apart.
  */
 {
-  const rows = [...document.querySelectorAll('.triage tbody tr.row-open')];
+  /**
+   * Gathered across the tabs, because the list opens on Ready and there is no All.
+   *
+   * This block is about the shape of the whole invented pool - whether it reads as a portfolio
+   * or as a generator - so it has to see every record and not the seventeen on one tab. The
+   * tabs are pressed and the rows collected, which also proves each tab draws its own rows.
+   */
+  const tabOf = (label) => [...document.querySelectorAll('.list-tabs .tab')]
+    .find((b) => new RegExp(label, 'i').test(b.textContent ?? ''));
+  const rows = [];
+  for (const label of ['Ready|Pr\u00eates', 'Draft|Brouillon']) {
+    const tab = tabOf(label);
+    if (!tab) continue;
+    tab.dispatchEvent(new window.MouseEvent('click', { bubbles: true }));
+    await new Promise((r) => setTimeout(r, 120));
+    rows.push(...document.querySelectorAll('.triage tbody tr.row-open'));
+  }
+  // Back to Ready, because everything below this block reads the table that is on screen and
+  // a draft has no audit against it.
+  tabOf('Ready|Pr\u00eates')?.dispatchEvent(new window.MouseEvent('click', { bubbles: true }));
+  await new Promise((r) => setTimeout(r, 120));
+
   const col = (i) => rows.map((r) => r.children[i]?.textContent?.trim() ?? '');
   const spread = (xs) => new Set(xs.filter(Boolean)).size;
 
-  ok('the pool is twenty records', rows.length === 20, String(rows.length));
+  ok('the pool is twenty records, across the tabs it is split over',
+     rows.length === 20, String(rows.length));
   ok('at more than three stages of life', spread(col(5)) >= 6, [...new Set(col(5))].join(', '));
   ok('carrying more than one marking', spread(col(3)) === 3, [...new Set(col(3))].join(', '));
   ok('and more than one answer in the evidence column', spread(col(9)) > 2,
@@ -484,8 +518,10 @@ ok('every stored name is made by the helper, and there is more than one',
     .find((b) => /submissions|soumissions/i.test(b.textContent ?? ''))
     ?.dispatchEvent(new window.MouseEvent('click', { bubbles: true }));
   await new Promise((r) => setTimeout(r, 250));
+  // The tab it lands on is whichever was last chosen, so this asks whether the list is there
+  // rather than how many rows that tab holds.
   ok('and the list is back on screen afterwards',
-     document.querySelectorAll('.triage tbody tr.row-open').length === 20,
+     document.querySelectorAll('.triage tbody tr.row-open').length > 0,
      String(document.querySelectorAll('.triage tbody tr.row-open').length));
 }
 
