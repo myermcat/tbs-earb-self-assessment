@@ -4,13 +4,13 @@ import { codeChip } from './code-chip';
 import { allQuestionScores, nextAnchor, score, strongest, weakest, type Result } from './scoring';
 import { flags } from './flags';
 import { autosave } from './storage';
-import { markingProblems } from './marking';
+import { CLASSIFICATIONS, markingProblems } from './marking';
 import { t } from './i18n';
 import { isHosted, onlineIsCurrent, saveOnlineNow, savedOnline } from './store';
 import { currentUser, formatCode, pageAddress } from './firebase';
 import { openShareDialog, sharedPanel, showNewCode } from './views-share';
 import { rememberSigner, signerFields, signerProblem } from './signer';
-import { repaint, saveOnline } from './views-submit';
+import { repaint, saveOnline, setFileMarking } from './views-submit';
 import { confirmStep } from './confirm';
 
 /**
@@ -127,9 +127,30 @@ export function renderResults(
    */
   const problems = markingProblems(a);
   if (problems.length) {
+    /**
+     * The marking is settled here, where the block is.
+     *
+     * Reported as: when i clicked save my result without marking the evidence (it simply
+     * shouldnt allow me), it sent me here. See my results is the loud button at the foot of
+     * the questionnaire and nothing stops it, so somebody who has not marked the file arrives
+     * at a page carrying a block and one button that sends them back to look for a control.
+     * The gate in the questionnaire's own footer has the seven markings on it for this exact
+     * reason, written up there as: telling somebody to mark the file and making them go and
+     * find the control is how a gate turns into a notice people learn to read past.
+     *
+     * Going back stays, because the other three problems this box reports are about evidence
+     * on particular questions and those are answered where the question is.
+     */
+    const needsFileMark = problems.some((p) => p.kind === 'no-file-marking');
     root.appendChild(el('section', { class: 'card warn alert', 'data-part': 'Fix first' }, [
       el('strong', {}, [t('You cannot save this yet', 'Vous ne pouvez pas encore enregistrer')]),
       el('ul', { class: 'small' }, problems.slice(0, 8).map((p) => el('li', {}, [p.message]))),
+      needsFileMark
+        ? el('div', { class: 'gate-marks' }, CLASSIFICATIONS.map((c) => el('button', {
+            class: 'mark-btn',
+            onclick: () => setFileMarking(a, c, repaint),
+          }, [c])))
+        : null,
       el('button', { class: 'ghost', onclick: onBack }, [t('Go back and fix it', 'Revenir et corriger')]),
     ]));
   }
