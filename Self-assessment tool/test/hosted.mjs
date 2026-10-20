@@ -3137,6 +3137,49 @@ console.log('\nA submission is a place you can go back from\n');
   dom.window.close();
 }
 
+/* --------------------------------------------------------------------------------------- */
+/**
+ * THE GAP READS THE OTHER WAY ROUND WHEN THE DISAGREEMENT GOES THE OTHER WAY.
+ *
+ * Asked, looking at the card: will it say lower if the answer is negative. It will, and the
+ * branch had never been driven - every fixture in this file has assessors marking departments
+ * down, which is the direction the pool happens to lean. A branch nothing exercises is a
+ * branch nobody has read since it was typed.
+ *
+ * The sign is not on the number any more, so the words are the only thing carrying direction.
+ * That makes this the check that the words are right, rather than a check about wording.
+ */
+{
+  const modest = submission('OP56', 'Harder On Itself Than We Are');
+  modest.answers = {
+    'B-Q1': { score: 3, evidence: [], justification: 'We are not there yet.' },
+    'B-Q2': { score: 2, evidence: [], justification: 'Nor here.' },
+  };
+  const kinder = {
+    reviewer: 'nick@tbs-sct.gc.ca', reviewerName: 'Nick Allen', reviewedAt: '2026-10-02T00:00:00.000Z',
+    // The assessor scores it ABOVE what the department gave itself, both times, by two.
+    perQuestion: {
+      'B-Q1': { auditedScore: 5, verdict: 'adjust', note: 'Better than they think.' },
+      'B-Q2': { auditedScore: 4, verdict: 'adjust', note: 'This too.' },
+    },
+  };
+  const { doc, dom } = await boot({
+    session: live, side: 'assess', role: 'assessor', hash: '#assessor/dashboard',
+    listAnswer: { documents: [asDoc(modest)] },
+    audits: { [modest.id]: [kinder] },
+  });
+  await new Promise((r) => setTimeout(r, 200));
+  const card = [...doc.querySelectorAll('.card')]
+    .find((c) => c.querySelector('h2')?.textContent === 'Self-scores against assessors');
+  const txt = (card?.textContent ?? '').replace(/\s+/g, ' ');
+  ok('a department that marked itself down is reported as lower',
+     /how much lower departments scored themselves, on average/.test(txt), txt.slice(0, 160));
+  ok('with the size and no sign on it', (card?.querySelector('.lead-v')?.textContent ?? '') === '2.0',
+     card?.querySelector('.lead-v')?.textContent);
+  ok('and it does not say higher anywhere', !/how much higher/.test(txt), txt.slice(0, 160));
+  dom.window.close();
+}
+
 console.log(fails ? `\n${fails} hosted check(s) failed\n` : '\nall hosted checks passed\n');
 process.exit(fails ? 1 : 0);
 

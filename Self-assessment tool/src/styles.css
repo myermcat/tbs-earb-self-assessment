@@ -1346,6 +1346,21 @@ code.mark-subject { display: block; margin: .25rem 0; }
  */
 .body-review, .body-admin { padding-bottom: 3rem; width: 100%; max-width: min(1200px, 100%); }
 /* A badge that cannot wrap is a column that cannot shrink. */
+/**
+ * The declared widths are binding, and the table has a floor.
+ *
+ * Without `table-layout: fixed` a colgroup is advice: a browser widens any column whose
+ * content wants more, taking it from the others, and the column that loses is the one with the
+ * least content - which here was the row menu, the only way to anything a row can do.
+ *
+ * The floor is what keeps fixed from being worse than the problem. Fixed plus width 100% means
+ * the table never exceeds its container, so it would never scroll and would squeeze thirteen
+ * columns into a phone instead. 70rem is the twelve declared widths plus room for an
+ * initiative's name, and it is under the 1124px the card holds at its widest - the page caps
+ * its content at 1200px, so no monitor makes this table roomier. Below 70rem the wrapper
+ * scrolls, which is what it is for.
+ */
+.triage { table-layout: fixed; min-width: 70rem; }
 .triage .badge { white-space: normal; margin-left: 0;
   /* The cells below break anywhere, because a department name has to fit a narrow column. A
      badge is one or two short words and must not: Ready broke after Read and the y went to a

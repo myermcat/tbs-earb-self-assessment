@@ -996,8 +996,28 @@ function paintList(rubric: Rubric, root: HTMLElement) {
    * column is who. Department names are long and repeat down the column, so they are the ones
    * that can afford to wrap.
    */
-  const widths = ['auto', '5.2rem', '7.6rem', '5.4rem', '6.4rem', '5.6rem', '3.6rem', '6.4rem',
-    '3.4rem', '4.2rem', '4.4rem', '9.4rem'];
+  /**
+   * THIRTEEN WIDTHS FOR THIRTEEN COLUMNS. There were twelve.
+   *
+   * The row menu's column was the one with nothing said about it, so it got whatever was left
+   * after every other column had taken what its content wanted - and on a real pool, where
+   * the departments have long names and an audit can carry an address, what was left was
+   * nothing. Reported as: it does not show the three dots, and I should not have to scroll
+   * for them.
+   *
+   * With the table laid out fixed, these are binding rather than advisory, so no cell's
+   * content can take another column's room. The menu is the one that must never lose, because
+   * it is the only way to the things a row can do.
+   *
+   * AND THEY ADD UP TO SOMETHING THAT FITS. The page caps its content at 1200px however wide
+   * the window is, so the card holds about 1124px of table whatever screen it is on - which is
+   * why a wide monitor did not help. The twelve declared columns came to 1024 and the floor
+   * under the table came to 1168, so the table was wider than the card it sits in and the menu
+   * was the part hanging over the edge. Measured at 1900, where the card's inside was 1161.
+   * They come to 944 now, which leaves 180 for an initiative's name.
+   */
+  const widths = ['auto', '5.2rem', '6.6rem', '5.4rem', '5rem', '5rem', '3.6rem', '5.6rem',
+    '3.4rem', '4.2rem', '4.4rem', '8.2rem', '2.8rem'];
   const table = el('table', { class: 'triage' }, [
     el('colgroup', {}, widths.map((w) => el('col', { style: `width:${w}` }))),
     el('thead', {}, [el('tr', {}, columns.map((c) => {
