@@ -1083,12 +1083,23 @@ tr.red-flag td:first-child { box-shadow: inset 2px 0 0 var(--bad); }
 .score-line { display: flex; gap: .5rem; flex-wrap: wrap; align-items: center; margin: .5rem 0 .35rem; }
 .score-row { display: flex; gap: .2rem; flex-wrap: wrap; align-items: center; }
 .score-btn[aria-disabled='true'] { opacity: .3; }
+/**
+ * Eleven scores are one choice, so they are drawn as one control with one answer in it.
+ *
+ * Each was a bordered box on its own fill, so a question with nothing answered showed eleven
+ * boxes competing with the question above them, and the answered state had to shout over its
+ * own ten neighbours to be seen. The unanswered ones are numbers on the ground they already
+ * sit on now, and the one that is chosen keeps its fill from the score ramp. That is the
+ * segmented control, and the row it sits in is the box.
+ *
+ * The hit target does not move: same width, same padding, same text. Only the paint goes.
+ */
 .score-btn {
   width: 2.05rem; padding: .3rem 0; text-align: center; border-radius: 7px;
   font-family: var(--mono); font-size: .82rem; font-weight: 600;
-  border: 1px solid var(--line-2); background: var(--surface); color: var(--ink-2);
+  border: 1px solid transparent; background: none; color: var(--ink-2);
 }
-.score-btn:hover:not(:disabled) { border-color: currentColor; }
+.score-btn:hover:not(:disabled) { background: var(--surface); border-color: var(--line-2); color: var(--ink); }
 .score-btn.on { color: #fff; border-color: transparent; box-shadow: var(--shadow); }
 .score-btn.on.v0  { background: var(--s0); }  .score-btn.on.v1  { background: var(--s1); }
 .score-btn.on.v2  { background: var(--s2); }  .score-btn.on.v3  { background: var(--s3); }
