@@ -221,6 +221,28 @@ that was mutated, the state that was seeded, the file that is about to run. When
 helper that encodes a value's options, check it knows all of them. One line of evidence is worth
 more than the whole chain of reasoning that says it should have worked.
 
+## Measure at the width the page actually gets, and in both themes
+
+Two sessions walked into the same wall from opposite ends on 21 October, and neither had it
+written down.
+
+**The page caps its own content.** `max-width: min(1200px, 100%)` on the assessor's screens,
+1040 and 900 on others. A wider window buys nothing: the card holds about 1124px of table on a
+1280 laptop and on a 1900 monitor alike. Measuring at 1900 and reading "it fits" is measuring
+something the page will never be. The submissions table's columns came to more than the card
+could hold and the row menu — the only way to anything a row can do — was the part hanging over
+the edge. From the other end, the bar at the foot of the questionnaire holds three groups, and
+whether the French labels fit is decided at 1200 and never at the window.
+
+**Ask the element, not the window.** `card.clientWidth` and the wrapper's own width are the
+numbers that decide anything; `innerWidth` decides nothing.
+
+**And a tool with two themes has two screens.** The assessor's Clear button had been white on a
+white card in light mode since the row was built, and nobody saw it because every screenshot
+anybody took was dark. It was found by reading a computed colour off a control somebody was not
+even looking for. Check both, and check the colour rather than the look of it when a control is
+drawn from a ramp that does not cover every case.
+
 ## Words share a baseline; a box is centred
 
 Said on 21 October, after the third time: *they are not aligned with their numbers. You hit
