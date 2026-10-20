@@ -433,3 +433,22 @@ itself and the PDF one level up, at the top of `Concept case/`, which is where M
 
 It is an internal document. It has no business owner at assistant deputy minister level and is
 not being submitted to anybody, and the sections that would matter for a real submission say so.
+
+## Never type `node test/<one>.mjs`
+
+The suites open `dist/*.html`. They do not make it. Run one by hand after editing a source
+file and it reads the page from last time, then reports, in full sentences and with an
+entirely convincing failure message, what the code did before your change.
+
+It cost an hour here: a name rule rewritten, `tsc` clean, the suite re-run twice, and both
+runs printing the old build's failure. Nothing in the output says the page is stale, because
+from the suite's point of view nothing is wrong - it opened a file and asserted against what
+was in it.
+
+Every `test:*` alias already builds in the same command, so `npm run test:demo` is honest on
+its own and is the short way to run one suite. The bare `node` line is the only way to spring
+the trap, and `npm test` is the only run that answers the whole question.
+
+`npm run test:wiring` holds the aliases to that, because they are honest only while whoever
+adds the next one copies the pattern. It fails a `test:*` script that names a suite reading
+dist without `build.mjs` on the same line, and a suite with no script at all.

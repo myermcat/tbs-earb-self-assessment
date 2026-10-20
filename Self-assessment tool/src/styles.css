@@ -1306,6 +1306,40 @@ code.mark-subject { display: block; margin: .25rem 0; }
  * scrolls, which is what it is for.
  */
 .triage { table-layout: fixed; min-width: 70rem; }
+/**
+ * THE ROW MENU IS PINNED TO THE RIGHT EDGE AND NEVER SCROLLS AWAY.
+ *
+ * Thirteen columns do not fit a thousand-pixel window, and narrowing them far enough to make
+ * them fit would leave an initiative's name in four words a line. So the table scrolls, which
+ * is the right answer for twelve of the columns and the wrong one for the thirteenth: the menu
+ * is the only way to anything a row can do, and the one thing nobody should have to go looking
+ * for. Reported twice, the second time after the widths were corrected: my dots are still
+ * outside the screen.
+ *
+ * It sticks to the right of the scrolling box, so it is on screen at every width with the rest
+ * of the row sliding under it. The background is the card's, because a transparent sticky cell
+ * shows whatever is passing beneath it.
+ */
+.triage th:last-child, .triage td:last-child {
+  position: sticky; right: 0; z-index: 1;
+  background: var(--surface);
+  /**
+   * The hairline is a shadow and not a border, because the table collapses its borders and a
+   * collapsed border belongs to the grid rather than to the cell - it stays where the column
+   * was and the cell slides out from under it. An inset shadow is painted by the cell itself,
+   * so it travels. The second shadow is the shade that tells a reader the column is in front
+   * of the row rather than part of it; it only shows while there is something behind it.
+   */
+  box-shadow: inset 1px 0 0 var(--line), -6px 0 6px -6px rgb(0 0 0 / .16);
+}
+.triage tbody tr:hover td:last-child { background: var(--accent-soft); }
+.triage tbody tr.group-band td:last-child { background: var(--surface-2); }
+/* Nothing is behind it once the table fits, so the shade comes off and the hairline stays. */
+@media (min-width: 1240px) {
+  .body-review .triage th:last-child, .body-review .triage td:last-child,
+  .body-admin .triage th:last-child, .body-admin .triage td:last-child {
+    box-shadow: inset 1px 0 0 var(--line); }
+}
 .triage .badge { white-space: normal; margin-left: 0;
   /* The cells below break anywhere, because a department name has to fit a narrow column. A
      badge is one or two short words and must not: Ready broke after Read and the y went to a
@@ -1798,6 +1832,8 @@ td.t0, td.t1, td.t2, td.t3, td.t4, td.t5, td.t6, td.t7, td.t8, td.t9, td.t10 { f
  */
 @media (min-width: 1240px) { .body-review .table-wrap, .body-admin .table-wrap { overflow: visible; } }
 .row-menu .set-menu-pop { z-index: 40; }
+/* Set when the menu is opened and measured, above: it would otherwise fall out of the box. */
+.row-menu.menu-up .set-menu-pop { top: auto; bottom: 2.1rem; }
 table { border-collapse: collapse; width: 100%; font-size: .875rem; }
 th, td { text-align: left; padding: .4rem .55rem; border-bottom: 1px solid var(--line); vertical-align: top; }
 th { font-size: .74rem; text-transform: uppercase; letter-spacing: .05em; color: var(--ink-3);

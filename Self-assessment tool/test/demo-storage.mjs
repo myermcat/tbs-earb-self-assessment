@@ -269,10 +269,24 @@ ok('every stored name is made by the helper, and there is more than one',
   window.history.back();
   await new Promise((r) => setTimeout(r, 250));
 
-  // Off the chips read above, for the same reason they are.
+  /**
+   * Off the chips read above, for the same reason they are.
+   *
+   * A chip carries a first name rather than the whole of one, and where two assessors on a
+   * record share a first name it carries the initial of the next word as well. So the test is
+   * no longer that the text equals an invented name - it is that the text can only be one of
+   * them. All three of the invented assessors are called Reviewer, which is the case that
+   * would otherwise pass while the column told nobody apart.
+   */
+  const shortens = (shown, full) => {
+    const w = full.split(/\s+/);
+    return shown === full || shown === w[0] || (w[1] && shown === `${w[0]} ${w[1][0]}.`);
+  };
   const names = [...new Set(auditCells.flat())];
-  ok('every assessor in the column is one of the invented ones',
-     names.length > 0 && names.every((n) => INVENTED.includes(n)), names.join(' | '));
+  const ambiguous = names.filter((n) => INVENTED.filter((f) => shortens(n, f)).length !== 1);
+  ok('every assessor in the column names one of the invented ones, and only one',
+     names.length > 0 && !ambiguous.length,
+     ambiguous.length ? `ambiguous: ${ambiguous.join(' | ')}` : names.join(' | '));
 
   /**
    * The way back out, asked for after the door in: somebody shown the demonstration had no

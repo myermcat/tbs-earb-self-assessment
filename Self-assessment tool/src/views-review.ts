@@ -184,9 +184,24 @@ const auditTimers = new Map<string, ReturnType<typeof setTimeout>>();
  * runs it is a handful of requests; the day a pool holds a hundred, one collection-group query
  * replaces all of them and that is a decision with an index behind it.
  */
-let listAuditsRead = false;
+/**
+ * WHICH RECORDS HAVE BEEN ASKED ABOUT, RATHER THAN WHETHER ANYTHING HAS.
+ *
+ * This was one boolean, set the first time the read ran. The first time it runs is the first
+ * paint, and at the first paint `loaded` holds only what this browser restored from its own
+ * session - the pool has not answered yet. So every record that arrived WITH the pool was
+ * never asked about, and its Audited column said nobody yet for the rest of the visit.
+ *
+ * Reported as: sometimes it shows the reviewer and sometimes it does not, like right now. Both
+ * were true of the same submission on different visits, because which rows are restored before
+ * the pool answers depends on what this browser happens to be holding.
+ *
+ * A set of ids asks about what has not been asked about, which is the question the boolean was
+ * standing in for.
+ */
+const auditsAsked = new Set<string>();
 async function readListAudits(after: () => void): Promise<void> {
-  if (listAuditsRead) return;
+  const waiting = loaded.filter((l) => l.a.id && !auditsAsked.has(l.a.id));
   /**
    * A DEMONSTRATION ANSWERS FROM WHAT IT HOLDS AND ASKS NOBODY.
    *
@@ -209,10 +224,10 @@ async function readListAudits(after: () => void): Promise<void> {
      * without doing the work, and the column says nobody yet for ever. The hosted path below
      * guards the same way for the same reason, one line further down than it looks.
      */
-    if (!loaded.length) return;
-    listAuditsRead = true;
+    if (!waiting.length) return;
     const me = currentUser()?.email ?? '';
-    for (const l of loaded) {
+    for (const l of waiting) {
+      auditsAsked.add(l.a.id!);
       if (!l.fromPool) continue;
       l.auditedBy = l.fromPool.map((x) => x.reviewerName?.trim() || x.reviewer);
       l.auditedByMe = l.fromPool.some((x) => x.reviewer === me);
@@ -230,11 +245,13 @@ async function readListAudits(after: () => void): Promise<void> {
     return;
   }
   if (!isHosted() || !currentUser()) return;
-  const rows = loaded.filter((l) => l.a.id);
-  if (!rows.length) return;
-  listAuditsRead = true;
+  if (!waiting.length) return;
   const me = currentUser()?.email ?? '';
-  await Promise.all(rows.map(async (l) => {
+  // Marked before the await, so a redraw that lands while these are in flight does not ask
+  // again. A row whose read fails is marked too: it said nothing rather than nobody, and
+  // asking for ever would be a request per redraw.
+  for (const l of waiting) auditsAsked.add(l.a.id!);
+  await Promise.all(waiting.map(async (l) => {
     try {
       const all = await listAudits(l.a.id!);
       l.auditedBy = all.map((x) => x.reviewerName?.trim() || x.reviewer);
@@ -326,7 +343,7 @@ function scheduleAuditSave(l: Loaded, after: () => void = () => {}): void {
      * said audited by you and the row said nobody yet, about the same submission. The read is
      * marked stale here and the list asks again when it is next drawn.
      */
-    listAuditsRead = false;
+    auditsAsked.clear();
     void putAudit(code, {
       reviewer: currentUser()?.email ?? '',
       reviewerName: auditor,
@@ -461,7 +478,7 @@ let poolNow: Pool = { state: 'idle' };
 let asked = false;
 
 /** Ask again after signing in, after a delete, or when the assessor presses Check again. */
-export function forgetPool(): void { asked = false; poolNow = { state: 'idle' }; listAuditsRead = false; }
+export function forgetPool(): void { asked = false; poolNow = { state: 'idle' }; auditsAsked.clear(); }
 
 function absorb(rubric: Rubric, answer: PoolAnswer): void {
   if (answer.state !== 'ok') {
@@ -2068,18 +2085,66 @@ function auditedCell(l: Loaded): HTMLElement {
     title: l.auditedByMe
       ? `Audited by ${who.join(', ')}, including you`
       : `Audited by ${who.join(', ')}`,
-  }, who.map((name) => el('span', { class: 'audit-chip', title: name }, [
-    el('span', { class: 'audit-chip-ini' }, [initialsFor(name)]),
-    /**
-     * An address shows the part in front of the @, and the whole of it is on the hover.
-     *
-     * An audit carries the name its author typed, and where nobody typed one it carries their
-     * address instead. A full address is both long and mostly the same characters as the one
-     * above it - the domain is what every colleague shares and the only part that tells them
-     * apart is at the front, which is the part a column this width would cut off.
-     */
-    el('span', { class: 'audit-chip-name' }, [name.includes('@') ? name.split('@')[0] : name]),
-  ])));
+  }, who.map((name) => {
+    // What the chip calls them, and whether it calls them anything, is shortNames below.
+    const shown = shortNames().get(name);
+    return el('span', { class: 'audit-chip', title: name }, [
+      el('span', { class: 'audit-chip-ini' }, [initialsFor(name)]),
+      shown ? el('span', { class: 'audit-chip-name' }, [shown]) : null,
+    ]);
+  }));
+}
+
+/**
+ * WHAT A CHIP CALLS SOMEBODY: THEIR FIRST NAME, OR AS MUCH MORE AS IT TAKES TO BE THEM.
+ *
+ * Asked for in those words: instead of the email just show the badge and the reviewer's first
+ * name. An address gets no name at all. Its local part can be a first name, a surname, both
+ * in either order, or a payroll number, and there is no telling which from here - guessing
+ * wrong puts the wrong word on somebody's work. The initials in the badge are true however it
+ * is spelled, and the whole address is on the hover, where a long string costs nothing.
+ *
+ * Two people can share a first name. The invented pool is the worst case of it: Reviewer One,
+ * Reviewer Two and Reviewer Three, where a column of first names says Reviewer three times
+ * and tells nobody apart - which is worse than saying nothing, because it looks like it
+ * answered. So a first name is used only while it is somebody's alone. Where it is not, the
+ * people who share it take the next word's initial, and if that still does not separate them
+ * - Two and Three are both T - they take their whole names. Everyone in a group moves
+ * together, so the column never shows David K. beside David Thompson.
+ *
+ * Decided across the whole pool rather than one row, so a name means the same thing wherever
+ * it appears. It is cached on the list of names, because it is worked out per chip and the
+ * pool answers once.
+ */
+const FULL = 2;
+function formAt(name: string, level: number): string {
+  const w = name.trim().split(/\s+/).filter(Boolean);
+  if (!w.length) return name;
+  if (level === 0 || !w[1]) return w[0];
+  return level === 1 ? `${w[0]} ${w[1][0]}.` : name;
+}
+
+let shortCache: { key: string; map: Map<string, string> } | null = null;
+
+function shortNames(): Map<string, string> {
+  const all = [...new Set(loaded.flatMap((l) => l.auditedBy ?? []))]
+    .filter((n) => !n.includes('@')).sort();
+  const key = all.join('\u0000');
+  if (shortCache?.key === key) return shortCache.map;
+  const map = new Map<string, string>();
+  const groups = new Map<string, string[]>();
+  for (const n of all) {
+    const k = formAt(n, 0).toLowerCase();
+    groups.set(k, [...(groups.get(k) ?? []), n]);
+  }
+  for (const group of groups.values()) {
+    let level = 0;
+    while (level < FULL
+      && new Set(group.map((n) => formAt(n, level).toLowerCase())).size < group.length) level += 1;
+    for (const n of group) map.set(n, formAt(n, level));
+  }
+  shortCache = { key, map };
+  return map;
 }
 
 /** Two letters for a face, from a name or an address. */
