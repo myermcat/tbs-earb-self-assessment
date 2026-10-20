@@ -552,7 +552,8 @@ code.mono { background: var(--surface-2); border: 1px solid var(--line);
 /* ---------- the questionnaire: rail beside the sheet ------------------------------------ */
 
 .body-submit { max-width: min(1200px, 100%); }
-.form-layout { display: grid; grid-template-columns: 14.5rem minmax(0, 1fr); gap: 1.1rem;
+/* 12.75rem, down from 14.5: reported as taking up almost a third of a screen on the left. */
+.form-layout { display: grid; grid-template-columns: 12.75rem minmax(0, 1fr); gap: 1.1rem;
   align-items: start; }
 .sheet { min-width: 0; }
 
@@ -573,27 +574,51 @@ code.mono { background: var(--surface-2); border: 1px solid var(--line);
 
 .rail { position: sticky; top: calc(var(--chrome-h, 3.2rem) + .6rem); }
 .toc { display: flex; flex-direction: column; gap: .1rem; }
+/**
+ * THE RAIL IS THIRD, AND IT IS DRAWN THIRD.
+ *
+ * Reported with a screenshot of it: it's taking up almost a third of a screen on the left, and
+ * when everything around is green, it looks overwhelming, and the overview business data
+ * application stuff are much more important, the domain blocks, while the left navigation is
+ * way less important.
+ *
+ * A finished assessment made every row green twice over, a bright count and a full-width bar,
+ * seven of each down the side of the page, against a domain tab row at the top that is the
+ * thing she navigates by. So the type comes down, the green comes down, and the column comes
+ * in. The one thing that keeps its weight is the row you are on: where I am is what the rail
+ * is for.
+ */
 .toc-row { display: grid; grid-template-columns: 1fr auto; gap: .3rem .5rem; align-items: baseline;
   width: 100%; text-align: left; background: none; border: 0; border-radius: 7px;
-  padding: .3rem .5rem; font-size: .82rem; color: var(--ink-2); }
+  padding: .28rem .5rem; font-size: .76rem; color: var(--ink-2); }
 .toc-row:hover { background: var(--surface-2); border: 0; }
 .toc-label { overflow: hidden; text-overflow: ellipsis; }
-.toc-count { font-family: var(--mono); font-size: .7rem; color: var(--ink-3); }
-.toc-dom { font-weight: 650; color: var(--ink); font-size: .86rem; margin-top: .35rem; }
+.toc-count { font-family: var(--mono); font-size: .66rem; color: var(--ink-3); }
+/* A domain heading led the rail at full ink, which made the loudest text on this side of the
+   page a label for the tabs at the top of it. */
+.toc-dom { font-weight: 650; color: var(--ink-2); font-size: .8rem; margin-top: .35rem; }
 .toc-dom.open { color: var(--accent); }
 .toc-sec { padding-left: .9rem; }
 .toc-sec .toc-bar, .toc-overview .toc-bar { grid-column: 1 / -1; height: 2px; border-radius: 999px;
   background: var(--surface-2); overflow: hidden; }
+/**
+ * The bars are mixed down toward the track they sit in. At full strength, a finished domain
+ * drew six solid green lines down the page and the colour said finished six times in a column
+ * nobody is reading for that. They still say it, at the volume a third thing gets.
+ */
 .toc-sec .toc-bar i, .toc-overview .toc-bar i { display: block; height: 100%;
-  background: var(--accent); transition: width .3s ease; }
+  background: color-mix(in srgb, var(--accent) 55%, var(--surface-2));
+  transition: width .3s ease; }
 .toc-row.on { background: var(--accent-soft); color: var(--ink); font-weight: 600;
   box-shadow: inset 2px 0 0 var(--accent); }
-.toc-row.done .toc-count { color: var(--good); }
+/* Done, said once and quietly. A column of bright green counts is the rail shouting that
+   everything is fine, which is the one thing a reader does not need shouted. */
+.toc-row.done .toc-count { color: color-mix(in srgb, var(--good) 55%, var(--ink-3)); }
 /* A section holding none of the category the lens is on. Greyed and left where it is: taking
    the row away makes the rail change length every time somebody tries a category, and the row
    is still the answer to whether any of it is in here, which is no. */
 .toc-row.lens-empty-row { opacity: .45; }
-.toc-row.done .toc-bar i { background: var(--good); }
+.toc-row.done .toc-bar i { background: color-mix(in srgb, var(--good) 45%, var(--surface-2)); }
 
 .section-head-card .eyebrow { margin-bottom: .3rem; }
 

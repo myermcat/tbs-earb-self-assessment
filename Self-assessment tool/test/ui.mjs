@@ -2287,6 +2287,50 @@ ok('audited file keeps the self-score alongside the audited one',
     ok('the filter that is on is not painted with the primary button',
        !!chipBg && !!primaryBg && chipBg !== primaryBg && !/var\(--accent\)/.test(chipBg),
        `chip ${chipBg} / button ${primaryBg}`);
+
+    /**
+     * The rail is third in the order of this screen and is drawn third.
+     *
+     * Reported with a screenshot of a finished domain: it's taking up almost a third of a
+     * screen on the left, and when everything around is green, it looks overwhelming, and the
+     * overview business data application stuff are much more important, the domain blocks,
+     * while the left navigation is way less important. Every row was a bright count over a
+     * full-strength bar, seven of each down the side.
+     *
+     * Each of these is a relation between two things on the page, so they stay true when the
+     * tokens change underneath them.
+     */
+    {
+      const rem = (v) => parseFloat(String(v).replace('rem', ''));
+      const rowSize = lastDecl('\\.toc-row', 'font-size');
+      const tabSize = lastDecl('\\.chrome \\.step-label', 'font-size');
+      ok('a rail row is smaller than a domain tab, which is what it is subordinate to',
+         rem(rowSize) < rem(tabSize), `${rowSize} against ${tabSize}`);
+
+      const doneCount = lastDecl('\\.toc-row\\.done \\.toc-count', 'color');
+      const doneBar = lastDecl('\\.toc-row\\.done \\.toc-bar i', 'background');
+      ok('a finished count is mixed down and never the full green',
+         !!doneCount && doneCount !== 'var(--good)' && /color-mix/.test(doneCount),
+         doneCount ?? 'nothing');
+      ok('and so is the bar under it',
+         !!doneBar && doneBar !== 'var(--good)' && /color-mix/.test(doneBar),
+         doneBar ?? 'nothing');
+
+      ok('a domain row in the rail is not at the ink the questions are',
+         lastDecl('\\.toc-dom', 'color') !== 'var(--ink)',
+         lastDecl('\\.toc-dom', 'color') ?? 'nothing');
+
+      /**
+       * Read outside the media queries, because the last rule for this property is the phone
+       * one, which collapses the rail to a single column and has no width to ask about.
+       */
+      const noQueries = sheet.replace(/@media[^{]*\{(?:[^{}]*\{[^}]*\}\s*)*\}/g, '');
+      const track = [...noQueries.matchAll(/\.form-layout\s*\{([^}]*)\}/g)]
+        .map((m) => (m[1].match(/grid-template-columns:\s*([^;]+)/) ?? [])[1])
+        .filter(Boolean).pop();
+      ok('and the column it all sits in is under 13rem',
+         !!track && rem(track.split(' ')[0]) <= 13, track ?? 'nothing');
+    }
     ok('and it is still a box, so the row shows which one is on',
        /var\(--accent-soft\)/.test(chipBg ?? ''), chipBg ?? 'nothing');
   }
