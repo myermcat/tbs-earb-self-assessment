@@ -838,6 +838,34 @@ console.log('\nThe published build, signed in\n');
 
   const rows = [...doc.querySelectorAll('.triage tbody tr')];
   const cell = (tr) => tr.children[1]?.textContent?.trim();
+  /**
+   * THE DEPARTMENT READS AT THE QUESTION SET'S WEIGHT, BELOW THE INITIATIVE'S.
+   *
+   * Asked for in those words: the text in the department column should be the same style as
+   * 1.0 in the question set. Both are context rather than the thing being looked for - a
+   * department name repeats down the column and the initiative is what tells one row from
+   * another - so both take a size down and the quiet ink, and the name keeps full ink.
+   *
+   * jsdom resolves no cascade, so the classes are read. Not the mono face: in this table that
+   * means a code or a number.
+   */
+  {
+    const r = rows[0];
+    const dep = r?.children[2];
+    const set = r?.children[4];
+    const quiet = (td) => (td?.className ?? '').includes('dim')
+      || !!td?.querySelector('.dim');
+    ok('the department is in the same quiet ink as the question set',
+       quiet(dep) && quiet(set),
+       `${dep?.className} / ${set?.className} ${set?.querySelector('.dim') ? '+inner dim' : ''}`);
+    ok('and a size down, like it',
+       (dep?.className ?? '').includes('small') && (set?.className ?? '').includes('small'),
+       `${dep?.className} / ${set?.className}`);
+    ok('and the initiative keeps full ink, because it is what tells one row from another',
+       !quiet(r?.children[0]), r?.children[0]?.className || '(no class)');
+    ok('and the department is not in the code face, which means something else here',
+       !(dep?.className ?? '').includes('mono'), dep?.className ?? '');
+  }
   ok('a marked assessment says it is ready', rows.some((tr) => /^Ready$/.test(cell(tr))),
      rows.map(cell).join(' | '));
   ok('and the date is on the hover, where a date belongs',
