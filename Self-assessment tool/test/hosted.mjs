@@ -857,26 +857,38 @@ console.log('\nThe published build, signed in\n');
    */
   ok('and every row on it is ready, because that is the tab it opens on',
      rows.length > 0 && rows.every((tr) => /^Ready$/.test(cell(tr))), rows.map(cell).join(' | '));
-  const tabs = [...doc.querySelectorAll('.list-tabs .tab')]
-    .map((b) => b.textContent.replace(/\s+/g, ' ').trim());
-  ok('the groups are the tabs, each with its own count',
-     tabs.some((x) => /^Ready ?\d/.test(x)) && tabs.some((x) => /^Drafts ?\d/.test(x)),
-     tabs.join(' | '));
-  ok('and there is no All in front of them',
-     !tabs.some((x) => /^All/.test(x)), tabs.join(' | '));
-  ok('and nothing bands the list any more, because a tab holds one group',
+  /**
+   * ONE BUTTON, NAMING THE GROUP YOU ARE NOT LOOKING AT.
+   *
+   * Ready and Drafts were tabs until 20 October. Her shape: the default is Submissions and the
+   * other works the way the French button does, one button showing the thing you are not on.
+   * So the heading says where you are and the button says where else there is to go.
+   */
+  const heading = () => doc.querySelector('.card h2')?.textContent?.trim();
+  const sw = () => doc.querySelector('.switch-group');
+  ok('the heading names the group on screen, and it is just Submissions',
+     heading() === 'Submissions', heading());
+  ok('and one button names the other group and counts it',
+     /^Drafts ?\d/.test(sw()?.textContent?.replace(/\s+/g, ' ').trim() ?? ''),
+     sw()?.textContent?.trim() ?? 'no button');
+  ok('and there is no strip of tabs any more',
+     !doc.querySelector('.list-tabs'), doc.querySelector('.list-tabs')?.textContent ?? 'gone');
+  ok('and nothing bands the list, because one group is on screen',
      !doc.querySelector('.triage tbody tr.group-band'),
      doc.querySelector('.triage tbody tr.group-band')?.textContent ?? 'no bands');
   /**
-   * The drafts are one click away, and the tab is what says so.
+   * Pressing it swaps both: what is on screen, and what the button then offers back.
    */
-  [...doc.querySelectorAll('.list-tabs .tab')].find((b) => /Drafts/.test(b.textContent)).click();
+  sw().click();
   await new Promise((r) => setTimeout(r, 60));
   const onDrafts = [...doc.querySelectorAll('.triage tbody tr')];
-  ok('and pressing Drafts shows the drafts and nothing else',
+  ok('pressing it shows the drafts and nothing else',
      onDrafts.length > 0 && onDrafts.every((tr) => /^Draft$/.test(cell(tr))),
      onDrafts.map(cell).join(' | '));
-  [...doc.querySelectorAll('.list-tabs .tab')].find((b) => /Ready/.test(b.textContent)).click();
+  ok('and the heading and the button have swapped',
+     heading() === 'Drafts' && /^Submissions ?\d/.test(sw()?.textContent?.replace(/\s+/g, ' ').trim() ?? ''),
+     `${heading()} / ${sw()?.textContent?.trim()}`);
+  sw().click();
   await new Promise((r) => setTimeout(r, 60));
 
   /**
@@ -1440,17 +1452,34 @@ console.log('\nThe published build, signed in\n');
    * groups are the tabs: the list opens on Ready and a withdrawn record is somewhere an
    * assessor has to ask for, which is what withdrawing it meant.
    */
-  const tabNames = [...doc.querySelectorAll('.list-tabs .tab')]
-    .map((b) => b.textContent.replace(/\s+/g, ' ').trim());
-  ok('a withdrawn record is offered as its own tab',
-     tabNames.some((x) => /^Withdrawn ?\d/.test(x)), tabNames.join(' | '));
-  ok('and it is not among the ready work the list opens on',
+  ok('a withdrawn record is not among the work the list opens on',
      ![...doc.querySelectorAll('.triage tbody tr')].some((r) => r.classList.contains('row-withdrawn')),
      [...doc.querySelectorAll('.triage tbody tr')].map((r) => r.className).join(' | '));
-  [...doc.querySelectorAll('.list-tabs .tab')].find((b) => /Withdrawn/.test(b.textContent)).click();
-  await new Promise((r) => setTimeout(r, 60));
+  /**
+   * And the one button steps round every group there is, so a third one hides nothing.
+   *
+   * Two groups make it a toggle and it reads as one. A third only exists where somebody
+   * withdrew a record before that control was taken out on 20 October, and pressing round to
+   * it is better than a record nothing on screen can reach.
+   */
+  const press = () => doc.querySelector('.switch-group').click();
+  const seenGroups = [];
+  for (let i = 0; i < 4; i++) {
+    const where = doc.querySelector('.card h2')?.textContent?.trim();
+    if (!seenGroups.includes(where)) seenGroups.push(where);
+    press();
+    await new Promise((r) => setTimeout(r, 60));
+  }
+  // This fixture holds ready work and one withdrawn record, so those are the groups to reach.
+  ok('the button steps round every group there is, so none is unreachable',
+     seenGroups.includes('Submissions') && seenGroups.includes('Withdrawn'),
+     seenGroups.join(' > '));
+  while (doc.querySelector('.card h2')?.textContent?.trim() !== 'Withdrawn') {
+    press();
+    await new Promise((r) => setTimeout(r, 60));
+  }
   const out = [...doc.querySelectorAll('.triage tbody tr')];
-  ok('and pressing that tab shows it, still marked as withdrawn',
+  ok('and the withdrawn one is there, still marked as withdrawn',
      out.length === 1 && out[0].classList.contains('row-withdrawn'),
      out.map((r) => r.className).join(' | '));
   dom.window.close();
@@ -1598,12 +1627,12 @@ console.log('\nThe published build, signed in\n');
    * tab a page opened on, and said 20 over a table of 17 the moment All went, which is what
    * the count was put there to stop.
    */
-  ok('so the only count on screen is the tab\u2019s, and it counts the rows under it',
+  ok('so no count on screen disagrees with the rows under it',
      !/Submissions\s*\d/.test(text.replace(/\s+/g, ' '))
-     && Number(j.doc.querySelector('.list-tabs .tab.on .tab-n')?.textContent)
-        === j.doc.querySelectorAll('.triage tbody tr.row-open').length,
+     && j.doc.querySelector('.card h2')?.textContent?.trim() === 'Submissions'
+     && j.doc.querySelectorAll('.triage tbody tr.row-open').length === 1,
      `${text.replace(/\s+/g, ' ').match(/Submissions\s*\d*/)?.[0]} / tab `
-     + `${j.doc.querySelector('.list-tabs .tab.on .tab-n')?.textContent}`
+     + `${j.doc.querySelector('.card h2')?.textContent?.trim()}`
      + ` over ${j.doc.querySelectorAll('.triage tbody tr.row-open').length}`);
 
   /**
@@ -3072,15 +3101,23 @@ console.log('\nA submission is a place you can go back from\n');
    * the sentence rather than the words in it, because a fragment can contain every one of
    * them, and that it reads with no sign on the figure.
    */
-  ok('it reads as a sentence with the figure inside it, and no sign on the figure',
-     /On average, departments score themselves 3\.0 points higher than their assessors score them\./
-       .test(said(gap)) && !/-3/.test(said(gap)),
-     said(gap).slice(0, 140));
-  ok('and the figure is the emphasised part of that sentence',
-     (gap?.querySelector('.say-n')?.textContent ?? '').trim() === '3.0 points',
-     gap?.querySelector('.say-n')?.textContent ?? 'no figure');
-  ok('and no big number stands in front of it any more', !gap?.querySelector('.lead-v'),
-     gap?.querySelector('.lead-v')?.textContent ?? 'gone');
+  ok('the figure stands in front, with no sign on it',
+     (gap?.querySelector('.lead-v')?.textContent ?? '') === '3.0' && !/-3/.test(said(gap)),
+     gap?.querySelector('.lead-v')?.textContent ?? 'no figure');
+  ok('and the sentence beside it contains the figure and reads on its own',
+     /On average, departments score themselves 3\.0 points higher than assessors score them\./
+       .test(gap?.querySelector('.lead-l')?.textContent ?? ''),
+     gap?.querySelector('.lead-l')?.textContent ?? 'no sentence');
+  /**
+   * And the figure inside the sentence is ordinary text.
+   *
+   * Emphasising it there as well made the sentence a second headline beside the number it was
+   * explaining. Her words: leave the first 2.8 as it was, and have 2.8 points in the middle of
+   * the sentence set as the rest of the sentence.
+   */
+  ok('and the figure inside the sentence is set as the rest of the sentence',
+     !gap?.querySelector('.lead-l strong, .lead-l .say-n, .lead-l b'),
+     gap?.querySelector('.lead-l')?.innerHTML?.slice(0, 90) ?? '');
   ok('and names the questions furthest apart', /Q1|Q2/.test(said(gap)), said(gap).slice(0, 160));
 
   const wait = card('Waiting on an assessor');
@@ -3386,11 +3423,11 @@ console.log('\nA submission is a place you can go back from\n');
     .find((c) => c.querySelector('h2')?.textContent === 'Self-scores vs. assessors\u2019 scores');
   const txt = (card?.textContent ?? '').replace(/\s+/g, ' ');
   ok('a department that marked itself down is reported as lower',
-     /On average, departments score themselves 2\.0 points lower than their assessors score them\./.test(txt),
+     /On average, departments score themselves 2\.0 points lower than assessors score them\./.test(txt),
      txt.slice(0, 160));
   ok('with the size and no sign on it',
-     (card?.querySelector('.say-n')?.textContent ?? '').trim() === '2.0 points' && !/-2/.test(txt),
-     card?.querySelector('.say-n')?.textContent);
+     (card?.querySelector('.lead-v')?.textContent ?? '') === '2.0' && !/-2/.test(txt),
+     card?.querySelector('.lead-v')?.textContent);
   ok('and it does not say higher anywhere', !/how much higher/.test(txt), txt.slice(0, 160));
   dom.window.close();
 }

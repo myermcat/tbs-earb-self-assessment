@@ -458,18 +458,20 @@ function paint(
       const box = el('section', { class: 'card lead-card' }, [
         el('h2', {}, ['Self-scores vs. assessors\u2019 scores']),
         /**
-         * A SENTENCE WITH THE NUMBER INSIDE IT, WHICH IS WHAT WAS ASKED FOR.
+         * THE FIGURE, AND THEN A SENTENCE THAT CONTAINS IT IN ORDINARY TEXT.
          *
-         * Four wordings went past her and every one of them hung a fragment off a big figure:
-         * points higher than assessors gave them, points higher departments than assessors,
-         * points departments above their assessors, points higher on average. Each answered
-         * the last question and left the shape that caused it, which is a number you have to
-         * finish for yourself.
+         * Four wordings hung a fragment off the big number - points higher than assessors gave
+         * them, points higher departments than assessors, points departments above their
+         * assessors, points higher on average - and each answered the last question while
+         * leaving the shape that caused it, a number the reader has to finish.
          *
-         * She wrote the structure out: on average, the departments score themselves 0.9 points
-         * higher than the assessors score them. So the block is that sentence, with the figure
-         * emphasised in it rather than standing in front of it. Nothing has to be assembled by
-         * the reader and nothing depends on the heading above it.
+         * So the next version wrote the sentence she had asked for and put the figure inside
+         * it, emphasised, with nothing in front. That lost the thing the big number was for.
+         * Her correction: leave the first 2.8 as it was, big, and have 2.8 points in the middle
+         * of the sentence set as the rest of the sentence.
+         *
+         * Both, then. The figure is what the eye lands on and the sentence under it says what
+         * the figure means, reading on its own without the heading above it.
          *
          * The sign stays off the figure. A minus belongs to the subtraction it came from,
          * assessor minus department, and the word higher belongs to the department; printing
@@ -477,16 +479,19 @@ function paint(
          * which way round is what the words say.
          */
         changed
-          ? say([
-              'On average, departments score themselves ',
-              `${Math.abs(mean).toFixed(1)} point${Math.abs(mean) === 1 ? '' : 's'} `,
-              `${mean < 0 ? 'higher' : 'lower'} than their assessors score them.`,
-            ], [
-              `${withAudit} record${withAudit === 1 ? '' : 's'} audited`,
-              `${scored} question${scored === 1 ? '' : 's'} re-scored`,
-              `${changed} changed`,
-            ], Math.abs(mean) >= 2 ? 'warn' : '')
-          : say(['No assessor has changed a score yet.'], [
+          ? lead(
+              Math.abs(mean).toFixed(1),
+              `On average, departments score themselves ${Math.abs(mean).toFixed(1)} `
+              + `point${Math.abs(mean) === 1 ? '' : 's'} ${mean < 0 ? 'higher' : 'lower'} `
+              + 'than assessors score them.',
+              [
+                `${withAudit} record${withAudit === 1 ? '' : 's'} audited`,
+                `${scored} question${scored === 1 ? '' : 's'} re-scored`,
+                `${changed} changed`,
+              ],
+              Math.abs(mean) >= 2 ? 'warn' : '',
+            )
+          : lead('\u2014', 'No assessor has changed a score yet.', [
               `${withAudit} record${withAudit === 1 ? '' : 's'} audited`,
               `${scored} question${scored === 1 ? '' : 's'} re-scored`,
             ]),
@@ -638,32 +643,6 @@ function kpi(value: string, label: string, note = ''): HTMLElement {
  * has waited, the direction departments are scoring themselves in. The supporting numbers are
  * still there, on one line, in the order somebody would ask for them.
  */
-/**
- * A sentence the reader does not have to assemble, with the figure emphasised inside it.
- *
- * lead() below puts the number first and the words after it, which answers how big before it
- * answers of what. That is right where the unit is the subject - 7 outliers, 21 days - and
- * wrong where the number only means something inside a comparison. Asked for in those words,
- * with the sentence written out: on average, the departments score themselves 0.9 points
- * higher than the assessors score them.
- *
- * The middle part is the figure, so a caller passes three pieces and this emphasises the one
- * in the middle.
- */
-function say(parts: string[], under: string[], tone = ''): HTMLElement {
-  const [before, figure, after] = parts.length === 3 ? parts : [parts[0], '', ''];
-  return el('div', { class: 'lead-say' }, [
-    el('p', { class: 'say-line' }, [
-      before,
-      figure ? el('strong', { class: `say-n ${tone}` }, [figure]) : null,
-      after,
-    ]),
-    under.filter(Boolean).length
-      ? el('div', { class: 'lead-sub' }, [under.filter(Boolean).join('  \u00B7  ')])
-      : null,
-  ]);
-}
-
 function lead(value: string, label: string, under: string[], tone = ''): HTMLElement {
   return el('div', { class: 'lead' }, [
     el('div', { class: `lead-v ${tone}` }, [value]),

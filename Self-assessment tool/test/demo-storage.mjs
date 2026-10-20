@@ -131,10 +131,17 @@ ok('no window about an assessment that has gone from the store',
   const said = view().replace(/\s+/g, ' ').match(/Soumissions\s+(\d+)/);
   ok('no count beside the heading, because it would be the one number nothing explains',
      !said, `heading says ${said?.[1] ?? 'nothing'}`);
-  const on = [...document.querySelectorAll('.list-tabs .tab')].find((b) => b.classList.contains('on'));
-  ok('and the tab that is on counts exactly the rows under it',
-     Number(on?.querySelector('.tab-n')?.textContent) === rows.length && rows.length > 1,
-     `tab says ${on?.querySelector('.tab-n')?.textContent}, table holds ${rows.length}`);
+  /**
+   * The heading names the group on screen and the one button names the other, with its count.
+   * Nothing on screen is a number without rows under it.
+   */
+  const head = document.querySelector('.card h2')?.textContent?.trim();
+  const sw = document.querySelector('.switch-group');
+  ok('the heading names the group on screen', head === 'Soumissions' || head === 'Submissions', head);
+  ok('and the one button names the other group and counts it',
+     /^(Brouillons|Drafts) ?\d/.test(sw?.textContent?.replace(/\s+/g, ' ').trim() ?? '')
+     && rows.length > 1,
+     `${sw?.textContent?.trim()} over ${rows.length} rows`);
 }
 
 // Everything the page does is in `touched` by now, and nothing this file does should be.
@@ -222,20 +229,17 @@ ok('every stored name is made by the helper, and there is more than one',
    * or as a generator - so it has to see every record and not the seventeen on one tab. The
    * tabs are pressed and the rows collected, which also proves each tab draws its own rows.
    */
-  const tabOf = (label) => [...document.querySelectorAll('.list-tabs .tab')]
-    .find((b) => new RegExp(label, 'i').test(b.textContent ?? ''));
-  const rows = [];
-  for (const label of ['Ready|Pr\u00eates', 'Draft|Brouillon']) {
-    const tab = tabOf(label);
-    if (!tab) continue;
-    tab.dispatchEvent(new window.MouseEvent('click', { bubbles: true }));
+  const rows = [...document.querySelectorAll('.triage tbody tr.row-open')];
+  const press = async () => {
+    document.querySelector('.switch-group')
+      ?.dispatchEvent(new window.MouseEvent('click', { bubbles: true }));
     await new Promise((r) => setTimeout(r, 120));
-    rows.push(...document.querySelectorAll('.triage tbody tr.row-open'));
-  }
-  // Back to Ready, because everything below this block reads the table that is on screen and
-  // a draft has no audit against it.
-  tabOf('Ready|Pr\u00eates')?.dispatchEvent(new window.MouseEvent('click', { bubbles: true }));
-  await new Promise((r) => setTimeout(r, 120));
+  };
+  await press();
+  rows.push(...document.querySelectorAll('.triage tbody tr.row-open'));
+  // Back to the submissions, because everything below this block reads the table on screen and
+  // a draft has no audit against it. Two groups, so one more press returns.
+  await press();
 
   const col = (i) => rows.map((r) => r.children[i]?.textContent?.trim() ?? '');
   const spread = (xs) => new Set(xs.filter(Boolean)).size;
