@@ -814,7 +814,21 @@ a.faint-link:hover { color: var(--accent); }
  * which is what the assessor's audit rows already do here.
  * ------------------------------------------------------------------------------------------ */
 
-.body-settings { max-width: min(1040px, 100%); }
+/**
+ * SETTINGS IS THE SAME WIDTH ON EVERY PANE, AND THE RAIL DOES NOT MOVE.
+ *
+ * Reported with two screenshots: the settings screens are different sizes. They were, and
+ * sideways rather than up and down, which is what the first attempt at this missed. Question
+ * set was 581px wide in a 1024px window with the rail starting a quarter of the way across;
+ * People was nearly the full width with the rail against the left edge. Switching pane moved
+ * the navigation.
+ *
+ * #app is a column flex and .body carries `margin: 1.15rem auto 1.6rem`. An auto margin on the
+ * cross axis cancels the stretch a flex item would otherwise get, so the body shrank to the
+ * width of whatever pane was open and centred itself there. The assessor's list already
+ * carries `width: 100%` for this reason; this screen was never given it.
+ */
+.body-settings { width: 100%; max-width: min(1040px, 100%); }
 .set-layout { display: grid; grid-template-columns: 13.5rem minmax(0, 1fr); gap: 1.6rem;
   align-items: start; }
 
@@ -835,7 +849,20 @@ a.faint-link:hover { color: var(--accent); }
 .set-navrow.danger.on { background: var(--bad-bg); color: var(--bad);
   box-shadow: inset 2px 0 0 var(--bad); }
 
-.set-pane { min-width: 0; }
+/**
+ * THE PANE NEVER ENDS ABOVE THE RAIL BESIDE IT.
+ *
+ * The panes are 117px to 809px tall, so switching from People to This build moved the foot of
+ * the page by seven hundred pixels and the short ones finished well above the last item in the
+ * navigation, which reads as the content having failed to load. Asked whether the size should
+ * be fixed, and on the taller one.
+ *
+ * Fixed at the tallest is the wrong trade: it would hang six hundred pixels of nothing under
+ * People to spare the eye a jump that is a real difference in what is on the screen. The floor
+ * is the rail instead. Nothing is padded beyond the navigation it sits next to, the short
+ * panes stop looking broken, and the panes that are genuinely long stay as long as they are.
+ */
+.set-pane { min-width: 0; min-height: 15rem; }
 .set-pane > h1 { font-size: 1.35rem; margin-bottom: .15rem; }
 .set-pane > h1:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
 .set-lead { color: var(--ink-2); margin-bottom: 1.1rem; }

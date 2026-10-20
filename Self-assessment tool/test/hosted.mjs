@@ -1105,6 +1105,39 @@ console.log('\nThe published build, signed in\n');
      new RegExp(`Removed by ${ME}`).test(text), text.slice(0, 400));
   ok('and marks the account that is signed in', /\byou\b/.test(text), text.slice(0, 200));
   /**
+   * TWO HEADINGS, EACH TRUE OF WHAT IS UNDER IT, EACH COUNTING ITS OWN ROWS.
+   *
+   * One heading said "On the list (4)" and counted only the people who still had access, over
+   * a list that also held the ones who did not. The number disagreed with the rows under it
+   * and the words named neither group. Asked in those words: on the list, four - existing
+   * assessors, current assessors, assessor, I do not know.
+   */
+  const heads = [...pane.querySelectorAll('h2.set-sub')].map((h) => h.textContent.trim());
+  ok('the list is headed by what is under each heading',
+     heads.some((h) => /^Assessors\s*2$/.test(h)) && heads.some((h) => /No longer have access\s*1$/.test(h)),
+     heads.join(' | '));
+  ok('and nobody is counted under a heading they do not belong to',
+     !heads.some((h) => /On the list/.test(h)), heads.join(' | '));
+  /**
+   * Each heading sits above its own people, which is the half a count alone cannot prove: a
+   * page can carry the right two numbers with every row under the wrong one.
+   */
+  const under = (label) => {
+    const h = [...pane.querySelectorAll('h2.set-sub')].find((x) => x.textContent.includes(label));
+    const out = [];
+    for (let n = h?.nextElementSibling; n && n.tagName !== 'H2'; n = n.nextElementSibling) {
+      if (n.classList.contains('set-row')) out.push(n.textContent);
+    }
+    return out;
+  };
+  ok('the assessors are under Assessors',
+     under('Assessors').length === 2 && under('Assessors').every((r) => !/no access/.test(r)),
+     under('Assessors').map((r) => r.slice(0, 24)).join(' | '));
+  ok('and the removed person is under the other one',
+     under('No longer have access').length === 1
+     && /Retired Person/.test(under('No longer have access')[0]),
+     under('No longer have access').map((r) => r.slice(0, 24)).join(' | '));
+  /**
    * The one with access gets the three dots and the one without is offered it back. A screen
    * that offers both to both is a screen where the state has to be read out of the prose.
    */
@@ -1121,6 +1154,27 @@ console.log('\nThe published build, signed in\n');
      && !menu.some((m) => /[Rr]emove|[Dd]elete|access away/.test(m)), menu.join(' | '));
   ok('and a removed person is offered their access back, not removal again',
      acts.filter((a) => /put their access back/i.test(a)).length === 1, acts.join(' | '));
+  /**
+   * THE RENAME WINDOW SAYS TWO KINDS OF THING AND LOOKS LIKE IT.
+   *
+   * Both sentences sat in one paragraph at one weight. The first is the scope of what is about
+   * to happen; the second is a consequence somebody cannot work out from the screen, which is
+   * the reason to bother correcting a typo at all. Reported as: these two sentences mean
+   * different things and should be styled accordingly. confirmStep already tells them apart.
+   */
+  [...pane.querySelectorAll('.set-row-act .set-menu-pop button')]
+    .find((b) => /Edit the name/.test(b.textContent)).click();
+  await new Promise((r) => setTimeout(r, 80));
+  const dlg = doc.querySelector('dialog.confirm') ?? doc.querySelector('.confirm');
+  ok('the rename window separates what it does from why it matters',
+     /changes the name on the list and nothing else/.test(dlg?.querySelector('.cf-body > p')?.textContent ?? '')
+     && /typo here is worth fixing/.test(dlg?.querySelector('.cf-note')?.textContent ?? ''),
+     `${dlg?.querySelector('.cf-body > p')?.textContent?.slice(0, 60)} // ${dlg?.querySelector('.cf-note')?.textContent?.slice(0, 60)}`);
+  // Whose name it is is in the title, so the field does not say it again.
+  ok('and the field is labelled Full name', (dlg?.querySelector('.field span')?.textContent ?? '') === 'Full name',
+     dlg?.querySelector('.field span')?.textContent ?? 'no label');
+  dlg?.querySelector('.cf-cancel, button')?.click();
+  await new Promise((r) => setTimeout(r, 60));
 
   /**
    * Adding asks for a name as well as an address, because removal asks for the name to be typed

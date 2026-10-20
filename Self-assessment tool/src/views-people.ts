@@ -173,15 +173,26 @@ function sendTheirLink(p: Person): void {
 function editName(p: Person, after: () => void): void {
   const box = el('input', {
     type: 'text', autocomplete: 'off', spellcheck: false, value: p.name,
-    'aria-label': 'Their full name',
+    'aria-label': 'Full name',
   }) as HTMLInputElement;
   confirmStep({
     tier: 'plain',
     title: t(`Correct the name for ${p.email}`, `Corriger le nom pour ${p.email}`),
-    body: t('This changes the name on the list and nothing else. It is the name somebody has to type to take this access away, so a typo here is worth fixing.',
-      'Ceci modifie le nom dans la liste et rien d\u2019autre. C\u2019est le nom qu\u2019il faudra saisir pour retirer cet accès, donc une faute de frappe vaut la peine d\u2019être corrigée.'),
+    /**
+     * TWO SENTENCES SAYING TWO DIFFERENT KINDS OF THING, AND THEY LOOK IT NOW.
+     *
+     * They sat in one paragraph at one weight. The first is the scope of what is about to
+     * happen, which is what the window is deciding; the second is a consequence somebody
+     * cannot work out from the screen, which is the reason to bother. confirmStep already
+     * tells those apart - body is the thing being decided, note is the thing worth knowing
+     * once - so this needed the existing mechanism rather than new styling.
+     */
+    body: t('This changes the name on the list and nothing else.',
+      'Ceci modifie le nom dans la liste et rien d\u2019autre.'),
+    note: t('It is the name somebody has to type to take this access away, so a typo here is worth fixing.',
+      'C\u2019est le nom qu\u2019il faudra saisir pour retirer cet accès, donc une faute de frappe vaut la peine d\u2019être corrigée.'),
     extra: el('div', { class: 'people-add' }, [
-      el('label', { class: 'field' }, [el('span', {}, [t('Their full name', 'Son nom complet')]), box]),
+      el('label', { class: 'field' }, [el('span', {}, [t('Full name', 'Nom complet')]), box]),
     ]),
     focusFirst: () => box.focus(),
     gate: () => (box.value.trim() ? null : t('Put a name in.', 'Indiquez un nom.')),
@@ -301,16 +312,30 @@ export function panePeople(pane: HTMLElement): void {
       const me = currentUser()?.email?.toLowerCase() ?? '';
       body.appendChild(el('h2', { class: 'set-sub' }, [t('Add an assessor', 'Ajouter un évaluateur')]));
       body.appendChild(addForm(people, draw));
-      body.appendChild(el('h2', { class: 'set-sub' }, [
-        t(`On the list (${people.filter((p) => grantsAccess(p.role)).length})`,
-          `Sur la liste (${people.filter((p) => grantsAccess(p.role)).length})`),
-      ]));
-      // Access first, then the ones taken off: the second group is history and not a worklist.
-      const order = [...people].sort((a, b) =>
-        Number(grantsAccess(b.role)) - Number(grantsAccess(a.role)) || a.name.localeCompare(b.name));
-      for (const p of order) {
-        body.appendChild(personRow(p, p.email.toLowerCase() === me, draw));
-      }
+      /**
+       * TWO HEADINGS, EACH TRUE OF WHAT IS UNDER IT.
+       *
+       * It was one heading, "On the list", counting only the people who still have access over
+       * a list that also held the ones who do not. So the number disagreed with the rows and
+       * the words named neither group. Asked in those words: on the list, four - existing
+       * assessors, current assessors, assessor, I do not know.
+       *
+       * Assessors is the word, and it is only the word for the first group. The second is
+       * history rather than a worklist, so it gets its own heading and appears only when there
+       * is something in it.
+       */
+      const byName = (a: Person, b: Person) => a.name.localeCompare(b.name);
+      const assessors = people.filter((p) => grantsAccess(p.role)).sort(byName);
+      const removed = people.filter((p) => !grantsAccess(p.role)).sort(byName);
+      const group = (label: string, who: Person[]) => {
+        if (!who.length) return;
+        body.appendChild(el('h2', { class: 'set-sub' }, [
+          label, el('span', { class: 'muted small' }, [` ${who.length}`]),
+        ]));
+        for (const p of who) body.appendChild(personRow(p, p.email.toLowerCase() === me, draw));
+      };
+      group(t('Assessors', 'Évaluateurs'), assessors);
+      group(t('No longer have access', 'N\u2019ont plus accès'), removed);
     }, (e: Error) => {
       clear(body);
       /**
