@@ -836,34 +836,48 @@ console.log('\nThe published build, signed in\n');
        /background:\s*var\(--sev\)/.test(dot), dot);
   }
 
-  // The heading rows that band the list are not submissions, so they are not read as any.
-  const rows = [...doc.querySelectorAll('.triage tbody tr')].filter((tr) => !tr.classList.contains('group-band'));
+  const rows = [...doc.querySelectorAll('.triage tbody tr')];
   const cell = (tr) => tr.children[1]?.textContent?.trim();
   ok('a marked assessment says it is ready', rows.some((tr) => /^Ready$/.test(cell(tr))),
      rows.map(cell).join(' | '));
   ok('and the date is on the hover, where a date belongs',
      /Marked ready to review on/.test(
        rows.map((tr) => tr.children[1]?.querySelector('.badge')?.getAttribute('title') ?? '').join(' ')));
-  ok('and one nobody has marked says it is a draft', rows.some((tr) => /^Draft$/.test(cell(tr))),
-     rows.map(cell).join(' | '));
-  ok('and the ready one is listed first, because that is the work',
-     /^Ready$/.test(cell(rows[0])), cell(rows[0]));
   /**
-   * And the two groups are named rather than implied.
+   * THE LIST OPENS ON READY, AND THE GROUPS ARE THE TABS.
    *
-   * Reported as: drafts need to be more clearly separated from the finished ones. A hairline
-   * rule and a lower contrast are a hint; an assessor arriving at a dimmed row halfway down
-   * had to work out what it was dim for.
+   * There was an All tab in front of Ready and Drafts, with heading rows banding the one list
+   * into groups. Asked for on 20 October: remove the all view. A band describes a group WITHIN
+   * a list, so with no All there is one group on screen and the band was a heading over the
+   * whole thing saying what the tab already said.
+   *
+   * So a draft is not on this screen until somebody asks for one, and the tab carries the name
+   * and the count the band carried. The earlier report stands and is answered by the tabs:
+   * drafts need to be more clearly separated from the finished ones.
    */
-  {
-    const bands = [...doc.querySelectorAll('.triage tbody tr.group-band')].map((r) =>
-      r.textContent.replace(/\s+/g, ' ').trim());
-    ok('each group carries a heading that says what it is',
-       bands.some((b) => /ready to review/i.test(b)) && bands.some((b) => /Drafts/i.test(b)),
-       bands.join(' | ') || 'no bands');
-    ok('and how many are in it',
-       bands.every((b) => /\d/.test(b)), bands.join(' | '));
-  }
+  ok('and every row on it is ready, because that is the tab it opens on',
+     rows.length > 0 && rows.every((tr) => /^Ready$/.test(cell(tr))), rows.map(cell).join(' | '));
+  const tabs = [...doc.querySelectorAll('.list-tabs .tab')]
+    .map((b) => b.textContent.replace(/\s+/g, ' ').trim());
+  ok('the groups are the tabs, each with its own count',
+     tabs.some((x) => /^Ready ?\d/.test(x)) && tabs.some((x) => /^Drafts ?\d/.test(x)),
+     tabs.join(' | '));
+  ok('and there is no All in front of them',
+     !tabs.some((x) => /^All/.test(x)), tabs.join(' | '));
+  ok('and nothing bands the list any more, because a tab holds one group',
+     !doc.querySelector('.triage tbody tr.group-band'),
+     doc.querySelector('.triage tbody tr.group-band')?.textContent ?? 'no bands');
+  /**
+   * The drafts are one click away, and the tab is what says so.
+   */
+  [...doc.querySelectorAll('.list-tabs .tab')].find((b) => /Drafts/.test(b.textContent)).click();
+  await new Promise((r) => setTimeout(r, 60));
+  const onDrafts = [...doc.querySelectorAll('.triage tbody tr')];
+  ok('and pressing Drafts shows the drafts and nothing else',
+     onDrafts.length > 0 && onDrafts.every((tr) => /^Draft$/.test(cell(tr))),
+     onDrafts.map(cell).join(' | '));
+  [...doc.querySelectorAll('.list-tabs .tab')].find((b) => /Ready/.test(b.textContent)).click();
+  await new Promise((r) => setTimeout(r, 60));
 
   /**
    * The same cut by category the submitter gets, on the assessor's side of the same answers.
@@ -1420,17 +1434,25 @@ console.log('\nThe published build, signed in\n');
   ok('and nothing in it destroys anything or changes what is counted',
      !items.some((x) => /delete|stop counting/i.test(x)), items.join(' | '));
   /**
-   * The row still says what it is, and still goes to the foot of the list under its own
-   * heading. That is what a department withdrawn before today looks like to an assessor, and
-   * it does not depend on there being a control for it.
+   * A withdrawn record has a tab of its own, and is not among the work.
+   *
+   * It used to sit at the foot of the All list under a band. All went on 20 October, so the
+   * groups are the tabs: the list opens on Ready and a withdrawn record is somewhere an
+   * assessor has to ask for, which is what withdrawing it meant.
    */
-  const bands = [...doc.querySelectorAll('table.triage tr.group-band')].map((r) => r.textContent);
-  ok('a withdrawn record still has a band of its own',
-     bands.some((b) => /Withdrawn/.test(b)), bands.join(' | ') || 'no bands');
-  const order = [...doc.querySelectorAll('table.triage tbody tr')].map((r) =>
-    r.classList.contains('group-band') ? `[${r.textContent.replace(/\s+/g, ' ').trim().slice(0, 20)}]`
-      : r.classList.contains('row-withdrawn') ? 'withdrawn' : 'live');
-  ok('and it is last', order[order.length - 1] === 'withdrawn', order.join(' > '));
+  const tabNames = [...doc.querySelectorAll('.list-tabs .tab')]
+    .map((b) => b.textContent.replace(/\s+/g, ' ').trim());
+  ok('a withdrawn record is offered as its own tab',
+     tabNames.some((x) => /^Withdrawn ?\d/.test(x)), tabNames.join(' | '));
+  ok('and it is not among the ready work the list opens on',
+     ![...doc.querySelectorAll('.triage tbody tr')].some((r) => r.classList.contains('row-withdrawn')),
+     [...doc.querySelectorAll('.triage tbody tr')].map((r) => r.className).join(' | '));
+  [...doc.querySelectorAll('.list-tabs .tab')].find((b) => /Withdrawn/.test(b.textContent)).click();
+  await new Promise((r) => setTimeout(r, 60));
+  const out = [...doc.querySelectorAll('.triage tbody tr')];
+  ok('and pressing that tab shows it, still marked as withdrawn',
+     out.length === 1 && out[0].classList.contains('row-withdrawn'),
+     out.map((r) => r.className).join(' | '));
   dom.window.close();
 }
 
@@ -1569,9 +1591,20 @@ console.log('\nThe published build, signed in\n');
      text.includes('Coastal Permits Replacement'), text.slice(0, 160));
   ok('and one a demonstration made is not',
      !text.includes('Permit Renewal Online'), text.slice(0, 160));
-  ok('so the count beside the heading counts what is in the table',
-     /Submissions\s+1(\D|$)/.test(text.replace(/\s+/g, ' ')),
-     text.replace(/\s+/g, ' ').match(/Submissions\s*\d+/)?.[0]);
+  /**
+   * And the only count on screen is the tab's, which counts the rows under it.
+   *
+   * The heading used to carry the size of the pool. That matched the table while All was the
+   * tab a page opened on, and said 20 over a table of 17 the moment All went, which is what
+   * the count was put there to stop.
+   */
+  ok('so the only count on screen is the tab\u2019s, and it counts the rows under it',
+     !/Submissions\s*\d/.test(text.replace(/\s+/g, ' '))
+     && Number(j.doc.querySelector('.list-tabs .tab.on .tab-n')?.textContent)
+        === j.doc.querySelectorAll('.triage tbody tr.row-open').length,
+     `${text.replace(/\s+/g, ' ').match(/Submissions\s*\d*/)?.[0]} / tab `
+     + `${j.doc.querySelector('.list-tabs .tab.on .tab-n')?.textContent}`
+     + ` over ${j.doc.querySelectorAll('.triage tbody tr.row-open').length}`);
 
   /**
    * And the badge on that row says what follows from the missing set rather than naming it.

@@ -1447,7 +1447,6 @@ code.mark-subject { display: block; margin: .25rem 0; }
   box-shadow: -6px 0 6px -6px rgb(0 0 0 / .16);
 }
 .triage tbody tr:hover td:last-child { background: var(--accent-soft); }
-.triage tbody tr.group-band td:last-child { background: var(--surface-2); }
 /* Nothing is behind it once the table fits, so the shade comes off and nothing marks it. */
 @media (min-width: 1240px) {
   .body-review .triage th:last-child, .body-review .triage td:last-child,
@@ -2823,25 +2822,29 @@ summary.section-head button { margin-left: 0; }
 .assess-tabs .tab.on { background: var(--surface-2); border-color: var(--line);
   color: var(--ink); font-weight: 600; }
 
-/* Ready work, then drafts, then withdrawn records, each under a heading that says what it is.
-   A rule and a lower contrast were a hint: somebody arriving at a dimmed row halfway down the
-   list had to work out what it was dim for. The band says it, and the dimming stays as the
-   second signal for the rows themselves. */
-.triage tbody tr.group-band td { border-top: 2px solid var(--line-2); background: var(--surface-2);
-  padding: .45rem .55rem; font-size: .76rem; text-transform: uppercase; letter-spacing: .05em;
-  font-weight: 650; color: var(--ink-2); }
-.triage tbody tr.group-band:first-child td { border-top: 0; }
-/* Never the row-hover tint: a heading is not a thing you can open. */
-.triage tbody tr.group-band:hover td { background: var(--surface-2); }
-.triage tbody tr.group-band .band-count { display: inline-block; margin-left: .45rem;
-  padding: 0 .35rem; border-radius: var(--radius-sm); background: var(--surface);
-  border: 1px solid var(--line); font-family: var(--mono); letter-spacing: 0; }
+/*
+ * TAKEN OUT ON 20 OCTOBER 2026 WITH THE ALL TAB, which was the only place they drew.
+ *
+ * Ready work, then drafts, then withdrawn records, each under a heading saying what it is. A
+ * band describes a group WITHIN a list, so on any tab but All there was one group and the band
+ * was a heading over the whole thing saying what the tab already said. The tab carries the name
+ * and the count now.
+ *
+ * .triage tbody tr.group-band td { border-top: 2px solid var(--line-2); background: var(--surface-2);
+ *   padding: .45rem .55rem; font-size: .76rem; text-transform: uppercase; letter-spacing: .05em;
+ *   font-weight: 650; color: var(--ink-2); }
+ * .triage tbody tr.group-band:first-child td { border-top: 0; }
+ * .triage tbody tr.group-band:hover td { background: var(--surface-2); }
+ * .triage tbody tr.group-band .band-count { display: inline-block; margin-left: .45rem;
+ *   padding: 0 .35rem; border-radius: var(--radius-sm); background: var(--surface);
+ *   border: 1px solid var(--line); font-family: var(--mono); letter-spacing: 0; }
+ */
 /**
  * A DRAFT LOOKS LIKE A DRAFT BEFORE ANYBODY READS A WORD OF IT.
  *
- * The heading over the group says which rows these are, and the word Draft is in the State
- * column, and both of those have to be read. Asked for in those terms: I should be able to
- * look at it and tell you those are drafts without reading the note.
+ * The tab says which rows these are, and the word Draft is in the State column, and both of
+ * those have to be read. Asked for in those terms: I should be able to look at it and tell you
+ * those are drafts without reading the note.
  *
  * Two signals, both borrowed rather than invented.
  *
@@ -2860,8 +2863,6 @@ summary.section-head button { margin-left: 0; }
   border-left: 2px dashed var(--line-2); padding-left: .5rem; }
 .triage tbody tr.row-draft td.num,
 .triage tbody tr.row-draft .pill, .triage tbody tr.row-draft .bar-num { color: var(--ink-3); }
-/* The group's own heading carries the same edge, so the band and its rows read as one block. */
-.triage tbody tr.group-band.band-draft td { border-left: 2px dashed var(--line-2); }
 /* Out of every number on the portfolio, and it should not read as live work. */
 .triage tbody tr.row-withdrawn td { opacity: .62; }
 /* Where you are, as a path. */

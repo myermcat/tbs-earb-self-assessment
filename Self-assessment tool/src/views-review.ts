@@ -722,7 +722,16 @@ let listSort: { key: string; dir: 1 | -1 } | null = null;
  * Not in the address, for the same reason the sort is not: this is a way of looking at what is
  * already on screen rather than a place somebody is.
  */
-let listTab: 'ready' | 'draft' | 'withdrawn' | null = null;
+/**
+ * WHICH GROUP IS ON SCREEN. THERE IS NO ALL ANY MORE.
+ *
+ * All was the first tab and the one a page opened on, because somebody arriving had not chosen
+ * to exclude anything. Asked for on 20 October: remove the all view. Ready is what an assessor
+ * came to work through, so that is where a page opens, and the other groups are a click away
+ * with their counts on them.
+ */
+let listTab: 'ready' | 'draft' | 'withdrawn' = 'ready';
+const TABS = ['ready', 'draft', 'withdrawn'] as const;
 export function setAuditor(name: string): void { auditor = name; }
 
 /**
@@ -927,22 +936,19 @@ function paintList(rubric: Rubric, root: HTMLElement) {
    * out of the counting is not work, and it is here so it can be put back.
    */
   /**
-   * THE GROUPS ARE NAMED, NOT IMPLIED.
+   * THE GROUPS WERE NAMED BY BANDS DOWN ONE LIST, AND ARE NAMED BY THE TABS NOW.
    *
-   * Ready work, drafts and withdrawn records were told apart by a hairline rule and a lower
+   * Ready work, drafts and withdrawn records were once told apart by a hairline and a lower
    * contrast, which is a hint rather than a statement: an assessor arriving at a dimmed row
-   * halfway down has to work out what it is dim for. Reported as: drafts need to be more
-   * clearly separated from the finished ones. So each group carries a heading row that says
-   * what the rows under it are and how many, the way a mail client bands a list by date.
+   * halfway down had to work out what it was dim for. Reported then as: drafts need to be more
+   * clearly separated from the finished ones. Each group got a heading row saying what the
+   * rows under it were and how many, the way a mail client bands a list by date.
    *
-   * The band says what the group IS, not what to do about it: a draft is somebody's work in
-   * progress and scoring one is the mistake the State column already exists to prevent.
+   * Those bands only ever drew on the All tab, because a band describes a group WITHIN a list
+   * and on any other tab there is one group. All went on 20 October, so they went with it and
+   * the tab now carries the name and the count the band carried. The CSS for them is parked in
+   * styles.css beside the rule it belongs to.
    */
-  const bands: Record<string, string> = {
-    ready: 'Marked ready to review',
-    draft: 'Drafts, which the department has not marked ready',
-    withdrawn: 'Withdrawn, and out of every number on the portfolio',
-  };
   const groupOf = (l: Loaded) =>
     l.a.withdrawnAt ? 'withdrawn' : l.a.meta?.submittedAt ? 'ready' : 'draft';
 
@@ -1008,12 +1014,13 @@ function paintList(rubric: Rubric, root: HTMLElement) {
    */
   const everything = ordered;
   /**
-   * A tab that has emptied is not a tab anybody chose, so the list falls back to showing all.
-   * It can empty under somebody: withdraw the last withdrawn record and the tab it was on is
-   * gone while they are standing on it.
+   * A tab that has emptied is not a tab anybody chose, so the list moves to the first one with
+   * anything in it. A group can empty under somebody: mark the last draft ready and the tab
+   * they are standing on is gone.
    */
-  if (listTab && !everything.some((l) => groupOf(l) === listTab)) listTab = null;
-  const picked = listTab ? everything.filter((l) => groupOf(l) === listTab) : everything;
+  const has = (g: string) => everything.some((l) => groupOf(l) === g);
+  if (!has(listTab)) listTab = TABS.find(has) ?? 'ready';
+  const picked = everything.filter((l) => groupOf(l) === listTab);
   const rows = listSort
     ? [...picked].sort((x, y) => {
         const by = columns.find((c) => c.label === listSort!.key)?.by;
@@ -1117,23 +1124,8 @@ function paintList(rubric: Rubric, root: HTMLElement) {
     }))]),
   ]);
   const tb = el('tbody', {});
-  let wasGroup: string | null = null;
   for (const l of rows) {
     const group = groupOf(l);
-    // A band is not drawn over the first group when it is the only one: a list that is all
-    // finished work does not need a heading saying the whole of it is finished work.
-    // A band describes a group WITHIN the list. On a tab there is only one group, so the band
-    // would be a heading over the whole thing saying what the tab already says.
-    if (!listSort && !listTab && group !== wasGroup
-        && !(wasGroup === null && Object.keys(sizes).length === 1)) {
-      tb.appendChild(el('tr', { class: `group-band band-${group}` }, [
-        el('td', { colspan: '13' }, [
-          el('span', { class: 'band-name' }, [bands[group]]),
-          el('span', { class: 'band-count' }, [String(sizes[group])]),
-        ]),
-      ]));
-    }
-    wasGroup = group;
     const highs = l.fs.filter((f) => f.severity === 'high').length;
     /**
      * The row opens the submission, and the button that used to is gone.
@@ -1358,10 +1350,20 @@ function paintList(rubric: Rubric, root: HTMLElement) {
   table.appendChild(tb);
 
   root.appendChild(el('section', { class: 'card' }, [
-    el('h2', {}, [
-      t('Submissions', 'Soumissions'),
-      el('span', { class: 'muted small count-beside' }, [` ${loaded.length}`]),
-    ]),
+    /**
+     * NO COUNT BESIDE THE HEADING, BECAUSE THE TABS CARRY THE ONLY HONEST ONES.
+     *
+     * It said Submissions and the size of the whole pool, which matched the table while All was
+     * the tab a page opened on. All went on 20 October and the heading started saying 20 over
+     * a table of 17, which is the thing it was put there to stop: a count beside a heading that
+     * disagrees with what is under it invites the question why does it say twenty when I can
+     * see seventeen.
+     *
+     * Ready 17 and Drafts 3 each match their own tab exactly, and the pool is their sum, in
+     * front of anybody who wants it. A fourth number saying 20 is one nothing on screen
+     * explains.
+     */
+    el('h2', {}, [t('Submissions', 'Soumissions')]),
     /**
      * The toolbar. It goes above the table, where it reads as belonging to it.
      *
@@ -1385,21 +1387,18 @@ function paintList(rubric: Rubric, root: HTMLElement) {
        * stops. At twenty it stopped working, and it was reported in exactly those terms - the
        * drafts are below everything finished and I have to scroll a long way to find one.
        *
-       * All first, because somebody arriving has not chosen to exclude anything, and the band
-       * headings still do their job on it. Each tab carries its own count, so the shape of the
-       * pool is readable without pressing anything, and a group with nothing in it is not
+       * There was an All in front of them until 20 October, carrying band headings down one
+       * list. Asked for: remove the all view. Each tab carries its own count, so the shape of
+       * the pool is readable without pressing anything, and a group with nothing in it is not
        * offered at all.
        */
       el('nav', { class: 'list-tabs', 'aria-label': 'Which submissions' }, [
-        ...([null, 'ready', 'draft', 'withdrawn'] as const)
-          .filter((g) => g === null || sizes[g])
+        ...TABS
+          .filter((g) => sizes[g])
           .map((g) => {
             const on = listTab === g;
-            const label = g === null ? 'All'
-              : g === 'ready' ? 'Ready'
-              : g === 'draft' ? 'Drafts'
-              : 'Withdrawn';
-            const n = g === null ? everything.length : sizes[g] ?? 0;
+            const label = g === 'ready' ? 'Ready' : g === 'draft' ? 'Drafts' : 'Withdrawn';
+            const n = sizes[g] ?? 0;
             return el('button', {
               class: `tab ${on ? 'on' : ''}`,
               'aria-current': on ? 'page' : undefined,
