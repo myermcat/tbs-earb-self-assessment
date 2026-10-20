@@ -584,7 +584,20 @@ code.mono { background: var(--surface-2); border: 1px solid var(--line);
 .toc-row.lens-empty-row { opacity: .45; }
 .toc-row.done .toc-bar i { background: var(--good); }
 
+/**
+ * Where you are is a heading, and a heading is not a card.
+ *
+ * It was drawn with the same border, fill and shadow as the questions under it, so the name of
+ * the section and a question in it were two boxes of one kind and the page had no top. A
+ * heading sits on the page and the content sits in the panel below it, which is how a screen
+ * with one list on it is laid out everywhere.
+ */
+.section-head-card { background: none; border: 0; box-shadow: none;
+  padding: .1rem 0 .2rem; margin-bottom: .7rem; }
 .section-head-card .eyebrow { margin-bottom: .3rem; }
+/* The flag rode on this card's border, and the border has gone. A rule down the side is what
+   marks a flagged block when there is no box to tint. */
+.section-head-card.red-flag { border-left: 3px solid var(--bad); padding-left: .8rem; }
 
 /* Moving on is a pair of buttons, not a card with a button rattling around in it. */
 .pager { justify-content: space-between; gap: .5rem;
@@ -1051,7 +1064,6 @@ details[open] > .section-summary::before { transform: rotate(90deg); }
  */
 .question.red-flag { background: var(--bad-bg); }
 .question.red-flag::before { background: var(--bad); }
-.section-head-card.red-flag { border-color: color-mix(in srgb, var(--bad) 40%, var(--line)); }
 .flag-note { border-left: 3px solid var(--bad); background: var(--bad-bg); color: var(--ink);
   padding: .45rem .7rem; margin-top: .6rem; font-size: .855rem;
   border-radius: 0 var(--radius-sm) var(--radius-sm) 0; }
