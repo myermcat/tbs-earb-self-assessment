@@ -104,7 +104,19 @@ ok('the header carries only the name, no version clutter', !q('.brand').textCont
  * and the assertion held the mistake in place: changing the version to something that names
  * nobody turned this check red, which reads as the footer having broken.
  */
-ok('the rubric version is available in the footer', q('.sitefoot').textContent.includes(rubric.version));
+/**
+ * The versions are in Settings, and not along the foot of every screen.
+ *
+ * The footer carried "rubric 1.0 · v0.1.0 · built ... UTC" on every page. Asked: what is all
+ * this, do we need it. Two of the three were already in This build, which is the pane the link
+ * beside them opens, so they were a copy of a pane on every screen; the third has gone there
+ * to join them.
+ */
+ok('no versions along the foot of the page', !q('.sitefoot').textContent.includes(rubric.version),
+   q('.sitefoot').textContent.trim());
+ok('and the footer is the store sentence and the way to read more',
+   /stays on this machine|kept at/.test(q('.sitefoot').textContent)
+   && !!q('.sitefoot .linkish'), q('.sitefoot').textContent.trim());
 ok('and the version names nobody', !/\b(dan|nick|allison|john|patricia|mariia)\b/i.test(rubric.version), rubric.version);
 ok('draft status is reachable from the footer', !!byText('button', 'How that works'));
 ok('the question count is stated up front', view().includes(String(TOTAL)));
@@ -126,6 +138,14 @@ ok('the destructive pane is marked as dangerous in the rail itself',
   pane('This build');
   ok('this build says which versions are on screen',
      view().includes('Question set') && view().includes('v0.1.0'));
+  /**
+   * Including when the page was compiled, which came off the footer and was the one of the
+   * three that was nowhere else. It is the row that answers whether a reload brought the new
+   * page, so it belongs beside the versions and not along the foot of every screen.
+   */
+  ok('and when it was compiled, which is the row that answers whether a reload brought it',
+     view().includes('Built') && /\d{4}-\d{2}-\d{2}/.test(view()),
+     (view().match(/Built[^·]{0,40}/) ?? ['no Built row'])[0]);
   ok('and says whether there is a store to write to',
      view().includes('cannot send anything') || view().includes('Writing to'));
   pane('Question set');
