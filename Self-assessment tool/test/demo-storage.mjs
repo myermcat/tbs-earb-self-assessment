@@ -390,9 +390,10 @@ ok('every stored name is made by the helper, and there is more than one',
    * from the real store. Of two sentences that contradict each other, a room believes the
    * specific one.
    */
-  ok('the dashboard says the records are invented and from no store',
-     /invented records, from no store at all/.test(shown) && !/from the hosted store/.test(shown),
-     (shown.match(/\d+ (invented )?records[^.]{0,40}/) ?? ['nothing'])[0]);
+  ok('the dashboard says the submissions are invented and from no store',
+     /invented submissions?, from no store at all/.test(shown)
+     && !/from the hosted store/.test(shown),
+     (shown.match(/\d+ (invented )?submissions?[^.]{0,40}/) ?? ['nothing'])[0]);
 
   /**
    * How long people have been waiting, which was one number repeated.

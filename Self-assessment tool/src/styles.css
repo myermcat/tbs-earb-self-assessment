@@ -353,7 +353,18 @@ li { margin-bottom: .22rem; }
  */
 .body { max-width: min(940px, 100%); margin: 1.15rem auto 1.6rem; padding: 0 1.15rem; flex: 1 0 auto; }
 .body-submit { padding-bottom: 9rem; }
-.sitefoot { text-align: center; color: var(--ink-3); font-size: .78rem; padding: .8rem 1rem 2.5rem;
+/**
+ * A band the height of its one line, and not a third of a screen.
+ *
+ * It carried 2.5rem under the text and .8rem over it: 53px of padding around 19px of words,
+ * so the foot of every page was 73px of mostly nothing. Reported after scrolling to the very
+ * bottom: the vertical size of the footer is way bigger than necessary.
+ *
+ * The deep bottom looked like room kept for the questionnaire's sticky bar. It is not: that
+ * screen has no site footer at all, only the bar, and the two have never been on a page
+ * together. Measured before cutting it.
+ */
+.sitefoot { text-align: center; color: var(--ink-3); font-size: .78rem; padding: .7rem 1rem .8rem;
   background: var(--surface-2); border-top: 1px solid var(--line); }
 
 .card {

@@ -38,11 +38,19 @@ function paint(
   clear(root);
 
   /**
-   * A withdrawn record is out of every number on this page and still on the submissions list,
-   * at the foot of it, where it can be put back. Withdrawing is the reversible move and it is
-   * only reversible while it is visible somewhere.
+   * A DRAFT IS NOT IN ANY NUMBER ON THIS PAGE, AND NEITHER IS A WITHDRAWN RECORD.
+   *
+   * Asked for in those words: the dashboard should not include drafts. A draft is a department
+   * still answering, so its score is a number taken before they had finished, and averaging it
+   * beside finished work is the mistake the State column on the submissions list exists to
+   * prevent. The same reading of a draft runs through the whole tool: no score colour on its
+   * row, its own group behind its own button, and nothing on it that reads as a finding.
+   *
+   * A withdrawn record is out for a different reason, and was out already. Somebody took it out
+   * of the statistics on purpose and it stays on the submissions list where it can be put back,
+   * because withdrawing is reversible only while it is visible somewhere.
    */
-  const live = records.filter((rec) => rec.status !== 'withdrawn');
+  const live = records.filter((rec) => rec.status !== 'withdrawn' && rec.status !== 'draft');
   const rows: Row[] = live.map((rec) => {
     const r = score(rubric, rec.assessment);
     const redFlags = allQuestionScores(r).filter(isRedFlag).length;
@@ -77,7 +85,14 @@ function paint(
        */
       isHosted() ? null : el('span', { class: 'badge badge-warn' }, ['Not hosted yet']),
     ]),
-    el('p', { class: 'small' }, ['Showing: ', el('b', {}, [sourceLine(records)]), '.']),
+    /**
+     * Counted off what the page counts, which is the submissions and not the pool.
+     *
+     * It was handed every record, so it said twenty while the figures above it were worked out
+     * from seventeen. The same rule as the heading on the submissions list: a number beside
+     * words is about the thing under it or it is the one number nothing explains.
+     */
+    el('p', { class: 'small' }, ['Showing: ', el('b', {}, [sourceLine(live)]), '.']),
     /**
      * The same toolbar the submissions list has, because the two exports are the same control.
      *

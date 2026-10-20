@@ -3060,12 +3060,41 @@ console.log('\nA submission is a place you can go back from\n');
       'B-Q3': { auditedScore: 4, verdict: '', note: '' },
     },
   };
+  /**
+   * A DRAFT IS IN NONE OF THESE NUMBERS, AND NEITHER IS A WITHDRAWN RECORD.
+   *
+   * Asked for in those words: the dashboard should not include drafts. A draft is a department
+   * still answering, so its score was taken before they had finished, and averaging it beside
+   * finished work is the mistake the State column on the submissions list exists to prevent.
+   *
+   * This one is seeded with no submittedAt and a score that would move every average on the
+   * page, so a dashboard that counted it could not quietly agree with one that did not.
+   */
+  const unfinished = {
+    ...submission('ZZ99', 'Still Being Written'),
+    meta: { updatedAt: '2026-10-01T10:00:00.000Z' },
+    answers: Object.fromEntries(
+      rubric.domains.flatMap((d) => d.sections.flatMap((sec) => sec.questions))
+        .map((q) => [q.id, { score: 10 }]),
+    ),
+  };
   const { doc, dom } = await boot({
     session: live, side: 'assess', role: 'assessor', hash: '#assessor/dashboard',
-    listAnswer: { documents: [judged, waiting].map(asDoc) },
+    listAnswer: { documents: [judged, waiting, unfinished].map(asDoc) },
     audits: { [judged.id]: [theirs] },
   });
   await new Promise((r) => setTimeout(r, 200));
+  const page = (doc.querySelector('main')?.textContent ?? '').replace(/\s+/g, ' ');
+  ok('a draft is in none of the dashboard\u2019s numbers',
+     !page.includes('Still Being Written'), page.slice(0, 200));
+  /**
+   * And the line that says what the page is reading counts the same set the figures do. It was
+   * handed every record, so it said three while the numbers were worked out from two.
+   */
+  const showing = [...doc.querySelectorAll('.card p.small')]
+    .find((p) => /Showing/.test(p.textContent))?.textContent?.replace(/\s+/g, ' ').trim();
+  ok('and the line naming what is on the page counts what the figures count',
+     /Showing: 2 submissions from the hosted store\./.test(showing ?? ''), showing ?? 'no line');
   const card = (h) => [...doc.querySelectorAll('.card')].find((c) => c.querySelector('h2')?.textContent === h);
   const gap = card('Self-scores vs. assessors\u2019 scores');
   ok('the dashboard reads the audits rather than only who wrote them', !!gap,
