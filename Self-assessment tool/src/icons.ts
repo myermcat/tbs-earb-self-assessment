@@ -15,3 +15,9 @@ export const ICON_DOWN = `<svg ${ICO}><path d="M12 3v12"/><path d="m7 12 5 5 5-5
   '<path d="M3 21h18"/></svg>';
 export const ICON_PRINT = `<svg ${ICO}><path d="M6 9V3h12v6"/><rect x="3" y="9" width="18" height="8" rx="2"/>` +
   '<path d="M6 17h12v4H6z"/></svg>';
+/**
+ * Two rectangles, the one every clipboard button uses. It was private to code-chip.ts until
+ * the row menu wanted the same mark, which is the drift this file exists to stop.
+ */
+export const ICON_COPY = `<svg ${ICO}><rect x="9" y="9" width="12" height="12" rx="2"/>` +
+  '<path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>';

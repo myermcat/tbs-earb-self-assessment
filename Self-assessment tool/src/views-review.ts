@@ -10,7 +10,7 @@ import { humanSize, openAttachment } from './attach';
 import { rubricFor } from './library';
 import { confirmStep } from './confirm';
 import { SAD_CAT } from './cat';
-import { ICON_DOWN } from './icons';
+import { ICON_COPY, ICON_DOWN } from './icons';
 import { addressOf, currentUser, formatCode, listAllAudits, listAudits, putAudit, setWithdrawn,
   type AssessorAudit } from './firebase';
 import { isHosted, poolRecords, type PoolAnswer } from './store';
@@ -1245,11 +1245,57 @@ function paintList(rubric: Rubric, root: HTMLElement) {
           el('details', { class: 'set-menu row-menu' }, [
             el('summary', { class: 'set-menu-btn', 'aria-label': 'More actions', title: 'More actions' }, ['\u22EF']),
             el('div', { class: 'set-menu-pop' }, [
+              /**
+               * THE ACCESS CODE IS WHY ANYBODY OPENS THIS MENU, SO IT IS THE FIRST THING IN IT.
+               *
+               * It sat third, under Open it and Stop counting it, and had to be looked for
+               * every time. Her words: I always need to copy the access code, and the rest I
+               * almost never need to do. So the order follows how often each one is wanted
+               * rather than how drastic it is, the copy carries the clipboard mark every other
+               * copy control in the tool carries, and the two that are rarely wanted sit under
+               * a rule at a smaller size and a quieter ink.
+               *
+               * Copying says it copied, and the menu goes. Reported before that: I click it and
+               * nothing changes, maybe it copied, and the menu is still sitting open. A copy is
+               * silent by nature, so the evidence has to be put on the screen, and a menu left
+               * open after its item was used reads as an item that did not work. The label is
+               * its own element so saying Copied does not take the icon with it.
+               */
+              l.a.id
+                ? (() => {
+                    const code = formatCode(l.a.id ?? '');
+                    const label = el('span', {}, [`Copy the access code (${code})`]);
+                    return el('button', {
+                      class: 'menu-item',
+                      onclick: (e: Event) => {
+                        const item = e.currentTarget as HTMLElement;
+                        const done = (said: string) => {
+                          label.textContent = said;
+                          window.setTimeout(() => {
+                            (item.closest('details') as HTMLDetailsElement | null)?.removeAttribute('open');
+                            label.textContent = `Copy the access code (${code})`;
+                          }, 900);
+                        };
+                        try {
+                          const write = navigator.clipboard?.writeText(code);
+                          if (write) void write.then(() => done(`Copied ${code}`), () => done('Press the keys to copy it'));
+                          else done('Press the keys to copy it');
+                        } catch {
+                          done('Press the keys to copy it');
+                        }
+                      },
+                    }, [
+                      el('span', { class: 'menu-ico', html: ICON_COPY, 'aria-hidden': true }),
+                      label,
+                    ]);
+                  })()
+                : null,
+              l.a.id ? el('div', { class: 'menu-sep' }) : null,
               // One way in, because there is one view. These were "Open what needs you" and
               // "Open the full submission" when the submission had two tabs, and after the
               // flagged one went they were two labels for the same click.
               el('button', {
-                class: 'menu-item',
+                class: 'menu-item menu-second',
                 onclick: () => openDetail(l.rubric, root, l),
               }, ['Open it']),
               /**
@@ -1269,7 +1315,7 @@ function paintList(rubric: Rubric, root: HTMLElement) {
                */
               l.a.id && isHosted() && !isDemo()
                 ? el('button', {
-                    class: 'menu-item',
+                    class: 'menu-item menu-second',
                     onclick: () => {
                       const out = !!l.a.withdrawnAt;
                       const name = l.a.initiative?.name || 'this assessment';
@@ -1292,39 +1338,6 @@ function paintList(rubric: Rubric, root: HTMLElement) {
                       });
                     },
                   }, [l.a.withdrawnAt ? 'Count it again' : 'Stop counting it'])
-                : null,
-              el('div', { class: 'menu-sep' }),
-              l.a.id
-                /**
-                 * Copying says it copied, and the menu goes.
-                 *
-                 * Reported as: I click it and nothing changes, maybe it copied, and the menu is
-                 * still sitting open. Both halves of that are the control's fault. A copy is
-                 * silent by nature, so the only evidence it happened has to be put on the
-                 * screen, and a menu that stays open after its item has been used reads as an
-                 * item that did not work.
-                 */
-                ? el('button', {
-                    class: 'menu-item',
-                    onclick: (e: Event) => {
-                      const code = formatCode(l.a.id ?? '');
-                      const item = e.currentTarget as HTMLElement;
-                      const done = (said: string) => {
-                        item.textContent = said;
-                        window.setTimeout(() => {
-                          (item.closest('details') as HTMLDetailsElement | null)?.removeAttribute('open');
-                          item.textContent = `Copy the access code (${code})`;
-                        }, 900);
-                      };
-                      try {
-                        const write = navigator.clipboard?.writeText(code);
-                        if (write) void write.then(() => done(`Copied ${code}`), () => done('Press the keys to copy it'));
-                        else done('Press the keys to copy it');
-                      } catch {
-                        done('Press the keys to copy it');
-                      }
-                    },
-                  }, [`Copy the access code (${formatCode(l.a.id ?? '')})`])
                 : null,
               /**
                * There is no control here that removes anything.

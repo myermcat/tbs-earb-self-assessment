@@ -12,14 +12,10 @@
  * is where the eye already is.
  */
 import { el } from './dom';
+import { ICON_COPY } from './icons';
 import { formatCode } from './firebase';
 import { t } from './i18n';
 
-const COPY_ICON =
-  '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" ' +
-  'stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
-  '<rect x="9" y="9" width="12" height="12" rx="2"/>' +
-  '<path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>';
 
 export function codeChip(id: string): HTMLElement {
   const shown = formatCode(id);
@@ -60,7 +56,7 @@ export function codeChip(id: string): HTMLElement {
       onclick: copy,
     }, [
       label,
-      el('span', { class: 'code-chip-ico', html: COPY_ICON, 'aria-hidden': true }),
+      el('span', { class: 'code-chip-ico', html: ICON_COPY, 'aria-hidden': true }),
     ]),
     said,
   ]);

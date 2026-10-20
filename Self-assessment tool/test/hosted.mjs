@@ -1400,8 +1400,32 @@ console.log('\nThe published build, signed in\n');
   ok('the submission row carries a menu', !!menu, doc.querySelector('main')?.textContent?.slice(0, 120));
   menu.open = true;
   const items = [...menu.querySelectorAll('.menu-item')].map((b) => b.textContent.trim());
+  /**
+   * THE ACCESS CODE IS FIRST, BECAUSE IT IS WHY ANYBODY OPENS THIS MENU.
+   *
+   * It sat third, under Open it and Stop counting it, and had to be looked for every time. Her
+   * words: I always need to copy the access code, and the rest I almost never need to do. So
+   * the order follows how often each one is wanted, and the two that are rarely wanted sit
+   * under a rule, marked as the quiet pair.
+   */
+  ok('the access code is the first thing in the menu',
+     /^Copy the access code/.test(items[0] ?? ''), items.join(' | '));
+  ok('and carries the same clipboard mark as every other copy control',
+     !!menu.querySelector('.menu-item .menu-ico svg'),
+     menu.querySelector('.menu-item')?.innerHTML?.slice(0, 60) ?? 'no icon');
+  ok('and the two that are rarely wanted are under it, and marked quiet',
+     [...menu.querySelectorAll('.menu-item')].slice(1)
+       .every((b) => b.classList.contains('menu-second')),
+     [...menu.querySelectorAll('.menu-item')]
+       .map((b) => `${b.textContent.trim().slice(0, 18)}:${b.className}`).join(' | '));
+  // Read as the order of the children, which is the thing being asserted.
+  const shape = [...menu.querySelectorAll('.set-menu-pop > *')].map((n) => n.className);
+  ok('with a rule between the one and the other two',
+     shape[0] === 'menu-item' && shape[1] === 'menu-sep'
+     && shape.slice(2).every((c) => c.includes('menu-second')),
+     shape.join(' | '));
   ok('and offers to stop counting the record, under the way in',
-     items.indexOf('Stop counting it') === 1, items.join(' | '));
+     items.indexOf('Stop counting it') === 2, items.join(' | '));
   ok('and offers nothing that destroys anything',
      !items.some((x) => /delete/i.test(x)), items.join(' | '));
 
