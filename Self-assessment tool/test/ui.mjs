@@ -1321,11 +1321,17 @@ categoryOnResults = new Map([...topicPart.querySelectorAll('.bar-row')].map((r) 
   // number is about before it hears the number.
   ok('the verdict leads with the name of the initiative',
      q('.card.verdict .headline-text')?.firstElementChild?.tagName === 'H1');
-  ok('the answers table is still a fold, because printing depends on it',
-     !!q('.res-sub details table.detail'));
-  ok('and it has a column header on every column',
-     qa('.res-sub table.detail thead th[scope=col]').length === 5,
-     String(qa('.res-sub table.detail thead th[scope=col]').length));
+  /**
+   * The results page does not hold the questionnaire a second time.
+   *
+   * Asked: why do i need to see every question in my results again if i just can go to the
+   * main submission screen. It held a folded table of all 176 with their scores and evidence.
+   * The gate that stood here said printing depended on it, and printing does not: test/print.mjs
+   * drives the questionnaire, and every score, every typed reason and every piece of evidence
+   * is found on that page.
+   */
+  ok('the results page does not repeat the questionnaire',
+     qa('table.detail').length === 0, `${qa('table.detail tbody tr').length} rows of it`);
   ok('a severity is stated in words as well as in colour',
      qa('.flag').length > 0 && qa('.flag').every((f) =>
        /^(high|medium|low|info)$/i.test(f.querySelector('.badge')?.textContent?.trim() ?? '')),
@@ -1405,10 +1411,22 @@ ok('the banner marks the document as unclassified', view().includes('UNCLASSIFIE
 ok('and names the evidence marking beside it', view().includes('evidence up to Protected B'));
 ok('the copy does not appeal to an unnamed "us"',
    !view().includes('for us.') && !view().includes('Talk us through'));
+/**
+ * And the score by domain is still here, which is the part of that table the questionnaire
+ * cannot say. A domain's score is arithmetic over four sections and appears on no other screen.
+ */
 {
-  const rows = qa('table.detail tbody tr').length;
-  const expected = TOTAL + 4 + 20;   // questions + domain rows + section rows
-  ok('detail table has a row per question, section and domain', rows === expected, `${rows} vs ${expected}`);
+  /**
+   * Counted against the rubric's own domains, and inside the block that answers the question.
+   * `.res-sub.cut .bar-row` matched nine: the categories beneath are the same class, cutting the
+   * same answers a second way, and a count of nine would have passed a gate asking about four.
+   */
+  const box = qa('.res-sub.cut')
+    .find((s) => /By architecture domain/.test(s.querySelector('h3')?.textContent ?? ''));
+  const bars = [...(box?.querySelectorAll('.bar-row') ?? [])];
+  ok('the score by domain survives the table that went',
+     bars.length === rubric.domains.length,
+     `${bars.length} bars against ${rubric.domains.length} domains`);
 }
 
 // ---- take the file out, and inspect what came out ---------------------------------------

@@ -332,43 +332,23 @@ export function renderResults(
     root.appendChild(box);
   }
 
-  // Full detail, folded.
-  const table = el('table', { class: 'detail' }, [
-    el('thead', {}, [el('tr', {}, [
-      el('th', { scope: 'col' }, ['#']), el('th', { scope: 'col' }, ['Question']),
-      el('th', { scope: 'col' }, ['Score']),
-      el('th', { scope: 'col' }, ['Weight at your stage']), el('th', { scope: 'col' }, ['Evidence']),
-    ])]),
-  ]);
-  const tb = el('tbody', {});
-  for (const d of r.domains) {
-    tb.appendChild(el('tr', { class: 'domain-row' }, [
-      el('td', { colspan: 5 }, [d.domain.label, ` - ${d.score === null ? 'not scored' : d.score.toFixed(1) + '/10'}`]),
-    ]));
-    for (const sec of d.sections) {
-    tb.appendChild(el('tr', { class: 'section-row' }, [
-      el('td', { colspan: 5 }, [`${sec.section.label}  (${sec.weight}% of ${d.domain.label}) - ${sec.score === null ? 'not scored' : sec.score.toFixed(1) + '/10'}`]),
-    ]));
-    for (const qs of sec.questions) {
-      const ev = a.answers[qs.question.id]?.evidence ?? [];
-      tb.appendChild(el('tr', {}, [
-        el('td', {}, [qs.question.id]),
-        el('td', { lang: 'en' }, [qs.question.text]),
-        el('td', { class: tone(qs.raw) }, [qs.na ? 'n/a' : qs.raw === null ? '--' : String(qs.raw)]),
-        el('td', { class: 'muted small' }, [qs.effectiveWeight ? qs.effectiveWeight.toFixed(1) : '-']),
-        el('td', { class: 'small' }, [ev.length ? ev.map((e) => e.title || 'untitled').join('; ') : '--']),
-      ]));
-    }
-    }
-  }
-  table.appendChild(tb);
-  r1.appendChild(el('div', { class: 'res-sub' }, [
-    el('h3', {}, ['Every question and score']),
-    el('details', {}, [
-      el('summary', {}, [`Show the table, ${r.scoreable} rows`]),
-      el('div', { class: 'table-wrap' }, [table]),
-    ]),
-  ]));
+  /**
+   * THE 176 QUESTIONS ARE NOT REPEATED HERE. THIS IS WHERE THEY USED TO BE.
+   *
+   * Asked, and it is the right question: why do i need to see every question in my results
+   * again if i just can go to the main submission screen. A folded table of every question,
+   * its score and its evidence was the questionnaire a second time, read-only, one click from
+   * the questionnaire itself, and the questionnaire is also what prints: test/print.mjs drives
+   * that page and finds every score, every typed reason and every piece of evidence on it.
+   *
+   * What went with it, so the next person knows what they are putting back: a weight-at-your-
+   * stage column, which exists nowhere else, and a score per section in one list. The weight
+   * is the rubric's own arithmetic and a submitter does nothing with it; a section's score is
+   * on that section's heading while they answer it.
+   *
+   * This region keeps what the questionnaire cannot say: the score by domain and the same
+   * answers cut by category.
+   */
 
   /**
    * Submitting, which is one deliberate act.
