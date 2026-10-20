@@ -965,18 +965,37 @@ dialog.confirm.tier-danger .danger-solid:hover, dialog.confirm.tier-danger .dang
 details[open] > .section-summary::before { transform: rotate(90deg); }
 .section-title { font-weight: 650; flex: 1 1 13rem; font-size: .95rem; }
 
+/**
+ * The questions are one list, and not fourteen cards stacked on each other.
+ *
+ * Reported as: everything's quite messy, everything's pretty much the same brightness, the
+ * same weight on the page, which it should not be. Every question was a bordered box with a
+ * shadow, the section head above them was another one, and the answer box inside each one is a
+ * third, so the screen was boxes inside boxes at one weight and the eye had no way to rank
+ * them. A card lifts a thing off the page to say it stands alone; fourteen questions in a
+ * section do not stand alone, they are a list, so they are drawn as one: a single surface,
+ * rows divided by a hairline, square where they meet and rounded at the two ends.
+ *
+ * Nothing here is new. It is the list group every interface uses for a run of items of one
+ * kind, and the status edge on the left of each row is what it was before.
+ */
 .question {
   position: relative;
-  background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius);
-  padding: .85rem 1rem .7rem 1.15rem; margin-bottom: .6rem; box-shadow: var(--shadow);
+  background: var(--surface); border: 0; border-top: 1px solid var(--line); border-radius: 0;
+  padding: .85rem 1rem .7rem 1.15rem; margin-bottom: 0; box-shadow: none;
   break-inside: avoid;
 }
+.question:first-of-type { border-top: 0; border-radius: var(--radius) var(--radius) 0 0; }
+.question:last-of-type { border-radius: 0 0 var(--radius) var(--radius); margin-bottom: .85rem; }
 /* A status edge in the score's own colour, so a page of questions shows its shape at a glance. */
+/* Square where the rows meet, so the edge reads as one strip down the list. */
 .question::before {
   content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 3px;
-  border-radius: var(--radius) 0 0 var(--radius);
+  border-radius: 0;
   background: var(--edge, var(--line-2));
 }
+.question:first-of-type::before { border-top-left-radius: var(--radius); }
+.question:last-of-type::before { border-bottom-left-radius: var(--radius); }
 .question.answered::before { background: var(--edge, var(--accent)); }
 .question.unanswered::before { background: repeating-linear-gradient(
   180deg, var(--line-2) 0 4px, transparent 4px 8px); }
