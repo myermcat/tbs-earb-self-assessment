@@ -2062,31 +2062,25 @@ td.num { text-align: right; font-family: var(--mono); font-variant-numeric: tabu
 /* The big number and the words beside it sat on one baseline, which is typographically
    correct and reads as misaligned: a 2.3rem figure next to 1rem text puts the words at the
    foot of the figure rather than against the middle of it. Centred against each other. */
-.lead { display: flex; align-items: center; gap: .9rem; margin: .1rem 0 .2rem; }
+/* A one-line label centres against the figure. A sentence runs to two lines and centring it
+   leaves the figure floating against the middle of a paragraph, so the two line up at the top
+   and the figure sits where the sentence starts. */
+.lead { display: flex; align-items: flex-start; gap: .9rem; margin: .1rem 0 .2rem; }
 .lead-v { font-family: var(--mono); font-size: 2.3rem; font-weight: 700; line-height: 1;
   letter-spacing: -.02em; color: var(--ink); }
 .lead-v.warn { color: var(--warn); }
-.lead-l { font-size: 1rem; font-weight: 550; color: var(--ink); line-height: 1.25; }
+.lead-l { font-size: 1rem; font-weight: 550; color: var(--ink); line-height: 1.35; }
 .lead-sub { font-size: .8rem; color: var(--ink-3); margin-top: .2rem; }
 
 /**
- * The same statistic as a sentence, where the number means nothing out of its comparison.
+ * The label beside a lead figure is a sentence on the cards where the number needs one.
  *
- * Big-figure-then-label reads well when the unit is the subject: 7 outliers, 21 days. It reads
- * badly when the figure only means something inside a comparison, because the eye takes the
- * number first and then has to carry it into a clause. Asked for with the sentence written
- * out: on average, the departments score themselves 0.9 points higher than the assessors
- * score them.
- *
- * So the figure is emphasised where it falls rather than lifted out in front. It is a shade
- * larger than the text around it and the same mono as every other number on this screen, which
- * is enough to find at a glance without breaking the line it belongs to.
+ * It is set as ordinary text, including the figure where it falls in the sentence, because the
+ * big number beside it is already the thing the eye lands on. Emphasising it twice made the
+ * sentence a second headline. Her words, correcting the version that did: leave the first 2.8
+ * as it was and have 2.8 points in the middle of the sentence set as the rest of the sentence.
  */
-.lead-say { margin: .1rem 0 .2rem; }
-.say-line { font-size: 1rem; font-weight: 550; color: var(--ink); line-height: 1.5; margin: 0; }
-.say-n { font-family: var(--mono); font-size: 1.3rem; font-weight: 700; letter-spacing: -.01em;
-  color: var(--ink); }
-.say-n.warn { color: var(--warn); }
+.lead-l { max-width: 52ch; }
 
 /**
  * A list nobody asked for yet. Closed, with its count legible while it is.
@@ -2712,25 +2706,34 @@ tr.row-open:hover td { background: var(--surface-2); }
 tr.row-open:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
 /* Controls inside it keep their own cursor, because they do something else. */
 tr.row-open button, tr.row-open summary, tr.row-open label { cursor: pointer; }
-/* Ready, drafts and withdrawn as tabs in the toolbar, each carrying its own count so the
-   shape of the pool is readable without pressing anything. */
-.list-tabs { display: flex; gap: .2rem; align-items: center; margin-left: .5rem; }
 /**
- * Words beside words share a baseline. A box beside words is centred.
+ * THE ONE BUTTON THAT SHOWS THE GROUP YOU ARE NOT LOOKING AT.
  *
- * The count is text, in the mono face at a smaller size, and centring it against the label
- * hung it low: the two faces have different cap heights, so their optical centres do not
- * agree even when their boxes do. It reads as the number having slipped. Baseline is what
- * puts two pieces of text on the same line to a reader.
+ * Ready, drafts and withdrawn were tabs in this toolbar until 20 October, each carrying its
+ * own count. Her shape for this: the default is Submissions, and the other group works the
+ * way the French button does, one button showing the thing you are not on.
+ *
+ * It reads as a button at rest and not as a line of text, because it does something. Asked
+ * for: it has to look like a button, different from Export as CSV because it does something
+ * completely different, and still low weight.
+ *
+ * So it keeps the height, the corner and the hand of the button beside it, and differs in the
+ * three things that carry weight rather than shape: a dashed edge where the export has a solid
+ * one, no fill where the export has a surface, and ink-2 where the export has ink. Dashed is
+ * the project's mark for provisional and is used on nothing else in this toolbar, so the two
+ * controls cannot be mistaken for each other at a glance.
+ *
+ * Words beside words share a baseline. The count is text, in the mono face at a smaller size,
+ * and centring it against the label hangs it low: two faces have different cap heights, so
+ * their optical centres do not agree even when their boxes do. It reads as the number having
+ * slipped.
  */
-.list-tabs .tab { display: inline-flex; align-items: baseline; gap: .3rem;
-  padding: .3rem .55rem; border-radius: var(--radius-sm); background: none;
-  border: 1px solid transparent; color: var(--ink-2); cursor: pointer; font-size: .83rem; }
-.list-tabs .tab:hover { color: var(--ink); border-color: var(--line); }
-.list-tabs .tab.on { background: var(--surface-2); border-color: var(--line); color: var(--ink);
-  font-weight: 600; }
-.list-tabs .tab-n { font-family: var(--mono); font-size: .72rem; color: var(--ink-3); }
-.list-tabs .tab.on .tab-n { color: var(--ink-2); }
+.switch-group { display: inline-flex; align-items: baseline; gap: .3rem; margin-left: .5rem;
+  background: none; border: 1px dashed var(--line-2); color: var(--ink-2); font-weight: 450; }
+.switch-group:hover { color: var(--ink); background: var(--surface); border-style: solid;
+  border-color: var(--line-2); }
+.switch-group .tab-n { font-family: var(--mono); font-size: .72rem; color: var(--ink-3); }
+.switch-group:hover .tab-n { color: var(--ink-2); }
 
 /* One chip per assessor, each on its own line, at the smallest size in the table. Two names
    ran into one another as four lines of plain text that had to be read to be counted, and the

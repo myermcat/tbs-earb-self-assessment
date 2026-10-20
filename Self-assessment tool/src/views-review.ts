@@ -732,6 +732,16 @@ let listSort: { key: string; dir: 1 | -1 } | null = null;
  */
 let listTab: 'ready' | 'draft' | 'withdrawn' = 'ready';
 const TABS = ['ready', 'draft', 'withdrawn'] as const;
+/**
+ * What each group is called where it is named. Ready work is just Submissions, because that is
+ * what somebody came to the screen for and the qualifier only matters next to the others.
+ */
+const GROUP_NAME: Record<string, string> = {
+  ready: 'Submissions', draft: 'Drafts', withdrawn: 'Withdrawn',
+};
+const GROUP_NAME_FR: Record<string, string> = {
+  ready: 'Soumissions', draft: 'Brouillons', withdrawn: 'Retirées',
+};
 export function setAuditor(name: string): void { auditor = name; }
 
 /**
@@ -1351,19 +1361,17 @@ function paintList(rubric: Rubric, root: HTMLElement) {
 
   root.appendChild(el('section', { class: 'card' }, [
     /**
-     * NO COUNT BESIDE THE HEADING, BECAUSE THE TABS CARRY THE ONLY HONEST ONES.
+     * THE HEADING NAMES WHAT IS UNDER IT, AND CARRIES NO COUNT.
      *
-     * It said Submissions and the size of the whole pool, which matched the table while All was
-     * the tab a page opened on. All went on 20 October and the heading started saying 20 over
-     * a table of 17, which is the thing it was put there to stop: a count beside a heading that
-     * disagrees with what is under it invites the question why does it say twenty when I can
-     * see seventeen.
+     * It said Submissions and the size of the whole pool, which matched the table while All
+     * was the tab a page opened on. All went on 20 October and it started saying 20 over a
+     * table of 17, which is the thing a count beside a heading is put there to stop.
      *
-     * Ready 17 and Drafts 3 each match their own tab exactly, and the pool is their sum, in
-     * front of anybody who wants it. A fourth number saying 20 is one nothing on screen
-     * explains.
+     * The heading says which group is on screen now, and the one button beside it says which
+     * group is not and how many are in it. Between them nothing on screen is a number without
+     * rows under it.
      */
-    el('h2', {}, [t('Submissions', 'Soumissions')]),
+    el('h2', {}, [t(GROUP_NAME[listTab], GROUP_NAME_FR[listTab])]),
     /**
      * The toolbar. It goes above the table, where it reads as belonging to it.
      *
@@ -1381,31 +1389,33 @@ function paintList(rubric: Rubric, root: HTMLElement) {
         onclick: () => askExportCsv(rubric),
       }),
       /**
-       * READY AND DRAFTS ARE TABS ONCE THERE ARE ENOUGH ROWS TO SCROLL.
+       * ONE BUTTON, SHOWING THE GROUP YOU ARE NOT LOOKING AT.
        *
-       * They were bands down one list, which works at eight rows: you can see where one group
-       * stops. At twenty it stopped working, and it was reported in exactly those terms - the
-       * drafts are below everything finished and I have to scroll a long way to find one.
+       * Ready and Drafts were bands down one list, then tabs, then tabs without an All in
+       * front of them. Her shape for this one: you do not really need to see drafts, the
+       * default is ready and it is just Submissions, and the other one works the way the
+       * French button does - one button, showing the language you are not in.
        *
-       * There was an All in front of them until 20 October, carrying band headings down one
-       * list. Asked for: remove the all view. Each tab carries its own count, so the shape of
-       * the pool is readable without pressing anything, and a group with nothing in it is not
-       * offered at all.
+       * So the heading names where you are and this says where else there is to go, with the
+       * count on it so the size of the other group is readable without pressing anything. With
+       * two groups it is a toggle and reads as one. A third only exists where somebody
+       * withdrew a record before that control was taken out, and then it steps round them all
+       * rather than hiding one.
+       *
+       * It is a button and not a tab because it does something, and it is quieter than the
+       * export beside it because that is the one somebody came to the toolbar for.
        */
-      el('nav', { class: 'list-tabs', 'aria-label': 'Which submissions' }, [
-        ...TABS
-          .filter((g) => sizes[g])
-          .map((g) => {
-            const on = listTab === g;
-            const label = g === 'ready' ? 'Ready' : g === 'draft' ? 'Drafts' : 'Withdrawn';
-            const n = sizes[g] ?? 0;
-            return el('button', {
-              class: `tab ${on ? 'on' : ''}`,
-              'aria-current': on ? 'page' : undefined,
-              onclick: () => { listTab = g; repaint(); },
-            }, [label, el('span', { class: 'tab-n' }, [String(n)])]);
-          }),
-      ]),
+      ...(() => {
+        const others = TABS.filter((g) => g !== listTab && sizes[g]);
+        const next = others[0];
+        return next ? [el('button', {
+          class: 'ghost small switch-group',
+          onclick: () => { listTab = next; repaint(); },
+        }, [
+          t(GROUP_NAME[next], GROUP_NAME_FR[next]),
+          el('span', { class: 'tab-n' }, [String(sizes[next])]),
+        ])] : [];
+      })(),
       /**
        * TAKEN OUT ON 1 OCTOBER WITH THE DROP ZONE, and coming back with it.
        *
