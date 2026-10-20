@@ -11,7 +11,8 @@ import { rubricFor } from './library';
 import { confirmStep } from './confirm';
 import { SAD_CAT } from './cat';
 import { ICON_DOWN } from './icons';
-import { addressOf, currentUser, formatCode, listAudits, putAudit, setWithdrawn, type AssessorAudit } from './firebase';
+import { addressOf, currentUser, formatCode, listAllAudits, listAudits, putAudit, setWithdrawn,
+  type AssessorAudit } from './firebase';
 import { isHosted, poolRecords, type PoolAnswer } from './store';
 import { repaint } from './views-submit';
 import { isDemo, nameIsChecked } from './who';
@@ -228,9 +229,11 @@ async function readListAudits(after: () => void): Promise<void> {
     const me = currentUser()?.email ?? '';
     for (const l of waiting) {
       auditsAsked.add(l.a.id!);
-      if (!l.fromPool) continue;
-      l.auditedBy = l.fromPool.map((x) => x.reviewerName?.trim() || x.reviewer);
-      l.auditedByMe = l.fromPool.some((x) => x.reviewer === me);
+      // An empty list and no list apart, because the cell now tells them apart: a demonstration
+      // with nothing against a record knows that, where a hosted page that has not asked yet
+      // does not.
+      l.auditedBy = (l.fromPool ?? []).map((x) => x.reviewerName?.trim() || x.reviewer);
+      l.auditedByMe = (l.fromPool ?? []).some((x) => x.reviewer === me);
     }
     /**
      * And no redraw, because there is nothing to wait for.
@@ -244,22 +247,52 @@ async function readListAudits(after: () => void): Promise<void> {
      */
     return;
   }
-  if (!isHosted() || !currentUser()) return;
+  /**
+   * NO STORE AT ALL IS AN ANSWER. NOT SIGNED IN YET IS NOT.
+   *
+   * Both of these used to return and leave the column not knowing, which was invisible while
+   * not knowing and nobody looked the same. They are different facts. A page with no store
+   * behind it - a file opened from disk, a session this browser kept - will never have an
+   * audit against it, so nobody is the truth and the cell should say so. A hosted page whose
+   * account has not come back yet will ask in a moment, and until it does it knows nothing.
+   */
+  if (!isHosted()) {
+    if (!waiting.length) return;
+    for (const l of waiting) { auditsAsked.add(l.a.id!); l.auditedBy = []; l.auditedByMe = false; }
+    return;
+  }
+  if (!currentUser()) return;
   if (!waiting.length) return;
   const me = currentUser()?.email ?? '';
   // Marked before the await, so a redraw that lands while these are in flight does not ask
   // again. A row whose read fails is marked too: it said nothing rather than nobody, and
   // asking for ever would be a request per redraw.
+  /**
+   * ONE REQUEST FOR THE WHOLE POOL, AND A FAILURE THAT IS ALLOWED TO SHOW.
+   *
+   * This asked per record and caught each failure quietly, so a handful of refusals out of
+   * twenty left some rows saying nobody had looked and others naming both assessors, with the
+   * mixture different on every reload. Reported three times and never the same way twice.
+   * listAllAudits asks once, and one request either answers or does not.
+   *
+   * Marked before the await, so a redraw landing mid-flight does not ask again, and unmarked
+   * if the request fails: one failed request is worth retrying where twenty were not. Until
+   * an answer arrives the column says nothing, which is the truth, where nobody yet was a
+   * claim the page had not earned.
+   */
   for (const l of waiting) auditsAsked.add(l.a.id!);
-  await Promise.all(waiting.map(async (l) => {
-    try {
-      const all = await listAudits(l.a.id!);
-      l.auditedBy = all.map((x) => x.reviewerName?.trim() || x.reviewer);
-      l.auditedByMe = all.some((x) => x.reviewer === me);
-    } catch {
-      /* Refused or offline. The row says nothing rather than saying nobody has looked. */
-    }
-  }));
+  let byCode: Record<string, AssessorAudit[]>;
+  try {
+    byCode = await listAllAudits();
+  } catch {
+    for (const l of waiting) auditsAsked.delete(l.a.id!);
+    return;
+  }
+  for (const l of waiting) {
+    const all = byCode[l.a.id!] ?? [];
+    l.auditedBy = all.map((x) => x.reviewerName?.trim() || x.reviewer);
+    l.auditedByMe = all.some((x) => x.reviewer === me);
+  }
   after();
 }
 
@@ -2046,7 +2079,16 @@ function flagCard(f: Flag): HTMLElement {
  * not loaded.
  */
 function auditedCell(l: Loaded): HTMLElement {
-  const who = l.auditedBy ?? [];
+  /**
+   * NOBODY YET IS A FINDING, AND AN EMPTY CELL IS THE ABSENCE OF ONE.
+   *
+   * auditedBy is undefined until the store has answered and an array once it has, so the two
+   * cases are already apart in the data and the cell used to fold them together. On a slow
+   * answer, and on every reload before one arrived, twenty rows said nobody had looked at
+   * them - which is a claim, and it was being made by a page that had not asked yet.
+   */
+  if (!l.auditedBy) return el('span', { class: 'audited-none' }, ['']);
+  const who = l.auditedBy;
   /**
    * Nobody yet is the quietest thing in the column, on purpose.
    *

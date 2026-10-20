@@ -492,13 +492,17 @@ function paint(
            * "points higher than assessors gave them" left out who. "points higher: departments
            * than assessors" fixed who and left out that it is an average, which is the thing
            * somebody asks next of any single number standing for twenty-one of them. The label
-           * says both now, and reads as a sentence from the figure: 2.8 points - how much
-           * higher departments scored themselves, on average.
+           * says both now, and reads as a sentence from the figure: 2.8 points, departments
+           * above their assessors, on average.
+           *
+           * Higher than what was the question asked of the version before this one, which
+           * stopped at "how much higher departments scored themselves" and named only one side
+           * of a comparison. Both sides are in the words now.
            */
           changed
             ? mean < 0
-              ? 'points: how much higher departments scored themselves, on average'
-              : 'points: how much lower departments scored themselves, on average'
+              ? 'points: departments above their assessors, on average'
+              : 'points: departments below their assessors, on average'
             : 'no assessor has changed a score',
           [
             `${withAudit} record${withAudit === 1 ? '' : 's'} audited`,

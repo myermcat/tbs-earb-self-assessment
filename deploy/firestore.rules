@@ -114,13 +114,24 @@ service cloud.firestore {
         && request.resource.data.name.size() > 0
         && request.resource.data.name.size() <= 120;
 
-      // Taking access away, or giving it back. The name and who added it never change, because
-      // they are the record of what happened, and an update that could rewrite them would let
-      // one assessor rewrite another's history.
+      /**
+       * Taking access away, giving it back, or correcting the name.
+       *
+       * Who added somebody and when never change: that is the record of what happened, and an
+       * update that could rewrite them would let one assessor rewrite another's history.
+       *
+       * THE NAME USED TO BE FROZEN WITH THEM and it does not belong in that company. It is a
+       * label on a row, not an event, and the tool offered an edit the store then refused with
+       * insufficient permission. A typo in somebody's name was permanent, including for the
+       * person whose name it was. The history worth keeping is the grant, and the grant is
+       * still untouchable.
+       */
       allow update: if isAssessor()
         && request.resource.data.keys().hasOnly(['role', 'name', 'addedBy', 'addedAt', 'removedBy', 'removedAt'])
         && request.resource.data.role in ['assessor', 'removed']
-        && request.resource.data.name == resource.data.name
+        && request.resource.data.name is string
+        && request.resource.data.name.size() > 0
+        && request.resource.data.name.size() <= 120
         && request.resource.data.get('addedBy', '') == resource.data.get('addedBy', '')
         && request.resource.data.get('addedAt', '') == resource.data.get('addedAt', '');
 
@@ -246,6 +257,26 @@ service cloud.firestore {
                               && request.resource.data.get('reviewer', '') == email();
         allow delete: if isAssessor() && entry == email();
       }
+    }
+
+    /**
+     * THE ASSESSOR'S LIST READS EVERY AUDIT AT ONCE.
+     *
+     * A nested rule grants nothing to a collection group query. `match /assessments/{id}/audit`
+     * above answers for a request that names one assessment; a query over the `audit`
+     * collection wherever it appears is matched here or it is refused, however generous the
+     * nested rule looks.
+     *
+     * It exists because the list used to ask per record, and twenty requests going out
+     * together are twenty chances for one to be refused. The column then named one assessor on
+     * a row and nobody on the next, differently on every reload. One query cannot do that.
+     *
+     * Only an assessor, and only list. There is no get here, because nothing reaches an audit
+     * by this path without naming the assessment, and that is the nested rule's job and stays
+     * there with the department's own read on it.
+     */
+    match /{path=**}/audit/{entry} {
+      allow list: if isAssessor();
     }
 
     /**

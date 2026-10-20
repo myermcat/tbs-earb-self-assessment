@@ -101,6 +101,22 @@ async function read(path, headers = {}) {
   return r.status;
 }
 
+/**
+ * A collection group query, which is a different question from reading a collection.
+ *
+ * It names a collection id wherever it appears and is matched by its own rule. A nested rule
+ * grants it nothing, which is why the assessor's list was refused everything until one was
+ * written, and why this is asked here as its own shape rather than through read().
+ */
+async function group(collectionId, headers = {}) {
+  const r = await fetch(`${BASE}:runQuery`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', ...headers },
+    body: JSON.stringify({ structuredQuery: { from: [{ collectionId, allDescendants: true }] } }),
+  });
+  return r.status;
+}
+
 let failed = 0;
 /**
  * 'opens' is its own answer and not a loose 'allowed'. A read of a document that is not there
@@ -230,6 +246,27 @@ check('nothing records who set it, so no address reaches a public page',
         await read('assessments/AUDITTEST234/audit'), 'refused');
   check('the assessment itself still opens on its name alone',
         await read('assessments/AUDITTEST234'), 'opens');
+
+  /**
+   * EVERY AUDIT AT ONCE, WHICH IS WHAT THE LIST ASKS FOR NOW.
+   *
+   * The assessor's list used to ask per record, and twenty requests in flight together are
+   * twenty chances for one to come back refused: the column named one assessor on a row,
+   * nobody on the next, and a different mixture on every reload. It asks once now, as a
+   * collection group query, which needs a rule of its own - the nested one above answers only
+   * a request that names its assessment.
+   *
+   * The department keeps its own read and gains nothing here. A sweep of every audit in the
+   * store is the assessor's question, and nobody else's.
+   */
+  check('an assessor reads every audit in the store in one query',
+        await group('audit', asPerson('asr1@example.com')), 'allowed');
+  check('the department cannot sweep up what was said about everybody else',
+        await group('audit', asPerson('dept@example.com')), 'refused');
+  check('nor can a signed-in stranger',
+        await group('audit', asPerson('passerby@example.com')), 'refused');
+  check('nor anybody signed out',
+        await group('audit'), 'refused');
 }
 
 /**
@@ -276,6 +313,41 @@ check('nothing records who set it, so no address reaches a public page',
         await read('roles', asPerson('asr1@example.com')), 'allowed');
   check('nobody signed out reads a role or the list of them',
         await read('roles', {}), 'refused');
+
+  /**
+   * CORRECTING A NAME, WHICH THE RULES USED TO REFUSE.
+   *
+   * `name == resource.data.name` froze the label beside an address along with the record of
+   * who granted the access. The tool offered an edit and the store answered insufficient
+   * permission, so a typo in somebody's name was permanent, theirs included.
+   *
+   * The grant itself is still untouchable, and that is the line these two checks hold: the
+   * label may be corrected, and who gave somebody access and when may not be rewritten by the
+   * person correcting it.
+   */
+  await patch('roles/asr3@example.com',
+              { role: str('assessor'), name: str('Mispelt Name'), addedBy: str('asr1@example.com'),
+                addedAt: str('2026-10-01T00:00:00Z') }, AS_OWNER);
+  check('an assessor corrects a name on the list',
+        await patch('roles/asr3@example.com',
+                    { role: str('assessor'), name: str('Spelt Right'), addedBy: str('asr1@example.com'),
+                      addedAt: str('2026-10-01T00:00:00Z') },
+                    asPerson('asr2@example.com')), 'allowed');
+  check('and cannot rewrite who granted the access while doing it',
+        await patch('roles/asr3@example.com',
+                    { role: str('assessor'), name: str('Spelt Right'), addedBy: str('asr2@example.com'),
+                      addedAt: str('2026-10-01T00:00:00Z') },
+                    asPerson('asr2@example.com')), 'refused');
+  check('and an empty name is not a correction',
+        await patch('roles/asr3@example.com',
+                    { role: str('assessor'), name: str(''), addedBy: str('asr1@example.com'),
+                      addedAt: str('2026-10-01T00:00:00Z') },
+                    asPerson('asr2@example.com')), 'refused');
+  check('somebody with no role corrects nothing',
+        await patch('roles/asr3@example.com',
+                    { role: str('assessor'), name: str('Hijacked'), addedBy: str('asr1@example.com'),
+                      addedAt: str('2026-10-01T00:00:00Z') },
+                    asPerson('passerby@example.com')), 'refused');
 }
 
 
