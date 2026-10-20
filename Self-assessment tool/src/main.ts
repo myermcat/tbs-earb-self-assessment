@@ -1,6 +1,6 @@
 import type { Assessment, Rubric } from './types';
 import { el, clear } from './dom';
-import { ICON_DOWN, ICON_MAIL, ICON_PRINT, ICON_SHARE } from './icons';
+import { ICON_DOWN, ICON_MAIL, ICON_SHARE } from './icons';
 import { codeField } from './code-field';
 import { guardDraft } from './guard';
 import { validate } from './rubric';
@@ -35,7 +35,7 @@ import { addressOf, isAddressSegment, canSignIn, CODE_LENGTH, currentUser, forma
   linkNeedsAddress, sendSignInLink } from './firebase';
 import { t } from './i18n';
 import { answeredCount, APP_VERSION, autosave, blankAssessment, clearDraft, draftIsOursToWrite,
-  download, ensureRef, hasWork, loadDraft, saveAssessmentFile, slug } from './storage';
+  download, ensureRef, hasWork, loadDraft, saveAnswersCsv, saveAssessmentFile, slug } from './storage';
 import { bannerFor, evidenceNote } from './marking';
 import BUILTIN from '../rubric/rubric.v1-dan.json';
 import { storeKey } from './keys';
@@ -893,21 +893,46 @@ function header(bare = false): HTMLElement {
               el('span', { class: 'menu-ico', html: ICON_MAIL, 'aria-hidden': true }),
               t('Write an email about it', 'R\u00e9diger un courriel \u00e0 son sujet'),
             ]),
-            // "File" on its own said nothing: a PDF is a file too. The kind is the point.
-            el('button', {
-              class: 'menu-item',
-              onclick: () => { saveAssessmentFile(assessment); paint(); },
-            }, [
-              el('span', { class: 'menu-ico', html: ICON_DOWN, 'aria-hidden': true }),
-              t('Download as a JSON file', 'Télécharger en fichier JSON'),
-            ]),
-            el('button', {
-              class: 'menu-item',
-              onclick: () => window.print(),
-            }, [
-              el('span', { class: 'menu-ico', html: ICON_PRINT, 'aria-hidden': true }),
-              t('Print or save as a PDF', 'Imprimer ou enregistrer en PDF'),
-            ]),
+            /**
+             * Download, with the formats behind it, the way a document editor does it.
+             *
+             * It was two items at the top level, "Download as a JSON file" and "Print or save
+             * as a PDF", which is a menu listing one act twice under two names. Asked for: in
+             * file, where you have download, there should be just download, and on hover it
+             * should show on the right, just like Google Docs do, options of download. The
+             * order is hers: first CSV, then PDF, then JSON.
+             *
+             * It opens on hover, on keyboard focus and on a click, because hover alone has no
+             * meaning on a touch screen and the whole row is a button there.
+             */
+            (() => {
+              const sub = el('div', { class: 'menu-sub' });
+              const open = () => sub.classList.toggle('open');
+              sub.appendChild(el('button', {
+                class: 'menu-item has-sub',
+                'aria-haspopup': 'true',
+                onclick: open,
+              }, [
+                el('span', { class: 'menu-ico', html: ICON_DOWN, 'aria-hidden': true }),
+                t('Download', 'Télécharger'),
+                el('span', { class: 'sub-arrow', 'aria-hidden': true }, ['\u203A']),
+              ]));
+              sub.appendChild(el('div', { class: 'menu-sub-pop' }, [
+                el('button', {
+                  class: 'menu-item',
+                  onclick: () => { saveAnswersCsv(rubric, assessment); paint(); },
+                }, [t('Spreadsheet (.csv)', 'Tableur (.csv)')]),
+                el('button', {
+                  class: 'menu-item',
+                  onclick: () => window.print(),
+                }, [t('PDF document (.pdf)', 'Document PDF (.pdf)')]),
+                el('button', {
+                  class: 'menu-item',
+                  onclick: () => { saveAssessmentFile(assessment); paint(); },
+                }, [t('JSON file (.json)', 'Fichier JSON (.json)')]),
+              ]));
+              return sub;
+            })(),
           ]),
         ])
       : null,

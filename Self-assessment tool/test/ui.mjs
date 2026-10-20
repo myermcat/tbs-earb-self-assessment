@@ -1566,7 +1566,24 @@ ok('the copy does not appeal to an unnamed "us"',
 // second way in that produces a different copy of the same work is how two versions start
 // diverging. Downloading one is still in the File menu, which is where everything you do to a
 // whole assessment lives, and it is what this suite uses to look inside a saved assessment.
-byText('.file-menu .menu-item', 'Download as a JSON file').click();
+/**
+ * Download, with the formats behind it. It was two items at the top level, "Download as a JSON
+ * file" and "Print or save as a PDF", which lists one act twice under two names. Asked for: in
+ * file, where you have download, there should be just download, and on hover it should show on
+ * the right, just like Google Docs do, options of download. The order is hers.
+ */
+{
+  const top = qa('.file-menu > .set-menu-pop > .menu-item, .file-menu > .set-menu-pop > .menu-sub > .has-sub')
+    .map((n) => n.textContent.replace(/\u203A/g, '').trim());
+  ok('the File menu offers Download once and names no format at its top level',
+     top.filter((x) => /Download|PDF|JSON|CSV/i.test(x)).join('|') === 'Download', top.join(' | '));
+  const formats = qa('.file-menu .menu-sub-pop .menu-item').map((n) => n.textContent.trim());
+  ok('and the formats behind it are CSV, then PDF, then JSON',
+     formats.join(' | ') === 'Spreadsheet (.csv) | PDF document (.pdf) | JSON file (.json)',
+     formats.join(' | '));
+}
+
+byText('.file-menu .menu-sub-pop .menu-item', 'JSON file (.json)').click();
 ok('a file was produced', saved.length === 1, String(saved.length));
 const savedJson = JSON.parse(await text(saved[0]));
 ok('saved file is a self-assessment', savedJson.fileType === 'gc-arch-assessment');

@@ -1,4 +1,5 @@
 import type { Assessment, Rubric } from './types';
+import { answersCsv } from './csv-answers';
 import { forgetBases, newDocId } from './firebase';
 import { DEMO_MARK, isDemoBuild, storeKey } from './keys';
 
@@ -267,6 +268,20 @@ export function saveAssessmentFile(a: Assessment): string {
   const name = `${slug(a.initiative.name)}-${a.ref ?? 'earb'}-self-assessment.json`;
   download(name, JSON.stringify(a, null, 2));
   lastSave = { name, at: Date.now() };
+  return name;
+}
+
+/**
+ * The assessment as the workbook it replaces, filled in.
+ *
+ * The byte order mark is not decoration. Excel on Windows opens a .csv as Windows-1252 unless
+ * it finds one, and the workbook's own column heading has an en dash in it, so without this
+ * the first thing somebody sees in the sheet is mojibake in the header row.
+ */
+export function saveAnswersCsv(rubric: Rubric, a: Assessment): string {
+  autosave(a);
+  const name = `${slug(a.initiative.name)}-${a.ref ?? 'earb'}-self-assessment.csv`;
+  download(name, `\ufeff${answersCsv(rubric, a)}`, 'text/csv');
   return name;
 }
 

@@ -1684,6 +1684,35 @@ input.code-box:focus { outline: 2px solid var(--accent); outline-offset: 1px; bo
 .menu-item:hover { background: var(--surface-2); border: 0; }
 .menu-item.is-off { color: var(--ink-3); cursor: default; }
 .menu-item.is-off:hover { background: none; }
+
+/*
+ * Download, with the formats beside it. The parent row is a full-width button, so the arrow is
+ * pushed to its end by margin and not by a second column: the icon, the word and the arrow are
+ * one line of text and a grid would hang the arrow off its baseline.
+ *
+ * It opens three ways. Hover is what was asked for, just like Google Docs do. Focus-within
+ * carries the keyboard, because a submenu that only answers a pointer cannot be reached by
+ * tab. The class is for a touch screen, where there is no hover at all and the row is a tap.
+ */
+.menu-sub { position: relative; display: flex; flex-direction: column; }
+.menu-sub > .has-sub { display: flex; align-items: center; width: 100%; }
+.has-sub .sub-arrow { margin-left: auto; padding-left: .9rem; color: var(--ink-3); }
+.menu-sub-pop { display: none; position: absolute; left: calc(100% + .25rem); top: -.25rem;
+  z-index: 6; min-width: 12rem;
+  background: var(--surface); border: 1px solid var(--line-2); border-radius: 10px;
+  box-shadow: var(--shadow-lg); padding: .25rem; flex-direction: column; }
+.menu-sub:hover > .menu-sub-pop,
+.menu-sub:focus-within > .menu-sub-pop,
+.menu-sub.open > .menu-sub-pop { display: flex; }
+
+/* There is no room to the right of a menu on a phone, and no hover either, so the formats
+   drop underneath the row that opens them and only a tap opens it. */
+@media (max-width: 620px) {
+  .menu-sub-pop { position: static; border: 0; box-shadow: none; padding: 0 0 0 1.4rem;
+    min-width: 0; }
+  .menu-sub:hover > .menu-sub-pop, .menu-sub:focus-within > .menu-sub-pop { display: none; }
+  .menu-sub.open > .menu-sub-pop { display: flex; }
+}
 /*
  * TAKEN OUT ON 20 OCTOBER 2026 with the pair it styled, and kept for the same reason.
  *

@@ -145,9 +145,9 @@ background:var(--surface);border:1px solid var(--line);border-radius:10px;list-s
 .kpi a{color:inherit;text-decoration:none}
 </style>
 <div class="head"><div class="head-in"><h1>GC EA self-assessment: requirements specification</h1>
-<p class="sub">Living document, updated 2026-09-28. 144 requirements, baselined at each release. Following ISO/IEC/IEEE 29148:2018, tailored.</p></div></div>
+<p class="sub">Living document, updated 2026-09-28. 145 requirements, baselined at each release. Following ISO/IEC/IEEE 29148:2018, tailored.</p></div></div>
 <nav class="topnav"><div class="topnav-in">
-<span class="nav-kpi"><b>89</b><span>built</span></span>
+<span class="nav-kpi"><b>90</b><span>built</span></span>
 <span class="nav-kpi"><b>31</b><span>agreed, not built</span></span>
 <span class="nav-kpi"><b>3</b><span>proposed</span></span>
 <span class="nav-kpi"><b>21</b><span>open</span></span>
@@ -689,6 +689,12 @@ Two departures worth naming. The audit saves itself a moment after typing stops,
 <h2 id="filling">5. Filling one in</h2>
 <p class="hint">The submitter side.</p>
 <div class="card reqs">
+<div class="req">
+<span class="req-id mono">F12</span>
+<span class="req-t">Download is one item in the File menu, and the formats sit behind it. The spreadsheet is Dan’s workbook with the answers in it.</span>
+<span class="st st-done">Built</span>
+<span class="req-note">Added 20 October, asked in these words: in file, where you have download, there should be just download, and on hover it should show on the right, just like Google Docs do, options of download, and it should be download as JSON or download as CSV in the same exact format as the questions themselves are in CSV, so you should be able to upload that to Google Sheets or Excel and it should look the same as the Excel sheet of the questions template, just filled questions. First CSV, then PDF, then JSON. Print or save as a PDF was the same act under a second name and is now Download as a PDF inside that list. The spreadsheet is not a format of ours: it is read off GC_EA_Assessment_Tool(Business Architecture).csv and its three siblings, six columns, a domain title row carrying the domain’s own description, the overall weight under it, the header row, a band per section with that section’s weight, the section number on the first question of a section and nothing on the rest, a Section Average row closing each section and an OVERALL row closing each domain. All four blocks were diffed against the workbook on 20 October and match it row for row and cell for cell in the three columns the workbook fills itself, with the scores, the rung names, the reasoning and the evidence in the three it leaves empty. It is English only, because the 176 questions exist in English alone, which is open against Dan, and French column headings over English questions is a worse answer than the workbook’s own headings.</span>
+</div>
 <div class="req">
 <span class="req-id mono">F11</span>
 <span class="req-t">A question is the question, the eleven scores, and one fold for reasoning and evidence. Nothing a reader has already read sits under it.</span>
