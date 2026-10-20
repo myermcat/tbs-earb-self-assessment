@@ -318,7 +318,7 @@ export function renderSubmit(
   if (!(here.domainId === null && overviewIsWizard(a))) {
     sheet.appendChild(pager(list, here, navigate, onDone));
   }
-  root.appendChild(footerBar(rubric, a, r, onDone, here, navigate));
+  root.appendChild(footerBar(rubric, a, r, here, navigate));
 
   if (scrollToQuestion) {
     const target = sheet.querySelector(`[data-qid="${cssId(scrollToQuestion)}"]`);
@@ -356,7 +356,6 @@ function sectionHead(
 ): HTMLElement {
   const pill = el('span', { class: 'pill', 'aria-hidden': true });
   const srPill = el('span', { class: 'sr-only' });
-  const counts = el('p', { class: 'muted small' });
 
   const apply = (rr: Result) => {
     const d = rr.domains.find((x) => x.domain.id === here.domainId);
@@ -374,14 +373,6 @@ function sectionHead(
     pill.className = `pill ${tone(cur.score)}`;
     pill.textContent = cur.score === null ? '--' : cur.score.toFixed(1);
     srPill.textContent = cur.score === null ? 'not scored yet' : `${cur.score.toFixed(1)} out of 10`;
-    const share = cur.section.shareOfDomain ?? cur.weight;
-    /**
-     * How much of this section is answered is on the bar at the foot of the same screen, and
-     * saying it twice was the third copy of one number on this page. Reported as: i feel like
-     * this is also a duplicate.
-     */
-    counts.textContent =
-      `${share}% of ${d.domain.label}, which is ${d.domain.weight}% of the total.`;
   };
 
   const stageNote = (() => {
@@ -426,7 +417,6 @@ function sectionHead(
       srPill,
       stageNote,
     ]),
-    counts,
     scaleFold,
     flagNote,
   ]);
@@ -758,7 +748,6 @@ function footerBar(
   rubric: Rubric,
   a: Assessment,
   r: Result,
-  onDone: () => void,
   here: Stop,
   navigate: (t: string) => void,
 ): HTMLElement {
@@ -948,8 +937,6 @@ function footerBar(
          * nothing to press: the save badge in the chrome already says where the work stands.
          */
         save,
-        el('button', { class: 'primary footer-results', onclick: onDone },
-           [t('See my results', 'Voir mes résultats')]),
       ]),
     ]),
   ]);
