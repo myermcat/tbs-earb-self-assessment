@@ -2,6 +2,7 @@
 import { allQuestionScores, completion, score, weakest, nextAnchor } from '../src/scoring';
 import { flags } from '../src/flags';
 import { csvHeader, csvRow, toCsv } from '../src/csv';
+import { answersCsv } from '../src/csv-answers';
 import { fromFields, fromValue, toFields, toValue } from '../src/firebase';
 import { validate } from '../src/rubric';
 import type { Assessment, Rubric } from '../src/types';
@@ -574,6 +575,95 @@ function stable(x: unknown): string {
      `${inCategories} category memberships for ${inDomains} questions`);
 }
 
+
+/* ---- the assessment as the workbook it replaces -------------------------------------- */
+/**
+ * Asked for on 20 October: download as CSV in the same exact format as the questions
+ * themselves are in CSV, so it looks the same as the Excel sheet of the questions template,
+ * just filled questions.
+ *
+ * The workbook itself is not in this repository and is not published, so the header row is
+ * pinned here and says where it came from. Everything else is read off the rubric, because a
+ * check that builds its expectation the same way the code does is a check about the builder.
+ */
+{
+  const a = fill(blank('beta'), 7);
+  a.initiative.name = 'Fleet Scheduling';
+  a.ref = 'KFRM92TXBQ7H';
+  const first = rubric.domains[0].sections[0].questions[0];
+  a.answers[first.id] = {
+    score: 3,
+    justification: 'A sentence with a comma, and "quotes" in it.',
+    evidence: [{ title: 'Target state', kind: 'diagram', location: 'https://x.test/a', classification: 'Protected B' }],
+  };
+  const text = answersCsv(rubric, a);
+  const rows = parseCsv(text);
+
+  // GC_EA_Assessment_Tool(Business Architecture).csv, row 3, read 20 October 2026.
+  const HEADER = ['#', 'Q#', 'Assessment Question', 'Score (0–10)', 'Maturity Label', 'Notes / Evidence'];
+  const headers = rows.filter((r) => r[0] === '#');
+  ok('one header row per domain, worded as the workbook words it',
+     headers.length === rubric.domains.length
+       && headers.every((h) => HEADER.every((c, i) => h[i] === c)),
+     `${headers.length} headers, first ${JSON.stringify(headers[0])}`);
+  ok('every row carries the workbook’s six columns',
+     rows.every((r) => r.length === 6), String(new Set(rows.map((r) => r.length)).size));
+
+  for (const d of rubric.domains) {
+    ok(`${d.label}: the title row carries the description the workbook prints`,
+       rows.some((r) => r[0].startsWith(d.label) && r[0].includes(d.description ?? '')), d.label);
+    ok(`${d.label}: and its overall weight under it`,
+       rows.some((r) => r[0] === `Overall weight in GC EA score: ${d.weight}%`), String(d.weight));
+  }
+  const bands = rows.filter((r) => /Section weight: /.test(r[0]));
+  ok('a band row per section, each with the weight the rubric gives it',
+     bands.length === 20
+       && rubric.domains.flatMap((d) => d.sections)
+            .every((sec) => bands.some((b) => b[0].includes(sec.label) && b[0].endsWith(`Section weight: ${sec.weight}%`))),
+     `${bands.length} bands`);
+
+  const qRows = rows.filter((r) => /^Q\d+$/.test(r[1]));
+  ok('every question in the rubric has a row, and nothing else does',
+     qRows.length === allQ.length, `${qRows.length} of ${allQ.length}`);
+  ok('the section number sits on the first question of a section and nowhere else',
+     rows.filter((r) => /^S\d+$/.test(r[0])).length === 20,
+     String(rows.filter((r) => /^S\d+$/.test(r[0])).length));
+
+  const answered = qRows.find((r) => r[1] === first.sheetRef);
+  ok('an answered question carries its score and the name of that rung',
+     answered?.[3] === '3' && answered?.[4] === 'Emergent', JSON.stringify(answered));
+  ok('and its reasoning and its evidence, in the cell the workbook keeps for them',
+     (answered?.[5] ?? '').includes('"quotes"')
+       && (answered?.[5] ?? '').includes('Target state')
+       && (answered?.[5] ?? '').includes('Protected B'), answered?.[5]);
+
+  const unanswered = { ...a, answers: {} } as Assessment;
+  const blankRows = parseCsv(answersCsv(rubric, unanswered)).filter((r) => /^Q\d+$/.test(r[1]));
+  ok('an unanswered question leaves the score empty and the label as the workbook leaves it',
+     blankRows.every((r) => r[3] === '' && r[4] === '—'), JSON.stringify(blankRows[0]));
+}
+
+/** A reader, so the checks above read cells and not a line of text that happens to contain one. */
+function parseCsv(text: string): string[][] {
+  const rows: string[][] = [];
+  let row: string[] = [];
+  let cell = '';
+  let quoted = false;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (quoted) {
+      if (c === '"' && text[i + 1] === '"') { cell += '"'; i++; }
+      else if (c === '"') quoted = false;
+      else cell += c;
+    } else if (c === '"') quoted = true;
+    else if (c === ',') { row.push(cell); cell = ''; }
+    else if (c === '\r') { /* the pair is handled on the \n */ }
+    else if (c === '\n') { row.push(cell); rows.push(row); row = []; cell = ''; }
+    else cell += c;
+  }
+  if (cell !== '' || row.length) { row.push(cell); rows.push(row); }
+  return rows;
+}
 
 console.log(fails === 0 ? '\nall checks passed' : `\n${fails} FAILED`);
 process.exit(fails === 0 ? 0 : 1);

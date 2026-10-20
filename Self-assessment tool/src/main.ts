@@ -1,6 +1,6 @@
 import type { Assessment, Rubric } from './types';
 import { el, clear } from './dom';
-import { ICON_DOWN, ICON_MAIL, ICON_PRINT, ICON_SHARE } from './icons';
+import { ICON_DOWN, ICON_MAIL, ICON_SHARE } from './icons';
 import { codeField } from './code-field';
 import { guardDraft } from './guard';
 import { validate } from './rubric';
@@ -35,7 +35,7 @@ import { addressOf, isAddressSegment, canSignIn, CODE_LENGTH, currentUser, forma
   linkNeedsAddress, sendSignInLink } from './firebase';
 import { t } from './i18n';
 import { answeredCount, APP_VERSION, autosave, blankAssessment, clearDraft, draftIsOursToWrite,
-  download, ensureRef, hasWork, loadDraft, saveAssessmentFile, slug } from './storage';
+  download, ensureRef, hasWork, loadDraft, saveAnswersCsv, saveAssessmentFile, slug } from './storage';
 import { bannerFor, evidenceNote } from './marking';
 import BUILTIN from '../rubric/rubric.v1-dan.json';
 import { storeKey } from './keys';
@@ -615,14 +615,30 @@ function askForCode(): void {
 function offerOnlineSave(): void {
   const c = completion(rubric, assessment);
   const who = signerFields();
+  /**
+   * WHAT IT SAYS DEPENDS ON WHETHER THERE IS A COPY ONLINE ALREADY.
+   *
+   * It opened with "your assessment is saved on this computer only" every time, including the
+   * fifth save of an assessment that had been in the store for a week. Reported as: it says
+   * your assessment is saved on this computer only, but it's not, I already saved it online
+   * before. A window that states something the reader knows to be false is not a safeguard.
+   *
+   * The rest went for length. The sentence about saving the version you have now was called
+   * obvious and it was, and the Unclassified paragraph was a warning arriving after the typing
+   * it warns about: no material can be attached here at all, and the place to say what does
+   * not belong in a box is beside the box.
+   */
+  const already = savedOnline(assessment);
+  const left = c.complete ? '' : ` ${c.questionsLeft} of ${c.total} questions have no answer yet, so they will see it unfinished.`;
+  const leftFr = c.complete ? '' : ` ${c.questionsLeft} des ${c.total} questions n\u2019ont pas encore de réponse, il la verra donc inachevée.`;
   confirmStep({
     tier: 'plain',
     title: t('Save this online?', 'Enregistrer ceci en ligne?'),
-    body: c.complete
-      ? t('Your assessment is saved on this computer only. Saving it online puts a copy on the TBS server, so it survives a closed tab or a lost laptop, and your assessor can read it.',
-          'Votre évaluation est enregistrée sur cet ordinateur seulement. L\u2019enregistrement en ligne place une copie sur le serveur du SCT : elle survit à un onglet fermé ou à un ordinateur perdu, et votre évaluateur peut la lire.')
-      : t(`Your assessment is saved on this computer only. Saving it online puts a copy on the TBS server, so it survives a closed tab or a lost laptop, and your assessor can read it. ${c.questionsLeft} of ${c.total} questions have no answer yet, so they will see it unfinished.`,
-          `Votre évaluation est enregistrée sur cet ordinateur seulement. L\u2019enregistrement en ligne place une copie sur le serveur du SCT : elle survit à un onglet fermé ou à un ordinateur perdu, et votre évaluateur peut la lire. ${c.questionsLeft} des ${c.total} questions n\u2019ont pas encore de réponse, il la verra donc inachevée.`),
+    body: already
+      ? t(`The copy on the TBS server is replaced with the assessment as it stands now.${left}`,
+          `La copie sur le serveur du SCT est remplacée par l\u2019évaluation dans son état actuel.${leftFr}`)
+      : t(`A copy goes to the TBS server, so your work survives a closed tab or a lost laptop and your assessor can read it.${left}`,
+          `Une copie est placée sur le serveur du SCT : votre travail survit à un onglet fermé ou à un ordinateur perdu, et votre évaluateur peut la lire.${leftFr}`),
     /**
      * Who is saving, asked every time. It rides in the window rather than sitting on the
      * results page because it is part of the act: an assessor holding a version needs to know
@@ -632,19 +648,11 @@ function offerOnlineSave(): void {
     extra: who.node,
     focusFirst: () => who.focus(),
     gate: () => signerProblem(who.value()),
-    note: savedOnline(assessment)
-      ? t('It saves the version you have now. Change something afterwards and it stays on this computer until you save online again.',
-          'Il enregistre la version actuelle. Si vous modifiez quelque chose ensuite, cela reste sur cet ordinateur jusqu\u2019au prochain enregistrement en ligne.')
+    note: already
+      ? undefined
       : t('The first save gives this assessment an access code, which is the only way anybody opens it afterwards, including you from another computer.',
           'Le premier enregistrement attribue à cette évaluation un code d\u2019accès, seul moyen de l\u2019ouvrir par la suite, y compris pour vous depuis un autre ordinateur.'),
-    /**
-     * The assessment is Unclassified. What it points at may not be, and saying otherwise was
-     * wrong: the whole reason evidence is a title and a location rather than an attachment is
-     * so that a Protected artefact can be named here and kept where it belongs.
-     */
-    stake: t('This assessment is an Unclassified document. It may name and link to evidence that is marked higher, and it must never hold that evidence itself: no file above Unclassified may be attached here.',
-      'Cette évaluation est un document non classifié. Elle peut nommer des preuves portant une cote plus élevée et y renvoyer, mais ne doit jamais contenir ces preuves : aucun fichier au-dessus de Non classifié ne peut y être joint.'),
-    alt: savedOnline(assessment) ? undefined : {
+    alt: already ? undefined : {
       label: t('No, keep it on this computer only', 'Non, la garder sur cet ordinateur seulement'),
       run: () => {
         assessment.meta.onlineDeclined = true;
@@ -655,7 +663,7 @@ function offerOnlineSave(): void {
     cancelLabel: t('Cancel', 'Annuler'),
     onCommit: () => {
       const signer = who.value();
-      const first = !savedOnline(assessment);
+      const first = !already;
       // The name can change on a save, when the one it had could not be read to anybody. A new
       // code nobody is shown is a record somebody cannot reach, which is the defect this whole
       // window exists to prevent.
@@ -885,21 +893,46 @@ function header(bare = false): HTMLElement {
               el('span', { class: 'menu-ico', html: ICON_MAIL, 'aria-hidden': true }),
               t('Write an email about it', 'R\u00e9diger un courriel \u00e0 son sujet'),
             ]),
-            // "File" on its own said nothing: a PDF is a file too. The kind is the point.
-            el('button', {
-              class: 'menu-item',
-              onclick: () => { saveAssessmentFile(assessment); paint(); },
-            }, [
-              el('span', { class: 'menu-ico', html: ICON_DOWN, 'aria-hidden': true }),
-              t('Download as a JSON file', 'Télécharger en fichier JSON'),
-            ]),
-            el('button', {
-              class: 'menu-item',
-              onclick: () => window.print(),
-            }, [
-              el('span', { class: 'menu-ico', html: ICON_PRINT, 'aria-hidden': true }),
-              t('Print or save as a PDF', 'Imprimer ou enregistrer en PDF'),
-            ]),
+            /**
+             * Download, with the formats behind it, the way a document editor does it.
+             *
+             * It was two items at the top level, "Download as a JSON file" and "Print or save
+             * as a PDF", which is a menu listing one act twice under two names. Asked for: in
+             * file, where you have download, there should be just download, and on hover it
+             * should show on the right, just like Google Docs do, options of download. The
+             * order is hers: first CSV, then PDF, then JSON.
+             *
+             * It opens on hover, on keyboard focus and on a click, because hover alone has no
+             * meaning on a touch screen and the whole row is a button there.
+             */
+            (() => {
+              const sub = el('div', { class: 'menu-sub' });
+              const open = () => sub.classList.toggle('open');
+              sub.appendChild(el('button', {
+                class: 'menu-item has-sub',
+                'aria-haspopup': 'true',
+                onclick: open,
+              }, [
+                el('span', { class: 'menu-ico', html: ICON_DOWN, 'aria-hidden': true }),
+                t('Download', 'Télécharger'),
+                el('span', { class: 'sub-arrow', 'aria-hidden': true }, ['\u203A']),
+              ]));
+              sub.appendChild(el('div', { class: 'menu-sub-pop' }, [
+                el('button', {
+                  class: 'menu-item',
+                  onclick: () => { saveAnswersCsv(rubric, assessment); paint(); },
+                }, [t('Spreadsheet (.csv)', 'Tableur (.csv)')]),
+                el('button', {
+                  class: 'menu-item',
+                  onclick: () => window.print(),
+                }, [t('PDF document (.pdf)', 'Document PDF (.pdf)')]),
+                el('button', {
+                  class: 'menu-item',
+                  onclick: () => { saveAssessmentFile(assessment); paint(); },
+                }, [t('JSON file (.json)', 'Fichier JSON (.json)')]),
+              ]));
+              return sub;
+            })(),
           ]),
         ])
       : null,

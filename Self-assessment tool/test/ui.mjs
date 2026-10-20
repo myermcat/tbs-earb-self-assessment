@@ -588,8 +588,15 @@ for (const { d, sec } of SECTIONS) {
 
   ok(`${sec.label}: only its own ${sec.questions.length} questions are on the page`,
      qa('.question').length === sec.questions.length, String(qa('.question').length));
-  ok(`${sec.label}: the page says what it is worth`,
-     view().includes(`${sec.shareOfDomain ?? sec.weight}% of ${d.label}`));
+  /**
+   * What a section is worth inside its domain, and what the domain is worth overall, were a
+   * sentence on the heading of all twenty. Asked about: wdym 25% of the total, why do I need
+   * those numbers there anyway for the submitter. The weights do the arithmetic and the
+   * arithmetic surfaces in the results; somebody answering fourteen questions is not choosing
+   * between sections on the strength of a percentage.
+   */
+  ok(`${sec.label}: the heading does not price the section`,
+     !view().includes(`% of ${d.label}`), sec.label);
   ok(`${sec.label}: the rail marks it as the page you are on`,
      !!q('.toc-sec.on') && q('.toc-sec.on').textContent.includes(sec.label));
 
@@ -671,14 +678,17 @@ ok('the rail shows every section of the current domain as done',
      pairs === 3 && qa('.sticky-footer .fb-short').length === 3,
      `${pairs} long, ${qa('.sticky-footer .fb-short').length} short`);
   /**
-   * The route this button takes is the one the breadcrumb at the top of the same screen already
-   * takes, which is why a phone can drop it. It must be the footer's copy and not the pager's,
-   * because the pager is the only way forward inside a section.
+   * It was on the bar of every screen, calling the route the breadcrumb at the top of the same
+   * screen already calls. Asked for: remove see my results btn, we already have results tab.
+   * The pager keeps its own at the end of the last section, where it is the step forward and
+   * not a second way to the same place: dropping that one leaves the last section with nothing
+   * but a Back button.
    */
-  ok('the footer names the button whose route the breadcrumb repeats',
-     qa('.footer-actions .footer-results').length === 1, String(qa('.footer-actions .footer-results').length));
-  ok('and the pager keeps its own, unnamed and undropped',
-     qa('.pager .footer-results').length === 0 && qa('.pager button').length > 0);
+  ok('the action bar no longer carries a second way to the results',
+     qa('.footer-actions .footer-results').length === 0 && qa('.sticky-footer .primary').length === 0,
+     `${qa('.footer-actions .footer-results').length} named, ${qa('.sticky-footer .primary').length} primary`);
+  ok('and the pager keeps the step forward',
+     qa('.pager button').length > 0, String(qa('.pager button').length));
   /**
    * These four captions were bare English inside a bilingual tool, so a French reader read
    * "Whole assessment 176 of 176" under a French heading. Asserted by switching, because a
@@ -1306,7 +1316,9 @@ ok('a row with something in it and no marking blocks saving',
 ok('draft is autosaved to this browser', !!window.localStorage.getItem('gc-arch-assessment:draft'));
 
 // ---- results ---------------------------------------------------------------------------
-byText('button', 'See my results').click();
+// The breadcrumb is the way there now. The bar at the foot of the questionnaire used to carry
+// a second one, and this suite was the thing holding it in place.
+byText('.path .tab', 'My results').click();
 ok('results headline rendered', !!q('.bigscore .num'));
 ok("Dan's maturity label is shown", !!q('.maturity strong') && q('.maturity').textContent.includes('Advanced'));
 ok('routing band is shown separately from maturity', !!q('.band strong'));
@@ -1554,7 +1566,24 @@ ok('the copy does not appeal to an unnamed "us"',
 // second way in that produces a different copy of the same work is how two versions start
 // diverging. Downloading one is still in the File menu, which is where everything you do to a
 // whole assessment lives, and it is what this suite uses to look inside a saved assessment.
-byText('.file-menu .menu-item', 'Download as a JSON file').click();
+/**
+ * Download, with the formats behind it. It was two items at the top level, "Download as a JSON
+ * file" and "Print or save as a PDF", which lists one act twice under two names. Asked for: in
+ * file, where you have download, there should be just download, and on hover it should show on
+ * the right, just like Google Docs do, options of download. The order is hers.
+ */
+{
+  const top = qa('.file-menu > .set-menu-pop > .menu-item, .file-menu > .set-menu-pop > .menu-sub > .has-sub')
+    .map((n) => n.textContent.replace(/\u203A/g, '').trim());
+  ok('the File menu offers Download once and names no format at its top level',
+     top.filter((x) => /Download|PDF|JSON|CSV/i.test(x)).join('|') === 'Download', top.join(' | '));
+  const formats = qa('.file-menu .menu-sub-pop .menu-item').map((n) => n.textContent.trim());
+  ok('and the formats behind it are CSV, then PDF, then JSON',
+     formats.join(' | ') === 'Spreadsheet (.csv) | PDF document (.pdf) | JSON file (.json)',
+     formats.join(' | '));
+}
+
+byText('.file-menu .menu-sub-pop .menu-item', 'JSON file (.json)').click();
 ok('a file was produced', saved.length === 1, String(saved.length));
 const savedJson = JSON.parse(await text(saved[0]));
 ok('saved file is a self-assessment', savedJson.fileType === 'gc-arch-assessment');
@@ -2395,6 +2424,27 @@ ok('audited file keeps the self-score alongside the audited one',
     ok('the marking tag is quieter than the control beside it',
        !!fileInk && tagInks.length > 0 && tagInks.every((c) => c !== fileInk),
        `File ${fileInk} / tag ${tagInks.join(', ') || 'no colour of its own'}`);
+    /**
+     * Weight on its own had not done it, and it was reported a second time: it still looks
+     * very similar to file, it should look more like its a part of the page, i mean not a btn.
+     * What made them one group was the row itself, so a rule divides the controls from the
+     * static text the way a toolbar does.
+     */
+    const tagRule = lastDecl('\\.mark-tag', 'border-left');
+    ok('and a rule divides it from the controls',
+       !!tagRule && /1px solid/.test(tagRule), tagRule ?? 'nothing between them');
+  }
+
+  /**
+   * The words carry the ink and the running count does not. Asked for after the opposite was
+   * built: make the numbers, on the contrary, less bright than the text before it, in both
+   * This section 13 of 13 and Whole assessment 176 of 176.
+   */
+  {
+    const word = lastDecl('\\.pbar-label', 'color');
+    const num = lastDecl('\\.pbar-count', 'color');
+    ok('the progress count is lighter than the words in front of it',
+       word === 'var(--ink-2)' && num === 'var(--ink-3)', `${word} words / ${num} count`);
   }
 
   /**

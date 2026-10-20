@@ -1217,8 +1217,10 @@ tr.red-flag td:first-child { box-shadow: inset 2px 0 0 var(--bad); }
  * It replaces a sentence beside the heading that spelled the contents out on every question,
  * and it was accent on all 176 whether anything was there or not.
  */
+/* The question is 550 at full size. This sat at .82rem and read almost as large: they look
+   almost as big as the question itself, they should be lower weight. */
 .q-extras-summary { cursor: pointer; list-style: none; display: flex; align-items: center;
-  gap: 0; font-size: .82rem; color: var(--ink-3); padding: .2rem 0; }
+  gap: 0; font-size: .76rem; font-weight: 400; color: var(--ink-3); padding: .2rem 0; }
 /* The marker keeps the gap the row used to have between all of its parts, because the two
    words and the join between them are one sentence and must not be spaced apart. */
 .q-extras-summary::before { margin-right: .45rem; }
@@ -1319,10 +1321,15 @@ button.marking-banner:hover { filter: brightness(1.25); background: #2a1414; }
  * keeps its capitals because that is how a marking is written. The sentence after it is a
  * sentence.
  */
-.mark-tag { display: inline-flex; align-items: baseline; gap: .45rem; min-width: 0;
-  font-size: .7rem; font-weight: 400;
+/* Reported a second time: it still looks very similar to file, it should look more like it
+   is a part of the page, not a button. Weight alone had not done it, because the thing that
+   made them one group was that they sat in one row with nothing between them. A toolbar
+   separates its controls from its static text with a rule, so this one does. */
+.mark-tag { display: inline-flex; align-items: baseline; gap: .4rem; min-width: 0;
+  font-size: .68rem; font-weight: 400;
+  border-left: 1px solid var(--chrome-line); padding-left: .7rem; margin-left: .1rem;
   color: var(--ink-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.mark-tag-mark { font-size: .66rem; font-weight: 500; letter-spacing: .09em;
+.mark-tag-mark { font-size: .64rem; font-weight: 400; letter-spacing: .09em;
   text-transform: uppercase; }
 .marking-row { display: flex; gap: .35rem; flex-wrap: wrap; margin-bottom: .45rem; }
 
@@ -1677,6 +1684,35 @@ input.code-box:focus { outline: 2px solid var(--accent); outline-offset: 1px; bo
 .menu-item:hover { background: var(--surface-2); border: 0; }
 .menu-item.is-off { color: var(--ink-3); cursor: default; }
 .menu-item.is-off:hover { background: none; }
+
+/*
+ * Download, with the formats beside it. The parent row is a full-width button, so the arrow is
+ * pushed to its end by margin and not by a second column: the icon, the word and the arrow are
+ * one line of text and a grid would hang the arrow off its baseline.
+ *
+ * It opens three ways. Hover is what was asked for, just like Google Docs do. Focus-within
+ * carries the keyboard, because a submenu that only answers a pointer cannot be reached by
+ * tab. The class is for a touch screen, where there is no hover at all and the row is a tap.
+ */
+.menu-sub { position: relative; display: flex; flex-direction: column; }
+.menu-sub > .has-sub { display: flex; align-items: center; width: 100%; }
+.has-sub .sub-arrow { margin-left: auto; padding-left: .9rem; color: var(--ink-3); }
+.menu-sub-pop { display: none; position: absolute; left: calc(100% + .25rem); top: -.25rem;
+  z-index: 6; min-width: 12rem;
+  background: var(--surface); border: 1px solid var(--line-2); border-radius: 10px;
+  box-shadow: var(--shadow-lg); padding: .25rem; flex-direction: column; }
+.menu-sub:hover > .menu-sub-pop,
+.menu-sub:focus-within > .menu-sub-pop,
+.menu-sub.open > .menu-sub-pop { display: flex; }
+
+/* There is no room to the right of a menu on a phone, and no hover either, so the formats
+   drop underneath the row that opens them and only a tap opens it. */
+@media (max-width: 620px) {
+  .menu-sub-pop { position: static; border: 0; box-shadow: none; padding: 0 0 0 1.4rem;
+    min-width: 0; }
+  .menu-sub:hover > .menu-sub-pop, .menu-sub:focus-within > .menu-sub-pop { display: none; }
+  .menu-sub.open > .menu-sub-pop { display: flex; }
+}
 /*
  * TAKEN OUT ON 20 OCTOBER 2026 with the pair it styled, and kept for the same reason.
  *
@@ -1830,15 +1866,15 @@ button.is-mockup, a.is-mockup { opacity: .62; cursor: not-allowed; }
   gap: .5rem 1rem; padding: 0; flex: 1 1 20rem; }
 .pbar { display: grid; gap: .2rem; }
 /**
- * The words are the label and the number is the value, so they are not drawn alike. Asked
- * about: this section is always the same on each section, i guess they should be styled
- * differently. Nothing in the design systems checked prescribes this for a progress caption;
- * what they do ask for is a concise label and a value that stays readable, so the value is the
- * part carrying the ink.
+ * The words are the label and the number is the value, so they are not drawn alike. It was
+ * built with the number carrying the ink and that was the wrong way round here: you made the
+ * 176 of 176 more bright, i dont like it, make the numbers less bright than the text before
+ * it, in both. The count is a running total that changes on every answer, and a figure that
+ * moves does not also need to be the loudest thing in the bar.
  */
-.pbar-label { font-size: .72rem; color: var(--ink-3); font-weight: 600;
+.pbar-label { font-size: .72rem; color: var(--ink-2); font-weight: 600;
   font-variant-numeric: tabular-nums; }
-.pbar-count { color: var(--ink-2); font-weight: 700; }
+.pbar-count { color: var(--ink-3); font-weight: 400; }
 .progress-shell { height: 5px; border-radius: 999px; background: var(--surface-2);
   box-shadow: inset 0 0 0 1px var(--line); overflow: hidden; }
 .progress-shell i { display: block; height: 100%; border-radius: 999px; background: var(--accent);
@@ -1887,10 +1923,6 @@ button.is-mockup, a.is-mockup { opacity: .62; cursor: not-allowed; }
      both bars stood 62px tall to carry a 5px bar. Equal tracks give each caption 161px, which
      holds the longest French form on one line. */
   .progress-row { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
-  /* This button calls the same route as the My results step in the breadcrumb, and that
-     breadcrumb is in the sticky chrome at the top of the same screen. Two ways to one place
-     cost the action row its single line in French. */
-  .footer-results { display: none; }
   /* One line of label leaves a 38px button. A thumb is aimed at 44. */
   .footer-actions button { padding-block: .63rem; }
 }
