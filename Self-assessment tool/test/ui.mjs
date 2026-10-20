@@ -1677,16 +1677,6 @@ ok('and an empty screen centres its one card', !!q('main.body-empty'));
    * is too close to the block under it, This build too, and the distances should be the same
    * on every tab. jsdom lays nothing out, so the rule is read rather than the gap measured.
    */
-  /**
-   * The quiet pair in a row menu is smaller and dimmer than the item above them.
-   *
-   * Asked for in those words: move them to the bottom and make them less bright, smaller. The
-   * order is asserted in hosted.mjs where all three items exist; this is the weight, read off
-   * the stylesheet because jsdom lays nothing out.
-   */
-  const second = (html.match(/\.menu-item\.menu-second\s*\{[^}]*\}/) ?? ['no rule'])[0];
-  ok('the rarely wanted menu items are smaller and quieter than the one above them',
-     /font-size:\s*\.7\d*rem/.test(second) && /color:\s*var\(--ink-2\)/.test(second), second);
   ok('the two settings heading classes share one spacing',
      /\.set-h2,\s*\.set-sub\s*\{[^}]*margin:/.test(html)
      && !/\n\.set-sub\s*\{/.test(html),
@@ -1879,10 +1869,18 @@ ok('triage row names the initiative', q('table.triage tbody tr').textContent.inc
   ok('a submission row carries a menu', !!menu);
   menu.open = true;
   const items = qa('table.triage .row-menu .menu-item').map((b) => b.textContent.trim());
-  // One way in. These were "Open what needs you" and "Open the full submission" while a
-  // submission had two tabs, and after the flagged one went they were one click under two names.
-  ok('and offers one way into the submission',
-     items.filter((x) => /^Open/.test(x)).length === 1, items.join(' | '));
+  /**
+   * And it holds the access code and nothing else.
+   *
+   * Open it went on 20 October, because the row already opens on a click and a menu item for
+   * the thing the whole row does is a second way to one place. Stop counting it went with it,
+   * commented in views-review.ts rather than deleted, until somebody decides what a department
+   * is told when its record stops being counted.
+   */
+  ok('and the one thing in it is the access code',
+     items.length === 1 && /^Copy the access code/.test(items[0] ?? ''), items.join(' | '));
+  ok('and nothing in it repeats what clicking the row already does',
+     !items.some((x) => /^Open/.test(x)), items.join(' | '));
   ok('and no row deletes anything, because deleting is in the danger zone',
      !items.some((x) => /delete/i.test(x)), items.join(' | '));
   ok('and nothing in it is drawn as destroying',
@@ -1890,7 +1888,9 @@ ok('triage row names the initiative', q('table.triage tbody tr').textContent.inc
   menu.open = false;
 }
 
-byText('button', 'Open').click();
+// The row is the way in. There was an Open it in the menu above until 20 October; clicking the
+// row is what it did, and what everybody did instead of finding it.
+q('table.triage tbody tr.row-open').dispatchEvent(new window.MouseEvent('click', { bubbles: true }));
 /**
  * Opening a submission lands on the submission, and assessing it is a block you press.
  *

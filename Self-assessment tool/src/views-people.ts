@@ -207,16 +207,23 @@ function editName(p: Person, after: () => void): void {
 /** The form. Name and address, because removal asks for a name and nobody can invent one later. */
 function addForm(people: Person[], after: () => void): HTMLElement {
   /**
-   * First and last, in two boxes.
+   * ONE BOX, WHICH REVERSES A DECISION MADE HERE IN SEPTEMBER.
    *
-   * Asked for in these words: it should be separately first and last, since I do not know what
-   * order I need to input them. One box makes the order a guess, and the order matters later,
-   * because taking an access away asks for the name back exactly as it is stored.
+   * It was two, first and last, asked for in these words: it should be separately first and
+   * last, since I do not know what order I need to input them. The worry was the order, because
+   * taking an access away asks for the name back exactly as stored.
+   *
+   * Two boxes answered that by deciding the order for everybody, and a name does not always
+   * have two halves: one name, two surnames, a surname written first. The rename window next to
+   * this one has asked for a full name all along, so the screen contradicted itself. Asked for
+   * now, having seen both: one is fine.
+   *
+   * The order worry is answered better by one box than by two. Whatever is typed here is what
+   * the list shows, and whoever takes an access away reads the name off that list rather than
+   * reconstructing it.
    */
-  const first = el('input', { type: 'text', autocomplete: 'off', spellcheck: false,
-    'aria-label': 'First name' }) as HTMLInputElement;
-  const last = el('input', { type: 'text', autocomplete: 'off', spellcheck: false,
-    'aria-label': 'Last name' }) as HTMLInputElement;
+  const name = el('input', { type: 'text', autocomplete: 'off', spellcheck: false,
+    'aria-label': 'Full name' }) as HTMLInputElement;
   const email = el('input', { type: 'email', autocomplete: 'off', spellcheck: false,
     inputmode: 'email', placeholder: t('name@department.gc.ca', 'nom@ministere.gc.ca') }) as HTMLInputElement;
   const say = el('p', { class: 'signer-advice' });
@@ -242,11 +249,11 @@ function addForm(people: Person[], after: () => void): HTMLElement {
   email.addEventListener('input', advise);
 
   const go = el('button', { class: 'primary', onclick: () => {
-    const n = `${first.value.trim()} ${last.value.trim()}`.trim();
+    const n = name.value.trim().replace(/\s+/g, ' ');
     const e = email.value.trim().toLowerCase();
-    if (!first.value.trim() || !last.value.trim()) {
-      say.textContent = t('Put both their first and last name in. It is what taking an access away asks you to type.',
-        'Indiquez son prénom et son nom. C’est ce que le retrait d’accès demande de saisir.');
+    if (!n) {
+      say.textContent = t('Put their name in. It is what taking an access away asks you to type.',
+        'Indiquez son nom. C’est ce que le retrait d’accès demande de saisir.');
       return;
     }
     if (!LOOKS_LIKE_EMAIL.test(e)) { say.textContent = t('That does not look like an email address.',
@@ -265,13 +272,12 @@ function addForm(people: Person[], after: () => void): HTMLElement {
         'Une personne ayant accès porte déjà ce nom. Le retrait d’un accès demande un nom, deux personnes ne peuvent donc pas en partager un. Ajoutez un second prénom ou une initiale.');
       return;
     }
-    void addPerson(e, n).then(() => { first.value = ''; last.value = ''; email.value = ''; after(); },
+    void addPerson(e, n).then(() => { name.value = ''; email.value = ''; after(); },
       (err: Error) => { say.textContent = err.message; });
   } }, [t('Add this assessor', 'Ajouter cet évaluateur')]);
 
   return el('div', { class: 'people-add' }, [
-    el('label', { class: 'field' }, [el('span', {}, [t('First name', 'Prénom')]), first]),
-    el('label', { class: 'field' }, [el('span', {}, [t('Last name', 'Nom de famille')]), last]),
+    el('label', { class: 'field' }, [el('span', {}, [t('Full name', 'Nom complet')]), name]),
     el('label', { class: 'field' }, [
       el('span', {}, [t('The address they sign in with', 'L’adresse de connexion')]), email,
     ]),
