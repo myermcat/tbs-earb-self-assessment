@@ -1089,14 +1089,27 @@ function footer(): HTMLElement {
             ? 'Nothing on this page is kept anywhere, and nothing is sent. '
             : `What you send is kept at ${endpointHost()}. `,
         ]),
+      /**
+       * NO VERSIONS ALONG THE FOOT OF EVERY SCREEN.
+       *
+       * It carried "rubric 1.0 · v0.1.0 · built 2026-10-20 23:48 UTC" on every page. Asked:
+       * what is all this, do we need it.
+       *
+       * Two of the three were already in Settings under This build, which is the pane the
+       * link beside them opens, so they were a copy of a pane on every screen. The third, when
+       * the page was compiled, was only here - it has gone there to join them, where somebody
+       * asking am I looking at the new one will find all three together.
+       *
+       * Nothing in the deploy depended on reading them. The published check compares a digest
+       * of the served file against the one just built, which is a stronger answer to the same
+       * question than a timestamp anybody can read off a cached page.
+       */
       el('button', { class: 'linkish', onclick: () => openSettings('build') }, ['Where this goes']),
-      el('span', {}, [`  \u00b7  rubric ${rubric.version}  \u00b7  v${APP_VERSION}${BUILT ? `  \u00b7  built ${BUILT} UTC` : ''}`]),
     ]);
   }
   return el('footer', { class: 'sitefoot' }, [
     el('span', {}, ['Everything you enter stays on this machine. ']),
     el('button', { class: 'linkish', onclick: () => openSettings('answers') }, ['How that works']),
-    el('span', {}, [`  ·  rubric ${rubric.version}  ·  v${APP_VERSION}${BUILT ? `  ·  built ${BUILT} UTC` : ''}`]),
   ]);
 }
 
@@ -2273,6 +2286,9 @@ function paneBuild(pane: HTMLElement) {
   pane.appendChild(el('dl', { class: 'kv' }, [
     el('dt', {}, ['Tool']), el('dd', { class: 'mono' }, [`v${APP_VERSION}`]),
     el('dt', {}, ['Question set']), el('dd', { class: 'mono' }, [`${rubric.id} ${rubric.version}`]),
+    // Came off the footer, where it was on every screen, and joins the two it was printed
+    // beside. It is the row that answers whether a reload brought the new page.
+    ...(BUILT ? [el('dt', {}, ['Built']), el('dd', { class: 'mono' }, [`${BUILT} UTC`])] : []),
     el('dt', {}, ['Store']), el('dd', {}, [
       isDemo() ? 'None. A demonstration sends nothing and keeps nothing.'
         : isHosted() ? `Writing to ${endpointHost()}`
