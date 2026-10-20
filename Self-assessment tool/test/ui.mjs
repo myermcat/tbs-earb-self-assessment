@@ -1592,6 +1592,24 @@ ok('and an empty screen centres its one card', !!q('main.body-empty'));
    * on the taller one: fixed at the tallest would hang six hundred pixels of nothing under the
    * shortest, so the floor is the rail and nothing is padded past it.
    */
+  /**
+   * AND THE SCREEN IS THE SAME WIDTH WHICHEVER PANE IS OPEN.
+   *
+   * Reported with two screenshots: the settings screens are different sizes. Sideways, which
+   * the first attempt at this missed by measuring heights. Question set was 581px wide in a
+   * 1024px window with the rail a quarter of the way across, People was nearly full width with
+   * the rail at the edge, and switching pane moved the navigation.
+   *
+   * #app is a column flex and .body has an auto margin on the cross axis, which cancels the
+   * stretch and leaves the item as wide as its content. jsdom lays nothing out, so this is read
+   * off the stylesheet, and `.body-review` is asserted beside it because it is the screen that
+   * already had the fix and the reason this one was findable.
+   */
+  const widthOf = (sel) => (html.match(new RegExp(`\\${sel}[^{]*\\{[^}]*\\}`)) ?? [''])[0];
+  ok('settings fills its width, so the rail does not move when a pane changes',
+     /width:\s*100%/.test(widthOf('.body-settings')), widthOf('.body-settings') || 'no rule');
+  ok('and so does the list, which is where that was first fixed',
+     /width:\s*100%/.test(widthOf('.body-review')), widthOf('.body-review') || 'no rule');
   ok('a pane never ends above the rail beside it',
      /\.set-pane\s*\{[^}]*min-height:/.test(html),
      (html.match(/\.set-pane\s*\{[^}]*\}/) ?? ['no rule'])[0]);

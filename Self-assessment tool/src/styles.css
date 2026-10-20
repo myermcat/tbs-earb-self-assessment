@@ -814,7 +814,21 @@ a.faint-link:hover { color: var(--accent); }
  * which is what the assessor's audit rows already do here.
  * ------------------------------------------------------------------------------------------ */
 
-.body-settings { max-width: min(1040px, 100%); }
+/**
+ * SETTINGS IS THE SAME WIDTH ON EVERY PANE, AND THE RAIL DOES NOT MOVE.
+ *
+ * Reported with two screenshots: the settings screens are different sizes. They were, and
+ * sideways rather than up and down, which is what the first attempt at this missed. Question
+ * set was 581px wide in a 1024px window with the rail starting a quarter of the way across;
+ * People was nearly the full width with the rail against the left edge. Switching pane moved
+ * the navigation.
+ *
+ * #app is a column flex and .body carries `margin: 1.15rem auto 1.6rem`. An auto margin on the
+ * cross axis cancels the stretch a flex item would otherwise get, so the body shrank to the
+ * width of whatever pane was open and centred itself there. The assessor's list already
+ * carries `width: 100%` for this reason; this screen was never given it.
+ */
+.body-settings { width: 100%; max-width: min(1040px, 100%); }
 .set-layout { display: grid; grid-template-columns: 13.5rem minmax(0, 1fr); gap: 1.6rem;
   align-items: start; }
 
