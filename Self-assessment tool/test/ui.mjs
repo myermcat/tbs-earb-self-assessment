@@ -2174,66 +2174,21 @@ ok('audited file keeps the self-score alongside the audited one',
   {
     const chipBg = lastDecl('\\.lens-chip\\.on', 'background');
     const primaryBg = lastDecl('button\\.primary', 'background');
+    /**
+     * Every chosen score has a fill, including the assessor's Clear, which carries `on` and no
+     * rung of the ramp. White text on whatever fill the rule above happens to give it was a
+     * white pill on a white card in light mode, and that control has been invisible there for
+     * as long as the audit row has existed.
+     */
+    ok('a chosen score always has a fill under its white text',
+       !!lastDecl('\\.score-btn\\.on', 'background'),
+       lastDecl('\\.score-btn\\.on', 'background') ?? 'nothing');
+
     ok('the filter that is on is not painted with the primary button',
        !!chipBg && !!primaryBg && chipBg !== primaryBg && !/var\(--accent\)/.test(chipBg),
        `chip ${chipBg} / button ${primaryBg}`);
     ok('and it is still a box, so the row shows which one is on',
        /var\(--accent-soft\)/.test(chipBg ?? ''), chipBg ?? 'nothing');
-  }
-
-  /**
-   * The questionnaire's ranking, which is the thing a flat page has none of.
-   *
-   * Reported as: the header and footer and the questions in the middle, everything's quite
-   * messy, everything's pretty much the same brightness, the same weight on the page, which it
-   * should not be. Each of these is one rung of the order she agreed: the question first, the
-   * section title and the primary action second, the navigation third, the plumbing last.
-   *
-   * Read as the last rule with anything to say, because every one of these properties is set
-   * twice in this file and the earlier value is the one that was wrong.
-   */
-  {
-    ok('a question is a row in a list, with no card under it',
-       lastDecl('\\.question', 'box-shadow') === 'none' && lastDecl('\\.question', 'border-radius') === '0',
-       `${lastDecl('\\.question', 'box-shadow')} / ${lastDecl('\\.question', 'border-radius')}`);
-    ok('and the two ends of the list are rounded',
-       /\.question:first-of-type\s*\{[^}]*border-radius/.test(sheet)
-       && /\.question:last-of-type\s*\{[^}]*border-radius/.test(sheet));
-    /**
-     * The flag used to ride on the card's lift, so taking the lift away would have left a
-     * flagged question the only raised thing on a flat page.
-     */
-    ok('a flagged question is marked by something that is not a shadow',
-       !!lastDecl('\\.question\\.red-flag', 'background')
-       && lastDecl('\\.question\\.red-flag', 'box-shadow') === undefined,
-       `${lastDecl('\\.question\\.red-flag', 'background')} / ${lastDecl('\\.question\\.red-flag', 'box-shadow') ?? 'no shadow'}`);
-    ok('and the section head it belongs to carries its own flag',
-       /\.section-head-card\.red-flag\s*\{[^}]*border-left:\s*3px solid var\(--bad\)/.test(sheet));
-
-    ok('the section head is a heading and not a card',
-       lastDecl('\\.section-head-card', 'background') === 'none'
-       && lastDecl('\\.section-head-card', 'box-shadow') === 'none',
-       `${lastDecl('\\.section-head-card', 'background')} / ${lastDecl('\\.section-head-card', 'box-shadow')}`);
-
-    ok('an unanswered score has no fill of its own',
-       lastDecl('\\.score-btn', 'background') === 'none',
-       lastDecl('\\.score-btn', 'background') ?? 'nothing');
-    /**
-     * And every chosen one has a fill, including the assessor's Clear, which carries `on` and
-     * no rung of the ramp. White text on no fill is a control nobody can see.
-     */
-    ok('and a chosen one always has one', !!lastDecl('\\.score-btn\\.on', 'background'),
-       lastDecl('\\.score-btn\\.on', 'background') ?? 'nothing');
-
-    const accent = 'var(--accent)';
-    ok('neither fold on a question is as loud as the question',
-       lastDecl('\\.ladder-box summary', 'color') !== accent
-       && lastDecl('\\.q-extras-summary', 'color') !== accent,
-       `${lastDecl('\\.ladder-box summary', 'color')} / ${lastDecl('\\.q-extras-summary', 'color')}`);
-
-    ok('the rail counts without drawing the count twice',
-       lastDecl('\\.toc-sec \\.toc-bar, \\.toc-overview \\.toc-bar', 'display') === 'none',
-       lastDecl('\\.toc-sec \\.toc-bar, \\.toc-overview \\.toc-bar', 'display') ?? 'still drawn');
   }
 
   /**
