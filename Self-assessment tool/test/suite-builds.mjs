@@ -33,6 +33,13 @@ for (const f of files) readsDist.set(f, OPENS_A_PAGE.test(await readFile(`test/$
 /**
  * Run by deploy/publish-preview.sh against the pages it has just built, not by an alias here.
  * Named rather than skipped by pattern, so a new unwired suite is still caught.
+ *
+ * WHAT THAT COSTS, SO NOBODY IS SURPRISED BY IT TWICE. published.mjs cannot be in npm test,
+ * because it reads the live site. So it is the one file that drifts without anybody noticing
+ * until a publish stops, and on 20 October it did: the submissions list stopped opening on an
+ * All tab, a check looking for a draft on the first paint failed, and the site it was testing
+ * was serving exactly what it should. When a change moves what is on screen before anybody
+ * clicks anything, this file asserts that too.
  */
 const NOT_AN_ALIAS = new Set(['published.mjs', 'rules.mjs', 'suite-builds.mjs']);
 
