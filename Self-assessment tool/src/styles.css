@@ -1713,7 +1713,24 @@ button.is-mockup, a.is-mockup { opacity: .62; cursor: not-allowed; }
 .danger-text { color: var(--bad); }
 .danger-text[disabled] { color: var(--ink-3); }
 
-.sitefoot .proto { color: var(--warn); font-weight: 600; }
+/**
+ * THE FOOTER IS ONE QUIET BAND, AND NOTHING IN IT COMPETES WITH THE PAGE.
+ *
+ * Where the work is kept was set in the warning amber at 600, so the brightest thing on a
+ * screen full of departments and scores was a line of standing fact at the bottom of it.
+ * Reported in those terms: it is such low importance information and it is so bright.
+ *
+ * The amber was there to make a statement about somebody's data visible. It is visible on the
+ * first read and permanent after that, and a colour that means attention spent on a sentence
+ * nobody acts on twice is a colour that means less everywhere else it is used.
+ *
+ * So the whole line sits at the footer's own ink, and the way in to the detail keeps its
+ * underline and finds its colour under the pointer - the pattern the draft note already uses
+ * for a link nobody is being sent to.
+ */
+.sitefoot .proto { color: inherit; font-weight: inherit; }
+.sitefoot .linkish { color: inherit; text-decoration-color: var(--line-2); }
+.sitefoot .linkish:hover { color: var(--accent); filter: none; }
 
 .ref-line { margin: .1rem 0 .6rem; color: var(--ink-2); }
 

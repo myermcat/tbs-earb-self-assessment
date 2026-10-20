@@ -218,6 +218,31 @@ ok('color-scheme is declared for both themes',
 // The frame and the page were within 1.13:1 of each other in light and 1.08:1 in dark, so
 // they read as one surface. The frame has its own edge token, the page footer has a ground of
 // its own, and the dark frame is lighter than the page instead of darker.
+/**
+ * NOTHING IN THE SITE FOOTER COMPETES WITH THE PAGE ABOVE IT.
+ *
+ * Where the work is kept was set in the warning amber at 600, so the brightest thing on a
+ * screen full of departments and scores was a line of standing fact at the bottom of it.
+ * Reported in those terms: it is such low importance information and it is so bright.
+ *
+ * jsdom lays nothing out and resolves no cascade, so this reads the rules. Asserted as the
+ * absence of the two things that lifted it rather than the presence of a colour, because the
+ * footer's own ink is what it should inherit and a rule naming that again would pass while
+ * something later put the amber back.
+ */
+{
+  const foot = (html.match(/\.sitefoot \.proto\s*\{[^}]*\}/) ?? ['no rule'])[0];
+  ok('the line about where the work is kept is at the footer\u2019s own weight',
+     /color:\s*inherit/.test(foot) && !/var\(--warn\)/.test(foot)
+     && !/font-weight:\s*[5-9]00/.test(foot), foot);
+  const link = (html.match(/\.sitefoot \.linkish\s*\{[^}]*\}/) ?? ['no rule'])[0];
+  ok('and the way into the detail is an underline, not a colour',
+     /color:\s*inherit/.test(link) && /text-decoration-color/.test(link), link);
+  ok('and it finds its colour under the pointer, so it is still a link',
+     /\.sitefoot \.linkish:hover\s*\{[^}]*var\(--accent\)/.test(html),
+     (html.match(/\.sitefoot \.linkish:hover\s*\{[^}]*\}/) ?? ['no rule'])[0]);
+}
+
 ok('the sticky footer is pinned to the edge and carries the frame edge',
    /\.sticky-footer\s*\{[^}]*bottom:\s*0/s.test(html) &&
    /\.sticky-footer\s*\{[^}]*border-top:\s*1px solid var\(--chrome-line\)/s.test(html) &&
