@@ -231,10 +231,6 @@ const BUILT: string = typeof __EARB_BUILT__ === 'string' ? __EARB_BUILT__ : '';
 
 const app = document.getElementById('app')!;
 
-/** Small counts read better spelled out in body copy. */
-const WORDS = ['zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine'];
-const spell = (n: number): string => (n < WORDS.length ? WORDS[n] : String(n));
-
 function questionCount(r: Rubric): number {
   return r.domains.reduce((n, d) => n + d.sections.reduce((m, x) => m + x.questions.length, 0), 0);
 }
@@ -1315,26 +1311,17 @@ function renderHome(root: HTMLElement) {
    */
 
 
-  root.appendChild(el('section', { class: 'note' }, [
-    el('h2', {}, [t('What to expect', 'À quoi s\u2019attendre')]),
-    el('ul', {}, [
-      el('li', {}, [
-        el('b', {}, [t(`${total} questions, across ${spell(rubric.domains.length)} architecture domains. `, `${total} questions, réparties sur ${rubric.domains.length} domaines d\u2019architecture. `)]),
-        t('You do not have to finish in one sitting. Your progress is kept as you go, and you can save a file and come back to it.',
-          'Vous n\u2019avez pas à tout terminer d\u2019un seul coup. Votre progression est conservée à mesure, et vous pouvez enregistrer un fichier pour y revenir.'),
-      ]),
-      el('li', {}, [
-        el('b', {}, [t('The scale explains itself. ', 'L\u2019échelle s\u2019explique d\u2019elle-même. ')]),
-        t('Every score from 0 to 10 has a description, so a low score comes with a plain account of what would improve it.',
-          'Chaque note de 0 à 10 est accompagnée d\u2019une description, de sorte qu\u2019une note faible dit clairement ce qui l\u2019améliorerait.'),
-      ]),
-      el('li', {}, [
-        el('b', {}, [t('You decide who sees it. ', 'Vous décidez qui la voit. ')]),
-        t('Saving produces a file on your machine. Sending it is a separate step, through whatever channel your department already uses.',
-          'L\u2019enregistrement produit un fichier sur votre ordinateur. L\u2019envoi est une étape distincte, par le canal que votre ministère utilise déjà.'),
-      ]),
-    ]),
-  ]));
+  /**
+   * WHAT TO EXPECT IS GONE, AND THE HERO IS THE PAGE.
+   *
+   * It was three bullets under the hero: how many questions there are and that you need not
+   * finish in one sitting, that the scale explains itself, and that saving makes a file you
+   * send yourself. Reported as redundant, and it was: the count is on the button's own screen,
+   * the scale is a fold on every section heading, and saving to a file is in the File menu.
+   *
+   * With nothing under it the hero sits in the middle of the screen, which .app-home .body
+   * was already centring and had nothing to centre.
+   */
 }
 
 /* ------------------------------------------------------------------------------------------

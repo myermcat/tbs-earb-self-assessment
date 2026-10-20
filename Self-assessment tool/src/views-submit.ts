@@ -784,7 +784,15 @@ function footerBar(
    * percent per answer. The one that can show progress is the one worth animating.
    */
   const secBar = el('i');
-  const secLabel = el('span', { class: 'pbar-label' });
+  /**
+   * Two elements, for the reason the bar beside it has three: the words carry the ink and the
+   * running count does not, and a caption written as one string has nowhere to hang the
+   * difference. Reported after the other bar was fixed: This section 9 of 9 still has numbers
+   * and text the same brightness.
+   */
+  const secWord = el('span', {});
+  const secCount = el('span', { class: 'pbar-count' });
+  const secLabel = el('span', { class: 'pbar-label' }, [secWord, secCount]);
   const allBar = el('i');
   /**
    * Three elements rather than one string, for two reasons. The wording in front of the count
@@ -860,11 +868,13 @@ function footerBar(
     let total = cur ? cur.total : ovTotal;
     if (lens && dsHere) {
       [done, total] = countedInLens(dsHere.sections.flatMap((x) => x.questions));
-      secLabel.textContent = `${shortLabel(dsHere.domain.label)} ${done} ${t('of', 'sur')} ${total}`;
+      secWord.textContent = `${shortLabel(dsHere.domain.label)} `;
+      secCount.textContent = `${done} ${t('of', 'sur')} ${total}`;
     } else {
-      secLabel.textContent = cur
-        ? `${t('This section', 'Cette section')} ${done} ${t('of', 'sur')} ${total}`
-        : `${t('Overview', 'Aperçu')} ${done} ${t('of', 'sur')} ${total}`;
+      secWord.textContent = cur
+        ? `${t('This section', 'Cette section')} `
+        : `${t('Overview', 'Aperçu')} `;
+      secCount.textContent = `${done} ${t('of', 'sur')} ${total}`;
     }
     secBar.style.width = total > 0 ? `${Math.round((done / total) * 100)}%` : '0%';
 

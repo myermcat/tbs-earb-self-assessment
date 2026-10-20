@@ -119,7 +119,15 @@ ok('and the footer is the store sentence and the way to read more',
    && !!q('.sitefoot .linkish'), q('.sitefoot').textContent.trim());
 ok('and the version names nobody', !/\b(dan|nick|allison|john|patricia|mariia)\b/i.test(rubric.version), rubric.version);
 ok('draft status is reachable from the footer', !!byText('button', 'How that works'));
-ok('the question count is stated up front', view().includes(String(TOTAL)));
+/**
+ * The home page is the hero and nothing under it. What to expect went on 20 October, reported
+ * as redundant: it carried the question count, which the bar at the foot of the questionnaire
+ * carries, that the scale explains itself, which is a fold on every section heading, and that
+ * saving makes a file, which is in the File menu.
+ */
+ok('the home page carries one block and it is the one that starts the assessment',
+   qa('.body-home > section').length === 1 && !!q('.body-home .hero'),
+   qa('.body-home > section').map((n) => n.className).join(' | '));
 
 // Settings is a rail with one pane at a time, ordered from nothing at stake to everything.
 q('.icon-btn[aria-label="Settings"]').click();

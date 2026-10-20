@@ -488,15 +488,9 @@ button.big:hover .arrow { transform: translateX(3px); }
 
 /* Three short notes side by side. Stacked, they cost three times the height for the same
    words, on a page whose whole point is fitting one screen. */
-.note { background: transparent; border: 0; padding: 0 .3rem; margin-top: 1.5rem; }
-.note h2 { font-size: .66rem; font-weight: 700; letter-spacing: .12em; text-transform: uppercase;
   color: var(--ink-3); opacity: .75; margin-bottom: .8rem; }
-.note ul { list-style: none; padding: 0; margin: 0;
   display: grid; grid-template-columns: repeat(auto-fit, minmax(215px, 1fr)); gap: .35rem 1.4rem; }
-.note li { font-size: .77rem; line-height: 1.45; color: var(--ink-3); opacity: .85;
   padding-left: .75rem; position: relative; border-left: 1px solid var(--line); }
-.note li::before { content: none; }
-.note li b { display: block; color: var(--ink-2); font-weight: 600; margin-bottom: .12rem; }
 
 
 
@@ -1175,12 +1169,12 @@ tr.red-flag td:first-child { box-shadow: inset 2px 0 0 var(--bad); }
  */
 .score-btn.on { color: #fff; border-color: transparent; box-shadow: none;
   background: var(--ink-3); }
-.score-btn.on.v0  { background: color-mix(in srgb, var(--s0) 84%, var(--surface)); }  .score-btn.on.v1  { background: color-mix(in srgb, var(--s1) 84%, var(--surface)); }
-.score-btn.on.v2  { background: color-mix(in srgb, var(--s2) 84%, var(--surface)); }  .score-btn.on.v3  { background: color-mix(in srgb, var(--s3) 84%, var(--surface)); }
-.score-btn.on.v4  { background: color-mix(in srgb, var(--s4) 84%, var(--surface)); }  .score-btn.on.v5  { background: color-mix(in srgb, var(--s5) 84%, var(--surface)); }
-.score-btn.on.v6  { background: color-mix(in srgb, var(--s6) 84%, var(--surface)); }  .score-btn.on.v7  { background: color-mix(in srgb, var(--s7) 84%, var(--surface)); }
-.score-btn.on.v8  { background: color-mix(in srgb, var(--s8) 84%, var(--surface)); }  .score-btn.on.v9  { background: color-mix(in srgb, var(--s9) 84%, var(--surface)); }
-.score-btn.on.v10 { background: color-mix(in srgb, var(--s10) 84%, var(--surface)); }
+.score-btn.on.v0  { background: color-mix(in srgb, var(--s0) 70%, var(--surface)); }  .score-btn.on.v1  { background: color-mix(in srgb, var(--s1) 70%, var(--surface)); }
+.score-btn.on.v2  { background: color-mix(in srgb, var(--s2) 70%, var(--surface)); }  .score-btn.on.v3  { background: color-mix(in srgb, var(--s3) 70%, var(--surface)); }
+.score-btn.on.v4  { background: color-mix(in srgb, var(--s4) 70%, var(--surface)); }  .score-btn.on.v5  { background: color-mix(in srgb, var(--s5) 70%, var(--surface)); }
+.score-btn.on.v6  { background: color-mix(in srgb, var(--s6) 70%, var(--surface)); }  .score-btn.on.v7  { background: color-mix(in srgb, var(--s7) 70%, var(--surface)); }
+.score-btn.on.v8  { background: color-mix(in srgb, var(--s8) 70%, var(--surface)); }  .score-btn.on.v9  { background: color-mix(in srgb, var(--s9) 70%, var(--surface)); }
+.score-btn.on.v10 { background: color-mix(in srgb, var(--s10) 70%, var(--surface)); }
 /**
  * THE NUMBER ON A CHOSEN SQUARE IS WHICHEVER OF WHITE AND DARK CAN BE READ ON THAT RUNG.
  *
@@ -1190,17 +1184,28 @@ tr.red-flag td:first-child { box-shadow: inset 2px 0 0 var(--bad); }
  * ours to repaint, so what changes is the ink on top of it.
  *
  * Measured per rung in both themes, better of the two taken:
- *   light  ink on 2 3 4 5 6 7 9, white on 0 1 8 10
- *   dark   ink on 3 4 5 6,       white on the rest
- * Two sit near the line after this, rung 2 at 4.23 in light and rung 3 at 4.24 in dark. The
- * rest clear it, where before the worst was 1.84.
+ *   light  white on 0 and 1, ink on 2 through 10
+ *   dark   ink on 4 and 5,   white on the rest
+ *
+ * THE TABLE DEPENDS ON THE MIX ABOVE AND HAS TO BE REMEASURED WITH IT. The fill went from 84%
+ * of the rung to 70% on 20 October, asked for as: the colour of the selected number boxes can
+ * be even lower opacity. Mixing further into the page moves the fill towards white in light
+ * mode and towards black in dark, in opposite directions, so four rungs changed sides. At 84%
+ * white was right on 8 and 10 in light at 4.55 and 4.49; at 70% the same two read 3.37 and
+ * 3.33 white against 5.24 and 5.30 in ink.
+ *
+ * The worst case is now rung 6 in dark mode at 4.46, four hundredths under the bar, which is
+ * the best either ink does on that olive. Every other rung clears 4.5, and the shipped worst
+ * before this was 4.24.
  */
 .score-btn.on.v2, .score-btn.on.v3, .score-btn.on.v4, .score-btn.on.v5,
-.score-btn.on.v6, .score-btn.on.v7, .score-btn.on.v9 { color: var(--ramp-ink); }
+.score-btn.on.v6, .score-btn.on.v7, .score-btn.on.v8, .score-btn.on.v9,
+.score-btn.on.v10 { color: var(--ramp-ink); }
 @media (prefers-color-scheme: dark) {
-  /* The fill is mixed into the page's own surface, so three rungs go dark enough in dark mode
-     that white reads better on them again. */
-  .score-btn.on.v2, .score-btn.on.v7, .score-btn.on.v9 { color: #fff; }
+  /* A fill mixed into a dark surface goes dark, so white comes back on everything except the
+     two rungs at the top of the amber. */
+  .score-btn.on.v2, .score-btn.on.v3, .score-btn.on.v6, .score-btn.on.v7,
+  .score-btn.on.v8, .score-btn.on.v9, .score-btn.on.v10 { color: #fff; }
 }
 .score-btn:disabled { opacity: .3; }
 .na { font-size: .83rem; color: var(--ink-2); display: inline-flex; align-items: center; gap: .3rem;
