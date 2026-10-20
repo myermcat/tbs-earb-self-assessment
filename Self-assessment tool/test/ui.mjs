@@ -1584,6 +1584,17 @@ ok('and an empty screen centres its one card', !!q('main.body-empty'));
    * says why, which is what keeps somebody from quietly restoring it and keeps somebody else
    * from deleting the block it is about.
    */
+  /**
+   * A short pane does not end above the navigation beside it.
+   *
+   * The panes run from 117px to 809px, so People finished well above the last item in the rail
+   * and read as content that had failed to load. Asked whether the size should be fixed, and
+   * on the taller one: fixed at the tallest would hang six hundred pixels of nothing under the
+   * shortest, so the floor is the rail and nothing is padded past it.
+   */
+  ok('a pane never ends above the rail beside it',
+     /\.set-pane\s*\{[^}]*min-height:/.test(html),
+     (html.match(/\.set-pane\s*\{[^}]*\}/) ?? ['no rule'])[0]);
   ok('there is no way to put a file into the tool', !byText('.filelabel', 'Add a question set'));
   ok('the sets in this browser are listed', qa('.set-list-row').length >= 1,
      String(qa('.set-list-row').length));

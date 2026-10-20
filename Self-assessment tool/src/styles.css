@@ -835,7 +835,20 @@ a.faint-link:hover { color: var(--accent); }
 .set-navrow.danger.on { background: var(--bad-bg); color: var(--bad);
   box-shadow: inset 2px 0 0 var(--bad); }
 
-.set-pane { min-width: 0; }
+/**
+ * THE PANE NEVER ENDS ABOVE THE RAIL BESIDE IT.
+ *
+ * The panes are 117px to 809px tall, so switching from People to This build moved the foot of
+ * the page by seven hundred pixels and the short ones finished well above the last item in the
+ * navigation, which reads as the content having failed to load. Asked whether the size should
+ * be fixed, and on the taller one.
+ *
+ * Fixed at the tallest is the wrong trade: it would hang six hundred pixels of nothing under
+ * People to spare the eye a jump that is a real difference in what is on the screen. The floor
+ * is the rail instead. Nothing is padded beyond the navigation it sits next to, the short
+ * panes stop looking broken, and the panes that are genuinely long stay as long as they are.
+ */
+.set-pane { min-width: 0; min-height: 15rem; }
 .set-pane > h1 { font-size: 1.35rem; margin-bottom: .15rem; }
 .set-pane > h1:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
 .set-lead { color: var(--ink-2); margin-bottom: 1.1rem; }
