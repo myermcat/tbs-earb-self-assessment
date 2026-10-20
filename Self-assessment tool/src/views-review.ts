@@ -1193,7 +1193,19 @@ function paintList(rubric: Rubric, root: HTMLElement) {
             }, ['Ready'])
           : el('span', { class: 'muted', title: 'Nobody has said this one is finished' }, ['Draft']),
       ]),
-      el('td', {}, [l.a.initiative?.department ?? '--']),
+      /**
+       * The department reads at the question set's weight, which is below the initiative's.
+       *
+       * Asked for in those words: the text in the department column should be the same style
+       * as 1.0 in the question set. Both are context rather than the thing being looked for -
+       * a department name repeats down the column and the initiative is what tells one row
+       * from another - so both sit a size down and in the quiet ink.
+       *
+       * Not the mono face, which is the one difference. In this table mono means a code or a
+       * number, and putting a thirty-character department name in it would say the name is
+       * something to be read character by character.
+       */
+      el('td', { class: 'small dim' }, [l.a.initiative?.department ?? '--']),
       el('td', { class: 'small' }, [l.a.initiative?.classification || 'unmarked']),
       /**
        * The four-character chip is gone with the reference it showed.
