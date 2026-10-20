@@ -1210,23 +1210,30 @@ console.log('\nThe published build, signed in\n');
    */
   const fields = [...pane.querySelectorAll('.people-add input')];
   /**
-   * First and last in separate boxes. Asked for as: I do not know what order I need to input
-   * them, and the order matters, because taking an access away asks for the name back exactly.
+   * ONE NAME BOX, WHICH REVERSES A DECISION MADE IN SEPTEMBER.
+   *
+   * It was two, first and last, asked for as: I do not know what order I need to input them,
+   * and the order matters because taking an access away asks for the name back exactly. Two
+   * boxes answered that by deciding the order for everybody, and a name does not always have
+   * two halves. The rename window beside this one had asked for a full name all along, so the
+   * screen contradicted itself. Asked for now, having seen both: one is fine.
    */
-  ok('adding asks for a first name, a last name and an address', fields.length === 3,
+  ok('adding asks for a name and an address, in one box each', fields.length === 2,
      fields.map((f) => f.type).join(','));
+  ok('and the name box asks for the whole name',
+     (pane.querySelector('.people-add .field span')?.textContent ?? '') === 'Full name',
+     pane.querySelector('.people-add .field span')?.textContent ?? 'no label');
   ok('and the note above the address has a heading, so it is read before the box under it',
      /Google account only/.test(pane.querySelector('.note-yellow-head')?.textContent ?? ''),
      pane.querySelector('.note-yellow-head')?.textContent ?? 'no heading');
   const add = [...pane.querySelectorAll('.people-add button')].find((b) => /Add this assessor/.test(b.textContent));
-  fields[2].value = 'someone@tbs-sct.gc.ca';
+  fields[1].value = 'someone@tbs-sct.gc.ca';
   add.click();
   await new Promise((r) => setTimeout(r, 30));
   ok('and refuses an address with no name against it',
-     /first and last name/i.test(pane.textContent), pane.textContent.slice(-200));
-  fields[0].value = 'Someone';
-  fields[1].value = 'New';
-  fields[2].value = 'colleague@tbs-sct.gc.ca';
+     /Put their name in/i.test(pane.textContent), pane.textContent.slice(-200));
+  fields[0].value = 'Someone New';
+  fields[1].value = 'colleague@tbs-sct.gc.ca';
   add.click();
   await new Promise((r) => setTimeout(r, 30));
   ok('and refuses an address that is already on the list',
@@ -1237,8 +1244,8 @@ console.log('\nThe published build, signed in\n');
    * works is whichever one the person's Google account uses, and the account that set this
    * project up is a personal one. Refusing would lock out exactly the person who fixes things.
    */
-  fields[2].value = 'someone@gmail.com';
-  fields[2].dispatchEvent(new dom.window.Event('input', { bubbles: true }));
+  fields[1].value = 'someone@gmail.com';
+  fields[1].dispatchEvent(new dom.window.Event('input', { bubbles: true }));
   await new Promise((r) => setTimeout(r, 20));
   ok('a non-government address is warned about and not refused',
      /not a government address/i.test(pane.textContent)
@@ -1265,9 +1272,8 @@ console.log('\nThe published build, signed in\n');
    */
   {
     const f = [...pane.querySelectorAll('.people-add input')];
-    f[0].value = 'Jean';
-    f[1].value = 'Tremblay';
-    f[2].value = 'different@tbs-sct.gc.ca';
+    f[0].value = 'Jean Tremblay';
+    f[1].value = 'different@tbs-sct.gc.ca';
     [...pane.querySelectorAll('.people-add button')].find((b) => /Add this assessor/.test(b.textContent)).click();
     await new Promise((r) => setTimeout(r, 30));
     ok('a duplicate name is refused when it is added, not discovered at removal',
@@ -1378,20 +1384,24 @@ console.log('\nThe published build, signed in\n');
 /* --------------------------------------------------------------------------------------- */
 {
   /**
-   * Withdrawing a record, which is what somebody wants when a test submission is cluttering the
-   * portfolio and deleting is more than they meant.
+   * ONE THING IN A SUBMISSION'S MENU, AND IT IS THE ACCESS CODE.
    *
-   * The rule that permits it allows exactly one field to differ, so this test also proves the
-   * request the tool actually sends is masked to that one field. An assessor who could rewrite a
-   * department's answers while tidying the portfolio is the failure it exists to prevent.
+   * Open it went because the row already opens on a click: role="link", Enter and space, and a
+   * title that reads Open followed by the name. Stop counting it was taken out on 20 October
+   * after she read what it does - a withdrawn record comes out of every number on the dashboard
+   * and the department it belongs to sees nothing change at all - and it is commented in
+   * views-review.ts rather than deleted.
+   *
+   * What a withdrawn record LOOKS like is still live and still asserted below, because records
+   * withdrawn before today are still in the store. What is gone with the button is the
+   * click-through and the masked-patch check on the request it sent; both come back with it,
+   * and deploy/firestore.rules still refuses an assessor write that touches a second field.
    */
-  /**
-   * It is driven from the submissions list, because that is where the rows are. The portfolio
-   * kept a second copy of this list and the control was only on that copy; the list is gone and
-   * the control came to the row it is about.
-   */
-  const rows = [submission('AB12', 'Real Work'), submission('CD34', 'Test Submission')];
-  const { doc, dom, seen } = await boot({
+  const rows = [
+    submission('AB12', 'Real Work'),
+    { ...submission('CD34', 'Test Submission'), withdrawnAt: '2026-10-01T00:00:00.000Z' },
+  ];
+  const { doc, dom } = await boot({
     session: live, side: 'assess', role: 'assessor',
     listAnswer: { documents: rows.map(asDoc) },
   });
@@ -1400,68 +1410,27 @@ console.log('\nThe published build, signed in\n');
   ok('the submission row carries a menu', !!menu, doc.querySelector('main')?.textContent?.slice(0, 120));
   menu.open = true;
   const items = [...menu.querySelectorAll('.menu-item')].map((b) => b.textContent.trim());
-  /**
-   * THE ACCESS CODE IS FIRST, BECAUSE IT IS WHY ANYBODY OPENS THIS MENU.
-   *
-   * It sat third, under Open it and Stop counting it, and had to be looked for every time. Her
-   * words: I always need to copy the access code, and the rest I almost never need to do. So
-   * the order follows how often each one is wanted, and the two that are rarely wanted sit
-   * under a rule, marked as the quiet pair.
-   */
-  ok('the access code is the first thing in the menu',
-     /^Copy the access code/.test(items[0] ?? ''), items.join(' | '));
-  ok('and carries the same clipboard mark as every other copy control',
+  ok('and the one thing in it is the access code',
+     items.length === 1 && /^Copy the access code/.test(items[0] ?? ''), items.join(' | '));
+  ok('and it carries the same clipboard mark as every other copy control',
      !!menu.querySelector('.menu-item .menu-ico svg'),
      menu.querySelector('.menu-item')?.innerHTML?.slice(0, 60) ?? 'no icon');
-  ok('and the two that are rarely wanted are under it, and marked quiet',
-     [...menu.querySelectorAll('.menu-item')].slice(1)
-       .every((b) => b.classList.contains('menu-second')),
-     [...menu.querySelectorAll('.menu-item')]
-       .map((b) => `${b.textContent.trim().slice(0, 18)}:${b.className}`).join(' | '));
-  // Read as the order of the children, which is the thing being asserted.
-  const shape = [...menu.querySelectorAll('.set-menu-pop > *')].map((n) => n.className);
-  ok('with a rule between the one and the other two',
-     shape[0] === 'menu-item' && shape[1] === 'menu-sep'
-     && shape.slice(2).every((c) => c.includes('menu-second')),
-     shape.join(' | '));
-  ok('and offers to stop counting the record, under the way in',
-     items.indexOf('Stop counting it') === 2, items.join(' | '));
-  ok('and offers nothing that destroys anything',
-     !items.some((x) => /delete/i.test(x)), items.join(' | '));
-
-  [...menu.querySelectorAll('.menu-item')].find((b) => /Stop counting it/.test(b.textContent)).click();
-  await new Promise((r) => setTimeout(r, 40));
-  const w = doc.querySelector('dialog.confirm');
-  ok('it asks first', !!w);
-  ok('and says the record itself is untouched',
-     /Nothing in it is changed or removed/.test(w?.textContent ?? ''), w?.textContent?.slice(0, 220));
-  ok('and says the access code keeps working, because withdrawing is not deleting',
-     /access code keeps working/.test(w?.textContent ?? ''), w?.textContent?.slice(0, 260));
-
-  [...w.querySelectorAll('.cf-actions button')].find((b) => /Stop counting it/.test(b.textContent)).click();
-  await new Promise((r) => setTimeout(r, 120));
+  ok('nothing in it repeats what clicking the row already does',
+     !items.some((x) => /open/i.test(x)), items.join(' | '));
+  ok('and nothing in it destroys anything or changes what is counted',
+     !items.some((x) => /delete|stop counting/i.test(x)), items.join(' | '));
   /**
-   * The request, which is the half a rule cannot check from inside the browser.
-   */
-  const patch = seen.filter((x) => x.method === 'PATCH').pop();
-  ok('the write is a masked patch, so it cannot carry anything but the one field',
-     !!patch && /updateMask\.fieldPaths=withdrawnAt/.test(patch.href), patch?.href ?? 'no PATCH sent');
-  ok('and it is sent against the record that was chosen',
-     !!patch && new RegExp(`assessments/${codeFor('AB12')}\\?`).test(patch.href), patch?.href ?? '');
-
-  /**
-   * And the row goes to the foot of the list, under a heading that says what it is now.
-   *
-   * A withdrawn record used to sit among the work with nothing marking it, because the only
-   * screen that told it apart was the portfolio's copy of this table.
+   * The row still says what it is, and still goes to the foot of the list under its own
+   * heading. That is what a department withdrawn before today looks like to an assessor, and
+   * it does not depend on there being a control for it.
    */
   const bands = [...doc.querySelectorAll('table.triage tr.group-band')].map((r) => r.textContent);
-  ok('the list gains a band for withdrawn records',
+  ok('a withdrawn record still has a band of its own',
      bands.some((b) => /Withdrawn/.test(b)), bands.join(' | ') || 'no bands');
   const order = [...doc.querySelectorAll('table.triage tbody tr')].map((r) =>
     r.classList.contains('group-band') ? `[${r.textContent.replace(/\s+/g, ' ').trim().slice(0, 20)}]`
       : r.classList.contains('row-withdrawn') ? 'withdrawn' : 'live');
-  ok('and the withdrawn one is last', order[order.length - 1] === 'withdrawn', order.join(' > '));
+  ok('and it is last', order[order.length - 1] === 'withdrawn', order.join(' > '));
   dom.window.close();
 }
 
@@ -2126,13 +2095,19 @@ console.log('\nThe published build, signed in\n');
     audits: { [one.id]: [theirs] },
   });
 
-  // The row is the way in now. The Open button at the end of eleven columns is gone, and the
-  // menu still carries one for anybody who looks there first.
+  /**
+   * The row is the only way in, and it says so without a word.
+   *
+   * There was an Open button at the end of eleven columns, then a menu item beside it for
+   * anybody who looked there first. Both are gone: the row is role="link", it takes Enter and
+   * space, and its title reads Open followed by the name, so a second control for the thing
+   * the whole row does was a second way to one place.
+   */
   const row = doc.querySelector('.triage tbody tr.row-open');
   ok('the row itself opens the submission', !!row);
-  ok('and the menu still offers it in words',
-     [...doc.querySelectorAll('.row-acts .menu-item')].some((b) => /^Open it$/.test(b.textContent.trim())),
-     [...doc.querySelectorAll('.row-acts .menu-item')].map((b) => b.textContent).join(' | '));
+  ok('and it announces itself as the way in, rather than needing a button',
+     row?.getAttribute('role') === 'link' && /^Open /.test(row?.getAttribute('title') ?? ''),
+     `${row?.getAttribute('role')} / ${row?.getAttribute('title')?.slice(0, 40)}`);
   row.dispatchEvent(new dom.window.MouseEvent('click', { bubbles: true }));
   await new Promise((r) => setTimeout(r, 120));
 

@@ -11,7 +11,9 @@ import { rubricFor } from './library';
 import { confirmStep } from './confirm';
 import { SAD_CAT } from './cat';
 import { ICON_COPY, ICON_DOWN } from './icons';
-import { addressOf, currentUser, formatCode, listAllAudits, listAudits, putAudit, setWithdrawn,
+// setWithdrawn is not imported while the control that used it is commented out below. It is
+// still exported from firebase.ts, and restoring that block restores this name too.
+import { addressOf, currentUser, formatCode, listAllAudits, listAudits, putAudit,
   type AssessorAudit } from './firebase';
 import { isHosted, poolRecords, type PoolAnswer } from './store';
 import { repaint } from './views-submit';
@@ -1290,55 +1292,54 @@ function paintList(rubric: Rubric, root: HTMLElement) {
                     ]);
                   })()
                 : null,
-              l.a.id ? el('div', { class: 'menu-sep' }) : null,
-              // One way in, because there is one view. These were "Open what needs you" and
-              // "Open the full submission" when the submission had two tabs, and after the
-              // flagged one went they were two labels for the same click.
-              el('button', {
-                class: 'menu-item menu-second',
-                onclick: () => openDetail(l.rubric, root, l),
-              }, ['Open it']),
               /**
-               * Withdrawing, which was only on the portfolio's own copy of this list.
+               * ONE THING IN THIS MENU, BECAUSE ONE THING IS WHAT IT IS FOR.
                *
-               * It is the move somebody wants when a test submission is cluttering the
-               * portfolio, and it belongs on the row it is about rather than on a second list
-               * of the same records. Nothing is deleted: the record comes out of every average
-               * and every ranked list, goes to the foot of this one under its own heading, and
-               * any assessor can put it back. Its access code keeps working throughout.
+               * Open it went because the row already opens on a click: it is role="link", it
+               * takes Enter and space, and its title reads Open followed by the name. A menu
+               * item for the thing the whole row does is a second way to one place.
                *
-               * Not on a demonstration. isHosted() is true there, so this was offered on all
-               * twenty rows, and pressing it walked somebody through a caution dialog about
-               * taking a department out of every average and then stopped at a browser alert
-               * asking them to sign in. The one move the demonstration cannot make should not
-               * be the one it offers on every row.
+               * Stop counting it is TAKEN OUT ON 20 OCTOBER 2026 AND KEPT HERE, the way the
+               * question-set upload is kept in main.ts. Asked for after reading what it does:
+               * a withdrawn record comes out of every number on the dashboard and the
+               * department it belongs to sees nothing change at all, so until somebody decides
+               * what the department is told, the move should not be one click from a list.
+               *
+               * Nothing it needs has been deleted. setWithdrawn is still exported from
+               * firebase.ts, withdrawalOnly() is still in deploy/firestore.rules, statusOf()
+               * still answers withdrawn, this list still sorts those rows to its foot under
+               * their own heading, and the dashboard still leaves them out of every figure.
+               * Putting it back is this block, a menu-sep above it, and the .menu-second rule
+               * in styles.css that made the pair under the rule smaller and dimmer.
+               *
+               * l.a.id ? el('div', { class: 'menu-sep' }) : null,
+               * l.a.id && isHosted() && !isDemo()
+               *   ? el('button', {
+               *       class: 'menu-item menu-second',
+               *       onclick: () => {
+               *         const out = !!l.a.withdrawnAt;
+               *         const name = l.a.initiative?.name || 'this assessment';
+               *         confirmStep({
+               *           tier: out ? 'plain' : 'caution',
+               *           title: out ? `Count ${name} again?` : `Stop counting ${name}?`,
+               *           body: out
+               *             ? 'It goes back into every average and every ranked list, exactly as it was.'
+               *             : 'It comes out of every average and every ranked list, and stays at the foot of this one so it can be put back. Nothing in it is changed or removed, and its access code keeps working.',
+               *           note: out ? undefined
+               *             : 'This is the one to use for a test submission. Deleting is in the danger zone and cannot be undone.',
+               *           commitLabel: out ? 'Count it again' : 'Stop counting it',
+               *           cancelLabel: 'Cancel',
+               *           onCommit: () => {
+               *             void setWithdrawn(l.a.id as string, !out).then(() => {
+               *               l.a.withdrawnAt = out ? undefined : new Date().toISOString();
+               *               repaint();
+               *             }, (e: Error) => alert(e.message));
+               *           },
+               *         });
+               *       },
+               *     }, [l.a.withdrawnAt ? 'Count it again' : 'Stop counting it'])
+               *   : null,
                */
-              l.a.id && isHosted() && !isDemo()
-                ? el('button', {
-                    class: 'menu-item menu-second',
-                    onclick: () => {
-                      const out = !!l.a.withdrawnAt;
-                      const name = l.a.initiative?.name || 'this assessment';
-                      confirmStep({
-                        tier: out ? 'plain' : 'caution',
-                        title: out ? `Count ${name} again?` : `Stop counting ${name}?`,
-                        body: out
-                          ? 'It goes back into every average and every ranked list, exactly as it was.'
-                          : 'It comes out of every average and every ranked list, and stays at the foot of this one so it can be put back. Nothing in it is changed or removed, and its access code keeps working.',
-                        note: out ? undefined
-                          : 'This is the one to use for a test submission. Deleting is in the danger zone and cannot be undone.',
-                        commitLabel: out ? 'Count it again' : 'Stop counting it',
-                        cancelLabel: 'Cancel',
-                        onCommit: () => {
-                          void setWithdrawn(l.a.id as string, !out).then(() => {
-                            l.a.withdrawnAt = out ? undefined : new Date().toISOString();
-                            repaint();
-                          }, (e: Error) => alert(e.message));
-                        },
-                      });
-                    },
-                  }, [l.a.withdrawnAt ? 'Count it again' : 'Stop counting it'])
-                : null,
               /**
                * There is no control here that removes anything.
                *
