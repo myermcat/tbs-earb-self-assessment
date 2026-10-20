@@ -458,59 +458,38 @@ function paint(
       const box = el('section', { class: 'card lead-card' }, [
         el('h2', {}, ['Self-scores vs. assessors\u2019 scores']),
         /**
-         * THE NUMBER IS A SIZE AND THE WORDS CARRY THE DIRECTION.
+         * A SENTENCE WITH THE NUMBER INSIDE IT, WHICH IS WHAT WAS ASKED FOR.
          *
-         * It printed -1.4 beside "points departments scored themselves high", which is two
-         * directions in one sentence: the minus belongs to the subtraction it came from
-         * (assessor minus department) and the word high belongs to the department. Asked, in
-         * those words: what does it mean, why is the number negative, how does it work.
+         * Four wordings went past her and every one of them hung a fragment off a big figure:
+         * points higher than assessors gave them, points higher departments than assessors,
+         * points departments above their assessors, points higher on average. Each answered
+         * the last question and left the shape that caused it, which is a number you have to
+         * finish for yourself.
          *
-         * Neither half was wrong and together they were unreadable, so the sign goes. How far
-         * apart they are is the size; which way round is what the words say.
+         * She wrote the structure out: on average, the departments score themselves 0.9 points
+         * higher than the assessors score them. So the block is that sentence, with the figure
+         * emphasised in it rather than standing in front of it. Nothing has to be assembled by
+         * the reader and nothing depends on the heading above it.
+         *
+         * The sign stays off the figure. A minus belongs to the subtraction it came from,
+         * assessor minus department, and the word higher belongs to the department; printing
+         * both put two directions in one sentence. How far apart they are is the size, and
+         * which way round is what the words say.
          */
-        lead(
-          changed ? Math.abs(mean).toFixed(1) : '\u2014',
-          /**
-           * It said "0.9 points higher than assessors gave them" and was asked what that
-           * means. Two things were missing: who, and on what. It is the departments, and it is
-           * only the questions where an assessor wrote a different number - a question nobody
-           * changed contributes nothing, which is what keeps the figure from shrinking the
-           * more carefully somebody looks.
-           */
-          /**
-           * Asked twice, and the second time the question was whether 2.8 meant 2.8 points or
-           * 28. A big figure with the word points three words further along does that: the
-           * unit is not beside the number it belongs to.
-           *
-           * So the label starts with the unit, and what is being compared comes next in the
-           * fewest words that are still true. The counts underneath already say the work was
-           * only on the questions an assessor re-scored.
-           */
-          /**
-           * Third wording, and the question each time was the same one: what are those points.
-           *
-           * "points higher than assessors gave them" left out who. "points higher: departments
-           * than assessors" fixed who and left out that it is an average, which is the thing
-           * somebody asks next of any single number standing for twenty-one of them. The label
-           * Fourth wording, and the shortest. Naming both sides in the label repeated the
-           * heading, which already says Self-scores vs. assessors' scores, and left a figure
-           * with a clause after it that did not read as a sentence from the figure. Her
-           * words: since we already say that, can we just say 0.9 points higher on average.
-           *
-           * So the heading carries the comparison and the label carries the direction and the
-           * unit. It reads 0.9 points higher, on average, and what the average is over is the
-           * line of counts underneath, which ends with how many scores were changed.
-           */
-          changed
-            ? mean < 0 ? 'points higher, on average' : 'points lower, on average'
-            : 'no assessor has changed a score',
-          [
-            `${withAudit} record${withAudit === 1 ? '' : 's'} audited`,
-            `${scored} question${scored === 1 ? '' : 's'} re-scored`,
-            `${changed} changed`,
-          ],
-          changed && Math.abs(mean) >= 2 ? 'warn' : '',
-        ),
+        changed
+          ? say([
+              'On average, departments score themselves ',
+              `${Math.abs(mean).toFixed(1)} point${Math.abs(mean) === 1 ? '' : 's'} `,
+              `${mean < 0 ? 'higher' : 'lower'} than their assessors score them.`,
+            ], [
+              `${withAudit} record${withAudit === 1 ? '' : 's'} audited`,
+              `${scored} question${scored === 1 ? '' : 's'} re-scored`,
+              `${changed} changed`,
+            ], Math.abs(mean) >= 2 ? 'warn' : '')
+          : say(['No assessor has changed a score yet.'], [
+              `${withAudit} record${withAudit === 1 ? '' : 's'} audited`,
+              `${scored} question${scored === 1 ? '' : 's'} re-scored`,
+            ]),
       ]);
       if (worst.length) {
         const list = el('div', { class: 'cat-list' }, worst.map((g) => {
@@ -659,6 +638,32 @@ function kpi(value: string, label: string, note = ''): HTMLElement {
  * has waited, the direction departments are scoring themselves in. The supporting numbers are
  * still there, on one line, in the order somebody would ask for them.
  */
+/**
+ * A sentence the reader does not have to assemble, with the figure emphasised inside it.
+ *
+ * lead() below puts the number first and the words after it, which answers how big before it
+ * answers of what. That is right where the unit is the subject - 7 outliers, 21 days - and
+ * wrong where the number only means something inside a comparison. Asked for in those words,
+ * with the sentence written out: on average, the departments score themselves 0.9 points
+ * higher than the assessors score them.
+ *
+ * The middle part is the figure, so a caller passes three pieces and this emphasises the one
+ * in the middle.
+ */
+function say(parts: string[], under: string[], tone = ''): HTMLElement {
+  const [before, figure, after] = parts.length === 3 ? parts : [parts[0], '', ''];
+  return el('div', { class: 'lead-say' }, [
+    el('p', { class: 'say-line' }, [
+      before,
+      figure ? el('strong', { class: `say-n ${tone}` }, [figure]) : null,
+      after,
+    ]),
+    under.filter(Boolean).length
+      ? el('div', { class: 'lead-sub' }, [under.filter(Boolean).join('  \u00B7  ')])
+      : null,
+  ]);
+}
+
 function lead(value: string, label: string, under: string[], tone = ''): HTMLElement {
   return el('div', { class: 'lead' }, [
     el('div', { class: `lead-v ${tone}` }, [value]),

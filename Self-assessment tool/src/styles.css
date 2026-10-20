@@ -863,7 +863,8 @@ a.faint-link:hover { color: var(--accent); }
  * panes stop looking broken, and the panes that are genuinely long stay as long as they are.
  */
 .set-pane { min-width: 0; min-height: 15rem; }
-.set-pane > h1 { font-size: 1.35rem; margin-bottom: .15rem; }
+.set-pane > h1 { font-size: 1.35rem; margin: 0 0 1.1rem; }
+.set-pane > h1 + * { margin-top: 0; }
 .set-pane > h1:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
 .set-lead { color: var(--ink-2); margin-bottom: 1.1rem; }
 .set-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: .3rem 1.2rem;
@@ -1287,7 +1288,20 @@ code.mark-subject { display: block; margin: .25rem 0; }
 /* Where the work is kept. It sits in the chrome, so every screen carries it, and it never
    disappears on a narrow screen: the wording shortens instead. */
 /* The question-set library. One row per set, the one in use marked. */
-.set-h2 { font-size: 1rem; margin: 1.4rem 0 .2rem; display: flex; gap: .4rem; align-items: baseline; }
+/**
+ * ONE SPACING FOR EVERY HEADING IN SETTINGS, AND THE SAME GAP UNDER EVERY TITLE.
+ *
+ * There were two heading classes with different margins - .set-h2 left .2rem under itself and
+ * .set-sub left .85rem - and the pane title left .15rem, so a pane whose content followed the
+ * title directly had it almost touching while a pane whose first thing was a heading looked
+ * roomy. Reported as: Documentation as a heading is too close to the block under it, This
+ * build too, and the distances should be the same on every tab.
+ *
+ * The title's own gap is what follows it, whatever follows it, so the first thing on a pane
+ * starts at the same place on all five.
+ */
+.set-h2, .set-sub { font-size: 1.05rem; font-weight: 650; margin: 1.8rem 0 .7rem;
+  display: flex; gap: .4rem; align-items: baseline; }
 .set-list { display: flex; flex-direction: column; gap: .4rem; margin: .6rem 0 .8rem; }
 .set-list-row { display: flex; gap: .8rem; align-items: flex-start; justify-content: space-between;
   background: var(--surface); border: 1px solid var(--line); border-radius: 10px;
@@ -1368,15 +1382,22 @@ code.mark-subject { display: block; margin: .25rem 0; }
    * so it travels. The second shadow is the shade that tells a reader the column is in front
    * of the row rather than part of it; it only shows while there is something behind it.
    */
-  box-shadow: inset 1px 0 0 var(--line), -6px 0 6px -6px rgb(0 0 0 / .16);
+  /**
+   * The shade and no hairline. Asked for: remove the vertical line.
+   *
+   * There were two marks here doing one job. The line said the column is separate, and the
+   * shade says it is in front of the row sliding under it, which is the true thing and the only
+   * one that disappears when there is nothing behind it to be in front of.
+   */
+  box-shadow: -6px 0 6px -6px rgb(0 0 0 / .16);
 }
 .triage tbody tr:hover td:last-child { background: var(--accent-soft); }
 .triage tbody tr.group-band td:last-child { background: var(--surface-2); }
-/* Nothing is behind it once the table fits, so the shade comes off and the hairline stays. */
+/* Nothing is behind it once the table fits, so the shade comes off and nothing marks it. */
 @media (min-width: 1240px) {
   .body-review .triage th:last-child, .body-review .triage td:last-child,
   .body-admin .triage th:last-child, .body-admin .triage td:last-child {
-    box-shadow: inset 1px 0 0 var(--line); }
+    box-shadow: none; }
 }
 .triage .badge { white-space: normal; margin-left: 0;
   /* The cells below break anywhere, because a department name has to fit a narrow column. A
@@ -1942,6 +1963,25 @@ td.num { text-align: right; font-family: var(--mono); font-variant-numeric: tabu
 .lead-sub { font-size: .8rem; color: var(--ink-3); margin-top: .2rem; }
 
 /**
+ * The same statistic as a sentence, where the number means nothing out of its comparison.
+ *
+ * Big-figure-then-label reads well when the unit is the subject: 7 outliers, 21 days. It reads
+ * badly when the figure only means something inside a comparison, because the eye takes the
+ * number first and then has to carry it into a clause. Asked for with the sentence written
+ * out: on average, the departments score themselves 0.9 points higher than the assessors
+ * score them.
+ *
+ * So the figure is emphasised where it falls rather than lifted out in front. It is a shade
+ * larger than the text around it and the same mono as every other number on this screen, which
+ * is enough to find at a glance without breaking the line it belongs to.
+ */
+.lead-say { margin: .1rem 0 .2rem; }
+.say-line { font-size: 1rem; font-weight: 550; color: var(--ink); line-height: 1.5; margin: 0; }
+.say-n { font-family: var(--mono); font-size: 1.3rem; font-weight: 700; letter-spacing: -.01em;
+  color: var(--ink); }
+.say-n.warn { color: var(--warn); }
+
+/**
  * A list nobody asked for yet. Closed, with its count legible while it is.
  *
  * The summary is the quietest thing on its card. What somebody came to read is the statistic;
@@ -2181,7 +2221,7 @@ dialog.confirm.shake { animation: cf-shake .34s cubic-bezier(.36, .07, .19, .97)
    Asked for by name: the course-hub card. A setting is a sentence with a control beside it; a
    destination is a place, and a person looking for one should find it without reading. So the
    coloured rail down the left, the mono eyebrow, the large title, and the arrow that moves. */
-.set-sub { font-size: 1.05rem; font-weight: 650; margin: 2rem 0 .85rem; }
+
 .hub-cards { display: flex; flex-direction: column; gap: 1rem; }
 .hub-card {
   position: relative; display: block; overflow: hidden;

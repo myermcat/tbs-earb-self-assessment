@@ -1606,6 +1606,22 @@ ok('and an empty screen centres its one card', !!q('main.body-empty'));
    * already had the fix and the reason this one was findable.
    */
   const widthOf = (sel) => (html.match(new RegExp(`\\${sel}[^{]*\\{[^}]*\\}`)) ?? [''])[0];
+  /**
+   * EVERY HEADING IN SETTINGS HAS THE SAME SPACING, AND SO DOES EVERY TITLE.
+   *
+   * There were two heading classes with different margins and a pane title that left .15rem
+   * under itself, so a pane whose content followed the title directly had it almost touching
+   * while a pane starting with a heading looked roomy. Reported as: Documentation as a heading
+   * is too close to the block under it, This build too, and the distances should be the same
+   * on every tab. jsdom lays nothing out, so the rule is read rather than the gap measured.
+   */
+  ok('the two settings heading classes share one spacing',
+     /\.set-h2,\s*\.set-sub\s*\{[^}]*margin:/.test(html)
+     && !/\n\.set-sub\s*\{/.test(html),
+     (html.match(/\.set-h2,\s*\.set-sub\s*\{[^}]*\}/) ?? ['no shared rule'])[0]);
+  ok('and whatever follows a pane title starts at the title\u2019s own gap',
+     /\.set-pane > h1 \+ \*\s*\{[^}]*margin-top:\s*0/.test(html),
+     (html.match(/\.set-pane > h1 \+ \*\s*\{[^}]*\}/) ?? ['no rule'])[0]);
   ok('settings fills its width, so the rail does not move when a pane changes',
      /width:\s*100%/.test(widthOf('.body-settings')), widthOf('.body-settings') || 'no rule');
   ok('and so does the list, which is where that was first fixed',
@@ -1613,6 +1629,15 @@ ok('and an empty screen centres its one card', !!q('main.body-empty'));
   ok('a pane never ends above the rail beside it',
      /\.set-pane\s*\{[^}]*min-height:/.test(html),
      (html.match(/\.set-pane\s*\{[^}]*\}/) ?? ['no rule'])[0]);
+  /**
+   * The heading names what is under it and nothing about where it is kept. "Question sets in
+   * this browser" was asked whether that meant other people would not see them. They will: the
+   * set that ships with the page is in everybody's, and with the upload out there is no way to
+   * put a different one anywhere.
+   */
+  ok('the sets are headed by what they are, not by where they live',
+     !!byText('.set-h2', 'Question sets') && !view().includes('in this browser'),
+     qa('.set-h2').map((h) => h.textContent.trim()).join(' | '));
   ok('there is no way to put a file into the tool', !byText('.filelabel', 'Add a question set'));
   ok('the sets in this browser are listed', qa('.set-list-row').length >= 1,
      String(qa('.set-list-row').length));
@@ -1632,8 +1657,12 @@ ok('and an empty screen centres its one card', !!q('main.body-empty'));
   ok('where the set came from is folded under the list',
      !!q('.set-fold') && q('.set-fold').open === false,
      q('.set-fold summary')?.textContent ?? 'no fold');
-  ok('and the fold says how many things were noted on import',
-     /\d+ noted on import/.test(q('.set-fold summary')?.textContent ?? ''),
+  /**
+   * And the count says what it is counting. "1 noted on import" was asked what it means: it is
+   * a problem in the workbook the set was read out of, found while reading it.
+   */
+  ok('and the fold says what the count is counting',
+     /\d+ problems? found in the workbook/.test(q('.set-fold summary')?.textContent ?? ''),
      q('.set-fold summary')?.textContent ?? '');
   {
     // Each set carries a menu: preview, make active, delete, and who added it.

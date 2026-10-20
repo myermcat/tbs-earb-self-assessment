@@ -2084,8 +2084,16 @@ function paneQuestions(pane: HTMLElement) {
     ]));
   }
 
+  /**
+   * Not "in this browser", which answered a question nobody had and raised one it did not.
+   *
+   * Asked in those words: what do you mean in this browser, will other people not see them.
+   * They will: the set that ships with the page is in everybody's, and with the upload out
+   * there is no way to put a different one anywhere. The phrase was describing a mechanism
+   * rather than naming what is under the heading.
+   */
   pane.appendChild(el('h2', { class: 'set-h2' }, [
-    'Question sets in this browser',
+    'Question sets',
     el('span', { class: 'muted small' }, [` ${lib.length}`]),
   ]));
   pane.appendChild(rows);
@@ -2120,10 +2128,17 @@ function setFold(pane: HTMLElement): void {
   const noted = rubric.importWarnings ?? [];
   if (!rubric.provenance && !noted.length) return;
   pane.appendChild(el('details', { class: 'fold set-fold' }, [
+    /**
+     * What the count is counting, in words. It said "1 noted on import", and was asked what
+     * that means. It is a problem in the workbook this set was read out of, found while
+     * reading it, and the fold holds what the problem was.
+     */
     el('summary', {}, [
-      'Where the active set came from',
+      'Where this set came from',
       noted.length
-        ? el('span', { class: 'muted small' }, [` ${noted.length} noted on import`])
+        ? el('span', { class: 'muted small' }, [
+            ` ${noted.length} problem${noted.length === 1 ? '' : 's'} found in the workbook`,
+          ])
         : null,
     ]),
     rubric.provenance ? el('p', { class: 'small muted' }, [rubric.provenance]) : null,

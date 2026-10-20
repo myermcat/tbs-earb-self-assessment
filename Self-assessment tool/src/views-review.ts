@@ -1066,8 +1066,21 @@ function paintList(rubric: Rubric, root: HTMLElement) {
    * was the part hanging over the edge. Measured at 1900, where the card's inside was 1161.
    * They come to 944 now, which leaves 180 for an initiative's name.
    */
-  const widths = ['auto', '5.2rem', '6.6rem', '5.4rem', '5rem', '5rem', '3.6rem', '5.6rem',
-    '3.4rem', '4.2rem', '4.4rem', '8.2rem', '2.8rem'];
+  /**
+   * AND A ONE-WORD HEADING GETS THE ROOM TO BE READ.
+   *
+   * Reported as: it shows EVIDENC and COMPLET, the last letter is lost. A heading of two words
+   * wraps, so Question set and Must ask were fine in columns narrower than their text; a
+   * heading of one word cannot, so it ran past the fixed width and was cut. Measured against
+   * the rendered text rather than guessed: Score wanted 5px more, Marking 6, Department 1,
+   * Evidence 17 and Complete 19.
+   *
+   * The room comes from the three columns with more than they need. Stage holds one short word
+   * and had 62px for 43. Audited is chips at the smallest size in the table. The initiative's
+   * name keeps the rest and wraps, which is what a name in a table does.
+   */
+  const widths = ['auto', '5.2rem', '6.7rem', '5.8rem', '5rem', '4rem', '4rem', '5.6rem',
+    '3.4rem', '5.3rem', '5.6rem', '7.6rem', '2.8rem'];
   const table = el('table', { class: 'triage' }, [
     el('colgroup', {}, widths.map((w) => el('col', { style: `width:${w}` }))),
     el('thead', {}, [el('tr', {}, columns.map((c) => {
