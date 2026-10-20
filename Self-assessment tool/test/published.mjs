@@ -142,7 +142,16 @@ for (const page of PAGES) {
 
   if (page.demo) {
     ok(!!banner, 'says on its face that it is a demonstration');
-    ok(text.includes('Bureau of Illustrative Inspections'), 'lists the invented submissions');
+    /**
+     * A record on the tab the list opens on, which is Ready.
+     *
+     * Bureau of Illustrative Inspections is a draft. It was on the first paint while All was
+     * the tab a page opened on; All went on 20 October and this check failed against a site
+     * that was serving exactly what it should. The sister check in demo-storage.mjs moved for
+     * the same reason, and this one did not, because this file runs from the publish script
+     * and not from npm test.
+     */
+    ok(text.includes('Invented Fisheries Authority'), 'lists the invented submissions');
     ok(!/Sign in|Se connecter/.test(text), 'opens without asking anybody to sign in');
     ok(!/AIzaSy/.test(html), 'carries no store credentials at all');
   } else {
