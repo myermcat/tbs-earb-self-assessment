@@ -388,6 +388,17 @@ function isAssessorScreen(): boolean {
 
 function accessState(): Access {
   if (!isAssessorScreen()) return 'ok';
+  /**
+   * A BUILD WITH NO STORE IS STILL A WORKING ASSESSOR PAGE, AND THAT IS DELIBERATE.
+   *
+   * It was briefly turned into a dead end here, on the strength of a report that leaving the
+   * demonstration landed on an assessor screen saying "this build has no Firebase project, so
+   * there is nothing to sign in to". That sentence was the defect. The build is not: an
+   * assessor with no store reads submissions out of files on their own machine, which is what
+   * test/ui.mjs exercises from end to end and what the page is for offline.
+   *
+   * The screens that reach for a store say what they cannot do in their own words instead.
+   */
   if (!firebaseConfigured() || !currentUser()) return 'ok';
   const role = knownRole();
   if (role === null) return 'checking';
@@ -1870,35 +1881,23 @@ function setRow(
 
 function paneQuestions(pane: HTMLElement) {
   pane.appendChild(el('h1', { tabindex: -1 }, [t('Question set', 'Jeu de questions')]));
-  pane.appendChild(el('p', { class: 'set-lead' }, ['The active questions, weights and scale.']));
-
-  pane.appendChild(el('dl', { class: 'kv' }, [
-    el('dt', {}, ['Title']), el('dd', {}, [rubric.title]),
-    el('dt', {}, ['Version']), el('dd', { class: 'mono' }, [rubric.version]),
-    el('dt', {}, ['Status']), el('dd', {}, [rubric.status]),
-    el('dt', {}, ['Size']), el('dd', {}, [
-      `${questionCount(rubric)} questions in ${rubric.domains.reduce((n, d) => n + d.sections.length, 0)} sections`,
-    ]),
-  ]));
   /**
-   * Where the question set came from, and what was wrong with it when it arrived. Both are
-   * true, both name the real workbook, and one of them states an arithmetic defect in it and
-   * then says the cause is unknown.
+   * A HIERARCHY PASS, ASKED FOR IN THOSE WORDS: THIS PAGE IS VERY BUSY.
    *
-   * Off on a demonstration. Settings is open there by design, and the room being shown it
-   * includes the people whose workbook it is, so this was the one thing on a page promising
-   * everything is invented that was real, unverified, and about them. The build strips both
-   * fields out of a demonstration bundle as well, so the words are not in the file either.
+   * Six blocks stacked at one weight, and the first and the last were the same set. A list of
+   * Title, Version, Status and Size described the active set, and the row at the foot of the
+   * page described it again with an Active badge on it, so with one set in the browser the
+   * page said everything twice and neither copy was obviously the subject.
+   *
+   * The list is the subject, so it is what the page is. The four-line list is gone: the row
+   * already carries the title, the version and the size, and Status said draft, which is
+   * about the build rather than about the questions and is in This build where it belongs.
+   *
+   * Where the set came from and what was noted when it arrived are reference: true, worth
+   * keeping, read once. They are folded under the list now rather than taking the top of the
+   * page at full width, with the summary saying how many things were noted so a fold never
+   * hides a number somebody needs to see.
    */
-  if (!isDemo()) {
-    if (rubric.provenance) pane.appendChild(el('p', { class: 'small muted' }, [rubric.provenance]));
-    if (rubric.importWarnings?.length) {
-      pane.appendChild(el('div', { class: 'card warn tight' }, [
-        el('strong', { class: 'small' }, ['Noted when this question set was imported']),
-        el('ul', { class: 'small' }, rubric.importWarnings.map((w) => el('li', {}, [w]))),
-      ]));
-    }
-  }
 
   /**
    * Replacing the question set belongs to whoever maintains the instrument, not to somebody
@@ -1943,7 +1942,21 @@ function paneQuestions(pane: HTMLElement) {
    */
   const picker: HTMLElement | null = null;
 
-  if (side !== 'assess') return;
+  if (side !== 'assess') {
+    /**
+     * A submitter cannot change the set, so they get the one sentence that answers what they
+     * came for: which questions am I answering. The library below is the assessor's.
+     */
+    pane.appendChild(el('p', {}, [
+      rubric.title,
+      el('span', { class: 'mono small muted' }, [` ${rubric.version}`]),
+      el('span', { class: 'small muted' }, [
+        ` \u00b7 ${questionCount(rubric)} questions in ${sectionCount(rubric)} sections`,
+      ]),
+    ]));
+    setFold(pane);
+    return;
+  }
 
   /**
    * The library. Sets accumulate: the one from the build, plus every one that has been added.
@@ -2060,7 +2073,7 @@ function paneQuestions(pane: HTMLElement) {
           isCurrent ? el('span', { class: 'badge' }, ['Active']) : null,
         ]),
         el('p', { class: 'small muted' }, [
-          `${questionCount(entry.rubric)} questions in ${entry.rubric.domains.reduce((n, d) => n + d.sections.length, 0)} sections`,
+          `${questionCount(entry.rubric)} questions in ${sectionCount(entry.rubric)} sections`,
         ]),
         preview,
       ]),
@@ -2075,11 +2088,49 @@ function paneQuestions(pane: HTMLElement) {
     'Question sets in this browser',
     el('span', { class: 'muted small' }, [` ${lib.length}`]),
   ]));
-  pane.appendChild(el('p', { class: 'small muted' }, [
-    'Adding a set keeps the others and changes nothing on its own. Make one active when you want it answered.',
-  ]));
   pane.appendChild(rows);
   pane.appendChild(el('div', { class: 'actions' }, [picker]));
+
+  /**
+   * Off on a demonstration. Settings is open there by design, and the room being shown it
+   * includes the people whose workbook it is, so this was the one thing on a page promising
+   * everything is invented that was real, unverified, and about them. The build strips both
+   * fields out of a demonstration bundle as well, so the words are not in the file either.
+   */
+  setFold(pane);
+}
+
+const sectionCount = (r: Rubric): number => r.domains.reduce((n, d) => n + d.sections.length, 0);
+
+/**
+ * Where the active set came from, and what was noted when it arrived.
+ *
+ * Reference: true, worth keeping, read once. It used to take the top of this pane at full
+ * width, with the import warning in a card louder than anything else on the screen, above a
+ * four-line list of facts the row underneath repeated. Folded now, with the count of what was
+ * noted on the summary so the fold never hides a number somebody needs to see.
+ *
+ * Off on a demonstration. Settings is open there by design, and the room being shown it
+ * includes the people whose workbook it is, so this was the one thing on a page promising
+ * everything is invented that was real, unverified, and about them. The build strips both
+ * fields out of a demonstration bundle as well, so the words are not in the file either.
+ */
+function setFold(pane: HTMLElement): void {
+  if (isDemo()) return;
+  const noted = rubric.importWarnings ?? [];
+  if (!rubric.provenance && !noted.length) return;
+  pane.appendChild(el('details', { class: 'fold set-fold' }, [
+    el('summary', {}, [
+      'Where the active set came from',
+      noted.length
+        ? el('span', { class: 'muted small' }, [` ${noted.length} noted on import`])
+        : null,
+    ]),
+    rubric.provenance ? el('p', { class: 'small muted' }, [rubric.provenance]) : null,
+    noted.length
+      ? el('ul', { class: 'small' }, noted.map((w) => el('li', {}, [w])))
+      : null,
+  ]));
 }
 
 function paneAnswers(pane: HTMLElement) {
@@ -2171,10 +2222,6 @@ function paneAnswers(pane: HTMLElement) {
  */
 function paneBuild(pane: HTMLElement) {
   pane.appendChild(el('h1', { tabindex: -1 }, [t('This build', 'Cette version')]));
-  pane.appendChild(el('p', { class: 'set-lead' }, [
-    'Which version of the tool and the questions you are looking at, and what is being worked on.',
-  ]));
-
   pane.appendChild(el('dl', { class: 'kv' }, [
     el('dt', {}, ['Tool']), el('dd', { class: 'mono' }, [`v${APP_VERSION}`]),
     el('dt', {}, ['Question set']), el('dd', { class: 'mono' }, [`${rubric.id} ${rubric.version}`]),
@@ -2284,10 +2331,6 @@ const linkCard = (o: {
  */
 function paneDocs(pane: HTMLElement) {
   pane.appendChild(el('h1', { tabindex: -1 }, [t('Documentation', 'Documentation')]));
-  pane.appendChild(el('p', { class: 'set-lead' }, [
-    t('How a question is filed, and the spreadsheet that decides it. Each opens in a new tab.',
-      'Comment une question est class\u00e9e, et la feuille de calcul qui en d\u00e9cide. Chacune s\u2019ouvre dans un nouvel onglet.'),
-  ]));
   pane.appendChild(el('div', { class: 'hub-cards' }, [
     linkCard({
       accent: '#3E9E82', ghost: '4\u00b75',
@@ -2328,13 +2371,6 @@ function paneDocs(pane: HTMLElement) {
 function paneDanger(pane: HTMLElement) {
   const mine = side === 'submit';
   pane.appendChild(el('h1', { tabindex: -1 }, [t('Danger zone', 'Zone de danger')]));
-  pane.appendChild(el('p', { class: 'set-lead' }, [
-    mine
-      ? t('One thing lives here, and it erases the answers in this browser. Nothing else in the tool can take anything away from you.',
-          'Une seule chose se trouve ici, et elle efface les réponses de ce navigateur. Rien d\u2019autre dans l\u2019outil ne peut vous retirer quoi que ce soit.')
-      : t('Everything that removes something is here and nowhere else, so no screen you work on every day carries a control that takes something away.',
-          'Tout ce qui supprime quelque chose se trouve ici et nulle part ailleurs, afin qu\u2019aucun écran de travail quotidien ne porte un contrôle destructeur.'),
-  ]));
 
   /**
    * The assessor's half. Two rows, each one a title, a plain sentence of what it costs, and one
@@ -2352,8 +2388,17 @@ function paneDanger(pane: HTMLElement) {
           ]),
         ]),
         el('div', { class: 'danger-row-act' }, [
+          /**
+           * No ellipsis, because GitHub's danger zone has none.
+           *
+           * It is the desktop convention for a control that asks for something before it acts,
+           * and both of these do. Asked what the three dots were for, which is the answer to
+           * whether the convention is carrying. GitHub is this project's reference when a
+           * behaviour is not obvious on its face, and its Delete this repository button opens
+           * a dialog that makes you type the name with no dots on the button at all.
+           */
           el('button', { class: 'danger', onclick: () => takeAccessAway(() => go('settings')) },
-            [t('Take access away\u2026', 'Retirer un accès\u2026')]),
+            [t('Take access away', 'Retirer un accès')]),
         ]),
       ]),
       el('div', { class: 'danger-row' }, [
@@ -2366,7 +2411,7 @@ function paneDanger(pane: HTMLElement) {
         ]),
         el('div', { class: 'danger-row-act' }, [
           el('button', { class: 'danger', onclick: () => deleteSubmission(() => go('admin')) },
-            [t('Delete a submission\u2026', 'Supprimer une soumission\u2026')]),
+            [t('Delete a submission', 'Supprimer une soumission')]),
         ]),
       ]),
     ]));

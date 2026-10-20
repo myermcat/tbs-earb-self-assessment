@@ -76,7 +76,9 @@ export function isConfigured(): boolean { return CONFIG !== null; }
 export function storeHost(): string { return 'firestore.googleapis.com'; }
 
 function config(): FirebaseConfig {
-  if (!CONFIG) throw new Error('This build has no Firebase project, so there is nothing to sign in to.');
+  // Said in the words of somebody using the page, because it reaches one: it was reported from
+  // the assessor's access list, which put it after a sentence describing the same absence.
+  if (!CONFIG) throw new Error('This build keeps nothing online.');
   return CONFIG;
 }
 
@@ -1615,7 +1617,7 @@ export async function renamePerson(person: Person, name: string): Promise<void> 
   if (!currentUser()) throw new Error('Sign in before changing who has access.');
   if (!name.trim()) throw new Error('A person on this list needs a name.');
   const data: Record<string, unknown> = {
-    role: person.role, name: name.trim(),
+    role: writtenRole(person.role), name: name.trim(),
     addedBy: person.addedBy ?? '', addedAt: person.addedAt ?? '',
   };
   if (person.removedBy) data.removedBy = person.removedBy;
@@ -1625,6 +1627,26 @@ export async function renamePerson(person: Person, name: string): Promise<void> 
     { method: 'PATCH', body: JSON.stringify({ fields: toFields(data) }) },
   );
   if (reply.status !== 200) throw new Error(problemFrom(reply));
+}
+
+/**
+ * THE ROLE THIS TOOL WRITES, WHICH IS NEVER ADMIN.
+ *
+ * The very first grant on a project is typed into the Firebase console by hand and says admin,
+ * because that is what the setup step in deploy/firestore.rules asks for. Nothing else writes
+ * that value: there has been one rung for a while, and isAssessor() reads admin only so the
+ * one account that could fix a lockout is not the one locked out.
+ *
+ * The rules refuse an update whose role is admin, so every edit of that first row came back
+ * refused. Reported twice, the second time after the name was unfrozen: it still says I have
+ * insufficient permissions, the first user, and it says you.
+ *
+ * Writing assessor retires the legacy value on the next edit of the row rather than carrying
+ * it forever. It grants exactly what admin granted - grantsAccess and the rules' own
+ * isAssessor() accept both and there is nothing above either.
+ */
+function writtenRole(role: Role): Role {
+  return role === 'admin' ? 'assessor' : role;
 }
 
 export async function setPersonAccess(person: Person, allowed: boolean): Promise<void> {

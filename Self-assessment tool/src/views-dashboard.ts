@@ -456,7 +456,7 @@ function paint(
         .sort((a, b) => Math.abs(b.sum / b.n) - Math.abs(a.sum / a.n) || b.n - a.n)
         .slice(0, 5);
       const box = el('section', { class: 'card lead-card' }, [
-        el('h2', {}, ['Self-scores against assessors']),
+        el('h2', {}, ['Self-scores vs. assessors\u2019 scores']),
         /**
          * THE NUMBER IS A SIZE AND THE WORDS CARRY THE DIRECTION.
          *
@@ -492,17 +492,17 @@ function paint(
            * "points higher than assessors gave them" left out who. "points higher: departments
            * than assessors" fixed who and left out that it is an average, which is the thing
            * somebody asks next of any single number standing for twenty-one of them. The label
-           * says both now, and reads as a sentence from the figure: 2.8 points, departments
-           * above their assessors, on average.
+           * Fourth wording, and the shortest. Naming both sides in the label repeated the
+           * heading, which already says Self-scores vs. assessors' scores, and left a figure
+           * with a clause after it that did not read as a sentence from the figure. Her
+           * words: since we already say that, can we just say 0.9 points higher on average.
            *
-           * Higher than what was the question asked of the version before this one, which
-           * stopped at "how much higher departments scored themselves" and named only one side
-           * of a comparison. Both sides are in the words now.
+           * So the heading carries the comparison and the label carries the direction and the
+           * unit. It reads 0.9 points higher, on average, and what the average is over is the
+           * line of counts underneath, which ends with how many scores were changed.
            */
           changed
-            ? mean < 0
-              ? 'points: departments above their assessors, on average'
-              : 'points: departments below their assessors, on average'
+            ? mean < 0 ? 'points higher, on average' : 'points lower, on average'
             : 'no assessor has changed a score',
           [
             `${withAudit} record${withAudit === 1 ? '' : 's'} audited`,
