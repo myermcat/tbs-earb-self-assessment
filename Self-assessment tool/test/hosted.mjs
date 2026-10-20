@@ -2924,7 +2924,7 @@ console.log('\nA submission is a place you can go back from\n');
   });
   await new Promise((r) => setTimeout(r, 200));
   const card = (h) => [...doc.querySelectorAll('.card')].find((c) => c.querySelector('h2')?.textContent === h);
-  const gap = card('Self-scores against assessors');
+  const gap = card('Self-scores vs. assessors\u2019 scores');
   ok('the dashboard reads the audits rather than only who wrote them', !!gap,
      [...doc.querySelectorAll('.card h2')].map((h) => h.textContent).join(' | '));
   const said = (card) => (card?.textContent ?? '').replace(/\s+/g, ' ');
@@ -2952,13 +2952,15 @@ console.log('\nA submission is a place you can go back from\n');
   /**
    * And the label names both sides of the comparison.
    *
-   * "how much higher departments scored themselves" drew the obvious question back: higher
-   * than what. One side of a comparison in the words is half a sentence, so the assessor is
-   * named too.
+   * Naming both sides in the label repeated the heading, which says Self-scores vs. assessors'
+   * scores, and left the figure with a clause after it instead of a sentence. Her words: since
+   * we already say that, can we just say 0.9 points higher on average. So the heading carries
+   * the comparison and the label carries the direction, and what the average runs over is the
+   * line of counts underneath.
    */
   ok('and leads with how far apart they are, with no sign on it',
      (gap?.querySelector('.lead-v')?.textContent ?? '') === '3.0'
-     && /points: departments above their assessors, on average/.test(said(gap)),
+     && /points higher, on average/.test(said(gap)),
      `${gap?.querySelector('.lead-v')?.textContent} / ${said(gap).slice(0, 120)}`);
   ok('and names the questions furthest apart', /Q1|Q2/.test(said(gap)), said(gap).slice(0, 160));
 
@@ -3262,10 +3264,10 @@ console.log('\nA submission is a place you can go back from\n');
   });
   await new Promise((r) => setTimeout(r, 200));
   const card = [...doc.querySelectorAll('.card')]
-    .find((c) => c.querySelector('h2')?.textContent === 'Self-scores against assessors');
+    .find((c) => c.querySelector('h2')?.textContent === 'Self-scores vs. assessors\u2019 scores');
   const txt = (card?.textContent ?? '').replace(/\s+/g, ' ');
   ok('a department that marked itself down is reported as lower',
-     /points: departments below their assessors, on average/.test(txt), txt.slice(0, 160));
+     /points lower, on average/.test(txt), txt.slice(0, 160));
   ok('with the size and no sign on it', (card?.querySelector('.lead-v')?.textContent ?? '') === '2.0',
      card?.querySelector('.lead-v')?.textContent);
   ok('and it does not say higher anywhere', !/how much higher/.test(txt), txt.slice(0, 160));

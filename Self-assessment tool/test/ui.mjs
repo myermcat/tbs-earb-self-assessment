@@ -172,7 +172,15 @@ ok('a submitter is not offered the question-set loader',
    !byText('.filelabel', 'Load a question set') && !byText('.filelabel', 'Add a question set'));
 ok('and is not told about a setting they do not have',
    !view().includes('on the assessor side'));
-ok('but does see which set is in use', view().includes('Version') && view().includes('questions in'));
+/**
+ * The submitter is told which set they are answering, in one line.
+ *
+ * It was a four-line list of Title, Version, Status and Size. Status said draft, which is a
+ * fact about the build; the rest is one sentence. Asked for as part of the hierarchy pass on
+ * this pane.
+ */
+ok('but does see which set is in use',
+   view().includes(rubric.version) && view().includes('questions in'));
 
 pane('Your answers');
 ok('settings says where the page was loaded from', view().includes('Where your answers go'));
@@ -1580,8 +1588,24 @@ ok('and an empty screen centres its one card', !!q('main.body-empty'));
   ok('the sets in this browser are listed', qa('.set-list-row').length >= 1,
      String(qa('.set-list-row').length));
   ok('the active set is marked', !!q('.set-list-row.on') && view().includes('Active'));
-  ok('and adding one is said to change nothing on its own',
-     view().includes('changes nothing on its own'));
+  /**
+   * Where the set came from is folded, and the fold says how many things were noted.
+   *
+   * It used to take the top of the page at full width, above an import warning in a card
+   * louder than anything else on screen, and under a four-line list of Title, Version, Status
+   * and Size that said what the row below it already said. Asked for as: this page is very
+   * busy, do a hierarchy pass.
+   */
+  // Outside the preview, which has a key/value list of its own about the set it is previewing.
+  ok('the page does not state the active set twice',
+     qa('.set-pane dl.kv').every((d) => !!d.closest('.set-preview')),
+     qa('.set-pane dl.kv').map((d) => d.textContent.slice(0, 40)).join(' | ') || 'none');
+  ok('where the set came from is folded under the list',
+     !!q('.set-fold') && q('.set-fold').open === false,
+     q('.set-fold summary')?.textContent ?? 'no fold');
+  ok('and the fold says how many things were noted on import',
+     /\d+ noted on import/.test(q('.set-fold summary')?.textContent ?? ''),
+     q('.set-fold summary')?.textContent ?? '');
   {
     // Each set carries a menu: preview, make active, delete, and who added it.
     const menu = q('.set-list-row .set-menu');

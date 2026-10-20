@@ -16,9 +16,10 @@ import { el, clear } from './dom';
 import { t } from './i18n';
 import { confirmStep } from './confirm';
 import {
-  addPerson, currentUser, grantsAccess, lastSignInProblem, listPeople, renamePerson,
+  addPerson, currentUser, grantsAccess, isConfigured, lastSignInProblem, listPeople, renamePerson,
   sendSignInLink, setPersonAccess, type Person,
 } from './firebase';
+import { isDemo } from './who';
 import { sameText } from './danger-people';
 
 /** A shape test, not a check on anybody. The only address that works is a Google account's. */
@@ -99,10 +100,18 @@ function personRow(p: Person, mine: boolean, after: () => void): HTMLElement {
         ]),
       ]);
 
+  /**
+   * The address once, and not twice on a row that has no name yet.
+   *
+   * A row whose name was never written falls back to the address, so the first grant on a
+   * project printed yermolenko.maria@gmail.com, then you, then the same address again.
+   * Reported in passing while trying to put a name on that row.
+   */
+  const named = p.name !== p.email;
   return el('div', { class: 'set-row' }, [
     el('div', {}, [
       title,
-      el('p', { class: 'mono small' }, [p.email]),
+      named ? el('p', { class: 'mono small' }, [p.email]) : null,
       el('p', {}, [story]),
     ]),
     el('div', { class: 'set-row-act' }, [act]),
@@ -304,9 +313,29 @@ export function panePeople(pane: HTMLElement): void {
       }
     }, (e: Error) => {
       clear(body);
-      body.appendChild(el('p', { class: 'warn-text' }, [
-        t(`The store would not hand over the list. ${e.message}`,
-          `Le dépôt n’a pas fourni la liste. ${e.message}`),
+      /**
+       * WHAT THE STORE SAID, AND ONLY WHERE IT SAID ANYTHING.
+       *
+       * This put every error's text after one sentence, which on a build with no store behind
+       * it read: the store would not hand over the list, this build has no Firebase project,
+       * so there is nothing to sign in to. Two sentences describing the same absence, the
+       * second of them written for whoever compiled the page.
+       *
+       * A demonstration invents its departments and its assessors, and has no access list to
+       * invent, so it says that in its own terms. A build made without a store says what it
+       * is. Everything else is a real refusal from a real store, and that one is worth
+       * repeating word for word, because it is the only clue to what went wrong.
+       */
+      const nothingBehindIt = !isConfigured();
+      body.appendChild(el('p', { class: nothingBehindIt ? 'muted' : 'warn-text' }, [
+        isDemo()
+          ? t('The demonstration invents everybody on these screens, so there is no access list to show.',
+              'La démonstration invente toutes les personnes sur ces écrans, il n’y a donc aucune liste d’accès à afficher.')
+          : nothingBehindIt
+            ? t('This build keeps nothing online, so there is no access list to show.',
+                'Cette version ne conserve rien en ligne, il n’y a donc aucune liste d’accès à afficher.')
+            : t(`The store would not hand over the list. ${e.message}`,
+                `Le dépôt n’a pas fourni la liste. ${e.message}`),
       ]));
     });
   };

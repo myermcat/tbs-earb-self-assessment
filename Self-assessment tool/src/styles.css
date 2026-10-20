@@ -2584,20 +2584,39 @@ tr.row-open button, tr.row-open summary, tr.row-open label { cursor: pointer; }
 .audited-none { color: color-mix(in srgb, var(--ink-3) 60%, var(--surface)); }
 .audited-mine b { color: var(--accent); }
 /* The language link on a stripped-down screen, where the header carries nothing. */
+/**
+ * EVERYTHING ON THE SIGN-IN SCREEN SHARES ONE LEFT EDGE.
+ *
+ * The card reads from the left and the two blocks under it were centred, so a column of three
+ * things had three different edges and the link under the sentence sat on a line of its own.
+ * Reported as: the box looks right, the text under it is centred, and together they do not.
+ */
 .card-lang { margin: 1rem 0 0; text-align: center; font-size: .85rem; }
+/**
+ * ON THE SIGN-IN SCREEN IT LINES UP WITH THE CARD, LIKE EVERYTHING ELSE THERE.
+ *
+ * The card reads from the left and the two lines under it were centred, so a column of three
+ * things had three different edges. Reported as: the box looks right, the text under it is
+ * centred, and together they do not.
+ *
+ * The width is set as well as the alignment, because this is a flex item in a centred column:
+ * without it the box shrinks to the width of the word and the left edge it is aligned to is
+ * its own, which puts the word back in the middle.
+ */
+.app-signin .card-lang { width: 100%; max-width: 34rem; margin: 1rem auto 0; text-align: left; }
 /* The way into the demonstration, under the sign-in card. Quieter than anything in the card,
    because the card is what most people on this screen came for. */
 .signin-demo {
   max-width: 34rem;
   margin: 1.1rem auto 0;
-  text-align: center;
+  text-align: left;
   font-size: .85rem;
   color: var(--muted);
   line-height: 1.5;
 }
 /* On its own line. A person who has no account is scanning for the way out of this screen,
    and at the end of a wrapped sentence is where it is hardest to find. */
-.signin-demo a { display: block; margin-top: .35rem; color: var(--accent); }
+.signin-demo a { color: var(--accent); }
 .card-lang .lang-link { color: var(--accent); }
 
 /* The assessor's score row. The same eleven buttons the submitter picks from, because an

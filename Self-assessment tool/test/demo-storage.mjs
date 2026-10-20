@@ -433,13 +433,31 @@ ok('every stored name is made by the helper, and there is more than one',
   };
 
   ok('and more than one pane in it', document.querySelectorAll('.set-navrow').length > 1,
-     String(document.querySelectorAll('.set-navrow').length));
+     [...document.querySelectorAll('.set-navrow')].map((b) => b.textContent.trim()).join(' | '));
   await open('documentation');
   const docsHrefs = [...document.querySelectorAll('.set-pane a')].map((a) => a.getAttribute('href') ?? '');
   ok('documentation offers the explanation that was made to be shown',
      docsHrefs.some((h) => /domains-and-categories/.test(h)), docsHrefs.join(' | '));
   ok('and not the spreadsheet anybody with the link can comment on',
      !docsHrefs.some((h) => /docs\.google\.com/.test(h)), docsHrefs.join(' | '));
+
+  /**
+   * THE ACCESS LIST SAYS WHAT IT IS, IN THE WORDS OF SOMEBODY READING IT.
+   *
+   * A demonstration has no store, so listing who has access throws, and the catch pasted the
+   * error's own text after a sentence of its own: "The store would not hand over the list.
+   * This build has no Firebase project, so there is nothing to sign in to." Two sentences
+   * about the same absence, the second written for whoever compiled the page. Reported as: it
+   * should just say demo.
+   */
+  if (await open('^\\s*(People|Personnes)')) {
+    const saidThere = document.querySelector('.set-pane')?.textContent ?? '';
+    // Either language: this pane is reached after the French switch earlier in this file.
+    ok('the access list says the demonstration invents everybody on it',
+       /demonstration invents|d\u00e9monstration invente/i.test(saidThere), saidThere.slice(0, 200));
+    ok('and says nothing about a Firebase project',
+       !/Firebase|hand over the list/i.test(saidThere), saidThere.slice(0, 160));
+  }
 
   await open('this build|cette version');
   const buildText = document.querySelector('.set-pane')?.textContent ?? '';

@@ -343,6 +343,32 @@ check('nothing records who set it, so no address reaches a public page',
                     { role: str('assessor'), name: str(''), addedBy: str('asr1@example.com'),
                       addedAt: str('2026-10-01T00:00:00Z') },
                     asPerson('asr2@example.com')), 'refused');
+  /**
+   * THE FIRST GRANT ON A PROJECT SAYS ADMIN, AND EVERY EDIT OF IT WAS REFUSED.
+   *
+   * It is typed into the Firebase console by hand, because the rules are what lets anybody in
+   * and somebody has to be first. The update rule permits assessor and removed, so a rename
+   * that carried the stored role through arrived saying admin and was refused. Reported
+   * twice, the second time after the name was unfrozen: it still says I have insufficient
+   * permissions, the first user.
+   *
+   * The tool writes assessor on that row now rather than the rule learning to accept admin.
+   * One rung has granted everything for a while, isAssessor() reads admin only so the account
+   * that could fix a lockout is not the one locked out, and nothing else has ever written it.
+   * These two checks are the fact firebase.ts depends on.
+   */
+  await patch('roles/first@example.com', { role: str('admin') }, AS_OWNER);
+  check('a rename that carries the legacy admin role through is refused',
+        await patch('roles/first@example.com',
+                    { role: str('admin'), name: str('Mariia Yermolenko'),
+                      addedBy: str(''), addedAt: str('') },
+                    asPerson('first@example.com')), 'refused');
+  check('and the same rename written as assessor goes through',
+        await patch('roles/first@example.com',
+                    { role: str('assessor'), name: str('Mariia Yermolenko'),
+                      addedBy: str(''), addedAt: str('') },
+                    asPerson('first@example.com')), 'allowed');
+
   check('somebody with no role corrects nothing',
         await patch('roles/asr3@example.com',
                     { role: str('assessor'), name: str('Hijacked'), addedBy: str('asr1@example.com'),
