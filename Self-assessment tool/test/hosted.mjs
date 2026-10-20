@@ -422,9 +422,37 @@ console.log('\nThe published build, signed in\n');
      /position:\s*sticky/.test(pinnedPos) && /right:\s*0/.test(pinnedPos), pinnedPos.trim());
   ok('and it is opaque, so the row does not show through it',
      /background:\s*var\(--surface\)/.test(pinnedPos), pinnedPos.trim());
-  ok('and its edge is a shadow, because a collapsed border would not travel with the cell',
-     /box-shadow:\s*inset 1px 0 0/.test(pinnedPos)
-     && !/border-left:/.test(pinnedPos), pinnedPos.trim());
+  /**
+   * One mark on that column, and it is the shade. Asked for: remove the vertical line.
+   *
+   * There were two doing one job. A line says the column is separate; the shade says it is in
+   * front of the row sliding under it, which is the true thing and the one that goes away when
+   * there is nothing behind it to be in front of.
+   */
+  ok('the pinned column is marked by its shade and not by a line',
+     /box-shadow:\s*-6px 0 6px -6px/.test(pinnedPos)
+     && !/inset 1px 0 0/.test(pinnedPos) && !/border-left:/.test(pinnedPos), pinnedPos.trim());
+  /**
+   * A ONE-WORD HEADING GETS THE ROOM TO BE READ.
+   *
+   * Reported as: it shows EVIDENC and COMPLET, the last letter is lost. Two words wrap, so
+   * Question set and Must ask were fine in columns narrower than their text; one word cannot,
+   * so it ran past its fixed width and was cut.
+   *
+   * jsdom lays nothing out, so this reads the declared widths against the headings. The
+   * constant comes from measuring the rendered uppercase text in a browser: at .74rem with
+   * .05em of letter-spacing a character is about .52rem, and the cell's padding is about
+   * 1.1rem. A column narrower than that cuts its own heading.
+   */
+  const cols = [...doc.querySelectorAll('.triage colgroup col')]
+    .map((c) => parseFloat((c.getAttribute('style') ?? '').replace(/[^\d.]/g, '')) || 0);
+  const heads = [...doc.querySelectorAll('.triage thead th')]
+    .map((th) => th.textContent.replace(/[\u25B2\u25BC\u2195]/g, '').trim());
+  const cut = heads
+    .map((label, i) => ({ label, want: label.length * 0.52 + 1.1, got: cols[i] }))
+    .filter((c) => c.label && !c.label.includes(' ') && c.got && c.got < c.want);
+  ok('no column is narrower than the one word in its heading',
+     !cut.length, cut.map((c) => `${c.label} ${c.got}rem < ${c.want.toFixed(1)}rem`).join(' | ') || 'all fit');
   /**
    * The decision this asserts is unchanged: the assessor's column is wider than the reading
    * column because it holds a twelve-column table. What changed is how the cap is written. It
@@ -3004,18 +3032,23 @@ console.log('\nA submission is a place you can go back from\n');
    * number negative.
    */
   /**
-   * And the label names both sides of the comparison.
+   * IT IS A SENTENCE, AND THE NUMBER IS INSIDE IT.
    *
-   * Naming both sides in the label repeated the heading, which says Self-scores vs. assessors'
-   * scores, and left the figure with a clause after it instead of a sentence. Her words: since
-   * we already say that, can we just say 0.9 points higher on average. So the heading carries
-   * the comparison and the label carries the direction, and what the average runs over is the
-   * line of counts underneath.
+   * Four wordings hung a fragment off a big figure and each one answered the last question
+   * while leaving the shape that caused it. She wrote the structure out: on average, the
+   * departments score themselves 0.9 points higher than the assessors score them. This asserts
+   * the sentence rather than the words in it, because a fragment can contain every one of
+   * them, and that it reads with no sign on the figure.
    */
-  ok('and leads with how far apart they are, with no sign on it',
-     (gap?.querySelector('.lead-v')?.textContent ?? '') === '3.0'
-     && /points higher, on average/.test(said(gap)),
-     `${gap?.querySelector('.lead-v')?.textContent} / ${said(gap).slice(0, 120)}`);
+  ok('it reads as a sentence with the figure inside it, and no sign on the figure',
+     /On average, departments score themselves 3\.0 points higher than their assessors score them\./
+       .test(said(gap)) && !/-3/.test(said(gap)),
+     said(gap).slice(0, 140));
+  ok('and the figure is the emphasised part of that sentence',
+     (gap?.querySelector('.say-n')?.textContent ?? '').trim() === '3.0 points',
+     gap?.querySelector('.say-n')?.textContent ?? 'no figure');
+  ok('and no big number stands in front of it any more', !gap?.querySelector('.lead-v'),
+     gap?.querySelector('.lead-v')?.textContent ?? 'gone');
   ok('and names the questions furthest apart', /Q1|Q2/.test(said(gap)), said(gap).slice(0, 160));
 
   const wait = card('Waiting on an assessor');
@@ -3321,9 +3354,11 @@ console.log('\nA submission is a place you can go back from\n');
     .find((c) => c.querySelector('h2')?.textContent === 'Self-scores vs. assessors\u2019 scores');
   const txt = (card?.textContent ?? '').replace(/\s+/g, ' ');
   ok('a department that marked itself down is reported as lower',
-     /points lower, on average/.test(txt), txt.slice(0, 160));
-  ok('with the size and no sign on it', (card?.querySelector('.lead-v')?.textContent ?? '') === '2.0',
-     card?.querySelector('.lead-v')?.textContent);
+     /On average, departments score themselves 2\.0 points lower than their assessors score them\./.test(txt),
+     txt.slice(0, 160));
+  ok('with the size and no sign on it',
+     (card?.querySelector('.say-n')?.textContent ?? '').trim() === '2.0 points' && !/-2/.test(txt),
+     card?.querySelector('.say-n')?.textContent);
   ok('and it does not say higher anywhere', !/how much higher/.test(txt), txt.slice(0, 160));
   dom.window.close();
 }
