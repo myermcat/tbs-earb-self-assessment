@@ -2392,6 +2392,39 @@ ok('audited file keeps the self-score alongside the audited one',
          !!lastDecl('\\.score-btn\\.on', 'background'));
     }
 
+    /**
+     * The rail went a second step down, the tag stopped being a chip, and the squares came in.
+     * Reported in one message: make the vertical nav on the left even less bright, the tag is
+     * too bright though, and make the numbers boxes smaller and the highlighted one less
+     * bright.
+     */
+    {
+      ok('a rail row is at the caption ink and the row you are on is not',
+         lastDecl('\\.toc-row', 'color') === 'var(--ink-3)'
+         && lastDecl('\\.toc-row\\.on', 'color') === 'var(--ink)',
+         `${lastDecl('\\.toc-row', 'color')} / ${lastDecl('\\.toc-row\\.on', 'color')}`);
+
+      const cat = lastDecl('\\.q-cat', 'border');
+      ok('a category is a word with no box around it',
+         cat === '0' && lastDecl('\\.q-cat', 'background') === 'none',
+         `${cat} / ${lastDecl('\\.q-cat', 'background')}`);
+
+      /**
+       * And the number on a chosen square is readable on that rung. White on all eleven put
+       * the middle of the ramp at 1.84 against 4.5, measured in a real engine, so the amber
+       * band takes a dark ink in both themes and three rungs flip back to white in dark.
+       */
+      const ink = lastDecl('\\.score-btn\\.on\\.v4', 'color')
+        ?? [...sheet.matchAll(/\.score-btn\.on\.v4[^{]*\{([^}]*)\}/g)].length;
+      ok('the amber rungs do not carry white text',
+         /\.score-btn\.on\.v4[^{]*\{[^}]*var\(--ramp-ink\)/.test(sheet)
+         || /v4[,\s][^{]*\{[^}]*var\(--ramp-ink\)/.test(sheet),
+         String(ink));
+      ok('and the ink they take does not follow the theme',
+         /--ramp-ink:/.test(sheet)
+         && !/prefers-color-scheme: dark[\s\S]{0,1200}--ramp-ink:/.test(sheet));
+    }
+
     ok('the filter that is on is not painted with the primary button',
        !!chipBg && !!primaryBg && chipBg !== primaryBg && !/var\(--accent\)/.test(chipBg),
        `chip ${chipBg} / button ${primaryBg}`);

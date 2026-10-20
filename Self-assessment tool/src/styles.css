@@ -22,6 +22,9 @@
   --ink-3:     #79828f;
 
   /* Accent */
+  /* Text that sits on a score ramp colour. Fixed, because the fill it sits on is the rung and
+     not the theme: the dark block below does not redefine it. */
+  --ramp-ink: #16191d;
   --accent:      #2a4b8d;
   --accent-ink:  #ffffff;
   --accent-soft: #eaf0fb;
@@ -590,7 +593,7 @@ code.mono { background: var(--surface-2); border: 1px solid var(--line);
  */
 .toc-row { display: grid; grid-template-columns: 1fr auto; gap: .3rem .5rem; align-items: baseline;
   width: 100%; text-align: left; background: none; border: 0; border-radius: 7px;
-  padding: .28rem .5rem; font-size: .76rem; color: var(--ink-2); }
+  padding: .28rem .5rem; font-size: .76rem; color: var(--ink-3); }
 .toc-row:hover { background: var(--surface-2); border: 0; }
 .toc-label { overflow: hidden; text-overflow: ellipsis; }
 .toc-count { font-family: var(--mono); font-size: .66rem; color: var(--ink-3); }
@@ -607,7 +610,7 @@ code.mono { background: var(--surface-2); border: 1px solid var(--line);
  * nobody is reading for that. They still say it, at the volume a third thing gets.
  */
 .toc-sec .toc-bar i, .toc-overview .toc-bar i { display: block; height: 100%;
-  background: color-mix(in srgb, var(--accent) 55%, var(--surface-2));
+  background: color-mix(in srgb, var(--accent) 40%, var(--surface-2));
   transition: width .3s ease; }
 .toc-row.on { background: var(--accent-soft); color: var(--ink); font-weight: 600;
   box-shadow: inset 2px 0 0 var(--accent); }
@@ -618,7 +621,7 @@ code.mono { background: var(--surface-2); border: 1px solid var(--line);
    the row away makes the rail change length every time somebody tries a category, and the row
    is still the answer to whether any of it is in here, which is no. */
 .toc-row.lens-empty-row { opacity: .45; }
-.toc-row.done .toc-bar i { background: color-mix(in srgb, var(--good) 45%, var(--surface-2)); }
+.toc-row.done .toc-bar i { background: color-mix(in srgb, var(--good) 32%, var(--surface-2)); }
 
 .section-head-card .eyebrow { margin-bottom: .3rem; }
 /* The scale, once for the page, under the line saying what the page is worth. */
@@ -1134,8 +1137,8 @@ tr.red-flag td:first-child { box-shadow: inset 2px 0 0 var(--bad); }
  * The target is untouched: same width, same padding, same text.
  */
 .score-btn {
-  width: 2.05rem; padding: .3rem 0; text-align: center; border-radius: 7px;
-  font-family: var(--mono); font-size: .82rem; font-weight: 500;
+  width: 1.75rem; padding: .22rem 0; text-align: center; border-radius: 6px;
+  font-family: var(--mono); font-size: .76rem; font-weight: 500;
   border: 1px solid var(--line); background: none; color: var(--ink-3);
 }
 .score-btn:hover:not(:disabled) { border-color: var(--line-2); color: var(--ink); }
@@ -1148,14 +1151,46 @@ tr.red-flag td:first-child { box-shadow: inset 2px 0 0 var(--bad); }
  * saying an assessor has changed nothing has been invisible there since the row existed. It
  * inherits a fill now, and the ramp paints over the eleven that have a rung.
  */
-.score-btn.on { color: #fff; border-color: transparent; box-shadow: var(--shadow);
+/**
+ * A chosen score is the one filled thing in the row, and it is flat.
+ *
+ * Reported as: make the highlighted one less bright. The lift came off, which is what made it
+ * sit above the row, and the fill is mixed a sixth of the way into the page's own surface so
+ * the colour reads as the rung and not as a light. The ramp itself is the data and is not
+ * ours to repaint, so the mix is where the brightness comes off.
+ *
+ * The fill has a floor for the assessor's twelfth button, Clear, which carries `on` and no
+ * rung: without it that control was white on white in light mode.
+ */
+.score-btn.on { color: #fff; border-color: transparent; box-shadow: none;
   background: var(--ink-3); }
-.score-btn.on.v0  { background: var(--s0); }  .score-btn.on.v1  { background: var(--s1); }
-.score-btn.on.v2  { background: var(--s2); }  .score-btn.on.v3  { background: var(--s3); }
-.score-btn.on.v4  { background: var(--s4); }  .score-btn.on.v5  { background: var(--s5); }
-.score-btn.on.v6  { background: var(--s6); }  .score-btn.on.v7  { background: var(--s7); }
-.score-btn.on.v8  { background: var(--s8); }  .score-btn.on.v9  { background: var(--s9); }
-.score-btn.on.v10 { background: var(--s10); }
+.score-btn.on.v0  { background: color-mix(in srgb, var(--s0) 84%, var(--surface)); }  .score-btn.on.v1  { background: color-mix(in srgb, var(--s1) 84%, var(--surface)); }
+.score-btn.on.v2  { background: color-mix(in srgb, var(--s2) 84%, var(--surface)); }  .score-btn.on.v3  { background: color-mix(in srgb, var(--s3) 84%, var(--surface)); }
+.score-btn.on.v4  { background: color-mix(in srgb, var(--s4) 84%, var(--surface)); }  .score-btn.on.v5  { background: color-mix(in srgb, var(--s5) 84%, var(--surface)); }
+.score-btn.on.v6  { background: color-mix(in srgb, var(--s6) 84%, var(--surface)); }  .score-btn.on.v7  { background: color-mix(in srgb, var(--s7) 84%, var(--surface)); }
+.score-btn.on.v8  { background: color-mix(in srgb, var(--s8) 84%, var(--surface)); }  .score-btn.on.v9  { background: color-mix(in srgb, var(--s9) 84%, var(--surface)); }
+.score-btn.on.v10 { background: color-mix(in srgb, var(--s10) 84%, var(--surface)); }
+/**
+ * THE NUMBER ON A CHOSEN SQUARE IS WHICHEVER OF WHITE AND DARK CAN BE READ ON THAT RUNG.
+ *
+ * White on all eleven is what this was, and the middle of the ramp is amber: measured in a
+ * real engine, white on rung 5 came to 1.84 against the page in light and 2.77 in dark, where
+ * 4.5 is the bar. Seven of the eleven were under it in light. The ramp is the data and is not
+ * ours to repaint, so what changes is the ink on top of it.
+ *
+ * Measured per rung in both themes, better of the two taken:
+ *   light  ink on 2 3 4 5 6 7 9, white on 0 1 8 10
+ *   dark   ink on 3 4 5 6,       white on the rest
+ * Two sit near the line after this, rung 2 at 4.23 in light and rung 3 at 4.24 in dark. The
+ * rest clear it, where before the worst was 1.84.
+ */
+.score-btn.on.v2, .score-btn.on.v3, .score-btn.on.v4, .score-btn.on.v5,
+.score-btn.on.v6, .score-btn.on.v7, .score-btn.on.v9 { color: var(--ramp-ink); }
+@media (prefers-color-scheme: dark) {
+  /* The fill is mixed into the page's own surface, so three rungs go dark enough in dark mode
+     that white reads better on them again. */
+  .score-btn.on.v2, .score-btn.on.v7, .score-btn.on.v9 { color: #fff; }
+}
 .score-btn:disabled { opacity: .3; }
 .na { font-size: .83rem; color: var(--ink-2); display: inline-flex; align-items: center; gap: .3rem;
   cursor: pointer; }
@@ -2618,8 +2653,17 @@ dialog.confirm.shake { animation: cf-shake .34s cubic-bezier(.36, .07, .19, .97)
 .ladder-row > .ladder-box { flex: 0 1 auto; min-width: 0; }
 .q-cats { margin-left: auto; display: flex; gap: .25rem; overflow: hidden;
   white-space: nowrap; flex: 0 1 auto; justify-content: flex-end; }
-.q-cat { font-size: .68rem; color: var(--ink-3); border: 1px solid var(--line);
-  border-radius: var(--radius-chip); padding: 0 .38rem; background: var(--surface-2); }
+/**
+ * A category is a word, and not a chip.
+ *
+ * Reported as: the tag is too bright though. It had a border, a fill and a radius, which is
+ * the costume of something you press, on a label that reports a fact about the question and
+ * does nothing. 46 of the 176 carry one, so on a page of fourteen questions it was four or
+ * five little boxes competing with the only box that matters, which is the score.
+ */
+.q-cat { font-size: .66rem; color: var(--ink-3); border: 0; padding: 0;
+  background: none; letter-spacing: .02em; }
+.q-cat + .q-cat::before { content: ', '; }
 .lens-head { margin: 0 0 1rem; }
 .lens-head h2 { font-size: 1.15rem; margin: 0 0 .15rem; }
 /* Which section a question came from, once the lens has stopped the sections dividing the page. */
