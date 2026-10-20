@@ -24,10 +24,10 @@ const html = await readFile('dist/index.html', 'utf8');
 const settle = () => new Promise((r) => setTimeout(r, 40));
 
 /** One page, optionally with something left in its storage before any of it runs. */
-async function open(seed = {}) {
+async function open(seed = {}, at = '') {
   const dom = new JSDOM(html, {
     runScripts: 'dangerously',
-    url: 'https://example.gc.ca/tool/',
+    url: `https://example.gc.ca/tool/${at}`,
     pretendToBeVisual: true,
     beforeParse(w) {
       w.scrollTo = () => {};
@@ -42,6 +42,10 @@ async function open(seed = {}) {
 }
 
 let asked = [];
+
+/** One control inside one box, found by what it says. */
+const byTextIn = (root, sel, txt) => [...(root?.querySelectorAll(sel) ?? [])]
+  .find((n) => n.textContent.toLowerCase().includes(txt.toLowerCase()));
 
 console.log('\nThe submitter, with no account\n');
 
@@ -113,6 +117,46 @@ console.log('\nThe submitter, with no account\n');
      note?.textContent?.slice(0, 120) ?? '');
   ok('and it is still in the browser after the page has drawn',
      !!dom.window.localStorage.getItem('gc-arch-assessment:draft'));
+}
+
+/* --------------------------------------------------------------------------------------- */
+/**
+ * The marking is settled on the page that is blocked by it.
+ *
+ * Reported as: when i clicked save my result without marking the evidence (it simply shouldnt
+ * allow me), it sent me here. See my results is the loud button at the foot of the
+ * questionnaire and nothing stops it, so an unmarked file arrives at a page carrying a block
+ * and, until this, one button that sent somebody back to look for the control.
+ */
+{
+  const unmarked = {
+    fileType: 'gc-arch-assessment', id: 'KFRM92TXBQ7H', ref: 'AB12',
+    rubric: { id: 'gc-ea-selfassess', version: '1.0', title: 'x' },
+    initiative: {
+      name: 'Fleet Scheduling', department: 'DFO', contact: 'a@dfo-mpo.gc.ca',
+      summary: 'A thing.', lifecycleStage: 'beta',
+    },
+    answers: { 'B-Q1': { score: 3, evidence: [] } },
+    meta: { createdAt: 'x', updatedAt: 'x', appVersion: 'test' },
+  };
+  const dom = await open({ 'gc-arch-assessment:draft': JSON.stringify(unmarked) }, '#results');
+  const { document } = dom.window;
+  const blocker = () => document.querySelector('.card.warn.alert');
+  ok('an unmarked file is blocked from saving on the results page',
+     /cannot save this yet/i.test(blocker()?.textContent ?? ''),
+     blocker()?.textContent?.slice(0, 60) ?? 'no blocker');
+  const marks = [...(blocker()?.querySelectorAll('.mark-btn') ?? [])];
+  ok('and every marking is on the block itself', marks.length === 7,
+     marks.map((b) => b.textContent).join(' | ') || 'none');
+  ok('and going back is still offered for the problems that live on a question',
+     !!byTextIn(blocker(), 'button', 'Go back'));
+  marks.find((b) => b.textContent.trim() === 'Unclassified').click();
+  await settle();
+  ok('marking it there clears the block without leaving the page',
+     !blocker() && dom.window.location.hash === '#results',
+     `${blocker() ? 'still blocked' : 'clear'} at ${dom.window.location.hash}`);
+  ok('and the marking is in the draft this browser keeps',
+     JSON.parse(dom.window.localStorage.getItem('gc-arch-assessment:draft')).initiative.classification === 'Unclassified');
 }
 
 /* --------------------------------------------------------------------------------------- */
