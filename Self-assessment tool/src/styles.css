@@ -1116,7 +1116,17 @@ tr.red-flag td:first-child { box-shadow: inset 2px 0 0 var(--bad); }
   border: 1px solid transparent; background: none; color: var(--ink-2);
 }
 .score-btn:hover:not(:disabled) { background: var(--surface); border-color: var(--line-2); color: var(--ink); }
-.score-btn.on { color: #fff; border-color: transparent; box-shadow: var(--shadow); }
+/**
+ * A chosen score is filled, and the fill has a floor.
+ *
+ * The eleven scores take their colour from the ramp below. The assessor's row has a twelfth
+ * button, Clear, which carries `on` and no rung, so it had white text on whatever the base
+ * rule happened to give it: in light that was a white fill on a white card, and the control
+ * that says an assessor has changed nothing has been invisible there. It inherits a fill now,
+ * and the ramp paints over it on the eleven that have a rung.
+ */
+.score-btn.on { color: #fff; border-color: transparent; box-shadow: var(--shadow);
+  background: var(--ink-3); }
 .score-btn.on.v0  { background: var(--s0); }  .score-btn.on.v1  { background: var(--s1); }
 .score-btn.on.v2  { background: var(--s2); }  .score-btn.on.v3  { background: var(--s3); }
 .score-btn.on.v4  { background: var(--s4); }  .score-btn.on.v5  { background: var(--s5); }
