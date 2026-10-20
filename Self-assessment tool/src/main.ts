@@ -2157,7 +2157,7 @@ function paneAnswers(pane: HTMLElement) {
 
   pane.appendChild(setRow(
     t('Unclassified only', 'Non classifié seulement'),
-    'Not the answers and not the evidence. Point at where an artefact already lives and make sure your assessor can open it. Where something cannot be linked because of its marking, send it to your assessor by email and record here that you did, with its marking and the subject line.',
+    'Not the answers and not the evidence. Point at the artefact where it is kept and make sure your assessor can open it. Where something cannot be linked because of its marking, send it to your assessor by email and record here that you did, with its marking and the subject line.',
     null,
   ));
   pane.appendChild(setRow(

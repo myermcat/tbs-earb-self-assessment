@@ -86,7 +86,7 @@ export function demandPledge(o: PledgeOpts): void {
     ]),
     el('ol', { class: 'steps' }, [
       el('li', {}, [
-        el('b', {}, [t('Link to it where it already lives, ', 'Pointez vers son emplacement actuel, ')]),
+        el('b', {}, [t('Link to the artefact where it is kept, ', 'Pointez vers son emplacement actuel, ')]),
         t('and make sure your assessor can open it. A link is unclassified even when the document is not.', 'et assurez-vous que votre évaluateur peut l\u2019ouvrir. Un lien est non classifié même quand le document ne l\u2019est pas.'),
       ]),
       el('li', {}, [

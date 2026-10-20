@@ -55,9 +55,14 @@ const evCls = [...g('.ev-row select')][1]; evCls.value = 'Protected B'; fire(evC
 const third = g('.question')[2];
 const na = third.querySelector('.na input'); na.checked = true; fire(na, 'change');
 
-// Fold the scale on a question, the way a reader would, then run the print handler. Sections
-// are one per page now, so the disclosures that survive a print are the per-question ones.
-const folded = g('.ladder-box')[1];
+/**
+ * Fold the reasoning on a question, the way a reader leaves it, then run the print handler.
+ *
+ * It used to fold the scale on a question. The scale is on the section heading now, once for
+ * the page, and a question's own disclosure is the reasoning and evidence, which is the one
+ * carrying something a printed assessment must not lose.
+ */
+const folded = g('.q-extras-box')[0];
 folded.open = false;
 const foldedTitle = folded.querySelector('summary').textContent;
 
