@@ -243,6 +243,22 @@ ok('color-scheme is declared for both themes',
      (html.match(/\.sitefoot \.linkish:hover\s*\{[^}]*\}/) ?? ['no rule'])[0]);
 }
 
+/**
+ * And the band is the height of its one line.
+ *
+ * It carried 2.5rem under the text and .8rem over it: 53px of padding around 19px of words, so
+ * the foot of every page was 73px of mostly nothing. Reported after scrolling to the very
+ * bottom. The deep bottom looked like room kept for the questionnaire's sticky bar, and is
+ * not: that screen has no site footer at all, only the bar.
+ */
+{
+  const rule = (html.match(/\.sitefoot \{[^}]*padding:[^}]*\}/) ?? ['no rule'])[0];
+  const pad = (rule.match(/padding:\s*([^;]+);/) ?? ['', ''])[1].trim().split(/\s+/);
+  const rem = (v) => parseFloat(v) || 0;
+  ok('the site footer is padded like a line of text, not like a section',
+     pad.length === 3 && rem(pad[2]) <= 1 && rem(pad[0]) <= 1, rule);
+}
+
 ok('the sticky footer is pinned to the edge and carries the frame edge',
    /\.sticky-footer\s*\{[^}]*bottom:\s*0/s.test(html) &&
    /\.sticky-footer\s*\{[^}]*border-top:\s*1px solid var\(--chrome-line\)/s.test(html) &&
@@ -1843,8 +1859,20 @@ ok('and an empty screen centres its one card', !!q('main.body-empty'));
  * writes its open list there on every change and restores it on every load, which is the same
  * road a real assessor's submission travels on the second visit.
  */
+/**
+ * And marked ready, which is what a submission on an assessor's screen is.
+ *
+ * It was seeded as the submitter had left it, with no submittedAt, so it was a draft sitting
+ * in an assessor's worklist - a shape no real road produces. It stopped mattering on 20
+ * October, when the dashboard started leaving drafts out of every figure: the one record in
+ * this suite was a draft, so the dashboard had nothing to show and five checks below went
+ * red for the fixture rather than for the page.
+ */
 window.localStorage.setItem('gc-arch-assessment:audit-session', JSON.stringify([
-  { file: 'nexus-self-assessment.json', a: savedJson },
+  {
+    file: 'nexus-self-assessment.json',
+    a: { ...savedJson, meta: { ...(savedJson.meta ?? {}), submittedAt: '2026-10-01T12:00:00.000Z' } },
+  },
 ]));
 byText('.tab', 'Submissions').click();
 await new Promise((r) => setTimeout(r, 100));

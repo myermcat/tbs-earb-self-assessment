@@ -423,8 +423,16 @@ export function sourceLine(records: StoredRecord[]): string {
    * "20 records from the hosted store" directly under a banner saying nothing on the page comes
    * from the real store, and of the two sentences the specific one is the one a room believes.
    */
-  if (isDemo()) return `${records.length} invented records, from no store at all`;
-  if (isHosted()) return `${records.length} records from the hosted store`;
+  /**
+   * Submissions, because that is what is being counted. Records counted the drafts and the
+   * withdrawn ones too, and the dashboard leaves both out of every figure on it, so the word
+   * was describing a wider set than the numbers under it. Asked for as: it should say x
+   * submissions from the hosted store.
+   */
+  const n = records.length;
+  const s = n === 1 ? '' : 's';
+  if (isDemo()) return `${n} invented submission${s}, from no store at all`;
+  if (isHosted()) return `${n} submission${s} from the hosted store`;
   const here = records.filter((r) => r.source === 'this-browser').length;
   const files = records.filter((r) => r.source === 'session-files').length;
   const parts: string[] = [];
