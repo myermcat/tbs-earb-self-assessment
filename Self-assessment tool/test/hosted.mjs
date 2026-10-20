@@ -88,7 +88,7 @@ const addressFor = (at) => (at
   ? `#assessor/${String(at.code).slice(0, 6)}${at.depth && at.depth !== 'flagged' ? `/${at.depth}` : ''}`
   : '');
 
-async function boot({ session = null, side = null, listAnswer = { documents: [] }, role = null, hash = '', url = null, draft = null, people = null, audit = null, audits = null, auditSession = null, openAt = null, oobRefusal = null, linkEmail = null, linkMintedFor = null, library = null,
+async function boot({ session = null, side = null, listAnswer = { documents: [] }, role = null, hash = '', url = null, draft = null, people = null, audit = null, audits = null, auditsRefused = false, auditSession = null, openAt = null, oobRefusal = null, linkEmail = null, linkMintedFor = null, library = null,
                      pending = null, authUri = GOOGLE_SENDS_YOU_HERE, idpRefusal = null } = {}) {
   const seen = [];
   /**
@@ -202,6 +202,34 @@ async function boot({ session = null, side = null, listAnswer = { documents: [] 
          * assessment's: a stub that tested for /assessments first answered a read of the audits
          * with a page of assessments and the page decoded them as audits without complaining.
          */
+        /**
+         * Every audit at once, which is how the assessor's list asks now.
+         *
+         * A collection group query is a POST to the documents root and names no assessment, so
+         * it matches nothing below and fell through to the assessments branch. Its reply is an
+         * array of rows rather than a documents listing, and the parent assessment is carried
+         * only in each document's path.
+         */
+        if (/:runQuery$/.test(href)) {
+          // One refusal is the whole of it now, which is the point of asking once.
+          if (auditsRefused) {
+            const no = { error: { code: 403, status: 'PERMISSION_DENIED', message: 'Missing or insufficient permissions.' } };
+            return { ok: false, status: 403, headers: { get: () => 'application/json' },
+                     json: async () => no, text: async () => JSON.stringify(no) };
+          }
+          const rows = Object.entries(audits ?? {}).flatMap(([code, list]) => list.map((x) => ({
+            document: {
+              name: `projects/x/databases/(default)/documents/assessments/${code}/audit/${encodeURIComponent(x.reviewer)}`,
+              fields: toValue(x).mapValue.fields,
+            },
+            readTime: '2026-10-20T00:00:00Z',
+          })));
+          return {
+            ok: true, status: 200,
+            headers: { get: () => 'application/json' },
+            json: async () => rows, text: async () => JSON.stringify(rows),
+          };
+        }
         if (/\/assessments\/[^/]+\/audit/.test(href)) {
           const code = href.match(/assessments\/([^/?]+)\/audit/)[1];
           const mine = (audits ?? {})[code] ?? [];
@@ -2137,6 +2165,37 @@ console.log('\nThe published build, signed in\n');
   dom.window.close();
 }
 
+/**
+ * NOBODY YET IS A FINDING, AND THE PAGE HAS TO HAVE ASKED BEFORE IT MAKES ONE.
+ *
+ * Reported as: sometimes when I reload it shows everywhere assessed by nobody, sometimes only
+ * one of the two assessors, sometimes both. The list asked the store once per record, twenty
+ * requests going out together, and caught each failure quietly - so a few refusals out of
+ * twenty wrote nobody has looked at this onto rows that two people had audited, in a different
+ * pattern on every reload.
+ *
+ * It asks once now, and a refusal leaves the column saying nothing at all. An empty cell is
+ * the absence of an answer; the words are a claim, and this is the gate that keeps the page
+ * from making one it has not earned.
+ */
+{
+  const one = submission('EF56', 'Payments Modernization');
+  const { doc, dom } = await boot({
+    session: live, side: 'assess', role: 'assessor',
+    listAnswer: { documents: [asDoc(one)] },
+    audits: { [one.id]: [{ reviewer: ME, reviewerName: 'Mariia', reviewedAt: '2026-09-28T00:00:00.000Z', perQuestion: {} }] },
+    auditsRefused: true,
+  });
+  await new Promise((r) => setTimeout(r, 150));
+  const cells = [...doc.querySelectorAll('.triage tbody tr.row-open')]
+    .map((tr) => tr.children[11]?.textContent?.trim() ?? '');
+  ok('a refused read leaves the audited column empty rather than saying nobody',
+     cells.length > 0 && cells.every((c) => c === ''), cells.join(' | '));
+  ok('and names nobody either, because it knows nothing about this row',
+     !doc.querySelector('.triage .audit-chip'), doc.querySelector('.triage .audit-chip')?.textContent ?? 'none');
+  dom.window.close();
+}
+
 {
   /**
    * Making a question set active must not touch the submitter's work.
@@ -2890,9 +2949,16 @@ console.log('\nA submission is a place you can go back from\n');
    * high belongs to the department. Asked, in those words: what does it mean, why is the
    * number negative.
    */
+  /**
+   * And the label names both sides of the comparison.
+   *
+   * "how much higher departments scored themselves" drew the obvious question back: higher
+   * than what. One side of a comparison in the words is half a sentence, so the assessor is
+   * named too.
+   */
   ok('and leads with how far apart they are, with no sign on it',
      (gap?.querySelector('.lead-v')?.textContent ?? '') === '3.0'
-     && /points: how much higher departments scored themselves, on average/.test(said(gap)),
+     && /points: departments above their assessors, on average/.test(said(gap)),
      `${gap?.querySelector('.lead-v')?.textContent} / ${said(gap).slice(0, 120)}`);
   ok('and names the questions furthest apart', /Q1|Q2/.test(said(gap)), said(gap).slice(0, 160));
 
@@ -3199,7 +3265,7 @@ console.log('\nA submission is a place you can go back from\n');
     .find((c) => c.querySelector('h2')?.textContent === 'Self-scores against assessors');
   const txt = (card?.textContent ?? '').replace(/\s+/g, ' ');
   ok('a department that marked itself down is reported as lower',
-     /how much lower departments scored themselves, on average/.test(txt), txt.slice(0, 160));
+     /points: departments below their assessors, on average/.test(txt), txt.slice(0, 160));
   ok('with the size and no sign on it', (card?.querySelector('.lead-v')?.textContent ?? '') === '2.0',
      card?.querySelector('.lead-v')?.textContent);
   ok('and it does not say higher anywhere', !/how much higher/.test(txt), txt.slice(0, 160));

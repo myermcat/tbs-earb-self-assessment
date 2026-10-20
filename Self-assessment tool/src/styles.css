@@ -337,7 +337,18 @@ li { margin-bottom: .22rem; }
   .topbar-right > .lang-link, .topbar-right > .icon-btn { flex: none; }
 }
 
-.body { max-width: min(940px, 100%); margin: 1.15rem auto 6rem; padding: 0 1.15rem; flex: 1 0 auto; }
+/**
+ * The gap under the last card is the page's, and not a reserve for a bar that is not there.
+ *
+ * This carried 6rem of bottom margin for every screen, which on the questionnaire is room for
+ * the sticky bar fixed over the foot of the page. Every other screen paid it too: the
+ * assessor's list ended 144px above the footer, with nothing in the space. Asked, in those
+ * words: why is there so much space between the submissions box and the footer of the page.
+ *
+ * So the margin is the ordinary one now, and the screen that needs room for the bar asks for
+ * it where the bar is - .body-submit below, which already did.
+ */
+.body { max-width: min(940px, 100%); margin: 1.15rem auto 1.6rem; padding: 0 1.15rem; flex: 1 0 auto; }
 .body-submit { padding-bottom: 9rem; }
 .sitefoot { text-align: center; color: var(--ink-3); font-size: .78rem; padding: .8rem 1rem 2.5rem;
   background: var(--surface-2); border-top: 1px solid var(--line); }
@@ -1289,7 +1300,7 @@ code.mark-subject { display: block; margin: .25rem 0; }
  * turns stretching off: the page was sized to its own content and every change of content
  * changed its width. An explicit width under the cap centres a box of a fixed size instead.
  */
-.body-review, .body-admin { padding-bottom: 3rem; width: 100%; max-width: min(1200px, 100%); }
+.body-review, .body-admin { padding-bottom: .4rem; width: 100%; max-width: min(1200px, 100%); }
 /* A badge that cannot wrap is a column that cannot shrink. */
 /**
  * The declared widths are binding, and the table has a floor.

@@ -1234,6 +1234,54 @@ export async function listAudits(code: string): Promise<AssessorAudit[]> {
 }
 
 /**
+ * EVERY AUDIT IN THE STORE, IN ONE REQUEST.
+ *
+ * The assessor's list used to ask per record: twenty submissions meant twenty requests going
+ * out together, each one listing that record's audit subcollection, each one able to fail on
+ * its own, and each failure caught and dropped so the row said nobody had looked. Reported
+ * three times and never the same way twice: sometimes it shows everywhere assessed by nobody,
+ * sometimes only one of the two assessors, sometimes both. That is what a handful of refusals
+ * out of twenty looks like from the outside, and no amount of care around the loop makes
+ * twenty chances to fail into one.
+ *
+ * So the question is asked once. A collection group query names the `audit` collection
+ * wherever it appears, and Firestore answers with every audit document in the project in one
+ * body. It succeeds or it fails, and the list either knows who audited what or knows that it
+ * does not.
+ *
+ * The parent assessment is read back out of each document's path, because that is the only
+ * place a collection group result carries it. deploy/firestore.rules has the matching
+ * `match /{path=**}/audit/{entry}` rule: a nested rule does not grant a collection group
+ * query, and without it this is refused for everybody.
+ */
+export async function listAllAudits(): Promise<Record<string, AssessorAudit[]>> {
+  const reply = await authorized(`${docsRoot()}:runQuery`, {
+    method: 'POST',
+    body: JSON.stringify({
+      structuredQuery: { from: [{ collectionId: 'audit', allDescendants: true }], limit: PAGE_SIZE },
+    }),
+  });
+  if (reply.status !== 200) throw new Error(problemFrom(reply));
+  // The reply is an array of rows, and a row with no document in it is Firestore reporting a
+  // read time for an empty result. Both shapes arrive from the same endpoint.
+  const rows = Array.isArray(reply.body) ? reply.body : [];
+  const out: Record<string, AssessorAudit[]> = {};
+  for (const row of rows) {
+    if (!isRecord(row) || !isRecord(row.document)) continue;
+    const parts = text(row.document.name).split('/');
+    const at = parts.lastIndexOf('assessments');
+    if (at < 0 || !parts[at + 1]) continue;
+    const data = fromFields(row.document.fields);
+    if (!isRecord(data)) continue;
+    const code = decodeURIComponent(parts[at + 1]);
+    const reviewer = decodeURIComponent(parts[parts.length - 1]);
+    (out[code] ??= []).push({ ...(data as unknown as AssessorAudit), reviewer });
+  }
+  for (const list of Object.values(out)) list.sort((x, y) => x.reviewer.localeCompare(y.reviewer));
+  return out;
+}
+
+/**
  * Write this assessor's own audit, under their own address.
  *
  * The whole document goes every time, with no field mask, and that is right here where it is
