@@ -372,6 +372,32 @@ console.log('\nThe published build, signed in\n');
   ok('and the menu is painted above the rows it opens over',
      /\.row-menu \.set-menu-pop\s*\{[^}]*z-index:\s*\d/.test(html));
   /**
+   * THE ROW MENU IS ON SCREEN AT EVERY WIDTH.
+   *
+   * Thirteen columns do not fit a thousand-pixel window, so below the breakpoint above the
+   * table scrolls sideways - and the column it carried off screen was the menu, which is the
+   * only way to anything a row can do. Reported twice, the second time after the widths had
+   * been corrected: my dots are still outside the screen. Giving the menu less room would
+   * have put an initiative's name on four lines, so it is pinned to the right edge instead
+   * and the rest of the row slides under it.
+   *
+   * Read as the last word, for the reason given above: a later rule cancelling this one is
+   * exactly the failure a grep for the declaration would pass through. The hairline is
+   * asserted as a shadow because the table collapses its borders, and a collapsed border
+   * belongs to the grid rather than to the cell - it stays where the column was while the
+   * cell slides out from under it.
+   */
+  const pinned = [...html.matchAll(/\.triage [^{}]*td:last-child[^{}]*\{([^}]*)\}/g)]
+    .map((m) => m[1]);
+  const pinnedPos = pinned.filter((d) => /position:/.test(d)).pop() ?? '';
+  ok('the row menu is pinned to the right edge, so no width can carry it off screen',
+     /position:\s*sticky/.test(pinnedPos) && /right:\s*0/.test(pinnedPos), pinnedPos.trim());
+  ok('and it is opaque, so the row does not show through it',
+     /background:\s*var\(--surface\)/.test(pinnedPos), pinnedPos.trim());
+  ok('and its edge is a shadow, because a collapsed border would not travel with the cell',
+     /box-shadow:\s*inset 1px 0 0/.test(pinnedPos)
+     && !/border-left:/.test(pinnedPos), pinnedPos.trim());
+  /**
    * The decision this asserts is unchanged: the assessor's column is wider than the reading
    * column because it holds a twelve-column table. What changed is how the cap is written. It
    * is `min(1200px, 100%)` now, because a bare 1200px on a 375px phone is a cap the screen

@@ -2553,6 +2553,32 @@ function wireScrollLift(): void {
     const t = e.target as HTMLElement | null;
     if (t && t.classList?.contains('body-results')) root.classList.toggle('scrolled', t.scrollTop > 4);
   }, true);
+  /**
+   * A ROW MENU NEAR THE FOOT OF THE TABLE OPENS UPWARDS.
+   *
+   * The table scrolls inside its own box below the width where it fits, and a box that scrolls
+   * clips in both directions - there is no way to ask for sideways scrolling and an open
+   * bottom. So the menu on the last row dropped past the edge of the box and lost its lower
+   * half. It was reachable only by scrolling sideways before, which is why nobody had met it;
+   * pinning the menu column to the right edge put it in everybody's way.
+   *
+   * Measured when it opens rather than guessed from the row's position, because what matters
+   * is whether this menu on this row falls outside this box, and all three change with the
+   * window. One listener in one place, in the capture phase because toggle does not bubble,
+   * and it covers every row menu on every list without each of them knowing about it.
+   */
+  document.addEventListener('toggle', (e) => {
+    const d = e.target as HTMLElement | null;
+    if (!d?.classList?.contains('row-menu')) return;
+    d.classList.remove('menu-up');
+    if (!(d as HTMLDetailsElement).open) return;
+    const pop = d.querySelector('.set-menu-pop');
+    const box = d.closest('.table-wrap');
+    if (!pop || !box) return;
+    const below = pop.getBoundingClientRect().bottom - box.getBoundingClientRect().bottom;
+    // jsdom and any other engine without layout answer 0 for both, which is not a reason to flip.
+    if (below > 0) d.classList.add('menu-up');
+  }, true);
   paint();
 }
 
