@@ -2691,5 +2691,33 @@ ok('audited file keeps the self-score alongside the audited one',
      breakpoints.every((w) => agreed.includes(w)), breakpoints.join(', '));
 }
 
+/**
+ * THE STYLESHEET PARSES, WHICH IS NOT THE SAME AS THE STYLESHEET BEING THERE.
+ *
+ * Removing What to expect on 20 October took out the lines that start .note and left the
+ * second lines of three rules that ran on, so three runs of declarations sat at the top level
+ * with nothing in front of them. A browser that meets a closing brace where a selector should
+ * be throws away what follows until it can find its feet, and what followed was
+ * button.linkish. Every link-styled button on the page became an ordinary bordered button,
+ * and button.linkish:hover, parsed after the browser recovered, still set border: 0, so
+ * hovering one took two pixels off its box and the card above it resized.
+ *
+ * Nothing caught it. The page still looked like a page, every other gate passed, and it went
+ * out. A closing brace at depth zero is the whole tell and it costs one pass to find.
+ */
+{
+  const css = html.slice(html.indexOf('<style'), html.indexOf('</style>')).replace(/\/\*[\s\S]*?\*\//g, '');
+  let depth = 0;
+  let orphans = 0;
+  let deepest = 0;
+  for (const ch of css) {
+    if (ch === '{') { depth++; deepest = Math.max(deepest, depth); }
+    else if (ch === '}') { depth--; if (depth < 0) { orphans++; depth = 0; } }
+  }
+  ok('no rule in the stylesheet closes a block that was never opened',
+     orphans === 0, `${orphans} stray closing braces`);
+  ok('and every block that opens is closed', depth === 0, `${depth} left open`);
+}
+
 console.log(fails === 0 ? '\nall UI checks passed' : `\n${fails} FAILED`);
 process.exit(fails === 0 ? 0 : 1);
