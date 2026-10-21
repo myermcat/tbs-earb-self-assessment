@@ -1284,8 +1284,23 @@ const evTitle = hosting.querySelector('.ev-row input[type=text]');
 evTitle.value = 'Current-state architecture diagram, March 2026';
 fire(evTitle, 'input');
 
-ok('a row with something in it and no marking blocks saving',
-   byText('.footer-actions button', 'Save to a file').disabled === true && view().includes('mark'));
+/**
+ * A row with something in it and no marking stops nothing.
+ *
+ * It blocked the save until 20 October, and it was the last of the four marking blocks. Put
+ * to her as the one left, and answered: no. An unmarked row still shows as unmarked, where
+ * the control is. What it does not carry counts as nothing when the file's marking is worked
+ * out, so the derived answer can only be too low, and saying so is the row's job.
+ */
+ok('a row with something in it and no marking stops nothing',
+   byText('.footer-actions button', 'Save to a file').disabled === false,
+   byText('.footer-actions button', 'Save to a file').getAttribute('title') ?? '');
+{
+  const row = qa('.question').find((n) => n.textContent.includes('hosting environment'));
+  ok('and the row still says it has no marking',
+     !!row.querySelector('.ev-item.unmarked') && !!row.querySelector('select.needs-marking'),
+     row.querySelector('.ev-item')?.className ?? 'no row');
+}
 
 /**
  * The row is where a marking is given, and the pledge fires from it.

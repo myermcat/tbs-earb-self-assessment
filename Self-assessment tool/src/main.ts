@@ -28,7 +28,7 @@ declare const __EARB_DEMO__: boolean;
 import { rememberSigner, signerFields, signerProblem } from './signer';
 import { showNewCode } from './views-share';
 import { bootLang, coverage, lang, type Lang, setLang } from './i18n';
-import { endpointHost, goneFromStore, isHosted, listRecords, putRecord,
+import { endpointHost, goneFromStore, isHosted, listRecords, onlineIsCurrent, putRecord,
   saveOnlineNow, savedOnline, showWhereItStands } from './store';
 import { addressOf, isAddressSegment, canSignIn, CODE_LENGTH, currentUser, forgetRole, getAssessment, grantsAccess, looksLikeCode, pageAddress, tidyCode, isConfigured as firebaseConfigured, knownRole, lastSignInProblem,
   loadRole, resumeSignIn, signInWithGoogle, signOut,
@@ -1198,15 +1198,27 @@ function banner(extra = ''): HTMLElement {
  */
 function accessCode(a: Assessment): HTMLElement | null {
   if (!a.id) return null;
+  /**
+   * Beside the code, the state of the thing the code names, in three words.
+   *
+   * It was a sentence: this opens the assessment here and on any other computer, send it only
+   * to people who should be able to change it. Asked for on 20 October: remove this text, and
+   * instead on the right of the access code it should say in very faint either saved online
+   * or not saved online, or whatever is the status.
+   *
+   * Not saved online is also the answer to what the code does before the first save, which is
+   * nothing, and three words carry that where a sentence had to explain it.
+   */
+  const state = !savedOnline(a)
+    ? t('not saved online', 'non enregistrée en ligne')
+    : onlineIsCurrent(a)
+      ? t('saved online', 'enregistrée en ligne')
+      : t('saved online, out of date', 'enregistrée en ligne, périmée');
   return el('div', { class: 'hero-code' }, [
-    el('p', { class: 'hero-code-key' }, [t('Access code', 'Code d\u2019acc\u00e8s')]),
-    codeChip(a.id),
-    el('p', { class: 'small muted hero-code-say' }, [
-      savedOnline(a)
-        ? t('This opens the assessment, here and on any other computer. Send it only to people who should be able to change it.',
-            'Ce code ouvre l\u2019\u00e9valuation, ici et sur tout autre ordinateur. Ne le transmettez qu\u2019aux personnes autoris\u00e9es \u00e0 la modifier.')
-        : t('Nothing opens with it yet. It is this assessment\u2019s name in the store from the first time you press Save online, and it does not change after that.',
-            'Rien ne s\u2019ouvre avec ce code pour l\u2019instant. Il devient le nom de cette \u00e9valuation dans le d\u00e9p\u00f4t d\u00e8s le premier enregistrement en ligne, et il ne change plus ensuite.'),
+    el('p', { class: 'hero-code-key' }, [t('Access code', 'Code d\u2019accès')]),
+    el('div', { class: 'hero-code-row' }, [
+      codeChip(a.id),
+      el('span', { class: 'hero-code-state' }, [state]),
     ]),
   ]);
 }

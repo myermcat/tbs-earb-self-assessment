@@ -481,10 +481,12 @@ button.big:hover .arrow { transform: translateX(3px); }
 .hero-code { margin-top: 1.15rem; padding-top: 1rem; border-top: 1px solid var(--line); }
 .hero-code-key { font-size: .7rem; font-weight: 700; letter-spacing: .1em;
   text-transform: uppercase; color: var(--ink-3); margin-bottom: .5rem; }
+/* The chip is a box, so it is centred against the words beside it. */
+.hero-code-row { display: flex; align-items: center; gap: .75rem; flex-wrap: wrap; }
+.hero-code-state { font-size: .72rem; color: var(--ink-3); }
 .hero-code .code-chip-btn { padding: .52rem .9rem; border-color: var(--accent-line); }
 .hero-code .code-chip-value { font-size: 1.22rem; }
 .hero-code .code-chip-ico { color: var(--accent); }
-.hero-code-say { margin-top: .55rem; max-width: 52ch; }
 
 .draft-note { margin-top: .85rem; padding-top: .65rem; border-top: 1px solid var(--line); }
 .draft-note p { margin-bottom: .25rem; }

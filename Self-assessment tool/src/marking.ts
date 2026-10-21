@@ -21,7 +21,7 @@ import { CLASSIFICATIONS, classRank, type Assessment, type Classification } from
  */
 
 export interface MarkingProblem {
-  kind: 'unmarked-evidence' | 'classified-attachment';
+  kind: 'classified-attachment';
   message: string;
   questionId?: string;
 }
@@ -73,10 +73,21 @@ function isEmptyRow(e: { title?: string; location?: string; note?: string; attac
 /**
  * Everything standing between the user and a saved file. Empty means good to go.
  *
- * TWO OF THE FOUR WENT ON 20 OCTOBER. `no-file-marking` refused to save an assessment nobody
- * had given a marking, and the answer to that was: thats okay, maybe it doesnt have evidence
- * yet, its okay to save unmarked file. `evidence-above-file` cannot happen now, because the
- * file marking is the highest of the evidence and nothing can be above it.
+ * THREE OF THE FOUR WENT ON 20 OCTOBER. `no-file-marking` refused to save an assessment
+ * nobody had given a marking, and the answer to that was: thats okay, maybe it doesnt have
+ * evidence yet, its okay to save unmarked file. `evidence-above-file` cannot happen now,
+ * because the file marking is the highest of the evidence and nothing can be above it. And
+ * `unmarked-evidence`, which stopped a save while a row had a title and no marking, was put
+ * to her as the one block left and answered: no.
+ *
+ * What is left refuses one thing, and it is the only one that is about the material rather
+ * than about the form: a file above unclassified held inside this assessment. That is not a
+ * tidiness rule. Nothing above unclassified may be in this document at all.
+ *
+ * An unmarked row still shows as unmarked, on the row, where the control is. The marking it
+ * does not carry counts as nothing when the file's own marking is worked out, so the derived
+ * answer can only ever be too low, never too high. Saying so is the row's job and not the
+ * save button's.
  */
 export function markingProblems(a: Assessment): MarkingProblem[] {
   const out: MarkingProblem[] = [];
@@ -95,13 +106,6 @@ export function markingProblems(a: Assessment): MarkingProblem[] {
           questionId: qid,
           message: `${qid}: "${named}" is marked ${e.classification} and is attached to this file. Nothing above unclassified can be held here. Remove the file and send it to your assessor by email.`,
         });
-      }
-      // An empty row is the one Add evidence just created. Demanding a marking for it blocks
-      // saving the moment somebody clicks Add, before they have typed anything. A file loaded
-      // from disk may be missing fields entirely, and this runs on every keystroke.
-      if (isEmptyRow(e)) continue;
-      if (!e.classification) {
-        out.push({ kind: 'unmarked-evidence', questionId: qid, message: `${qid}: mark "${named}".` });
       }
     }
   }
