@@ -423,6 +423,16 @@ ok('the gate band is not capped at the content width',
   ok('the band says unclassified, which is what the file is',
      b.textContent.includes('UNCLASSIFIED') && !b.classList.contains('unmarked'), b.textContent);
   ok('and it is not a control any more', b.tagName === 'DIV', b.tagName);
+  /**
+   * And the stylesheet does not still dress a state nothing can be in.
+   *
+   * The rules for the unmarked band, a dark plate with a red glow and a slow pulse, outlived
+   * their markup by one publish. Nothing failed, because dead CSS asserts nothing. It was
+   * found by grepping the published page for what was supposed to have left it.
+   */
+  ok('and nothing is left styling it',
+     !/\.marking-banner\.unmarked/.test(html) && !/marking-pulse/.test(html),
+     [...html.matchAll(/[^{}]*marking-(?:banner\.unmarked|pulse)[^{}]*\{/g)].map((m) => m[0].trim()).join(' | ') || 'clean');
 }
 {
   const ta = q('.ov-block textarea');

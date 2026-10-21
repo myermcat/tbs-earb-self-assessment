@@ -1284,28 +1284,18 @@ input.needs-marking::placeholder { color: var(--bad); opacity: 1; }
   background: #14161b; color: #e8eaee;
   border-bottom: 1px solid #2b303a;
 }
-button.marking-banner { cursor: pointer; }
-button.marking-banner:hover { filter: brightness(1.25); background: #2a1414; }
-
-/**
- * Unmarked is a dark plate with a red glow, so it reads as a warning light. Flat red on a
- * full-width strip was loud enough to be tuned out.
+/*
+ * THE UNMARKED STATE WENT ON 20 OCTOBER, AND ITS WARNING LIGHT WITH IT.
+ *
+ * The band had a second form: a dark plate with a red glow and a slow pulse, and it was a
+ * button, because an unmarked file could not be saved and the band was the control for
+ * answering that. No file is unmarked now. The marking is derived from the evidence, a file
+ * with none derives Unclassified, and saving it is allowed.
+ *
+ * These rules outlived the markup by one publish. The change that removed the state left them
+ * behind, and nothing failed, because dead CSS asserts nothing. The published page was grepped
+ * for what was supposed to have left it, and the keyframes were still in it.
  */
-.marking-banner.unmarked {
-  background: #1b0e0e;
-  color: #ff9d92;
-  border-bottom: 1px solid rgba(255, 90, 70, .55);
-  box-shadow: 0 0 22px rgba(200, 40, 30, .55), inset 0 0 26px rgba(190, 35, 25, .30);
-  text-shadow: 0 0 10px rgba(255, 110, 90, .75);
-  animation: marking-pulse 2.6s ease-in-out infinite;
-}
-@keyframes marking-pulse {
-  0%, 100% { box-shadow: 0 0 16px rgba(200, 40, 30, .40), inset 0 0 20px rgba(190, 35, 25, .22); }
-  50%      { box-shadow: 0 0 30px rgba(220, 50, 40, .72), inset 0 0 32px rgba(200, 40, 30, .38); }
-}
-@media (prefers-reduced-motion: reduce) {
-  .marking-banner.unmarked { animation: none; }
-}
 
 .marking-banner.print-only { display: none; }
 /* Held back from the screen, kept in the page, so it is still on the paper. */
