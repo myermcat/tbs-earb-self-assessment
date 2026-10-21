@@ -802,8 +802,21 @@ ok('the rail shows every section of the current domain as done',
      !!q('.lens-strip .lens-mark')
        && !qa('.lens-chip').some((c) => /All questions/i.test(c.textContent)),
      qa('.lens-chip').map((c) => c.textContent).join(' | '));
+  /**
+   * And the funnel is lit while anything is filtered. Asked for: it should highlight when
+   * filters are chosen. The row sits in the chrome, so somebody arriving on a page showing a
+   * fifth of the questions has to be able to see why without reading the chips.
+   */
+  ok('and the funnel is lit while anything is filtered',
+     q('.lens-mark').classList.contains('on'), q('.lens-mark').className);
+  ok('and the mark is filled rather than drawn in the line weight of the rest',
+     /fill="currentColor"/.test(q('.lens-mark').innerHTML)
+       && !/stroke="currentColor"/.test(q('.lens-mark').innerHTML),
+     q('.lens-mark').innerHTML.slice(0, 90));
   q('.lens-chip.on').click();
   ok('and nothing is on', qa('.lens-chip.on').length === 0, String(qa('.lens-chip.on').length));
+  ok('and the funnel goes out with them', !q('.lens-mark').classList.contains('on'),
+     q('.lens-mark').className);
   const back = qa('.progress-row .pbar-label').map((l) => l.textContent.replace(/\s+/g, ' ').trim());
   ok('turning the lens off restores the section bar', /This section/.test(back[0]), back[0]);
   ok('and the whole-assessment bar with it',
@@ -2815,6 +2828,26 @@ ok('audited file keeps the self-score alongside the audited one',
   ok('no rule in the stylesheet closes a block that was never opened',
      orphans === 0, `${orphans} stray closing braces`);
   ok('and every block that opens is closed', depth === 0, `${depth} left open`);
+}
+
+/**
+ * The front page fills the width it is capped at.
+ *
+ * .app-home .body is a column flex box with margin: 0 auto, so without a width of its own it
+ * took its max-content and the cap never applied. On a 1680px window the card measured 594 by
+ * 324, a third of the screen in each direction, floating in black. Reported with a screenshot:
+ * the box is way too small and it looks a bit ridiculous. It measures 1003 by 416 there now.
+ *
+ * jsdom cannot lay this out, so what is asserted is the declaration that was missing. The
+ * numbers above were measured in a real engine and are in the commit that made them.
+ */
+{
+  // Outside the media queries: the last rule for this selector is a phone one that only
+  // changes the padding, and reading it answers a question nobody asked.
+  const plain = html.replace(/@media[^{]*\{(?:[^{}]*\{[^}]*\}\s*)*\}/g, '');
+  const home = [...plain.matchAll(/\.app-home \.body\s*\{([^}]*)\}/g)].map((m) => m[1]).pop() ?? '';
+  ok('the home body takes the width it is given, so its cap can apply',
+     /width:\s*100%/.test(home), home.replace(/\s+/g, ' ').trim().slice(0, 120) || 'no rule');
 }
 
 console.log(fails === 0 ? '\nall UI checks passed' : `\n${fails} FAILED`);

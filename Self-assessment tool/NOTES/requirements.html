@@ -146,9 +146,9 @@ background:var(--surface);border:1px solid var(--line);border-radius:10px;list-s
 .kpi a{color:inherit;text-decoration:none}
 </style>
 <div class="head"><div class="head-in"><h1>GC EA self-assessment: requirements specification</h1>
-<p class="sub">Living document, updated 2026-09-28. 151 requirements, baselined at each release. Following ISO/IEC/IEEE 29148:2018, tailored.</p></div></div>
+<p class="sub">Living document, updated 2026-09-28. 152 requirements, baselined at each release. Following ISO/IEC/IEEE 29148:2018, tailored.</p></div></div>
 <nav class="topnav"><div class="topnav-in">
-<span class="nav-kpi"><b>95</b><span>built</span></span>
+<span class="nav-kpi"><b>96</b><span>built</span></span>
 <span class="nav-kpi"><b>31</b><span>agreed, not built</span></span>
 <span class="nav-kpi"><b>3</b><span>proposed</span></span>
 <span class="nav-kpi"><b>21</b><span>open</span></span>
@@ -1076,6 +1076,12 @@ Two departures worth naming. The audit saves itself a moment after typing stops,
 <span class="req-t">Domains are pages and categories are a filter, so they are not drawn alike. More than one category at a time, and a question is on screen if it carries any of them.</span>
 <span class="st st-done">Built</span>
 <span class="req-note">Added 20 October, in these words: domains are literally different pages, while all questions, security, privacy, financial is a filter, and I should be able to select multiple, like security and accessibility, and we will see all questions when all filters are removed. Three things changed together. The row is marked with a funnel and carries no chip for the absence of a filter, because all questions was a control for the absence of a thing sitting in the row of the thing; nothing selected is every question. A second click on a chip takes it back out. And the chip that is on carries no box at all, reported a third time as too bright for its importance: it is one step of ink above the rest with a dashed rule under its word, and the count beside it is not underlined, which is why the word has a span of its own. A pair of categories is the union and not the intersection, because somebody who ticks both is asking to see both; Security and Accessibility together show 28 of 176 where the two claim 25 and 3, and adding Privacy shows 33 where the three claim 36, which is the three questions carrying two of them counted once.</span>
+</div>
+<div class="req">
+<span class="req-id mono">X24</span>
+<span class="req-t">A page that caps its width fills that width. The cap is the measurement, not the length of the longest line in it.</span>
+<span class="st st-done">Built</span>
+<span class="req-note">Added 20 October. The front page is a column flex box with margin: 0 auto, so with no width of its own it took its max-content and the 900px cap never applied. On a 1680px window the card measured 594 by 324, a third of the screen in each direction, sitting in black. Reported with a screenshot: the box is way too small and it looks a bit ridiculous. It is 1003 by 416 there now, 60 per cent of the width and 42 of the height, from width: 100%, a cap raised to 1040, and room inside it: the padding, the heading, the line under it, the button, the code and the ladder beside them all grew together, because a card that is bigger and holds the same small type reads as a card with a margin problem.</span>
 </div>
 <div class="req">
 <span class="req-id mono">X22</span>
