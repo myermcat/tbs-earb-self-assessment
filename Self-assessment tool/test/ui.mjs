@@ -845,17 +845,27 @@ ok('and the page says which one it is in',
 
 ok('and one click opens the detail', q('.save-state').tagName === 'BUTTON');
 
-// With work in the file, the start page points at Settings and destroys nothing itself.
+/**
+ * With work in the file, the start page carries the access code and destroys nothing.
+ *
+ * It used to end on "Starting over is in Settings, under Danger zone", and that went on 20
+ * October: a front page that opens by naming the way to throw the work away is pointing at
+ * the one thing nobody came for. Starting over is still in the Danger zone, which is where
+ * anything that removes something lives, and the pane is still reached from Settings.
+ */
 {
   byText('.tab', 'Start').click();
-  ok('the start page points at settings for starting over', view().includes('Starting over is in'));
+  ok('the start page no longer names the way to throw the work away',
+     !view().includes('Starting over is in'), 'still points at Settings');
   ok('and offers no way to destroy anything from there',
      !qa('.draft-note button').some((b) => /discard|erase|delete/i.test(b.textContent)));
-  byText('.linkish', 'Settings').click();
-  ok('that pointer opens the pane it names', q('.set-navrow.on').textContent === 'Danger zone',
-     q('.set-navrow.on')?.textContent);
-  ok('and now the discard is live, since there is something to lose',
-     q('.set-row.danger button.danger').disabled === false);
+  /**
+   * The access code block is on the front page of a build that has a store, and it is checked
+   * in test/hosted.mjs. This copy of the tool has nowhere online to save to, so a code that
+   * can never open anything would be a credential offered for no reason.
+   */
+  ok('and a build with no store offers no access code',
+     !q('.hero .hero-code'), q('.hero .hero-code')?.textContent?.slice(0, 60) ?? '');
   byText('.tab', 'Fill it in').click();
 }
 

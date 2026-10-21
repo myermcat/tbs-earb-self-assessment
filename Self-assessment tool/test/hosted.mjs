@@ -3500,6 +3500,53 @@ console.log('\nA submission is a place you can go back from\n');
   dom.window.close();
 }
 
+/* --------------------------------------------------------------------------------------- */
+/**
+ * THE ACCESS CODE IS ON THE FRONT PAGE, AND IT SAYS WHAT IT DOES BEFORE THE FIRST SAVE.
+ *
+ * Asked for on 20 October: the assess your own architecture block should have big copy your
+ * access code, this is one of the most important actions one can do, it needs to be of the
+ * according weight on the front page. And asked in the same breath: you said access code gets
+ * generated the first time when it's saved online, so what will happen before it is saved
+ * online.
+ *
+ * The code is minted when the assessment is created, so it exists from the first second and
+ * never changes. What the first online save does is put a record in the store under it. The
+ * screen has to say which of the two states it is in, because a code that opens nothing is
+ * worth knowing about before somebody sends it to a colleague.
+ *
+ * This suite and not test/ui.mjs, because the block only appears on a build with a store, and
+ * every other suite builds without one.
+ */
+{
+  const local = {
+    fileType: 'gc-arch-assessment', formatVersion: 1, id: 'KFRM92TXBQ7H', ref: 'AB12',
+    rubric: { id: 'gc-ea-selfassess', version: '1.0', title: 'x' },
+    initiative: { name: 'Fleet Scheduling', department: 'DFO', contact: 'a@dfo-mpo.gc.ca',
+      summary: 'A thing.', lifecycleStage: 'beta', classification: 'Unclassified' },
+    answers: { 'B-Q1': { score: 3, evidence: [] } },
+    meta: { createdAt: 'x', updatedAt: 'x', appVersion: 'test' },
+  };
+  const { doc } = await boot({ draft: local, hash: '' });
+  const code = doc.querySelector('.hero .hero-code');
+  ok('the access code is on the front page', !!code, 'no code block in the hero');
+  ok('and it is the code this assessment carries',
+     (code?.textContent ?? '').includes('KFRM'), code?.textContent?.slice(0, 60) ?? '');
+  const btn = code?.querySelector('.code-chip-btn');
+  ok('with the control that copies it',
+     !!btn && /Copy the access code/.test(btn.getAttribute('title') ?? ''),
+     btn?.getAttribute('title') ?? 'no button');
+  ok('and it says nothing opens with it until the first online save',
+     /Nothing opens with it yet/.test(code?.textContent ?? ''), code?.textContent?.slice(0, 140) ?? '');
+
+  const sent = JSON.parse(JSON.stringify(local));
+  sent.meta.savedOnlineAt = new Date().toISOString();
+  const { doc: doc2 } = await boot({ draft: sent, hash: '' });
+  const code2 = doc2.querySelector('.hero .hero-code');
+  ok('and once it is in the store it says the code opens it',
+     /This opens the assessment/.test(code2?.textContent ?? ''), code2?.textContent?.slice(0, 140) ?? '');
+}
+
 console.log(fails ? `\n${fails} hosted check(s) failed\n` : '\nall hosted checks passed\n');
 process.exit(fails ? 1 : 0);
 

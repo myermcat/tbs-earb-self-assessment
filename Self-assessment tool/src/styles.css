@@ -471,6 +471,21 @@ button.big { font-size: .98rem; padding: .62rem 1.4rem; border-radius: 9px;
 button.big .arrow { font-size: 1.05rem; transition: transform .15s ease; }
 button.big:hover .arrow { transform: translateX(3px); }
 .or { color: var(--ink-3); font-size: .88rem; }
+/*
+ * The access code on the front page, at the weight it was asked for: this is one of the most
+ * important actions one can do, it needs to be of the according weight.
+ *
+ * Ringed and not filled. One solid accent on a screen and it is the primary action, which on
+ * this page is Continue, so the code is the next thing down and takes a border instead.
+ */
+.hero-code { margin-top: 1.15rem; padding-top: 1rem; border-top: 1px solid var(--line); }
+.hero-code-key { font-size: .7rem; font-weight: 700; letter-spacing: .1em;
+  text-transform: uppercase; color: var(--ink-3); margin-bottom: .5rem; }
+.hero-code .code-chip-btn { padding: .52rem .9rem; border-color: var(--accent-line); }
+.hero-code .code-chip-value { font-size: 1.22rem; }
+.hero-code .code-chip-ico { color: var(--accent); }
+.hero-code-say { margin-top: .55rem; max-width: 52ch; }
+
 .draft-note { margin-top: .85rem; padding-top: .65rem; border-top: 1px solid var(--line); }
 .draft-note p { margin-bottom: .25rem; }
 .draft-note .tiny .linkish { color: var(--ink-3); text-decoration-color: var(--line-2); }
