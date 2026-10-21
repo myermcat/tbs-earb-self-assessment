@@ -114,11 +114,33 @@ ok('the header carries only the name, no version clutter', !q('.brand').textCont
  */
 ok('no versions along the foot of the page', !q('.sitefoot').textContent.includes(rubric.version),
    q('.sitefoot').textContent.trim());
-ok('and the footer is the store sentence and the way to read more',
-   /stays on this machine|kept at/.test(q('.sitefoot').textContent)
-   && !!q('.sitefoot .linkish'), q('.sitefoot').textContent.trim());
+/**
+ * A LINK ONLY WHERE SOMETHING ANSWERS IT.
+ *
+ * The footer said "Where this goes" and opened This build: versions, a build time, a languages
+ * row, and one Store line saying "Writing to firestore.googleapis.com", which is the sentence
+ * the link sits beside. A click to be told the same thing is worse than no link, because it
+ * promises detail and spends somebody's attention proving there is none. Asked in those words:
+ * what does it mean, what on that page answers it, is the button needed at all.
+ *
+ * "Where your answers go" does answer it - what the browser keeps, what saving online sends,
+ * what the marking decides - and it is the submitter's pane, in the rail on their side only.
+ * So the link goes there for them, and the assessor's footer is the sentence alone.
+ */
+ok('the footer says where the work goes',
+   /stays on this machine|kept at/.test(q('.sitefoot').textContent),
+   q('.sitefoot').textContent.trim());
+/**
+ * This is the submitter's side, so the pane that answers it is in the rail and the link is
+ * offered. The label names the pane it opens: "How that works" pointed at its content and left
+ * somebody to click to find out what it meant.
+ */
+ok('and offers the pane that answers it, named as itself',
+   (q('.sitefoot .linkish')?.textContent ?? '') === 'Where your answers go',
+   q('.sitefoot .linkish')?.textContent ?? 'no link');
+ok('and nothing in the footer opens the build pane any more',
+   !/Where this goes/.test(q('.sitefoot').textContent), q('.sitefoot').textContent.trim());
 ok('and the version names nobody', !/\b(dan|nick|allison|john|patricia|mariia)\b/i.test(rubric.version), rubric.version);
-ok('draft status is reachable from the footer', !!byText('button', 'How that works'));
 /**
  * The home page is the hero and nothing under it. What to expect went on 20 October, reported
  * as redundant: it carried the question count, which the bar at the foot of the questionnaire

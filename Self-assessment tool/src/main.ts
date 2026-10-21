@@ -1088,6 +1088,31 @@ function footer(): HTMLElement {
             : `What you send is kept at ${endpointHost()}. `,
         ]),
       /**
+       * NO LINK ON THE ASSESSOR'S FOOTER, BECAUSE NOTHING ANSWERS WHAT IT PROMISED.
+       *
+       * "Where this goes" opened This build, a pane of versions, a build time and a languages
+       * row. The only line on it about where anything goes is the Store row, which says
+       * "Writing to firestore.googleapis.com" - the sentence the link sits beside, in other
+       * words. A click to be told the same thing is worse than no link: it promises detail and
+       * spends somebody's attention proving there is none.
+       *
+       * Asked in those words: what does where this goes mean, what on the build page is
+       * supposed to answer it, is the button needed at all.
+       *
+       * There IS a pane that answers it - "Where your answers go" - and it is the submitter's:
+       * what the browser keeps, what saving online sends, what the marking decides, what
+       * signing in is for. It is in the rail when side is submit and nowhere otherwise. So the
+       * link goes there for the person it was written for, and the assessor's footer is the
+       * sentence alone, which is the whole of what this side has to say.
+       *
+       * The fix is not to put more on This build. A page filled out to justify a link pointing
+       * at it is the same mistake twice.
+       */
+      side === 'submit'
+        ? el('button', { class: 'linkish', onclick: () => openSettings('answers') },
+             [t('Where your answers go', 'O\u00f9 vont vos r\u00e9ponses')])
+        : null,
+      /**
        * NO VERSIONS ALONG THE FOOT OF EVERY SCREEN.
        *
        * It carried "rubric 1.0 · v0.1.0 · built 2026-10-20 23:48 UTC" on every page. Asked:
@@ -1102,12 +1127,16 @@ function footer(): HTMLElement {
        * of the served file against the one just built, which is a stronger answer to the same
        * question than a timestamp anybody can read off a cached page.
        */
-      el('button', { class: 'linkish', onclick: () => openSettings('build') }, ['Where this goes']),
     ]);
   }
   return el('footer', { class: 'sitefoot' }, [
     el('span', {}, ['Everything you enter stays on this machine. ']),
-    el('button', { class: 'linkish', onclick: () => openSettings('answers') }, ['How that works']),
+    // The same pane and the same condition as above: it is the submitter's, and it is in the
+    // rail only on their side. "How that works" pointed at its content; this names it.
+    side === 'submit'
+      ? el('button', { class: 'linkish', onclick: () => openSettings('answers') },
+           [t('Where your answers go', 'O\u00f9 vont vos r\u00e9ponses')])
+      : null,
   ]);
 }
 
