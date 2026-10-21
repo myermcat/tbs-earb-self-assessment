@@ -1277,6 +1277,17 @@ console.log('\nThe published build, signed in\n');
   ok('and the name box asks for the whole name',
      (pane.querySelector('.people-add .field span')?.textContent ?? '') === 'Full name',
      pane.querySelector('.people-add .field span')?.textContent ?? 'no label');
+  /**
+   * The assessor's footer is the sentence alone.
+   *
+   * It carried "Where this goes", which opened This build: versions, a build time, a languages
+   * row, and one Store line repeating the sentence the link sat beside. The pane that does
+   * answer it is the submitter's and is not in this rail, so there is nothing to link to.
+   */
+  ok('the assessor\u2019s footer says where the work goes and offers nothing further',
+     /kept at/.test(doc.querySelector('.sitefoot')?.textContent ?? '')
+     && !doc.querySelector('.sitefoot .linkish'),
+     doc.querySelector('.sitefoot')?.textContent?.replace(/\s+/g, ' ').trim() ?? 'no footer');
   ok('and the note above the address has a heading, so it is read before the box under it',
      /Google account only/.test(pane.querySelector('.note-yellow-head')?.textContent ?? ''),
      pane.querySelector('.note-yellow-head')?.textContent ?? 'no heading');
