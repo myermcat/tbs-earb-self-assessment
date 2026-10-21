@@ -1,6 +1,7 @@
 import { CLASSIFICATIONS, type Assessment, type EvidenceRef, type Question,
   type Rubric } from './types';
 import { el, clear, tone } from './dom';
+import { ICON_FILTER, ICON_INFO } from './icons';
 import { codeChip } from './code-chip';
 import { domainRedFlags, score, sectionRedFlags, type Result, type SectionScore } from './scoring';
 import { autosave, clearSaveWatchers, saveAssessmentFile } from './storage';
@@ -107,7 +108,25 @@ let scrollToQuestion: string | null = null;
  * a fifth of the reading column at every width, and the questions are long text. A strip costs
  * one row of height and works the same on a phone, so there is one design and not two.
  */
-let lens: string | null = null;
+/**
+ * MORE THAN ONE AT A TIME, AND A QUESTION MATCHES ANY OF THEM.
+ *
+ * It was one category or none. Asked for on 20 October: I should be able to select multiple,
+ * like security and accessibility for example, and we will see all questions when all filters
+ * are removed. So it is a set, and a question is on screen if it carries any one of the
+ * categories in it. Every pair of these is a handful of questions at most, and somebody who
+ * ticks security and accessibility is asking to see both, not the questions that are both.
+ */
+let lens = new Set<string>();
+
+function lensOn(): boolean { return lens.size > 0; }
+
+/** With nothing filtered, everything is in. */
+function inLens(topics: string[] | undefined): boolean {
+  if (!lens.size) return true;
+  for (const id of topics ?? []) if (lens.has(id)) return true;
+  return false;
+}
 
 /**
  * How much of a set of questions is answered, counted inside whatever lens is on.
@@ -118,13 +137,16 @@ let lens: string | null = null;
  * and every readout calls it.
  */
 function countedInLens(questions: { raw: number | null; na: boolean; question: { topics?: string[] } }[]): [number, number] {
-  const seen = lens ? questions.filter((qs) => (qs.question.topics ?? []).includes(lens as string)) : questions;
+  const seen = questions.filter((qs) => inLens(qs.question.topics));
   return [seen.filter((qs) => qs.raw !== null || qs.na).length, seen.length];
 }
 
-/** What the strip calls the category that is on, for a readout that has to name it. */
+/**
+ * What the strip calls the categories that are on, for a readout that has to name them.
+ * Written in the strip's own order, so the caption reads in the order of the row above it.
+ */
 function lensLabel(rubric: Rubric): string {
-  return (rubric.topics ?? []).find((c) => c.id === lens)?.label ?? (lens ?? '');
+  return (rubric.topics ?? []).filter((c) => lens.has(c.id)).map((c) => c.label).join(', ');
 }
 export function goToFirstGap(rubric: Rubric, a: Assessment): boolean {
   const gap = firstGap(rubric, a);
@@ -267,7 +289,7 @@ export function renderSubmit(
     const ds = r.domains.find((d) => d.domain.id === here.domainId);
     const ss = ds?.sections.find((x) => x.section.id === here.sectionId);
     if (!ds || !ss) { page = 'about'; repaintApp(); return; }
-    if (!lens) {
+    if (!lensOn()) {
       sheet.appendChild(sectionHead(ds, ss, r, here, rubric));
       for (const qs of ss.questions) {
         sheet.appendChild(questionBlock(rubric, a, qs.question, refresh));
@@ -283,10 +305,10 @@ export function renderSubmit(
        * question instead. The tabs carry the rest of the answer, because they are counting the
        * same category in the other three.
        */
-      const label = (rubric.topics ?? []).find((c) => c.id === lens)?.label ?? lens;
+      const label = lensLabel(rubric);
       const hits = ds.sections.flatMap((sec) =>
         sec.questions
-          .filter((qs) => (qs.question.topics ?? []).includes(lens as string))
+          .filter((qs) => inLens(qs.question.topics))
           .map((qs) => ({ qs, sec })));
 
       sheet.appendChild(el('div', { class: 'lens-head' }, [
@@ -298,7 +320,7 @@ export function renderSubmit(
             : t('No question in this domain is about it. The tabs above show which domains are.',
                 'Aucune question de ce domaine ne la concerne. Les onglets ci-dessus indiquent lesquels le sont.'),
           ' ',
-          el('button', { class: 'linkish', onclick: () => { lens = null; repaintApp(); } },
+          el('button', { class: 'linkish', onclick: () => { lens.clear(); repaintApp(); } },
             [t('Show every question again', 'Afficher de nouveau toutes les questions')]),
         ]),
       ]));
@@ -511,8 +533,8 @@ function sectionRail(
                * somebody tried a category, and the row is still the answer to "is any of our
                * security in here", which is no.
                */
-              row.classList.toggle('lens-empty-row', !!lens && total === 0);
-              row.classList.toggle('red-flag', !!cur && !lens && sectionRedFlags(cur).length > 0);
+              row.classList.toggle('lens-empty-row', lensOn() && total === 0);
+              row.classList.toggle('red-flag', !!cur && !lensOn() && sectionRedFlags(cur).length > 0);
             }, r);
             return row;
           })
@@ -538,16 +560,36 @@ function lensStrip(rubric: Rubric, repaintApp: () => void): HTMLElement | null {
     .filter((x) => x.n > 0);
   if (!cats.length) return null;
 
-  const chip = (label: string, id: string | null, n: number | null) => el('button', {
-    class: `lens-chip ${lens === id ? 'on' : ''}`,
-    'aria-pressed': lens === id ? 'true' : 'false',
-    onclick: () => { lens = lens === id ? null : id; repaintApp(); },
-  }, [label, n === null ? null : el('span', { class: 'lens-n' }, [String(n)])]);
+  const chip = (label: string, id: string, n: number) => el('button', {
+    class: `lens-chip ${lens.has(id) ? 'on' : ''}`,
+    'aria-pressed': lens.has(id) ? 'true' : 'false',
+    onclick: () => {
+      if (lens.has(id)) lens.delete(id); else lens.add(id);
+      repaintApp();
+    },
+  }, [
+    el('span', { class: 'lens-word' }, [label]),
+    el('span', { class: 'lens-n' }, [String(n)]),
+  ]);
 
-  // No label. "About" in small capitals was a third thing to read before the first chip, and the
-  // leading chip already says what the row does.
-  return el('div', { class: 'lens-strip' }, [
-    chip(t('All questions', 'Toutes les questions'), null, null),
+  /**
+   * A funnel in front of the row, and no chip for "all questions".
+   *
+   * All questions was a chip that turned every filter off, which is a control for the absence
+   * of a thing sitting in the row of the thing. Asked for: all questions is just no filter,
+   * right, so on the left of security privacy financial, instead of all questions, we have a
+   * filter icon. Nothing selected is every question, which is what the row shows when none of
+   * them is on, and a second click on a chip takes it back out.
+   *
+   * The funnel is a mark and not a button. The way out of one filter is the chip that set it,
+   * and the way out of all of them is the link on the heading the lens puts up.
+   */
+  return el('div', {
+    class: 'lens-strip',
+    role: 'group',
+    'aria-label': t('Filter the questions by category', 'Filtrer les questions par cat\u00e9gorie'),
+  }, [
+    el('span', { class: 'lens-mark', html: ICON_FILTER, 'aria-hidden': true }),
     ...cats.map((x) => chip(x.c.label, x.c.id, x.n)),
   ]);
 }
@@ -868,7 +910,7 @@ function footerBar(
     const [ovDone, ovTotal] = overviewFieldProgress(a);
     let done = cur ? cur.answered : ovDone;
     let total = cur ? cur.total : ovTotal;
-    if (lens && dsHere) {
+    if (lensOn() && dsHere) {
       [done, total] = countedInLens(dsHere.sections.flatMap((x) => x.questions));
       secWord.textContent = `${shortLabel(dsHere.domain.label)} `;
       secCount.textContent = `${done} ${t('of', 'sur')} ${total}`;
@@ -880,7 +922,7 @@ function footerBar(
     }
     secBar.style.width = total > 0 ? `${Math.round((done / total) * 100)}%` : '0%';
 
-    if (lens) {
+    if (lensOn()) {
       const label = lensLabel(rubric);
       allLong.textContent = `${label} `;
       allShort.textContent = `${label} `;
@@ -925,8 +967,8 @@ function footerBar(
     gate,
     el('div', { class: 'footer-inner' }, [
       el('div', { class: 'progress-row' }, [
-        el('div', { class: 'pbar' }, [secLabel, el('div', { class: 'progress-shell' }, [secBar])]),
-        el('div', { class: 'pbar' }, [allLabel, el('div', { class: 'progress-shell' }, [allBar])]),
+        el('div', { class: 'pbar pbar-section' }, [secLabel, el('div', { class: 'progress-shell' }, [secBar])]),
+        el('div', { class: 'pbar pbar-whole' }, [allLabel, el('div', { class: 'progress-shell' }, [allBar])]),
       ]),
       el('div', { class: 'footer-score' }, [
         pill,
@@ -1207,6 +1249,16 @@ function stagePicker(rubric: Rubric, a: Assessment, rebuild: () => void): HTMLEl
       ? el('a', { href: `${base}/${path}`, target: '_blank', rel: 'noreferrer', class: 'faint-link tiny' }, [label])
       : null;
 
+  /** The same link as a mark, where the words would be furniture repeated on every card. */
+  const infoLink = (path: string | undefined, label: string) =>
+    base && path
+      ? el('a', {
+          href: `${base}/${path}`, target: '_blank', rel: 'noreferrer',
+          class: 'stage-info', title: label, 'aria-label': label,
+          html: ICON_INFO,
+        })
+      : null;
+
   const groups = rubric.phases?.length
     ? rubric.phases
     : [{ name: 'Lifecycle', dlgPath: undefined, blurb: undefined }];
@@ -1230,10 +1282,20 @@ function stagePicker(rubric: Rubric, a: Assessment, rebuild: () => void): HTMLEl
             rebuild();
           },
         }),
-        el('div', {}, [
-          el('strong', {}, [st.label]),
+        /**
+         * The guide is an icon beside the stage's name, not a sentence under its description.
+         *
+         * Seven cards each ended on the same four words, which is four words of furniture per
+         * card and the longest line on three of them. Asked for: instead each one has an
+         * information icon, like an i in a circle, a faint one on the right, aligned with the
+         * stage name.
+         */
+        el('div', { class: 'stage-body' }, [
+          el('div', { class: 'stage-top' }, [
+            el('strong', {}, [st.label]),
+            infoLink(st.dlgPath, t('Read about this stage', 'En savoir plus sur cette \u00e9tape')),
+          ]),
           st.blurb ? el('div', { class: 'muted small' }, [st.blurb]) : null,
-          link(st.dlgPath, 'Read about this stage'),
         ]),
       ]));
     }

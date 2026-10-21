@@ -21,3 +21,9 @@ export const ICON_PRINT = `<svg ${ICO}><path d="M6 9V3h12v6"/><rect x="3" y="9" 
  */
 export const ICON_COPY = `<svg ${ICO}><rect x="9" y="9" width="12" height="12" rx="2"/>` +
   '<path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>';
+
+/** A funnel, which is what every toolbar uses to mark the row that narrows a list. */
+export const ICON_FILTER = `<svg ${ICO}><path d="M3 5h18l-7 8v6l-4-2v-4z"/></svg>`;
+/** An i in a circle, for a link to the page that explains the thing beside it. */
+export const ICON_INFO = `<svg ${ICO}><circle cx="12" cy="12" r="9"/><path d="M12 11v5"/>` +
+  '<path d="M12 7.6v.1"/></svg>';
