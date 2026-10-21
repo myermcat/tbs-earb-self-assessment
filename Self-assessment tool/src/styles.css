@@ -440,7 +440,15 @@ textarea { resize: vertical; }
  * than a scrollbar by any measure.
  */
 .app-home { min-height: 100dvh; display: flex; flex-direction: column; }
-.app-home .body { flex: 1 1 auto; display: flex; flex-direction: column;
+/*
+ * THE WIDTH IS THE CAP, NOT THE LENGTH OF THE LONGEST LINE.
+ *
+ * This is a column flex box with margin: 0 auto, so without a width it took its max-content
+ * and the cap below never applied. On a 1680px window the card came out 594 wide and 324
+ * tall, a third of the screen in each direction, floating in black. Reported with a
+ * screenshot: the box is way too small and it looks a bit ridiculous.
+ */
+.app-home .body { flex: 1 1 auto; width: 100%; display: flex; flex-direction: column;
   justify-content: center; margin: 0 auto; padding: 1.2rem 1.15rem; }
 .app-home .sitefoot { flex: 0 0 auto; padding: .5rem 1rem 1rem; }
 
@@ -448,12 +456,12 @@ textarea { resize: vertical; }
   .app-home .body { justify-content: flex-start; padding: 1rem 1.15rem 3rem; }
 }
 
-.body-home { max-width: min(900px, 100%); }
+.body-home { max-width: min(1040px, 100%); }
 
 .hero {
   display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2rem; align-items: center;
   background: var(--surface); border: 1px solid var(--line); border-radius: 18px;
-  padding: 2rem 2.2rem; margin: 0 0 .85rem; box-shadow: var(--shadow-lg);
+  padding: 3.2rem 3.4rem; margin: 0 0 .85rem; box-shadow: var(--shadow-lg);
   position: relative; overflow: hidden;
 }
 .hero::before {
@@ -462,11 +470,11 @@ textarea { resize: vertical; }
 }
 .eyebrow { font-size: .74rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase;
   color: var(--ink-3); margin-bottom: .5rem; }
-.hero h1 { font-size: 2.6rem; letter-spacing: -.028em; margin-bottom: .55rem; }
+.hero h1 { font-size: 2.9rem; letter-spacing: -.028em; margin-bottom: .6rem; }
 .hero .lead { font-size: 1.1rem; line-height: 1.45; color: var(--ink-2); max-width: 46ch;
   margin-bottom: 1.15rem; }
 .hero-actions { display: flex; gap: .6rem; flex-wrap: wrap; align-items: baseline; }
-button.big { font-size: .98rem; padding: .62rem 1.4rem; border-radius: 9px;
+button.big { font-size: 1.05rem; padding: .78rem 1.7rem; border-radius: 10px;
   display: inline-flex; align-items: center; gap: .5rem; }
 button.big .arrow { font-size: 1.05rem; transition: transform .15s ease; }
 button.big:hover .arrow { transform: translateX(3px); }
@@ -478,26 +486,26 @@ button.big:hover .arrow { transform: translateX(3px); }
  * Ringed and not filled. One solid accent on a screen and it is the primary action, which on
  * this page is Continue, so the code is the next thing down and takes a border instead.
  */
-.hero-code { margin-top: 1.15rem; padding-top: 1rem; border-top: 1px solid var(--line); }
+.hero-code { margin-top: 2rem; padding-top: 1.6rem; border-top: 1px solid var(--line); }
 .hero-code-key { font-size: .7rem; font-weight: 700; letter-spacing: .1em;
   text-transform: uppercase; color: var(--ink-3); margin-bottom: .5rem; }
 /* The chip is a box, so it is centred against the words beside it. */
 .hero-code-row { display: flex; align-items: center; gap: .75rem; flex-wrap: wrap; }
 .hero-code-state { font-size: .72rem; color: var(--ink-3); }
-.hero-code .code-chip-btn { padding: .52rem .9rem; border-color: var(--accent-line); }
-.hero-code .code-chip-value { font-size: 1.22rem; }
+.hero-code .code-chip-btn { padding: .62rem 1.05rem; border-color: var(--accent-line); }
+.hero-code .code-chip-value { font-size: 1.35rem; }
 .hero-code .code-chip-ico { color: var(--accent); }
 
 /*
  * .draft-note WENT WITH THE BLOCK IT DRESSED. What is under the heading now is one faint line
  * naming the department and the progress, and the code under that.
  */
-.hero-where { font-size: .84rem; color: var(--ink-3); margin-bottom: 1.15rem; }
+.hero-where { font-size: 1rem; color: var(--ink-3); margin-bottom: 1.7rem; }
 .filelabel-plain { background: none; border: 0; padding: 0; font-size: .88rem; cursor: pointer; }
 
 /* The maturity ladder from the favicon, at rest. Decorative only. */
-.hero-art { display: flex; align-items: flex-end; gap: .45rem; height: 128px; }
-.hero-art .rung { width: 17px; border-radius: 5px; display: block; }
+.hero-art { display: flex; align-items: flex-end; gap: .55rem; height: 200px; }
+.hero-art .rung { width: 24px; border-radius: 7px; display: block; }
 .hero-art .r1 { height: 26%;  background: var(--s2); opacity: .55; }
 .hero-art .r2 { height: 44%;  background: var(--s4); opacity: .65; }
 .hero-art .r3 { height: 62%;  background: var(--s6); opacity: .75; }
@@ -2677,7 +2685,8 @@ dialog.confirm.shake { animation: cf-shake .34s cubic-bezier(.36, .07, .19, .97)
 /* The funnel that marks the row. A mark and not a control: the way out of a filter is the
    chip that set it. */
 .lens-mark { display: inline-flex; align-items: center; align-self: center;
-  color: var(--ink-3); opacity: .6; margin-right: .35rem; flex: 0 0 auto; }
+  color: var(--ink-3); opacity: .55; margin-right: .4rem; flex: 0 0 auto; }
+.lens-mark.on { color: var(--accent); opacity: 1; }
 .lens-empty { font-size: .875rem; color: var(--ink-2); margin: .4rem 0 1rem; }
 
 /* ---------- the chrome at phone width ---------------------------------------------------- */

@@ -589,7 +589,9 @@ function lensStrip(rubric: Rubric, repaintApp: () => void): HTMLElement | null {
     role: 'group',
     'aria-label': t('Filter the questions by category', 'Filtrer les questions par cat\u00e9gorie'),
   }, [
-    el('span', { class: 'lens-mark', html: ICON_FILTER, 'aria-hidden': true }),
+    // Lit while anything is filtered, because the row is in the chrome and a reader arriving
+    // on a page showing a fifth of the questions has to be able to see why at a glance.
+    el('span', { class: `lens-mark ${lensOn() ? 'on' : ''}`, html: ICON_FILTER, 'aria-hidden': true }),
     ...cats.map((x) => chip(x.c.label, x.c.id, x.n)),
   ]);
 }

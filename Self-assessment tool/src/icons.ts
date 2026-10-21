@@ -22,8 +22,17 @@ export const ICON_PRINT = `<svg ${ICO}><path d="M6 9V3h12v6"/><rect x="3" y="9" 
 export const ICON_COPY = `<svg ${ICO}><rect x="9" y="9" width="12" height="12" rx="2"/>` +
   '<path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>';
 
-/** A funnel, which is what every toolbar uses to mark the row that narrows a list. */
-export const ICON_FILTER = `<svg ${ICO}><path d="M3 5h18l-7 8v6l-4-2v-4z"/></svg>`;
+/**
+ * A solid funnel, which is the mark Google Sheets and Notion both put on a filter.
+ *
+ * It was drawn in the line weight the rest of this file uses and read as a paper plane at
+ * 15px. Asked for by name: the filter icon, is it the one that Google Sheets use, I want that
+ * one, or the Notion icon of the filter. Both are the filled funnel, so this one is filled and
+ * carries no stroke at all.
+ */
+export const ICON_FILTER = '<svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor" ' +
+  'aria-hidden="true"><path d="M4.25 5.61C6.27 8.2 10 13 10 13v6c0 .55.45 1 1 1h2c.55 0 1-.45 ' +
+  '1-1v-6s3.72-4.8 5.74-7.39c.51-.66.04-1.61-.79-1.61H5.04c-.83 0-1.3.95-.79 1.61z"/></svg>';
 /** An i in a circle, for a link to the page that explains the thing beside it. */
 export const ICON_INFO = `<svg ${ICO}><circle cx="12" cy="12" r="9"/><path d="M12 11v5"/>` +
   '<path d="M12 7.6v.1"/></svg>';
