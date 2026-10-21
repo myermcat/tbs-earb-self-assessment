@@ -98,7 +98,7 @@ console.log('\nAddresses and the back button\n');
   a.dom.window.close();
 
   const s = await boot('#settings');
-  ok('a settings link opens settings', /Where your answers go|question set|Settings/i.test(s.view()),
+  ok('a settings link opens settings', /Keeping your work|question set|Settings/i.test(s.view()),
      s.view().slice(0, 120));
   s.dom.window.close();
 

@@ -30,7 +30,7 @@ import { showNewCode } from './views-share';
 import { bootLang, coverage, lang, type Lang, setLang } from './i18n';
 import { endpointHost, goneFromStore, isHosted, listRecords, putRecord,
   saveOnlineNow, savedOnline, showWhereItStands } from './store';
-import { addressOf, isAddressSegment, canSignIn, CODE_LENGTH, currentUser, formatCode, forgetRole, getAssessment, grantsAccess, looksLikeCode, pageAddress, tidyCode, isConfigured as firebaseConfigured, knownRole, lastSignInProblem,
+import { addressOf, isAddressSegment, canSignIn, CODE_LENGTH, currentUser, forgetRole, getAssessment, grantsAccess, looksLikeCode, pageAddress, tidyCode, isConfigured as firebaseConfigured, knownRole, lastSignInProblem,
   loadRole, resumeSignIn, signInWithGoogle, signOut,
   addressTheLinkNames, finishSignInLink, finishSignInLinkWith, forgetLinkCode, linkEmailWaiting,
   linkNeedsAddress, sendSignInLink } from './firebase';
@@ -1091,7 +1091,16 @@ function footer(): HTMLElement {
             : `What you send is kept at ${endpointHost()}. `,
         ]),
       /**
-       * NO LINK ON THE ASSESSOR'S FOOTER, BECAUSE NOTHING ANSWERS WHAT IT PROMISED.
+       * NO LINK ON THE FOOTER AT ALL.
+       *
+       * "Where this goes" opened This build, whose only line about where anything goes repeats
+       * the sentence the link sat beside. It then went to Keeping your work for the submitter,
+       * and that was still wrong: asked for in those words, the button is huge, way too big for
+       * its meaning. A pane reachable from the rail does not need a control on every screen
+       * pointing at it, and the sentence beside it is the whole of what a footer owes anybody.
+       *
+       * The older reasoning, kept because it is why the destination was wrong before it was
+       * removed:
        *
        * "Where this goes" opened This build, a pane of versions, a build time and a languages
        * row. The only line on it about where anything goes is the Store row, which says
@@ -1111,10 +1120,7 @@ function footer(): HTMLElement {
        * The fix is not to put more on This build. A page filled out to justify a link pointing
        * at it is the same mistake twice.
        */
-      side === 'submit'
-        ? el('button', { class: 'linkish', onclick: () => openSettings('answers') },
-             [t('Where your answers go', 'O\u00f9 vont vos r\u00e9ponses')])
-        : null,
+
       /**
        * NO VERSIONS ALONG THE FOOT OF EVERY SCREEN.
        *
@@ -1134,12 +1140,7 @@ function footer(): HTMLElement {
   }
   return el('footer', { class: 'sitefoot' }, [
     el('span', {}, ['Everything you enter stays on this machine. ']),
-    // The same pane and the same condition as above: it is the submitter's, and it is in the
-    // rail only on their side. "How that works" pointed at its content; this names it.
-    side === 'submit'
-      ? el('button', { class: 'linkish', onclick: () => openSettings('answers') },
-           [t('Where your answers go', 'O\u00f9 vont vos r\u00e9ponses')])
-      : null,
+
   ]);
 }
 
@@ -1916,7 +1917,9 @@ function renderSettings(root: HTMLElement) {
     clear(nav);
     nav.appendChild(el('span', { class: 'set-navgroup' }, [t('Settings', 'Paramètres')]));
     nav.appendChild(navRow(t('Question set', 'Jeu de questions'), 'questions'));
-    if (mine) nav.appendChild(navRow(t('Your answers', 'Vos réponses'), 'answers'));
+    // Named for what is under it. Your answers read as the submission itself, and the pane is
+    // about what keeps it and what reaches it again.
+    if (mine) nav.appendChild(navRow(t('Keeping your work', 'Conserver votre travail'), 'answers'));
     if (!mine) nav.appendChild(navRow(t('People', 'Personnes'), 'people'));
     nav.appendChild(navRow(t('Documentation', 'Documentation'), 'docs'));
     nav.appendChild(navRow(t('This build', 'Cette version'), 'build'));
@@ -2238,87 +2241,76 @@ function setFold(pane: HTMLElement): void {
   ]));
 }
 
+/**
+ * WHAT KEEPS THIS ASSESSMENT AND WHAT REACHES IT AGAIN. NOTHING ELSE.
+ *
+ * It was called "Where your answers go" and it ran to eight blocks. Gone through one by one on
+ * 21 October, and most of it answered questions nobody had.
+ *
+ * The heading first. "Where your answers go" sounds like it is about to say the submission
+ * reaches TBS, and then says nothing of the kind; it describes none of what is under it. This
+ * one does: the browser keeps the work, the code reaches it again, and that is the pane.
+ *
+ * Unclassified only came off. A submitter cannot put a classified artefact in here, because
+ * the tool takes a link and a sentence, so the block spent four lines on something that cannot
+ * happen. The rule it states is already stated where it binds: on the pledge that takes over
+ * the screen when somebody picks a marking above unclassified.
+ *
+ * Saving online is a button came off, because it is a button and pressing it is how anybody
+ * learns that. Nothing goes until you have said how your evidence is marked went with it: the
+ * questionnaire refuses to save until that is answered, and the refusal says so at the moment
+ * it happens.
+ *
+ * Nothing will be recalled once submitted came off because it describes something that does
+ * not exist. It opened with "Planned, not built", which is a page telling somebody who came to
+ * fill in an assessment about its own backlog.
+ *
+ * The three access-code blocks are one. They said the same thing from three angles - it is the
+ * way back, it is how you share, it cannot be taken back - and all three matter, so they are
+ * three sentences under one heading with the code itself beside them, copyable, rather than
+ * three headings somebody has to assemble.
+ */
 function paneAnswers(pane: HTMLElement) {
-  pane.appendChild(el('h1', { tabindex: -1 }, [t('Where your answers go', 'Où vont vos réponses')]));
-  pane.appendChild(el('p', { class: 'set-lead' }, [
-    t('Everything in this tool is unclassified. Nothing protected or classified belongs in it, which is what keeps the rest of this simple.',
-      'Tout dans cet outil est non classifié. Rien de protégé ni de classifié n\u2019y a sa place, et c\u2019est ce qui garde le reste simple.'),
-  ]));
+  pane.appendChild(el('h1', { tabindex: -1 }, [t('Keeping your work', 'Conserver votre travail')]));
 
   pane.appendChild(setRow(
-    t('Unclassified only', 'Non classifié seulement'),
-    'Not the answers and not the evidence. Point at the artefact where it is kept and make sure your assessor can open it. Where something cannot be linked because of its marking, send it to your assessor by email and record here that you did, with its marking and the subject line.',
+    t('This browser keeps your work as you type', 'Ce navigateur conserve votre travail au fur et \u00e0 mesure'),
+    t(`Every browser keeps a small private store on disk for each site it visits. This page writes the whole assessment there as you type, so closing the tab or reloading is safe. It is holding ${answeredCount(assessment)} answers now. That store belongs to one browser on one machine, and clearing your browsing data clears it.`,
+      `Chaque navigateur conserve sur le disque un petit espace priv\u00e9 pour chaque site visit\u00e9. Cette page y \u00e9crit l\u2019\u00e9valuation enti\u00e8re au fur et \u00e0 mesure : fermer l\u2019onglet ou recharger est donc sans risque. Elle y conserve ${answeredCount(assessment)} r\u00e9ponses. Cet espace appartient \u00e0 un navigateur sur une machine, et effacer vos donn\u00e9es de navigation l\u2019efface.`),
     null,
   ));
-  pane.appendChild(setRow(
-    'This browser keeps your work as you type',
-    `Every browser keeps a small private store on disk for each site it visits. This page writes the whole assessment there as you type, so closing the tab or reloading is safe. It is holding ${answeredCount(assessment)} answers now. That store belongs to one browser on one machine, and clearing your browsing data clears it.`,
-    null,
-  ));
-  if (isHosted()) {
+
+  if (isHosted() && !hasAccounts()) {
+    /** Shown rather than described: it is the thing somebody came here for and will copy. */
+    pane.appendChild(setRow(
+      t('Your access code is the whole of getting back', 'Votre code d\u2019acc\u00e8s est tout ce qui permet de revenir'),
+      assessment.id
+        ? t('Anybody holding it can open this assessment and change it, and nobody without it can, including you. Sending it is how you share the assessment, and you send it yourself, in Teams or in your own mail. It cannot be taken back: no list says who holds one, and forwarding it passes the same reach on.',
+            'Toute personne qui le d\u00e9tient peut ouvrir cette \u00e9valuation et la modifier, et personne ne le peut sans lui, vous compris. L\u2019envoyer est la fa\u00e7on de partager l\u2019\u00e9valuation, et vous l\u2019envoyez vous-m\u00eame, dans Teams ou dans votre messagerie. Il ne peut pas \u00eatre repris : aucune liste ne dit qui le d\u00e9tient, et le transf\u00e9rer transmet le m\u00eame acc\u00e8s.')
+        : t('This assessment gets a twelve-character code the first time it is saved online, and from then on that code is the whole of getting back to it. Anybody holding it can open it and change it, and nobody without it can. It cannot be taken back once it is sent.',
+            'Cette \u00e9valuation re\u00e7oit un code de douze caract\u00e8res lors du premier enregistrement en ligne, et d\u00e8s lors ce code est tout ce qui permet d\u2019y revenir. Toute personne qui le d\u00e9tient peut l\u2019ouvrir et la modifier, et personne ne le peut sans lui. Il ne peut pas \u00eatre repris une fois envoy\u00e9.'),
+      assessment.id ? codeChip(assessment.id) : null,
+    ));
+  } else if (isHosted()) {
     const me = currentUser();
     pane.appendChild(setRow(
-      me || !hasAccounts() ? 'Saving online is a button, every time' : 'Signing in lets you save online',
-      `Press Save online and the assessment as it stands is copied to ${endpointHost()}. Nothing else goes: edit a question afterwards and that edit is on this computer until you press it again, and the badge in the header says the copy online is out of date while that is true. It was built the other way first, sending every change a few seconds after you stopped typing, and that was wrong for a copy somebody else reads. Marking the assessment ready for an assessor is a separate act at the bottom of My results, and it saves online as part of doing it.`,
-      null,
+      me ? 'Signed in' : 'Sending needs you to sign in',
+      me
+        ? `You are signed in as ${me.email}. That is the name on anything you send, and the store answers only accounts it knows.`
+        : 'The store only accepts work from somebody it knows, so pressing Send asks you to sign in first. It reads your name and address from the account you use, and it never sees a password.',
+      me
+        ? el('button', { class: 'ghost', onclick: () => leave() }, ['Sign out'])
+        : el('button', { class: 'primary', onclick: () => { void signInWithGoogle().then((went) => { if (!went) paint(); }); } }, ['Sign in with Google']),
+      me ? {} : { tier: 'caution', badge: 'Not signed in' },
     ));
-    pane.appendChild(setRow(
-      'Nothing goes until you have said how your evidence is marked',
-      'The questionnaire asks that before it will let you save at all, and the same answer decides what may go online. Until it is answered, everything stays on this computer.',
-      null,
-    ));
-    /**
-     * What gets somebody back to their own work, which is the one question this row answers.
-     *
-     * On the accounts build it is the account. On the code build there is no account to name,
-     * and the sentence this replaced said the store only accepts work from somebody it knows,
-     * which the published rules made untrue: they grant the write on the document's name.
-     */
-    if (hasAccounts()) {
-      pane.appendChild(setRow(
-        me ? 'Signed in' : 'Sending needs you to sign in',
-        me
-          ? `You are signed in as ${me.email}. That is the name on anything you send, and the store answers only accounts it knows.`
-          : 'The store only accepts work from somebody it knows, so pressing Send asks you to sign in first. It reads your name and address from the account you use, and it never sees a password.',
-        me
-          ? el('button', { class: 'ghost', onclick: () => leave() }, ['Sign out'])
-          : el('button', { class: 'primary', onclick: () => { void signInWithGoogle().then((went) => { if (!went) paint(); }); } }, ['Sign in with Google']),
-        me ? {} : { tier: 'caution', badge: 'Not signed in' },
-      ));
-    } else {
-      pane.appendChild(setRow(
-        t('Your access code is the way back', 'Votre code d\u2019accès est le chemin du retour'),
-        assessment.id
-          ? t(`Saving online gave this assessment the code ${formatCode(assessment.id)}. Anybody holding it can open this assessment and change it, and nobody without it can, including you. There is no account here and no sign-in, so a code you lose is work you cannot reach from another computer.`,
-              `L\u2019enregistrement en ligne a donné à cette évaluation le code ${formatCode(assessment.id)}. Toute personne qui le détient peut ouvrir cette évaluation et la modifier, et personne ne le peut sans lui, vous compris. Il n\u2019y a ici ni compte ni connexion : un code perdu est un travail que vous ne pouvez pas rejoindre depuis un autre ordinateur.`)
-          : t('This assessment gets a twelve-character code the first time it is saved online, and from then on that code is the whole of getting back to it. Anybody holding it can open this assessment and change it, and nobody without it can. There is no account here and no sign-in.',
-              'Cette évaluation reçoit un code de douze caractères lors du premier enregistrement en ligne, et dès lors ce code est tout ce qui permet d\u2019y revenir. Toute personne qui le détient peut l\u2019ouvrir et la modifier, et personne ne le peut sans lui. Il n\u2019y a ici ni compte ni connexion.'),
-        null,
-      ));
-    }
   } else {
     pane.appendChild(setRow(
-      'Nothing is sent anywhere in this copy',
-      'This build was made with no store, so the page cannot reach the network at all: it carries a browser rule that blocks every outbound request. Saving to a file and sending that file is the whole route.',
+      t('Nothing is sent anywhere in this copy', 'Rien n\u2019est envoy\u00e9 dans cette version'),
+      t('This build was made with no store, so the page cannot reach the network at all: it carries a browser rule that blocks every outbound request. Saving to a file and sending that file is the whole route.',
+        'Cette version a \u00e9t\u00e9 produite sans d\u00e9p\u00f4t : la page ne peut donc pas atteindre le r\u00e9seau, une r\u00e8gle du navigateur bloquant toute requ\u00eate sortante. Enregistrer un fichier et l\u2019envoyer est le seul chemin.'),
       null,
     ));
   }
-  pane.appendChild(setRow(
-    'Sharing is the access code, and nothing is sent',
-    'Whoever holds an assessment\u2019s access code can open it and change it, and nobody without it can. Sending the code is something you do yourself, in Teams or in your own mail client. The tool has no way to put a message in front of anybody, so it never claims to.',
-    null,
-  ));
-  pane.appendChild(setRow(
-    'A code cannot be taken back',
-    'There is no list of who has one and no way to withdraw it. Somebody given the code keeps the ability to open the assessment and change it, and forwarding it passes the same ability on. Send it the way you would send the assessment itself.',
-    null,
-    { tier: 'caution', badge: 'Known limit' },
-  ));
-  pane.appendChild(setRow(
-    'Nothing will be recalled once submitted',
-    'Planned, not built. A submitted assessment will not be deleted. It will be withdrawn and left out of the statistics, which is a different thing: a copy may already exist in a backup or in somebody else\'s download, so nothing here will claim to erase it.',
-    null,
-  ));
 }
 
 /**
