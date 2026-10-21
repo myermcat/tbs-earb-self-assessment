@@ -80,26 +80,31 @@ export function demandPledge(o: PledgeOpts): void {
     x,
   ]));
 
+  /**
+   * FOUR LINES, FROM FIFTEEN.
+   *
+   * It carried two numbered steps, a subject line to copy, a note saying the real one is
+   * written per question, and a sentence about a high-level answer scoring about 5. Reported
+   * on 20 October: there's no hierarchy, way too much text, maybe we don't have that window
+   * at all.
+   *
+   * The two steps went because the row underneath is where they are carried out: it asks for
+   * a link, it offers the email route, and it writes the subject line with the real question
+   * number in it beside a button that copies it. The scoring note went because reassurance
+   * about a score does not belong inside a warning about classified material.
+   *
+   * What a window has to say here is the one thing nothing else on the screen says: the
+   * material stays out, and the marking goes in.
+   */
   dlg.appendChild(el('div', { class: 'pledge-body' }, [
     el('p', {}, [
-      t('Nothing above unclassified belongs in here, answers or evidence. Recording the marking is right; putting the material itself in is not.', 'Rien au-dessus de Non classifié n\u2019a sa place ici, ni les réponses ni les preuves. Indiquer la cote est la bonne chose à faire; y mettre le contenu lui-même ne l\u2019est pas.'),
-    ]),
-    el('ol', { class: 'steps' }, [
-      el('li', {}, [
-        el('b', {}, [t('Link to the artefact where it is kept, ', 'Pointez vers son emplacement actuel, ')]),
-        t('and make sure your assessor can open it. A link is unclassified even when the document is not.', 'et assurez-vous que votre évaluateur peut l\u2019ouvrir. Un lien est non classifié même quand le document ne l\u2019est pas.'),
-      ]),
-      el('li', {}, [
-        el('b', {}, [t('If it cannot be linked, email it to your assessor ', 'Si le lien est impossible, envoyez-le par courriel à votre évaluateur ')]),
-        t('and say so in the evidence box under the question. The subject line has to say which initiative and which question, so they can match your email to your answer:', 'et indiquez-le dans la zone de preuve sous la question. L\u2019objet doit préciser l\u2019initiative et la question, pour que votre courriel puisse être rattaché à votre réponse :'),
-        el('code', { class: 'mono pledge-subject' }, [o.subject]),
-        el('span', { class: 'muted small' }, [
-          t('That is an example. The evidence box writes the line for you, with the real question number in it, and there is a button to copy it.', 'Ceci est un exemple. La zone de preuve rédige la ligne pour vous, avec le vrai numéro de question, et un bouton la copie.'),
-        ]),
-      ]),
+      t('Record the marking here and keep the material out, in the answers and in the evidence alike. Name it, say where it is kept, and send it to your assessor yourself.',
+        'Indiquez la cote ici et gardez le contenu \u00e0 l\u2019ext\u00e9rieur, dans les r\u00e9ponses comme dans les preuves. Nommez-le, dites o\u00f9 il est conserv\u00e9 et transmettez-le vous-m\u00eame \u00e0 votre \u00e9valuateur.'),
     ]),
     el('p', { class: 'muted small' }, [
-      t('Describing the shape of a system is usually unclassified. A high-level answer scores about 5, and 5 is a fine score.', 'Décrire la forme d\u2019un système est habituellement non classifié. Une réponse générale obtient environ 5, et 5 est une bonne note.'),
+      t('The row underneath writes the subject line for that email, with this question\u2019s number in it:',
+        'La ligne ci-dessous r\u00e9dige l\u2019objet de ce courriel, avec le num\u00e9ro de cette question :'),
+      el('code', { class: 'mono pledge-subject' }, [o.subject]),
     ]),
     el('label', { class: 'pledge-ack' }, [box, t('I understand, and I will keep this tool unclassified.', 'Je comprends, et je garderai cet outil non classifié.')]),
     hint,

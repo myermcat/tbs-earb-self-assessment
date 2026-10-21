@@ -52,6 +52,7 @@ text-transform:uppercase;border:1px solid;border-radius:999px;padding:.08rem .45
 .st-wait{color:var(--warn);border-color:var(--warn);background:var(--warn-bg)}
 .st-later{color:var(--ink-3);border-color:var(--line-2);background:var(--surface-2)}
 .st-stuck{color:var(--bad);border-color:var(--bad);background:var(--bad-bg)}
+.st-gone{color:var(--ink-3);border-color:var(--line-2);background:none;text-decoration:line-through}
 .callout{background:var(--good-bg);border-left:3px solid var(--good);border-radius:0 8px 8px 0;padding:.55rem .8rem;margin:.45rem 0 0}
 .callout .q{font-weight:650;font-size:.92rem;margin-bottom:.1rem}
 .callout .a{font-size:.85rem;color:var(--ink-2)}
@@ -169,6 +170,10 @@ const STATE = {
   // proposed, which is still a question, and from built, which a reader would take as working.
   blocked: ['Blocked', 'st-stuck'],
   open: ['Open', 'st-later'],
+  // Built, then deliberately taken out. It stays on the page because a reader finding the old
+  // behaviour described somewhere else needs to know it went and why, and because deleting
+  // the row would make the decision invisible the day after it was made.
+  dropped: ['Dropped', 'st-gone'],
 };
 
 const count = (st) => sections.reduce((n, s) => n + s.reqs.filter((r) => r.state === st).length, 0);

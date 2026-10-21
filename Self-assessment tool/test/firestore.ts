@@ -318,16 +318,23 @@ mem.set('gc-arch-assessment:firebase-session', JSON.stringify({
   autosave(marked);
   ok('a record edited back to what the store holds is current again', onlineIsCurrent(marked));
 
-  // Turning it on is refused while the marking question is unanswered.
+  /**
+   * An assessment nobody has given a marking goes online like any other.
+   *
+   * It used to be refused, because the overview asked for the marking and the save was the
+   * gate on the answer. Both went on 20 October. The marking is the highest of the evidence
+   * now, and the answer to the gate was: thats okay, maybe it doesnt have evidence yet, its
+   * okay to save unmarked file.
+   */
   quiet();
   const unmarked2: Assessment = JSON.parse(JSON.stringify(a));
   unmarked2.initiative.classification = '';
   delete unmarked2.id;
   delete unmarked2.meta.savedOnlineAt;
-  const refused = await saveOnlineNow(unmarked2);
-  ok('saving online is refused until the marking is answered', refused.ok === false, JSON.stringify(refused));
-  ok('and nothing went', writes().length === 0, String(writes().length));
-  ok('and it was not recorded as saved', unmarked2.meta.savedOnlineAt === undefined);
+  const sent = await saveOnlineNow(unmarked2);
+  ok('an assessment with no marking saves online', sent.ok === true, JSON.stringify(sent));
+  ok('and it went', writes().length === 1, String(writes().length));
+  ok('and it was recorded as saved', typeof unmarked2.meta.savedOnlineAt === 'string');
 }
 
 /**

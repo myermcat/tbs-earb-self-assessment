@@ -119,7 +119,15 @@ ok('and the footer is the store sentence and the way to read more',
    && !!q('.sitefoot .linkish'), q('.sitefoot').textContent.trim());
 ok('and the version names nobody', !/\b(dan|nick|allison|john|patricia|mariia)\b/i.test(rubric.version), rubric.version);
 ok('draft status is reachable from the footer', !!byText('button', 'How that works'));
-ok('the question count is stated up front', view().includes(String(TOTAL)));
+/**
+ * The home page is the hero and nothing under it. What to expect went on 20 October, reported
+ * as redundant: it carried the question count, which the bar at the foot of the questionnaire
+ * carries, that the scale explains itself, which is a fold on every section heading, and that
+ * saving makes a file, which is in the File menu.
+ */
+ok('the home page carries one block and it is the one that starts the assessment',
+   qa('.body-home > section').length === 1 && !!q('.body-home .hero'),
+   qa('.body-home > section').map((n) => n.className).join(' | '));
 
 // Settings is a rail with one pane at a time, ordered from nothing at stake to everything.
 q('.icon-btn[aria-label="Settings"]').click();
@@ -318,19 +326,21 @@ ok('sign in is one screen, scrolling inside the body if the window is short',
 byText('.hero-actions button', 'Fill it in').click();
 // ---- the overview is a wizard while anything is missing ---------------------------------
 //
-// Three groups, not six questions: the plain facts about the initiative, then the marking,
-// then the lifecycle. The two decisions get a screen each because each has consequences.
+// Two groups, not five questions: the plain facts about the initiative, then the lifecycle.
+// There were three. The middle one asked for the highest marking of the evidence, and that
+// question went on 20 October: every evidence row already carries its own marking, so the
+// file's is the highest of those and nobody is asked for it twice.
 ok('the overview opens on the facts about the initiative', view().includes('About the initiative'));
 ok('and the first three fields are together, as they were', qa('.ov-block .grid-2 input').length === 3,
    String(qa('.ov-block .grid-2 input').length));
 ok('no scored questions on the overview', qa('.question').length === 0);
-ok('it says where you are in the three', view().includes('Step 1 of 3'));
-ok('three dots, none filled yet', qa('.ov-dot').length === 3 && qa('.ov-dot.filled').length === 0,
-   String(qa('.ov-dot.filled').length));
+ok('it says where you are in the two', view().includes('Step 1 of 2'));
+ok('two dots, neither filled yet', qa('.ov-dot').length === 2 && qa('.ov-dot.filled').length === 0,
+   `${qa('.ov-dot').length} dots, ${qa('.ov-dot.filled').length} filled`);
 ok('no show-all escape while it is a wizard', !byText('button', 'Show all'));
 ok('the tabs still show overview plus four domains', qa('.stepper .step').length === 5,
    String(qa('.stepper .step').length));
-ok('the overview tab counts the three groups', qa('.stepper .step')[0].textContent.includes('0 of 3'),
+ok('the overview tab counts the two groups', qa('.stepper .step')[0].textContent.includes('0 of 2'),
    qa('.stepper .step')[0].textContent);
 ok('a blank assessment has nothing to mark, so saving is allowed',
    byText('.footer-actions button', 'Save to a file').disabled === false);
@@ -351,16 +361,16 @@ ok('the save indicator is silent until something is written',
   fire(first, 'input');
   ok('and moves on the very first field', barWidth() !== '0%', barWidth());
   ok('while the count still reads in groups',
-     qa('.stepper .step')[0].textContent.includes('0 of 3'),
+     qa('.stepper .step')[0].textContent.includes('0 of 2'),
      qa('.stepper .step')[0].textContent);
 
   // The footer's own left bar was pinned at zero for the whole overview: it looks for the
   // current section, and the overview is not one. It measures the six overview fields.
   const footBar = () => qa('.sticky-footer .pbar')[0];
   ok('the footer bar names the overview and counts it',
-     footBar().querySelector('.pbar-label').textContent.includes('Overview 1 of 6'),
+     footBar().querySelector('.pbar-label').textContent.includes('Overview 1 of 5'),
      footBar().querySelector('.pbar-label').textContent);
-  ok('and it has actually grown', footBar().querySelector('.progress-shell i').style.width === '17%',
+  ok('and it has actually grown', footBar().querySelector('.progress-shell i').style.width === '20%',
      footBar().querySelector('.progress-shell i').style.width);
 }
 
@@ -393,18 +403,26 @@ ok('and says the code stays out of email subjects',
 {
   const footBar = qa('.sticky-footer .pbar')[0];
   ok('the footer bar keeps up as more overview fields are filled',
-     footBar.querySelector('.pbar-label').textContent.includes('Overview 3 of 6'),
+     footBar.querySelector('.pbar-label').textContent.includes('Overview 3 of 5'),
      footBar.querySelector('.pbar-label').textContent);
 }
-ok('typing content blocks saving until the file is marked',
-   byText('.footer-actions button', 'Save to a file').disabled === true);
-ok('the gate says what to do, briefly', view().includes('Mark this file to save it'));
+/**
+ * Typing into the overview used to block the save, because the file had no marking and the
+ * marking was a question. Answered on 20 October: thats okay, maybe it doesnt have evidence
+ * yet, its okay to save unmarked file. The band that carried the block, and the red banner
+ * that was itself the control for answering it, both went with the question.
+ */
+ok('an assessment with facts in it and no evidence saves',
+   byText('.footer-actions button', 'Save to a file').disabled === false,
+   byText('.footer-actions button', 'Save to a file').getAttribute('title'));
+ok('and nothing is blocking it', !q('.gate'), q('.gate')?.textContent ?? '');
 ok('the gate band is not capped at the content width',
    !/\.sticky-footer\s*>\s*\*\s*\{/.test(html) && /\.sticky-footer\s*>\s*\.gate-band/.test(html));
 {
   const b = q('.chrome .marking-banner');
-  ok('an unmarked file says so in the banner', b.classList.contains('unmarked'));
-  ok('and the banner is itself the way to fix it', b.tagName === 'BUTTON', b.tagName);
+  ok('the band says unclassified, which is what the file is',
+     b.textContent.includes('UNCLASSIFIED') && !b.classList.contains('unmarked'), b.textContent);
+  ok('and it is not a control any more', b.tagName === 'DIV', b.tagName);
 }
 {
   const ta = q('.ov-block textarea');
@@ -418,121 +436,18 @@ ok('finishing the group fills its dot', qa('.ov-dot.filled').length === 1,
 {
   const name = qa('.ov-block .grid-2 input')[0];
   name.dispatchEvent(new window.KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
-  ok('Enter in a text field advances the wizard', view().includes('Step 2 of 3'), view().slice(0, 40));
+  ok('Enter in a text field advances the wizard', view().includes('Step 2 of 2'), view().slice(0, 40));
 }
 
-// Step two, the marking. The assessment is always an unclassified document, so the question
-// is about the artefacts the answers point at.
-const MARKINGS = 'Unclassified|Protected A|Protected B|Protected C|Confidential|Secret|Top Secret';
-ok('step two asks how the evidence is marked', view().includes('How is your evidence marked'));
-ok('and says the assessment itself stays unclassified',
-   view().includes('unclassified document'));
-ok('every GC marking is offered', qa('.marking-chip').map((c) => c.textContent.trim()).join('|') === MARKINGS,
-   qa('.marking-chip').map((c) => c.textContent.trim()).join('|'));
-ok('and the same list is offered inside the gate that demands one',
-   qa('.gate-marks .mark-btn').map((b) => b.textContent).join('|') === MARKINGS,
-   qa('.gate-marks .mark-btn').map((b) => b.textContent).join('|'));
-
-// Choosing a marking above unclassified takes over the screen. This is the bug she found:
-// the strip set the marking and showed nothing, so the advice below the fold was scrolled
-// past and never read.
-byText('.gate-marks .mark-btn', 'Protected B').click();
-{
-  const dlg = q('dialog.pledge');
-  ok('choosing a classified marking pops a modal', !!dlg);
-  ok('and it names the marking that triggered it',
-     dlg.querySelector('.pledge-head h2').textContent.includes('Protected B'),
-     dlg.querySelector('.pledge-head h2')?.textContent);
-  /**
-   * The subject names the initiative and the question, and carries no code.
-   *
-   * It used to carry the first four characters of the access code, so a rename could not strand
-   * mail already sent. Two assessments share four characters about four times in a hundred once
-   * there are three hundred of them, nobody recognised what they were, and four characters of a
-   * twelve-character credential is a third of a password that cannot be withdrawn. A rename now
-   * splits the mail trail on the day it happens, which is the smaller cost and is its own item.
-   */
-  ok('the subject line names the initiative and the question',
-     /^EARB evidence for .+, question B-Q14$/.test(dlg.querySelector('.pledge-subject').textContent),
-     dlg.querySelector('.pledge-subject')?.textContent);
-  ok('and carries nothing that opens the assessment',
-     !/[A-Z2-9]{4}, question/.test(dlg.querySelector('.pledge-subject').textContent),
-     dlg.querySelector('.pledge-subject')?.textContent);
-  ok('and says the real one is written for them per question',
-     dlg.textContent.includes('That is an example'));
-
-  const x = dlg.querySelector('.pledge-x');
-  ok('the close control is dead until the box is ticked', x.disabled === true);
-  ok('and says so', x.getAttribute('title') === 'Tick the box first', x.getAttribute('title'));
-  ok('the way out is stated as changing the answer, not dismissing the warning',
-     !!byText('dialog.pledge button', 'unclassified after all'));
-
-  const box = dlg.querySelector('.pledge-ack input[type=checkbox]');
-  box.checked = true;
-  fire(box, 'change');
-  ok('ticking it makes the close control live', x.disabled === false && x.classList.contains('live'));
-  ok('and the hint changes with it', dlg.querySelector('.pledge-hint').textContent.includes('can close'));
-
-  x.click();
-  ok('closing it removes the modal and its scrim',
-     !q('dialog.pledge') && !q('.pledge-scrim'));
-  ok('the acknowledgement is recorded against that marking',
-     JSON.parse(window.localStorage.getItem('gc-arch-assessment:draft'))
-       .initiative.markingAcknowledged === 'Protected B');
-}
-ok('marking from the gate clears the gate', !q('.gate'));
-
-// A different marking is a different situation, so it asks again. Protected B and Secret do
-// not carry the same instructions.
-{
-  const chip = qa('.marking-chip input').find((i) => i.value === 'Protected C');
-  chip.checked = true;
-  fire(chip, 'change');
-  ok('a different classified marking asks again', !!q('dialog.pledge'));
-  ok('and names the new marking',
-     q('dialog.pledge .pledge-head h2').textContent.includes('Protected C'),
-     q('dialog.pledge .pledge-head h2')?.textContent);
-  const box = q('dialog.pledge .pledge-ack input[type=checkbox]');
-  box.checked = true;
-  fire(box, 'change');
-  q('dialog.pledge .pledge-x').click();
-
-  // Re-picking the same one does not.
-  const again = qa('.marking-chip input').find((i) => i.value === 'Protected C');
-  again.checked = true;
-  fire(again, 'change');
-  ok('the same marking twice does not ask twice', !q('dialog.pledge'));
-}
-
-// The escape hatch, on its own terms: it changes the answer back to unclassified.
-{
-  const unclass = qa('.marking-chip input').find((i) => i.value === 'Unclassified');
-  unclass.checked = true;
-  fire(unclass, 'change');
-  ok('choosing unclassified pops nothing', !q('dialog.pledge'));
-  const pa = qa('.marking-chip input').find((i) => i.value === 'Protected A');
-  pa.checked = true;
-  fire(pa, 'change');
-  ok('and the pledge returns once the acknowledgement is cleared', !!q('dialog.pledge'));
-  byText('dialog.pledge button', 'unclassified after all').click();
-  const draft = JSON.parse(window.localStorage.getItem('gc-arch-assessment:draft'));
-  ok('the way out sets the marking back to unclassified',
-     draft.initiative.classification === 'Unclassified' && !draft.initiative.markingAcknowledged,
-     `${draft.initiative.classification} / ${draft.initiative.markingAcknowledged}`);
-  ok('and clears the modal', !q('dialog.pledge'));
-}
-
-// Back to Protected B, which the rest of this suite is written against.
-{
-  const pb = qa('.marking-chip input').find((i) => i.value === 'Protected B');
-  pb.checked = true;
-  fire(pb, 'change');
-  const box = q('dialog.pledge .pledge-ack input[type=checkbox]');
-  box.checked = true;
-  fire(box, 'change');
-  q('dialog.pledge .pledge-x').click();
-  ok('the marking is Protected B again, acknowledged', !q('dialog.pledge'));
-}
+/**
+ * THE MARKING STEP AND ITS PLEDGE TESTS WERE HERE.
+ *
+ * Step two asked how the evidence was marked, offered the seven GC markings as chips, and the
+ * gate at the foot of the page offered the same seven again. The question went on 20 October:
+ * every evidence row already carries its own marking, so the file's is the highest of those.
+ * The pledge, which takes over the screen the moment a marking above unclassified is chosen,
+ * now fires from the row where that choice is made, and it is tested there.
+ */
 
 /**
  * A marked file carries its marking as a tag beside File, and not as a band across the frame.
@@ -549,8 +464,11 @@ ok('marking from the gate clears the gate', !q('.gate'));
   const tag = q('.topbar .mark-tag');
   ok('a marked file names its marking beside File',
      !!tag && tag.textContent.includes('UNCLASSIFIED'), tag?.textContent ?? 'no tag');
-  ok('and says what the evidence behind it is marked',
-     (tag?.textContent ?? '').includes('evidence up to Protected B'), tag?.textContent ?? '');
+  // Nothing is pointed at yet, so there is nothing to say beyond the marking itself. The
+  // second half of the tag appears once a piece of evidence is marked above unclassified,
+  // which is checked where that happens.
+  ok('and says nothing more while the evidence is all unclassified',
+     !(tag?.textContent ?? '').includes('evidence up to'), tag?.textContent ?? '');
   ok('and File is what it stands beside',
      tag?.previousElementSibling?.classList.contains('file-menu') === true,
      tag?.previousElementSibling?.className ?? 'nothing before it');
@@ -563,9 +481,9 @@ ok('marking from the gate clears the gate', !q('.gate'));
      String(qa('.chrome .mark-tag').length));
 }
 
-// Step three, the lifecycle, with the guide beside it.
-byText('.ov-nav button', 'Next').click();
-ok('step three asks where it is in the lifecycle', view().includes('Where is it in the lifecycle'));
+// Step two, the lifecycle, with the guide beside it. It was step three until the marking
+// question between them went.
+ok('step two asks where it is in the lifecycle', view().includes('Where is it in the lifecycle'));
 ok('seven stages offered', qa('.stage-card').length === 7, String(qa('.stage-card').length));
 ok('grouped into Create, Live and Sunset',
    qa('.phase-head h4').map((h) => h.textContent).join('|') === 'Create|Live|Sunset',
@@ -582,10 +500,10 @@ ok('grouped into Create, Live and Sunset',
 const maturity = qa('.stage-card input[type=radio]').find((r) => r.value === 'maturity');
 maturity.checked = true;
 fire(maturity, 'change');
-ok('all three answered turns the overview into three separate blocks',
-   qa('.ov-block').length === 3, String(qa('.ov-block').length));
-ok('each in its own card', qa('.body-submit .card .ov-block').length === 3);
-ok('and the tab says so', qa('.stepper .step')[0].textContent.includes('3 of 3'),
+ok('both answered turns the overview into two separate blocks',
+   qa('.ov-block').length === 2, String(qa('.ov-block').length));
+ok('each in its own card', qa('.body-submit .card .ov-block').length === 2);
+ok('and the tab says so', qa('.stepper .step')[0].textContent.includes('2 of 2'),
    qa('.stepper .step')[0].textContent);
 
 // ---- one weighted section per page, twenty-one stops in all -----------------------------
@@ -1310,27 +1228,116 @@ fire(evTitle, 'input');
 ok('a row with something in it and no marking blocks saving',
    byText('.footer-actions button', 'Save to a file').disabled === true && view().includes('mark'));
 
-// Evidence above the answer given on the overview is refused, on the row that is here.
+/**
+ * The row is where a marking is given, and the pledge fires from it.
+ *
+ * There used to be a dialog here instead, opening in the middle of typing whenever a row was
+ * marked above the answer given on the overview: raise the overview answer, or say the
+ * evidence is not that high. It existed because the same fact was asked twice. The overview
+ * question went on 20 October, so the row is the fact and the file marking is the highest of
+ * the rows. Nothing can be above it and there is nothing to reconcile.
+ */
+const here = () => qa('.question').find((n) => n.textContent.includes('hosting environment'));
 {
-  const here = () => qa('.question').find((n) => n.textContent.includes('hosting environment'));
   const sel = [...here().querySelectorAll('.ev-row select')][1];
   sel.value = 'Secret';
   fire(sel, 'change');
-  ok('marking evidence above the overview answer asks which is wrong',
-     dialogText().includes('One of the two answers has to change'), dialogText().slice(0, 80));
-  ok('and offers raising the overview answer as the first choice',
-     dialogText().includes('My evidence does go up to Secret'));
-  dialogAct('Leave both');
-  ok('evidence above the file marking blocks saving',
-     byText('.footer-actions button', 'Save to a file').disabled === true,
-     byText('.footer-actions button', 'Save to a file').getAttribute('title'));
-  ok('and says which way to resolve it', view().includes('Raise that answer to Secret'));
-  const sel2 = [...here().querySelectorAll('.ev-row select')][1];
-  sel2.value = 'Protected B';
-  fire(sel2, 'change');
-  ok('and unblocks when brought back down',
+  const dlg = q('dialog.pledge');
+  ok('marking a row above unclassified takes over the screen', !!dlg);
+  ok('and names the marking that triggered it',
+     dlg.querySelector('.pledge-head h2').textContent.includes('Secret'),
+     dlg.querySelector('.pledge-head h2')?.textContent);
+  /**
+   * The subject names the initiative and the question this row belongs to, and carries no
+   * code. It used to be an example with a hard-coded question number on it, because the
+   * pledge fired from an overview page where no question was on screen.
+   */
+  ok('the subject line names the initiative and this question',
+     /^EARB evidence for .+, question T-Q1$/.test(dlg.querySelector('.pledge-subject').textContent),
+     dlg.querySelector('.pledge-subject')?.textContent);
+  ok('and carries nothing that opens the assessment',
+     !/[A-Z2-9]{4}, question/.test(dlg.querySelector('.pledge-subject').textContent),
+     dlg.querySelector('.pledge-subject')?.textContent);
+
+  const x = dlg.querySelector('.pledge-x');
+  ok('the close control is dead until the box is ticked', x.disabled === true);
+  ok('and says so', x.getAttribute('title') === 'Tick the box first', x.getAttribute('title'));
+  ok('the way out is stated as changing the answer, not dismissing the warning',
+     !!byText('dialog.pledge button', 'unclassified after all'));
+
+  const box = dlg.querySelector('.pledge-ack input[type=checkbox]');
+  box.checked = true;
+  fire(box, 'change');
+  ok('ticking it makes the close control live', x.disabled === false && x.classList.contains('live'));
+  ok('and the hint changes with it', dlg.querySelector('.pledge-hint').textContent.includes('can close'));
+  x.click();
+  ok('closing it removes the modal and its scrim', !q('dialog.pledge') && !q('.pledge-scrim'));
+
+  const draft = () => JSON.parse(window.localStorage.getItem('gc-arch-assessment:draft'));
+  ok('the acknowledgement is recorded against that marking',
+     draft().initiative.markingAcknowledged === 'Secret', draft().initiative.markingAcknowledged);
+  ok('and the file marking is the highest the evidence carries',
+     draft().initiative.classification === 'Secret', draft().initiative.classification);
+  ok('a marked row does not block saving',
      byText('.footer-actions button', 'Save to a file').disabled === false,
      byText('.footer-actions button', 'Save to a file').getAttribute('title'));
+}
+
+// A different marking is a different situation, so it asks again. Secret and Protected B do
+// not carry the same instructions.
+{
+  const sel = [...here().querySelectorAll('.ev-row select')][1];
+  sel.value = 'Protected B';
+  fire(sel, 'change');
+  ok('a different classified marking asks again', !!q('dialog.pledge'));
+  ok('and names the new marking',
+     q('dialog.pledge .pledge-head h2').textContent.includes('Protected B'),
+     q('dialog.pledge .pledge-head h2')?.textContent);
+  const box = q('dialog.pledge .pledge-ack input[type=checkbox]');
+  box.checked = true;
+  fire(box, 'change');
+  q('dialog.pledge .pledge-x').click();
+  ok('and the file marking follows the row down',
+     JSON.parse(window.localStorage.getItem('gc-arch-assessment:draft')).initiative.classification === 'Protected B');
+
+  // Re-picking the same one does not ask again.
+  const again = [...here().querySelectorAll('.ev-row select')][1];
+  again.value = 'Protected B';
+  fire(again, 'change');
+  ok('the same marking twice does not ask twice', !q('dialog.pledge'));
+}
+
+// The escape hatch, on its own terms: it changes the row back to unclassified.
+{
+  const sel = [...here().querySelectorAll('.ev-row select')][1];
+  sel.value = 'Unclassified';
+  fire(sel, 'change');
+  ok('choosing unclassified pops nothing', !q('dialog.pledge'));
+  const pa = [...here().querySelectorAll('.ev-row select')][1];
+  pa.value = 'Protected A';
+  fire(pa, 'change');
+  ok('and the pledge returns once the acknowledgement is cleared', !!q('dialog.pledge'));
+  byText('dialog.pledge button', 'unclassified after all').click();
+  const draft = JSON.parse(window.localStorage.getItem('gc-arch-assessment:draft'));
+  ok('the way out sets the row, and so the file, back to unclassified',
+     draft.initiative.classification === 'Unclassified' && !draft.initiative.markingAcknowledged,
+     `${draft.initiative.classification} / ${draft.initiative.markingAcknowledged}`);
+  ok('and clears the modal', !q('dialog.pledge'));
+}
+
+// Back to Protected B, which the rest of this suite is written against.
+{
+  const sel = [...here().querySelectorAll('.ev-row select')][1];
+  sel.value = 'Protected B';
+  fire(sel, 'change');
+  const box = q('dialog.pledge .pledge-ack input[type=checkbox]');
+  box.checked = true;
+  fire(box, 'change');
+  q('dialog.pledge .pledge-x').click();
+  ok('the marking is Protected B again, acknowledged', !q('dialog.pledge'));
+  const tag = q('.topbar .mark-tag');
+  ok('and the tag beside File now says what the evidence is marked',
+     (tag?.textContent ?? '').includes('evidence up to Protected B'), tag?.textContent ?? '');
 }
 
 ok('draft is autosaved to this browser', !!window.localStorage.getItem('gc-arch-assessment:draft'));

@@ -6,7 +6,7 @@ import { guardDraft } from './guard';
 import { validate } from './rubric';
 import { completion } from './scoring';
 import { goToFirstGap, goToQuestion, overviewFieldProgress, renderSubmit, resetOverviewToFirstGap, setRepaint,
-  setSaveOnline, setStopKey, showMarkingStep, takeSubmitTabs, currentStopKey } from './views-submit';
+  setSaveOnline, setStopKey, takeSubmitTabs, currentStopKey } from './views-submit';
 import { panePeople } from './views-people';
 import { takeAccessAway } from './danger-people';
 import { deleteSubmission } from './danger-submission';
@@ -36,7 +36,7 @@ import { addressOf, isAddressSegment, canSignIn, CODE_LENGTH, currentUser, forma
 import { t } from './i18n';
 import { answeredCount, APP_VERSION, autosave, blankAssessment, clearDraft, draftIsOursToWrite,
   download, ensureRef, hasWork, loadDraft, saveAnswersCsv, saveAssessmentFile, slug } from './storage';
-import { bannerFor, evidenceNote } from './marking';
+import { bannerFor, evidenceNote, syncMarking } from './marking';
 import BUILTIN from '../rubric/rubric.v1-dan.json';
 import { storeKey } from './keys';
 
@@ -230,10 +230,6 @@ declare const __EARB_BUILT__: string;
 const BUILT: string = typeof __EARB_BUILT__ === 'string' ? __EARB_BUILT__ : '';
 
 const app = document.getElementById('app')!;
-
-/** Small counts read better spelled out in body copy. */
-const WORDS = ['zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine'];
-const spell = (n: number): string => (n < WORDS.length ? WORDS[n] : String(n));
 
 function questionCount(r: Rubric): number {
   return r.domains.reduce((n, d) => n + d.sections.reduce((m, x) => m + x.questions.length, 0), 0);
@@ -569,6 +565,9 @@ function askForCode(): void {
       }
       close();
       assessment = ensureRef(found);
+      // What the store holds may carry a marking somebody picked by hand before the field was
+      // derived. The evidence in it is the fact.
+      syncMarking(assessment);
       autosave(assessment);
       go('submit');
     } catch (err) {
@@ -948,7 +947,6 @@ function header(bare = false): HTMLElement {
      * that needs doing, so it stays the size of a warning.
      */
     !bare && side === 'submit' && (mode === 'submit' || mode === 'results')
-      && bannerFor(assessment) !== 'UNMARKED'
       ? el('span', { class: 'mark-tag' }, [
           // The marking is written the way a marking is written, in capitals. What follows it
           // is a sentence about the evidence, so it is set as one.
@@ -1113,36 +1111,24 @@ function footer(): HTMLElement {
   ]);
 }
 
+/**
+ * The band, which is a printed thing now.
+ *
+ * It had a second state: a red bar reading "Say how your evidence is marked", which was a
+ * button, because an unmarked file could not be saved and telling somebody to go and find a
+ * control is the failure. There is no unmarked file any more. An assessment with no evidence
+ * derives Unclassified, and saving it is fine: thats okay, maybe it doesnt have evidence yet.
+ *
+ * A marked file says so beside File in the header, so the band is held back from the screen.
+ * It is still built and still in the page, because paper has no header and a printed
+ * assessment carries its marking at the head as well as the foot.
+ */
 function banner(extra = ''): HTMLElement {
-  const mark = bannerFor(assessment);
-  const unmarked = mark === 'UNMARKED';
-  if (!unmarked || extra) {
-    const note = evidenceNote(assessment);
-    /**
-     * A marked file says so beside File in the header now, so the band it used to draw is held
-     * back from the screen. It is still built and still in the page, because paper has no
-     * header and a printed assessment carries its marking at the head as well as the foot.
-     */
-    const held = !unmarked && !extra ? ' screen-off' : '';
-    return el('div', { class: `marking-banner ${unmarked ? 'unmarked' : ''}${held} ${extra}` }, [
-      unmarked ? 'Unmarked' : mark,
-      note ? el('span', { class: 'mark-note' }, [note]) : null,
-    ]);
-  }
-  // An unmarked banner is the one thing on the page that needs doing, so it is the control
-  // for doing it. Saying "go and find the setting" is the failure, not the wording of it.
-  return el('button', {
-    class: 'marking-banner unmarked',
-    onclick: () => {
-      // The marking question lives on the overview, so go there first. Without this the
-      // banner did nothing at all from any of the twenty question pages.
-      showMarkingStep();
-      go('submit');
-      const heading = document.getElementById('marking-control');
-      if (heading && typeof heading.scrollIntoView === 'function') heading.scrollIntoView({ block: 'center' });
-      heading?.focus?.();
-    },
-  }, ['Say how your evidence is marked']);
+  const note = evidenceNote(assessment);
+  return el('div', { class: `marking-banner ${extra ? '' : 'screen-off'} ${extra}` }, [
+    bannerFor(assessment),
+    note ? el('span', { class: 'mark-note' }, [note]) : null,
+  ]);
 }
 
 /* ------------------------------------------------------------------------------------------
@@ -1315,26 +1301,17 @@ function renderHome(root: HTMLElement) {
    */
 
 
-  root.appendChild(el('section', { class: 'note' }, [
-    el('h2', {}, [t('What to expect', 'À quoi s\u2019attendre')]),
-    el('ul', {}, [
-      el('li', {}, [
-        el('b', {}, [t(`${total} questions, across ${spell(rubric.domains.length)} architecture domains. `, `${total} questions, réparties sur ${rubric.domains.length} domaines d\u2019architecture. `)]),
-        t('You do not have to finish in one sitting. Your progress is kept as you go, and you can save a file and come back to it.',
-          'Vous n\u2019avez pas à tout terminer d\u2019un seul coup. Votre progression est conservée à mesure, et vous pouvez enregistrer un fichier pour y revenir.'),
-      ]),
-      el('li', {}, [
-        el('b', {}, [t('The scale explains itself. ', 'L\u2019échelle s\u2019explique d\u2019elle-même. ')]),
-        t('Every score from 0 to 10 has a description, so a low score comes with a plain account of what would improve it.',
-          'Chaque note de 0 à 10 est accompagnée d\u2019une description, de sorte qu\u2019une note faible dit clairement ce qui l\u2019améliorerait.'),
-      ]),
-      el('li', {}, [
-        el('b', {}, [t('You decide who sees it. ', 'Vous décidez qui la voit. ')]),
-        t('Saving produces a file on your machine. Sending it is a separate step, through whatever channel your department already uses.',
-          'L\u2019enregistrement produit un fichier sur votre ordinateur. L\u2019envoi est une étape distincte, par le canal que votre ministère utilise déjà.'),
-      ]),
-    ]),
-  ]));
+  /**
+   * WHAT TO EXPECT IS GONE, AND THE HERO IS THE PAGE.
+   *
+   * It was three bullets under the hero: how many questions there are and that you need not
+   * finish in one sitting, that the scale explains itself, and that saving makes a file you
+   * send yourself. Reported as redundant, and it was: the count is on the button's own screen,
+   * the scale is a fold on every section heading, and saving to a file is in the File menu.
+   *
+   * With nothing under it the hero sits in the middle of the screen, which .app-home .body
+   * was already centring and had nothing to centre.
+   */
 }
 
 /* ------------------------------------------------------------------------------------------
