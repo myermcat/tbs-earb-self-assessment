@@ -3536,15 +3536,33 @@ console.log('\nA submission is a place you can go back from\n');
   ok('with the control that copies it',
      !!btn && /Copy the access code/.test(btn.getAttribute('title') ?? ''),
      btn?.getAttribute('title') ?? 'no button');
-  ok('and it says nothing opens with it until the first online save',
-     /Nothing opens with it yet/.test(code?.textContent ?? ''), code?.textContent?.slice(0, 140) ?? '');
+  /**
+   * The state of the thing the code names, beside it, in three words. It was a sentence until
+   * 20 October: remove this text, and instead on the right of the access code it should say
+   * in very faint either saved online or not saved online.
+   *
+   * Not saved online is also the answer to what the code does before the first save, which is
+   * nothing.
+   */
+  ok('and beside it, that nothing is in the store under it yet',
+     (code?.querySelector('.hero-code-state')?.textContent ?? '') === 'not saved online',
+     code?.querySelector('.hero-code-state')?.textContent ?? 'no state');
+  ok('and the sentence that used to explain it is gone',
+     !/opens the assessment|Nothing opens with it/.test(code?.textContent ?? ''),
+     code?.textContent?.slice(0, 140) ?? '');
 
   const sent = JSON.parse(JSON.stringify(local));
   sent.meta.savedOnlineAt = new Date().toISOString();
   const { doc: doc2 } = await boot({ draft: sent, hash: '' });
   const code2 = doc2.querySelector('.hero .hero-code');
-  ok('and once it is in the store it says the code opens it',
-     /This opens the assessment/.test(code2?.textContent ?? ''), code2?.textContent?.slice(0, 140) ?? '');
+  // Saved, and edited since: the record carries the moment it went and no fingerprint matching
+  // what is on screen, which is exactly the state the badge in the header reports as behind.
+  ok('and once it is in the store the state says so',
+     (code2?.querySelector('.hero-code-state')?.textContent ?? '').startsWith('saved online'),
+     code2?.querySelector('.hero-code-state')?.textContent ?? 'no state');
+  ok('and says it is behind, because this copy has changed since it went',
+     (code2?.querySelector('.hero-code-state')?.textContent ?? '').includes('out of date'),
+     code2?.querySelector('.hero-code-state')?.textContent ?? 'no state');
 }
 
 console.log(fails ? `\n${fails} hosted check(s) failed\n` : '\nall hosted checks passed\n');

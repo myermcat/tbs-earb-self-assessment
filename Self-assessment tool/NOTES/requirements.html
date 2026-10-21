@@ -146,9 +146,9 @@ background:var(--surface);border:1px solid var(--line);border-radius:10px;list-s
 .kpi a{color:inherit;text-decoration:none}
 </style>
 <div class="head"><div class="head-in"><h1>GC EA self-assessment: requirements specification</h1>
-<p class="sub">Living document, updated 2026-09-28. 147 requirements, baselined at each release. Following ISO/IEC/IEEE 29148:2018, tailored.</p></div></div>
+<p class="sub">Living document, updated 2026-09-28. 148 requirements, baselined at each release. Following ISO/IEC/IEEE 29148:2018, tailored.</p></div></div>
 <nav class="topnav"><div class="topnav-in">
-<span class="nav-kpi"><b>91</b><span>built</span></span>
+<span class="nav-kpi"><b>92</b><span>built</span></span>
 <span class="nav-kpi"><b>31</b><span>agreed, not built</span></span>
 <span class="nav-kpi"><b>3</b><span>proposed</span></span>
 <span class="nav-kpi"><b>21</b><span>open</span></span>
@@ -805,6 +805,12 @@ Two departures worth naming. The audit saves itself a moment after typing stops,
 <span class="req-t">Evidence marked above the answer given on the overview asks which of the two is wrong.</span>
 <span class="st st-gone">Dropped</span>
 <span class="req-note">Dropped on 20 October with the question it reconciled. It existed because the marking was asked twice, once as a picker on the overview and once on every evidence row, and the two answers could disagree. A dialog opened in the middle of typing offering to raise the overview answer or lower the row, and a save block sat behind it. Superseded by E9: the file marking is the highest of the rows, so nothing can be above it.</span>
+</div>
+<div class="req">
+<span class="req-id mono">E10</span>
+<span class="req-t">One thing refuses a save, and it is a file above unclassified held inside the assessment. Nothing about the form of an answer does.</span>
+<span class="st st-done">Built</span>
+<span class="req-note">Added 20 October. There were four marking blocks and three went that day. no-file-marking refused an assessment nobody had marked, answered with: thats okay, maybe it doesnt have evidence yet, its okay to save unmarked file. evidence-above-file cannot happen once the file marking is the highest of the rows. unmarked-evidence stopped a save while a row had a title and no marking, and it was put to her as the one block left and answered: no. What is left is the only one about the material rather than the form, and nothing above unclassified may be in this document at all. An unmarked row still shows as unmarked, on the row, where the control is; what it does not carry counts as nothing when the file’s marking is worked out, so the derived answer can only ever be too low.</span>
 </div>
 <div class="req">
 <span class="req-id mono">E9</span>
