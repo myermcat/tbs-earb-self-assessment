@@ -759,8 +759,51 @@ ok('the rail shows every section of the current domain as done',
      secs.length > 0 && secs.every((x) => x.classList.contains('lens-empty-row') === (num(x.textContent) === 0)),
      secs.map((x) => `${x.textContent}:${x.classList.contains('lens-empty-row')}`).join(' | '));
 
-  // And turning it off puts every readout back.
-  qa('.lens-chip').find((c) => /All questions/i.test(c.textContent)).click();
+  /**
+   * MORE THAN ONE AT A TIME, AND A QUESTION MATCHES ANY OF THEM.
+   *
+   * Asked for on 20 October: I should be able to select multiple, like security and
+   * accessibility for example. A pair is the union and not the intersection, because somebody
+   * who ticks both is asking to see both.
+   */
+  const second = qa('.lens-chip').find((c) => !c.classList.contains('on') && /\d/.test(c.textContent));
+  ok('there is a second category to add', !!second,
+     qa('.lens-chip').map((c) => c.textContent).join(' | '));
+  const alsoClaimed = Number((second.querySelector('.lens-n')?.textContent ?? '0').trim());
+  second.click();
+  ok('both chips are on at once',
+     qa('.lens-chip.on').length === 2, String(qa('.lens-chip.on').length));
+  const bothBars = qa('.progress-row .pbar-label').map((l) => l.textContent.replace(/\s+/g, ' ').trim());
+  const longCaption = qa('.progress-row .fb-long').map((n) => n.textContent.trim()).pop() ?? '';
+  ok('and the caption names both, in the order of the row',
+     longCaption.split(',').length === 2, longCaption || '(no long caption)');
+  /**
+   * The union, not the sum: a question carrying both categories is on the page once and
+   * counted once. So the total is at most the two claims added together, and at least the
+   * larger of them.
+   */
+  const together = num(bothBars[1]);
+  ok('and counts the union of the two rather than the sum',
+     together <= claimed + alsoClaimed && together >= Math.max(claimed, alsoClaimed),
+     `${together} against ${claimed} and ${alsoClaimed}`);
+
+  // A second click on a chip takes that one back out, and leaves the other on.
+  second.click();
+  ok('clicking a chip again takes only that one out',
+     qa('.lens-chip.on').length === 1 && /Security/i.test(q('.lens-chip.on').textContent),
+     qa('.lens-chip.on').map((c) => c.textContent).join(' | '));
+
+  /**
+   * And with none of them on, every question is back. All questions used to be a chip of its
+   * own at the head of the row, which is a control for the absence of a thing sitting in the
+   * row of the thing. It is a funnel now, and it is a mark.
+   */
+  ok('the row is marked with a funnel and carries no chip for the absence of a filter',
+     !!q('.lens-strip .lens-mark')
+       && !qa('.lens-chip').some((c) => /All questions/i.test(c.textContent)),
+     qa('.lens-chip').map((c) => c.textContent).join(' | '));
+  q('.lens-chip.on').click();
+  ok('and nothing is on', qa('.lens-chip.on').length === 0, String(qa('.lens-chip.on').length));
   const back = qa('.progress-row .pbar-label').map((l) => l.textContent.replace(/\s+/g, ' ').trim());
   ok('turning the lens off restores the section bar', /This section/.test(back[0]), back[0]);
   ok('and the whole-assessment bar with it',
@@ -2676,8 +2719,21 @@ ok('audited file keeps the self-score alongside the audited one',
       ok('and the column it all sits in is under 13rem',
          !!track && rem(track.split(' ')[0]) <= 13, track ?? 'nothing');
     }
-    ok('and it is still a box, so the row shows which one is on',
-       /var\(--accent-soft\)/.test(chipBg ?? ''), chipBg ?? 'nothing');
+    /**
+     * The chip that is on carries no box at all now, and says so in its own text.
+     *
+     * It was a solid accent, then a tint with a ring, and reported a third time on 20 October:
+     * instead of showing it as a button, you show it just the same as the rest of them, but a
+     * little bit tiny bit brighter and underlined, maybe in a dashed line, because the current
+     * makes it very high weight again, too bright for its importance.
+     */
+    ok('the chip that is on has no fill of its own',
+       chipBg === 'none', chipBg ?? 'nothing');
+    ok('and is marked by a dashed rule under its word, one step of ink above the rest',
+       /underline dashed/.test(lastDecl('\\.lens-chip\\.on \\.lens-word', 'text-decoration') ?? '')
+         && lastDecl('\\.lens-chip\\.on', 'color') === 'var(--ink-2)'
+         && lastDecl('\\.lens-chip', 'color') === 'var(--ink-3)',
+       `${lastDecl('\\.lens-chip\\.on \\.lens-word', 'text-decoration')} / on ${lastDecl('\\.lens-chip\\.on', 'color')} / off ${lastDecl('\\.lens-chip', 'color')}`);
   }
 
   /**

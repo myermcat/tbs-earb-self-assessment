@@ -146,9 +146,9 @@ background:var(--surface);border:1px solid var(--line);border-radius:10px;list-s
 .kpi a{color:inherit;text-decoration:none}
 </style>
 <div class="head"><div class="head-in"><h1>GC EA self-assessment: requirements specification</h1>
-<p class="sub">Living document, updated 2026-09-28. 148 requirements, baselined at each release. Following ISO/IEC/IEEE 29148:2018, tailored.</p></div></div>
+<p class="sub">Living document, updated 2026-09-28. 151 requirements, baselined at each release. Following ISO/IEC/IEEE 29148:2018, tailored.</p></div></div>
 <nav class="topnav"><div class="topnav-in">
-<span class="nav-kpi"><b>92</b><span>built</span></span>
+<span class="nav-kpi"><b>95</b><span>built</span></span>
 <span class="nav-kpi"><b>31</b><span>agreed, not built</span></span>
 <span class="nav-kpi"><b>3</b><span>proposed</span></span>
 <span class="nav-kpi"><b>21</b><span>open</span></span>
@@ -1067,9 +1067,27 @@ Two departures worth naming. The audit saves itself a moment after typing stops,
 </div>
 <div class="req">
 <span class="req-id mono">X17</span>
-<span class="req-t">One solid accent on a screen, and it is the primary action. Anything else that is on is ringed or tinted.</span>
+<span class="req-t">One solid accent on a screen, and it is the primary action. Anything else that is on is ringed, tinted, or marked in its own text.</span>
 <span class="st st-done">Built</span>
 <span class="req-note">Added 19 October. The category chip that was on and the See my results button were the same declaration, a solid accent with accent ink on it, so a filter nobody had deliberately set was as loud as the thing that ends the questionnaire. Reported as: whatever I have picked, that highlight is as bright as see my results, and that row is less important than the domain tabs and especially the results button. The three ranks are the button filled, the open domain tab ringed, the filter tinted. Held by a gate that compares the two declarations instead of naming a colour.</span>
+</div>
+<div class="req">
+<span class="req-id mono">X21</span>
+<span class="req-t">Domains are pages and categories are a filter, so they are not drawn alike. More than one category at a time, and a question is on screen if it carries any of them.</span>
+<span class="st st-done">Built</span>
+<span class="req-note">Added 20 October, in these words: domains are literally different pages, while all questions, security, privacy, financial is a filter, and I should be able to select multiple, like security and accessibility, and we will see all questions when all filters are removed. Three things changed together. The row is marked with a funnel and carries no chip for the absence of a filter, because all questions was a control for the absence of a thing sitting in the row of the thing; nothing selected is every question. A second click on a chip takes it back out. And the chip that is on carries no box at all, reported a third time as too bright for its importance: it is one step of ink above the rest with a dashed rule under its word, and the count beside it is not underlined, which is why the word has a span of its own. A pair of categories is the union and not the intersection, because somebody who ticks both is asking to see both; Security and Accessibility together show 28 of 176 where the two claim 25 and 3, and adding Privacy shows 33 where the three claim 36, which is the three questions carrying two of them counted once.</span>
+</div>
+<div class="req">
+<span class="req-id mono">X22</span>
+<span class="req-t">The front page is the pitch for somebody who has not started and the work for somebody who has. It is one box either way.</span>
+<span class="st st-done">Built</span>
+<span class="req-note">Added 20 October, after: so the assess your own architecture block has a lot of text for the front page, it should have very very little, way less, or it should be restructured, because all of it is important, but maybe something should be moved elsewhere, they all have different meaning and different status and different importance, and in the bottom block you have both information about the submission and a general note and metadata, which is last changed at this time, and those three are absolutely different things. The box was answering what this is and what it will ask of you, which somebody asks once, alongside which assessment this is and how far through it is, which only exist after the first visit. Nothing in it was for both except the button. Started, the heading is the name of the assessment and one faint line under it carries the department and the progress; the eyebrow and the lead are not drawn. The sentence about the browser store went, because the badge in the chrome says it and the pane behind it says it at length. The last-changed stamp went into that same pane, beside the other facts about where this copy stands. A second box below the first was considered and refused: two boxes double the frame, and one box that changes what it holds is the smaller answer.</span>
+</div>
+<div class="req">
+<span class="req-id mono">X23</span>
+<span class="req-t">A link that would be the same words on every card in a list is an icon instead.</span>
+<span class="st st-done">Built</span>
+<span class="req-note">Added 20 October. Seven lifecycle cards each ended on Read about this stage, which is four words of furniture per card and the longest line on three of them. Asked for: instead each one has an information icon, like an i in a circle, a faint one on the right, aligned with the stage name. The words survive as the title and the accessible name, so nothing is lost to a screen reader. The phase headings keep their worded link, because there are three of them and each says something different.</span>
 </div>
 <div class="req">
 <span class="req-id mono">X18</span>

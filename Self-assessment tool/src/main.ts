@@ -1223,49 +1223,25 @@ function accessCode(a: Assessment): HTMLElement | null {
   ]);
 }
 
-function draftNote(draft: Assessment, total: number): HTMLElement {
-  const answered = answeredCount(draft);
-  const saved = (() => {
-    const t = Date.parse(draft.meta?.updatedAt ?? '');
-    return Number.isFinite(t) ? new Date(t).toLocaleString() : 'a moment ago';
-  })();
-
-  // The overview is six fields and none of them are scored questions, so filling it in left
-  // this line reading "0 of 176 answered", which looks like nothing was kept.
-  const [ovDone, ovTotal] = overviewFieldProgress(draft);
-
-  /**
-   * Which assessment this is, above how much of it is done.
-   *
-   * An assessment opened with a code is somebody else's work arriving in your browser, and two
-   * counts and a timestamp do not answer the question that opening it raises, which is whether
-   * the thing now in hand is the thing you were sent.
-   */
-  const named = [draft.initiative?.name, draft.initiative?.department]
-    .map((s) => (s ?? '').trim()).filter(Boolean).join(', ');
-
-  return el('div', { class: 'draft-note' }, [
-    named ? el('p', { class: 'small' }, [el('b', {}, [named])]) : null,
-    el('p', { class: 'small' }, [
-      el('b', {}, [
-        ovDone < ovTotal
-          ? `About the initiative ${ovDone} of ${ovTotal}, and ${answered} of ${total} questions answered.`
-          : `${answered} of ${total} answered.`,
-      ]),
-      el('span', { class: 'muted' }, [` Last changed ${saved}.`]),
-    ]),
-    el('p', { class: 'small muted' }, [
-      'Saved locally on this machine, by your browser, as you type. Closing the tab or ',
-      'reloading the page does not lose it, and you do not need the file you saved to carry on.',
-    ]),
-    /*
-     * "Starting over is in Settings, under Danger zone" was here, and it went on 20 October.
-     * A front page that opens by naming the way to throw the work away is pointing at the one
-     * thing nobody came for, and anything that removes something lives in the Danger zone by
-     * our own rule, which is where it still is.
-     */
-  ]);
+/** When this copy was last written to, in the reader's own locale. */
+function lastChanged(a: Assessment): string {
+  const at = Date.parse(a.meta?.updatedAt ?? '');
+  return Number.isFinite(at) ? new Date(at).toLocaleString() : 'a moment ago';
 }
+
+/*
+ * draftNote WAS HERE, AND IT HELD FOUR DIFFERENT KINDS OF THING IN ONE PARAGRAPH BLOCK.
+ *
+ * Which assessment this is, how far through it is, a general explanation of where a browser
+ * keeps work, and the moment it last changed. Reported on 20 October: in the bottom block you
+ * have both information about the submission and a general note and metadata, which is last
+ * changed at this time, and those three are absolutely different things, they should be in
+ * different places.
+ *
+ * The first two are the heading and the line under it. The explanation is the badge in the
+ * chrome and the pane behind it, which says it at length and already existed. The timestamp
+ * went into that same pane, beside the other facts about where this copy stands.
+ */
 
 /**
  * An admin removed this submission from the store while the person still had their own copy.
@@ -1326,14 +1302,50 @@ function renderHome(root: HTMLElement) {
   const started = !!draft && hasWork(draft);
   const total = questionCount(rubric);
 
+  /**
+   * ONE BOX, TWO STATES, BECAUSE IT WAS SERVING TWO PEOPLE AT ONCE.
+   *
+   * The top of it answered what this is and what it will ask of you, which are questions
+   * somebody asks once. The bottom answered which assessment this is, how far through it is
+   * and where the work lives, which only exist after the first visit. Nothing in it was for
+   * both except the button, so a person who uses this tool read a product pitch every day.
+   *
+   * Agreed on 20 October after: so the assess your own architecture block has a lot of text
+   * for the front page, it should have very very little, way less, or it should be
+   * restructured, because all of it is important, but maybe something should be moved
+   * elsewhere, they all have different meaning and different status and different importance.
+   *
+   * So: nothing started, it is the pitch. Something started, it is the work, and the heading
+   * is the name of the thing, because on a page about your assessment that is what the page
+   * is about. The eyebrow, the lead, the sentence about the browser store and the last-changed
+   * stamp all go. The first two are answered, the third is the badge in the chrome and the
+   * pane behind it, and the fourth is a fact for comparing two copies, which is what that
+   * same pane is for.
+   */
+  const named = [draft?.initiative?.name, draft?.initiative?.department]
+    .map((s) => (s ?? '').trim()).filter(Boolean);
   root.appendChild(el('section', { class: 'hero' }, [
     el('div', { class: 'hero-text' }, [
-      el('p', { class: 'eyebrow' }, [t('Government of Canada Enterprise Architecture', 'Architecture intégrée du gouvernement du Canada')]),
-      el('h1', {}, [t('Assess your own architecture', 'Évaluez votre propre architecture')]),
-      el('p', { class: 'lead' }, [
-        t('You answer questions about the work you already run, score yourself against a published scale, and point to evidence you already have. Nothing new has to be written for it.',
-          'Vous répondez à des questions sur le travail que vous menez déjà, vous vous notez selon une échelle publiée et vous renvoyez à des preuves que vous avez déjà. Rien de nouveau n\u2019a à être rédigé pour cela.'),
+      started ? null : el('p', { class: 'eyebrow' }, [t('Government of Canada Enterprise Architecture', 'Architecture intégrée du gouvernement du Canada')]),
+      el('h1', {}, [
+        started
+          ? (named[0] || t('Your assessment', 'Votre évaluation'))
+          : t('Assess your own architecture', 'Évaluez votre propre architecture'),
       ]),
+      started
+        ? el('p', { class: 'hero-where' }, [(() => {
+            const [ovDone, ovTotal] = overviewFieldProgress(draft!);
+            const answered = answeredCount(draft!);
+            return [
+              named[1],
+              ovDone < ovTotal ? t(`Overview ${ovDone} of ${ovTotal}`, `Aperçu ${ovDone} sur ${ovTotal}`) : null,
+              t(`${answered} of ${total} answered`, `${answered} sur ${total} répondues`),
+            ].filter(Boolean).join('  ·  ');
+          })()])
+        : el('p', { class: 'lead' }, [
+            t('You answer questions about the work you already run, score yourself against a published scale, and point to evidence you already have. Nothing new has to be written for it.',
+              'Vous répondez à des questions sur le travail que vous menez déjà, vous vous notez selon une échelle publiée et vous renvoyez à des preuves que vous avez déjà. Rien de nouveau n’a à être rédigé pour cela.'),
+          ]),
       el('div', { class: 'hero-actions' }, [
         el('button', {
           class: 'primary big',
@@ -1361,7 +1373,6 @@ function renderHome(root: HTMLElement) {
           : null,
       ]),
       started && isHosted() ? accessCode(draft!) : null,
-      started ? draftNote(draft!, total) : null,
     ]),
     el('div', { class: 'hero-art', 'aria-hidden': true }, [
       el('span', { class: 'rung r1' }), el('span', { class: 'rung r2' }),
@@ -2287,7 +2298,10 @@ function paneAnswers(pane: HTMLElement) {
 
   pane.appendChild(setRow(
     t('This browser keeps your work as you type', 'Ce navigateur conserve votre travail au fur et \u00e0 mesure'),
-    t(`Every browser keeps a small private store on disk for each site it visits. This page writes the whole assessment there as you type, so closing the tab or reloading is safe. It is holding ${answeredCount(assessment)} answers now. That store belongs to one browser on one machine, and clearing your browsing data clears it.`,
+    // The moment it last changed was on the front page, under the progress, where it answered
+    // nothing anybody asks while deciding to carry on. It belongs with the other facts about
+    // where this copy stands, which is this pane.
+    t(`Every browser keeps a small private store on disk for each site it visits. This page writes the whole assessment there as you type, so closing the tab or reloading is safe. It is holding ${answeredCount(assessment)} answers, last changed ${lastChanged(assessment)}. That store belongs to one browser on one machine, and clearing your browsing data clears it.`,
       `Chaque navigateur conserve sur le disque un petit espace priv\u00e9 pour chaque site visit\u00e9. Cette page y \u00e9crit l\u2019\u00e9valuation enti\u00e8re au fur et \u00e0 mesure : fermer l\u2019onglet ou recharger est donc sans risque. Elle y conserve ${answeredCount(assessment)} r\u00e9ponses. Cet espace appartient \u00e0 un navigateur sur une machine, et effacer vos donn\u00e9es de navigation l\u2019efface.`),
     null,
   ));

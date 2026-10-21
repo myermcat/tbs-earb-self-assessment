@@ -119,14 +119,23 @@ console.log('\nThe submitter, with no account\n');
   const dom = await open({ 'gc-arch-assessment:draft': JSON.stringify(opened) });
   const { document } = dom.window;
   const hero = document.querySelector('.hero-actions button');
-  const note = document.querySelector('.draft-note');
+  const heading = document.querySelector('.hero h1');
+  const where = document.querySelector('.hero-where');
   ok('an assessment with no answers in it is still one this browser is holding',
      /Continue/.test(hero?.textContent ?? ''), hero?.textContent ?? 'no button');
-  ok('and the page says which one it is',
-     /Fleet Scheduling/.test(note?.textContent ?? '') && /DFO/.test(note?.textContent ?? ''),
-     note?.textContent?.slice(0, 80) ?? 'no note');
-  ok('and how much of it is done', /0 of 176 answered/.test(note?.textContent ?? ''),
-     note?.textContent?.slice(0, 120) ?? '');
+  /**
+   * The name of the assessment is the heading of the page, which is the started state of the
+   * front page. It was a bold line inside a four-paragraph note under the pitch until 20
+   * October. On a page about your assessment, your assessment is what the page is about.
+   */
+  ok('and the page is headed by the one it is holding',
+     /Fleet Scheduling/.test(heading?.textContent ?? ''), heading?.textContent ?? 'no heading');
+  ok('and names the department and how much is done, in one line under it',
+     /DFO/.test(where?.textContent ?? '') && /0 of 176 answered/.test(where?.textContent ?? ''),
+     where?.textContent ?? 'no line');
+  ok('and the pitch is not on a screen for somebody who has already started',
+     !document.querySelector('.hero .lead') && !document.querySelector('.hero .eyebrow'),
+     document.querySelector('.hero .lead')?.textContent?.slice(0, 60) ?? 'eyebrow still there');
   ok('and it is still in the browser after the page has drawn',
      !!dom.window.localStorage.getItem('gc-arch-assessment:draft'));
 }

@@ -488,10 +488,11 @@ button.big:hover .arrow { transform: translateX(3px); }
 .hero-code .code-chip-value { font-size: 1.22rem; }
 .hero-code .code-chip-ico { color: var(--accent); }
 
-.draft-note { margin-top: .85rem; padding-top: .65rem; border-top: 1px solid var(--line); }
-.draft-note p { margin-bottom: .25rem; }
-.draft-note .tiny .linkish { color: var(--ink-3); text-decoration-color: var(--line-2); }
-.draft-note .tiny .linkish:hover { color: var(--accent); }
+/*
+ * .draft-note WENT WITH THE BLOCK IT DRESSED. What is under the heading now is one faint line
+ * naming the department and the progress, and the code under that.
+ */
+.hero-where { font-size: .84rem; color: var(--ink-3); margin-bottom: 1.15rem; }
 .filelabel-plain { background: none; border: 0; padding: 0; font-size: .88rem; cursor: pointer; }
 
 /* The maturity ladder from the favicon, at rest. Decorative only. */
@@ -582,6 +583,13 @@ code.mono { background: var(--surface-2); border: 1px solid var(--line);
   box-shadow: 0 0 0 1px var(--accent); }
 .stage-card input { width: auto; margin-top: .25rem; flex: 0 0 auto; }
 .stage-card strong { font-size: .9rem; }
+/* The guide is a mark beside the name, so the two share a row and the body takes the rest of
+   the card. An icon is a box, so it is centred against the name and not sat on its baseline. */
+.stage-body { min-width: 0; flex: 1 1 auto; }
+.stage-top { display: flex; align-items: center; justify-content: space-between; gap: .5rem; }
+.stage-info { display: inline-flex; flex: 0 0 auto; color: var(--ink-3); opacity: .55;
+  text-decoration: none; }
+.stage-info:hover { color: var(--accent); opacity: 1; }
 .dlg-link { display: inline-block; font-size: .78rem; margin-top: .25rem; }
 
 /* ---------- the questionnaire: rail beside the sheet ------------------------------------ */
@@ -1870,6 +1878,16 @@ button.is-mockup, a.is-mockup { opacity: .62; cursor: not-allowed; }
  * it, in both. The count is a running total that changes on every answer, and a figure that
  * moves does not also need to be the loudest thing in the bar.
  */
+/**
+ * The two bars are not worth the same, so they are not drawn the same.
+ *
+ * Asked for on 20 October: this section progress bar much fainter than the whole assessment
+ * progress bar, and the whole assessment progress bar a bit fainter. One opacity each, on the
+ * whole bar, so the caption, its count and the rail all come down together and the difference
+ * between the words and the number inside each one is kept.
+ */
+.pbar-whole { opacity: .86; }
+.pbar-section { opacity: .52; }
 .pbar-label { font-size: .72rem; color: var(--ink-2); font-weight: 600;
   font-variant-numeric: tabular-nums; }
 .pbar-count { color: var(--ink-3); font-weight: 400; }
@@ -2638,19 +2656,28 @@ dialog.confirm.shake { animation: cf-shake .34s cubic-bezier(.36, .07, .19, .97)
   display: inline-flex; align-items: baseline; gap: .3rem; white-space: nowrap; }
 .lens-chip:hover { color: var(--ink); background: var(--surface-2); }
 /**
- * The chip that is on is a tint, and the only solid accent on the page is the button that
- * takes you out of it.
+ * The chip that is on is marked in its own text, and carries no box at all.
  *
- * Reported as: whatever I have picked, that highlight is as bright as see my results. It was
- * the same declaration, var(--accent) filled with var(--accent-ink) on top, so the filter and
- * the primary action of the whole screen were drawn with one paint. Three things on this page
- * are accented and they rank: the button is filled, the domain tab that is open is ringed, and
- * the filter is tinted. That row is below both of them, which is what was asked for.
+ * It was a tint with a ring, which was already a step down from the solid accent it started
+ * as. Asked for again on 20 October: instead of showing it as a button, you show it just the
+ * same as the rest of them, but a little bit tiny bit brighter and underlined, maybe in a
+ * dashed line, because the current makes it very high weight again, too bright for its
+ * importance.
+ *
+ * So the difference between on and off is one step of ink and a dashed rule under the word.
+ * The count beside it is not underlined, which is why the word has a span of its own: a
+ * decoration set on the chip would draw through the number as well.
  */
-.lens-chip.on { background: var(--accent-soft); border-color: var(--accent-line);
-  color: var(--ink); font-weight: 600; }
+.lens-chip.on { background: none; border-color: transparent; color: var(--ink-2); }
+.lens-chip.on .lens-word { text-decoration: underline dashed;
+  text-decoration-thickness: 1px; text-underline-offset: 4px; }
 .lens-n { font-family: var(--mono); font-size: .7rem; opacity: .6; }
-.lens-chip.on .lens-n { opacity: .8; }
+.lens-chip.on .lens-n { opacity: .75; }
+
+/* The funnel that marks the row. A mark and not a control: the way out of a filter is the
+   chip that set it. */
+.lens-mark { display: inline-flex; align-items: center; align-self: center;
+  color: var(--ink-3); opacity: .6; margin-right: .35rem; flex: 0 0 auto; }
 .lens-empty { font-size: .875rem; color: var(--ink-2); margin: .4rem 0 1rem; }
 
 /* ---------- the chrome at phone width ---------------------------------------------------- */
