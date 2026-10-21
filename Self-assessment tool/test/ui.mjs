@@ -135,9 +135,16 @@ ok('the footer says where the work goes',
  * offered. The label names the pane it opens: "How that works" pointed at its content and left
  * somebody to click to find out what it meant.
  */
-ok('and offers the pane that answers it, named as itself',
-   (q('.sitefoot .linkish')?.textContent ?? '') === 'Where your answers go',
-   q('.sitefoot .linkish')?.textContent ?? 'no link');
+/**
+ * And the footer offers nothing further on any side.
+ *
+ * The link went to This build, whose only line about where anything goes repeats the sentence
+ * beside it; then to Keeping your work, which does answer it. That was still wrong. Asked for
+ * in those words: the button is huge, way too big for its meaning. The pane is in the rail, so
+ * a control on every screen pointing at it buys a click and costs a permanent fixture.
+ */
+ok('and offers nothing further, because the pane is in the rail',
+   !q('.sitefoot .linkish'), q('.sitefoot .linkish')?.textContent ?? 'no link');
 ok('and nothing in the footer opens the build pane any more',
    !/Where this goes/.test(q('.sitefoot').textContent), q('.sitefoot').textContent.trim());
 ok('and the version names nobody', !/\b(dan|nick|allison|john|patricia|mariia)\b/i.test(rubric.version), rubric.version);
@@ -156,7 +163,7 @@ q('.icon-btn[aria-label="Settings"]').click();
 ok('settings is a rail and a pane, not a stack of cards',
    !!q('.set-layout') && !!q('.set-nav') && !!q('.set-pane'));
 ok('five panes, and the destructive one is last and named for what it is', qa('.set-navrow').map((b) => b.textContent).join('|') ===
-   'Question set|Your answers|Documentation|This build|Danger zone',
+   'Question set|Keeping your work|Documentation|This build|Danger zone',
    qa('.set-navrow').map((b) => b.textContent).join('|'));
 ok('the gear opens the harmless one', q('.set-navrow.on').textContent === 'Question set',
    q('.set-navrow.on').textContent);
@@ -232,19 +239,29 @@ ok('and is not told about a setting they do not have',
 ok('but does see which set is in use',
    view().includes(rubric.version) && view().includes('questions in'));
 
-pane('Your answers');
-ok('settings says where the page was loaded from', view().includes('Where your answers go'));
-// Everything in the tool is unclassified now, so the copy describes that and not a
-// never-transmits tool.
-ok('settings states the unclassified-only rule', view().includes('Unclassified only'));
+pane('Keeping your work');
+ok('the pane is named for what is under it, which is what keeps the work and what reaches it',
+   view().includes('Keeping your work'), view().slice(0, 120));
 ok('and explains that the browser keeps the work', view().includes('keeps your work as you type'));
-ok('and that nothing will be recalled once submitted',
-   view().includes('Nothing will be recalled once submitted'));
-// Copy that describes a feature has to say whether the feature exists.
 // This suite builds with no store, so the copy has to describe that build and not the hosted one.
-ok('the copy marks the unbuilt parts as unbuilt',
-   view().includes('Nothing is sent anywhere in this copy') && view().includes('Planned, not built'),
-   view().slice(0, 200));
+ok('and says this copy sends nothing anywhere',
+   view().includes('Nothing is sent anywhere in this copy'), view().slice(0, 200));
+/**
+ * AND NOTHING ELSE IS ON IT.
+ *
+ * It was eight blocks. Unclassified only spent four lines on something a submitter cannot do,
+ * since the tool takes a link and a sentence; the rule is stated where it binds, on the pledge
+ * that takes the screen when a marking above unclassified is picked. Saving online is a button
+ * described a button. Nothing goes until you have said how your evidence is marked described a
+ * refusal that says so when it happens. Nothing will be recalled once submitted opened with
+ * "Planned, not built", which is a page telling somebody about its own backlog.
+ */
+ok('and the blocks that described a rule, a button or a plan are gone',
+   !view().includes('Unclassified only') && !view().includes('Planned, not built')
+   && !view().includes('Nothing will be recalled'), view().slice(0, 220));
+ok('and what is left is what keeps the work and what reaches it',
+   qa('.set-pane .set-row').length === 2,
+   qa('.set-pane .set-row-title').map((n) => n.textContent.trim()).join(' | '));
 
 pane('Danger zone');
 ok('the discard control lives here, not on the start page', !!q('.set-row.danger button.danger'));

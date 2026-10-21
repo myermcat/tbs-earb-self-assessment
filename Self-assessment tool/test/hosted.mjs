@@ -1133,7 +1133,7 @@ console.log('\nThe published build, signed in\n');
     gear.click();
     await new Promise((r) => setTimeout(r, 60));
     const rail = [...doc.querySelectorAll('.set-navrow')].map((b) => b.textContent.trim());
-    ok('an assessor is not offered the submitter\u2019s own answers', !rail.includes('Your answers'), rail.join(' | '));
+    ok('an assessor is not offered the submitter\u2019s own answers', !rail.includes('Keeping your work'), rail.join(' | '));
     ok('nor a control that erases them', !rail.includes('Start again'), rail.join(' | '));
     ok('and what is left belongs to both sides, plus the access list and the danger zone',
        rail.length === 5, rail.join(' | '));
@@ -2147,7 +2147,7 @@ console.log('\nThe published build, signed in\n');
   await new Promise((r) => setTimeout(r, 250));
   const view3 = (dom3.window.document.querySelector('#app')?.textContent ?? '').replace(/\s+/g, ' ');
   ok('a submitter reaches their own settings with no account at all',
-     /Question set|Your answers/.test(view3), view3.slice(0, 140));
+     /Question set|Keeping your work/.test(view3), view3.slice(0, 140));
   dom3.window.close();
 }
 

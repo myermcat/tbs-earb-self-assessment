@@ -66,12 +66,24 @@ console.log('\nThe submitter, with no account\n');
   document.querySelector('.icon-btn[aria-label="Settings"]').click();
   await settle();
   const pane = (name) => { qa('.set-navrow').find((b) => b.textContent === name).click(); };
-  pane('Your answers');
+  pane('Keeping your work');
   await settle();
   const said = document.querySelector('.set-pane').textContent;
-  ok('the pane that says where the work goes still says so', /Where your answers go/.test(said));
-  ok('and names the access code as the way back', /access code is the way back/i.test(said),
-     said.slice(0, 120));
+  ok('the pane that says what keeps the work still says so', /Keeping your work/.test(said), said.slice(0, 120));
+  /**
+   * The three access-code blocks are one, with the code itself beside the words.
+   *
+   * They said the same thing from three angles - it is the way back, it is how you share, it
+   * cannot be taken back - and all three matter, so they are three sentences under one heading
+   * rather than three headings somebody has to assemble. Asked for as: keep it, in a different
+   * form, and everything about the access code is important.
+   */
+  ok('and the access code is one block saying all three things about it',
+     /whole of getting back/i.test(said) && /share the assessment/i.test(said)
+     && /cannot be taken back/i.test(said), said.slice(-260));
+  ok('with the code itself beside it, to be copied',
+     !!document.querySelector('.set-pane .code-chip'),
+     document.querySelector('.set-pane .code-chip')?.textContent?.trim() ?? 'no chip');
   ok('and offers no sign-in of any kind',
      !/sign in/i.test(said) && !qa('.set-pane button').some((b) => /sign in|google/i.test(b.textContent)),
      (said.match(/.{0,40}sign in.{0,40}/i) ?? [''])[0]);
