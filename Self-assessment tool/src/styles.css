@@ -471,6 +471,21 @@ button.big { font-size: .98rem; padding: .62rem 1.4rem; border-radius: 9px;
 button.big .arrow { font-size: 1.05rem; transition: transform .15s ease; }
 button.big:hover .arrow { transform: translateX(3px); }
 .or { color: var(--ink-3); font-size: .88rem; }
+/*
+ * The access code on the front page, at the weight it was asked for: this is one of the most
+ * important actions one can do, it needs to be of the according weight.
+ *
+ * Ringed and not filled. One solid accent on a screen and it is the primary action, which on
+ * this page is Continue, so the code is the next thing down and takes a border instead.
+ */
+.hero-code { margin-top: 1.15rem; padding-top: 1rem; border-top: 1px solid var(--line); }
+.hero-code-key { font-size: .7rem; font-weight: 700; letter-spacing: .1em;
+  text-transform: uppercase; color: var(--ink-3); margin-bottom: .5rem; }
+.hero-code .code-chip-btn { padding: .52rem .9rem; border-color: var(--accent-line); }
+.hero-code .code-chip-value { font-size: 1.22rem; }
+.hero-code .code-chip-ico { color: var(--accent); }
+.hero-code-say { margin-top: .55rem; max-width: 52ch; }
+
 .draft-note { margin-top: .85rem; padding-top: .65rem; border-top: 1px solid var(--line); }
 .draft-note p { margin-bottom: .25rem; }
 .draft-note .tiny .linkish { color: var(--ink-3); text-decoration-color: var(--line-2); }
@@ -486,12 +501,22 @@ button.big:hover .arrow { transform: translateX(3px); }
 .hero-art .r4 { height: 82%;  background: var(--s8); opacity: .85; }
 .hero-art .r5 { height: 100%; background: var(--s10); }
 
-/* Three short notes side by side. Stacked, they cost three times the height for the same
-   words, on a page whose whole point is fitting one screen. */
-  color: var(--ink-3); opacity: .75; margin-bottom: .8rem; }
-  display: grid; grid-template-columns: repeat(auto-fit, minmax(215px, 1fr)); gap: .35rem 1.4rem; }
-  padding-left: .75rem; position: relative; border-left: 1px solid var(--line); }
-
+/*
+ * WHAT TO EXPECT WAS STYLED HERE, AND TAKING IT OUT BROKE THE STYLESHEET FOR A DAY.
+ *
+ * .note, .note h2, .note ul and .note li dressed three short notes side by side under the
+ * hero. They were removed by matching the lines that start with the selector, and three of
+ * those rules ran onto a second line, so three runs of declarations were left behind with
+ * nothing in front of them. A browser reading a stray closing brace at the top level throws
+ * away what follows until it can find its feet again, and what followed was button.linkish.
+ *
+ * So every link-styled button on the page rendered as an ordinary bordered button, while
+ * button.linkish:hover survived further down and still set border: 0. Hovering one took two
+ * pixels off its box and the card above it resized. Reported as: when I hover over it, the
+ * block assess your own architecture changes size.
+ *
+ * test/ui.mjs fails on a closing brace at depth zero anywhere in the stylesheet now.
+ */
 
 
 button.linkish { background: none; border: 0; padding: 0; color: var(--accent);

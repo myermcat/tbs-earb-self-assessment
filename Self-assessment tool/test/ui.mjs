@@ -845,17 +845,27 @@ ok('and the page says which one it is in',
 
 ok('and one click opens the detail', q('.save-state').tagName === 'BUTTON');
 
-// With work in the file, the start page points at Settings and destroys nothing itself.
+/**
+ * With work in the file, the start page carries the access code and destroys nothing.
+ *
+ * It used to end on "Starting over is in Settings, under Danger zone", and that went on 20
+ * October: a front page that opens by naming the way to throw the work away is pointing at
+ * the one thing nobody came for. Starting over is still in the Danger zone, which is where
+ * anything that removes something lives, and the pane is still reached from Settings.
+ */
 {
   byText('.tab', 'Start').click();
-  ok('the start page points at settings for starting over', view().includes('Starting over is in'));
+  ok('the start page no longer names the way to throw the work away',
+     !view().includes('Starting over is in'), 'still points at Settings');
   ok('and offers no way to destroy anything from there',
      !qa('.draft-note button').some((b) => /discard|erase|delete/i.test(b.textContent)));
-  byText('.linkish', 'Settings').click();
-  ok('that pointer opens the pane it names', q('.set-navrow.on').textContent === 'Danger zone',
-     q('.set-navrow.on')?.textContent);
-  ok('and now the discard is live, since there is something to lose',
-     q('.set-row.danger button.danger').disabled === false);
+  /**
+   * The access code block is on the front page of a build that has a store, and it is checked
+   * in test/hosted.mjs. This copy of the tool has nowhere online to save to, so a code that
+   * can never open anything would be a credential offered for no reason.
+   */
+  ok('and a build with no store offers no access code',
+     !q('.hero .hero-code'), q('.hero .hero-code')?.textContent?.slice(0, 60) ?? '');
   byText('.tab', 'Fill it in').click();
 }
 
@@ -2689,6 +2699,34 @@ ok('audited file keeps the self-score alongside the audited one',
   const agreed = [860, 760, 720, 700, 620, 520, 480];
   ok('the stylesheet uses the breakpoints it already had and no others',
      breakpoints.every((w) => agreed.includes(w)), breakpoints.join(', '));
+}
+
+/**
+ * THE STYLESHEET PARSES, WHICH IS NOT THE SAME AS THE STYLESHEET BEING THERE.
+ *
+ * Removing What to expect on 20 October took out the lines that start .note and left the
+ * second lines of three rules that ran on, so three runs of declarations sat at the top level
+ * with nothing in front of them. A browser that meets a closing brace where a selector should
+ * be throws away what follows until it can find its feet, and what followed was
+ * button.linkish. Every link-styled button on the page became an ordinary bordered button,
+ * and button.linkish:hover, parsed after the browser recovered, still set border: 0, so
+ * hovering one took two pixels off its box and the card above it resized.
+ *
+ * Nothing caught it. The page still looked like a page, every other gate passed, and it went
+ * out. A closing brace at depth zero is the whole tell and it costs one pass to find.
+ */
+{
+  const css = html.slice(html.indexOf('<style'), html.indexOf('</style>')).replace(/\/\*[\s\S]*?\*\//g, '');
+  let depth = 0;
+  let orphans = 0;
+  let deepest = 0;
+  for (const ch of css) {
+    if (ch === '{') { depth++; deepest = Math.max(deepest, depth); }
+    else if (ch === '}') { depth--; if (depth < 0) { orphans++; depth = 0; } }
+  }
+  ok('no rule in the stylesheet closes a block that was never opened',
+     orphans === 0, `${orphans} stray closing braces`);
+  ok('and every block that opens is closed', depth === 0, `${depth} left open`);
 }
 
 console.log(fails === 0 ? '\nall UI checks passed' : `\n${fails} FAILED`);

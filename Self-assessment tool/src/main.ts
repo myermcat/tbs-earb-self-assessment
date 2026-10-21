@@ -1,6 +1,7 @@
 import type { Assessment, Rubric } from './types';
 import { el, clear } from './dom';
 import { ICON_DOWN, ICON_MAIL, ICON_SHARE } from './icons';
+import { codeChip } from './code-chip';
 import { codeField } from './code-field';
 import { guardDraft } from './guard';
 import { validate } from './rubric';
@@ -649,8 +650,10 @@ function offerOnlineSave(): void {
     gate: () => signerProblem(who.value()),
     note: already
       ? undefined
-      : t('The first save gives this assessment an access code, which is the only way anybody opens it afterwards, including you from another computer.',
-          'Le premier enregistrement attribue à cette évaluation un code d\u2019accès, seul moyen de l\u2019ouvrir par la suite, y compris pour vous depuis un autre ordinateur.'),
+      // The code is minted when the assessment is created, not here. What this press does is
+      // put a record in the store under it, which is what makes the code open anything.
+      : t('This assessment already has its access code. Saving online is what makes that code open it, here and on any other computer.',
+          'Cette évaluation a déjà son code d\u2019accès. L\u2019enregistrement en ligne est ce qui permet à ce code de l\u2019ouvrir, ici et sur tout autre ordinateur.'),
     alt: already ? undefined : {
       label: t('No, keep it on this computer only', 'Non, la garder sur cet ordinateur seulement'),
       run: () => {
@@ -1174,6 +1177,39 @@ function banner(extra = ''): HTMLElement {
  * Starting over is deliberately quiet. A department fills one of these in once; the button
  * that throws the work away should not be the brightest thing on the page.
  */
+/**
+ * The access code, on the front page, at the weight of the thing it is.
+ *
+ * Asked for on 20 October: the assess your own architecture block should have big copy your
+ * access code, this is one of the most important actions one can do, it needs to be of the
+ * according weight on the front page. It was on the overview and on the results page and
+ * nowhere on the screen somebody lands on.
+ *
+ * AND IT SAYS WHAT IT DOES BEFORE THE FIRST ONLINE SAVE, because that was the question:
+ * you said access code gets generated the first time when it's saved online, so what will
+ * happen before it is saved online. The code is minted when the assessment is created, so it
+ * exists from the first second and never changes. What the first save does is put a record in
+ * the store under it. Until then the code is a name with nothing behind it, and the screen
+ * says so rather than letting somebody send it to a colleague who will find nothing.
+ *
+ * It is ringed and not filled. One solid accent on a screen and it is the primary action,
+ * which here is Continue.
+ */
+function accessCode(a: Assessment): HTMLElement | null {
+  if (!a.id) return null;
+  return el('div', { class: 'hero-code' }, [
+    el('p', { class: 'hero-code-key' }, [t('Access code', 'Code d\u2019acc\u00e8s')]),
+    codeChip(a.id),
+    el('p', { class: 'small muted hero-code-say' }, [
+      savedOnline(a)
+        ? t('This opens the assessment, here and on any other computer. Send it only to people who should be able to change it.',
+            'Ce code ouvre l\u2019\u00e9valuation, ici et sur tout autre ordinateur. Ne le transmettez qu\u2019aux personnes autoris\u00e9es \u00e0 la modifier.')
+        : t('Nothing opens with it yet. It is this assessment\u2019s name in the store from the first time you press Save online, and it does not change after that.',
+            'Rien ne s\u2019ouvre avec ce code pour l\u2019instant. Il devient le nom de cette \u00e9valuation dans le d\u00e9p\u00f4t d\u00e8s le premier enregistrement en ligne, et il ne change plus ensuite.'),
+    ]),
+  ]);
+}
+
 function draftNote(draft: Assessment, total: number): HTMLElement {
   const answered = answeredCount(draft);
   const saved = (() => {
@@ -1209,11 +1245,12 @@ function draftNote(draft: Assessment, total: number): HTMLElement {
       'Saved locally on this machine, by your browser, as you type. Closing the tab or ',
       'reloading the page does not lose it, and you do not need the file you saved to carry on.',
     ]),
-    el('p', { class: 'tiny dim' }, [
-      'Starting over is in ',
-      el('button', { class: 'linkish', onclick: () => openSettings('danger') }, ['Settings']),
-      ', under Danger zone.',
-    ]),
+    /*
+     * "Starting over is in Settings, under Danger zone" was here, and it went on 20 October.
+     * A front page that opens by naming the way to throw the work away is pointing at the one
+     * thing nobody came for, and anything that removes something lives in the Danger zone by
+     * our own rule, which is where it still is.
+     */
   ]);
 }
 
@@ -1310,6 +1347,7 @@ function renderHome(root: HTMLElement) {
             ])
           : null,
       ]),
+      started && isHosted() ? accessCode(draft!) : null,
       started ? draftNote(draft!, total) : null,
     ]),
     el('div', { class: 'hero-art', 'aria-hidden': true }, [
