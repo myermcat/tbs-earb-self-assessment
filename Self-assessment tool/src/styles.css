@@ -1336,38 +1336,14 @@ button.marking-banner:hover { filter: brightness(1.25); background: #2a1414; }
   color: var(--ink-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .mark-tag-mark { font-size: .64rem; font-weight: 400; letter-spacing: .09em;
   text-transform: uppercase; }
-.marking-row { display: flex; gap: .35rem; flex-wrap: wrap; margin-bottom: .45rem; }
-
-/* Unclassified is the answer, so it is one row on its own and carries the weight of one. */
-.mark-default { margin-bottom: .9rem; }
-.mark-default .marking-chip { font-size: 1rem; padding: .5rem 1.1rem; font-weight: 600;
-  border-color: var(--accent-line); }
-.mark-families { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: .8rem; }
-.mark-family { border: 0; border-left: 3px solid var(--line-2); margin: 0; padding: 0 0 0 .75rem; }
-.mark-family legend { font-size: .72rem; font-weight: 700; letter-spacing: .1em;
-  text-transform: uppercase; color: var(--ink-3); padding: 0; }
-.mark-family p { margin: .1rem 0 .4rem; }
-.mark-family .marking-row { margin-bottom: 0; }
-
-.mark-advice { border-left: 3px solid var(--warn); background: var(--warn-bg);
-  border-radius: 0 var(--radius-sm) var(--radius-sm) 0; padding: .7rem .85rem; margin-top: 1rem; }
-.mark-advice-head { display: flex; align-items: baseline; gap: .5rem; flex-wrap: wrap;
-  margin-bottom: .3rem; }
-.mark-advice ol.steps { padding-left: 1.2rem; }
-.mark-advice code.mono { display: inline-block; margin: .15rem 0; }
-code.mark-subject { display: block; margin: .25rem 0; }
-.mark-ack { display: flex; align-items: flex-start; gap: .4rem; font-size: .86rem; font-weight: 600;
-  margin-top: .5rem; cursor: pointer; }
-.mark-ack input { width: auto; margin-top: .25rem; }
-.marking-chip {
-  display: inline-flex; align-items: center; gap: .35rem; cursor: pointer;
-  border: 1px solid var(--line-2); border-radius: var(--radius-chip); padding: .28rem .75rem;
-  background: var(--surface); font-size: .865rem;
-}
-.marking-chip:hover { border-color: var(--accent-line); }
-.marking-chip.on { border-color: var(--accent); background: var(--accent-soft); font-weight: 600;
-  box-shadow: 0 0 0 1px var(--accent); }
-.marking-chip input { width: auto; }
+/*
+ * THE MARKING PICKER AND ITS ADVICE PANEL WERE STYLED HERE.
+ *
+ * .marking-row, .mark-default, .mark-families, .mark-family, .mark-advice, .mark-subject,
+ * .mark-ack and .marking-chip dressed the overview question that asked for the highest
+ * marking of the evidence. The question went on 20 October: every evidence row carries its
+ * own marking and the file's is the highest of those.
+ */
 .marking-inline { display: inline-block; font-size: .72rem; font-weight: 700; letter-spacing: .08em;
   text-transform: uppercase; border: 1px solid var(--ink-2); color: var(--ink-2);
   padding: .05rem .4rem; border-radius: 4px; margin-top: .3rem; }
@@ -1937,11 +1913,10 @@ button.is-mockup, a.is-mockup { opacity: .62; cursor: not-allowed; }
 .gate { max-width: 1200px; margin-inline: auto; color: var(--warn);
   padding: .4rem 1.15rem; font-size: .84rem;
   display: flex; align-items: center; justify-content: space-between; gap: .8rem; flex-wrap: wrap; }
-.gate-marks { display: flex; gap: .25rem; flex-wrap: wrap; }
-.mark-btn { font-size: .76rem; padding: .16rem .5rem; border-radius: var(--radius-chip);
-  border: 1px solid color-mix(in srgb, var(--warn) 45%, var(--line)); background: var(--surface);
-  color: var(--ink); }
-.mark-btn:hover { border-color: var(--accent); background: var(--accent-soft); }
+/* .gate-marks and .mark-btn put the seven markings inside the gate band and inside the block
+   on the results page, because telling somebody to mark the file and making them go and find
+   the control is how a gate turns into a notice people learn to read past. There is no file
+   marking to set now. */
 
 /* ---------- scores ---------------------------------------------------------------------- */
 
@@ -2527,6 +2502,13 @@ dialog.confirm.shake { animation: cf-shake .34s cubic-bezier(.36, .07, .19, .97)
 }
 /* Room around it, so it reads as a control and not as a run of characters in a sentence. */
 .verdict-code .code-chip-btn { padding: .3rem .6rem; }
+
+/* The derived marking, beside its label the way the code above it is. The code is a box and a
+   box is centred; this row is text beside text, so it shares a baseline. */
+.verdict-mark-row { align-items: baseline; }
+.verdict-mark { display: inline-flex; align-items: baseline; gap: .55rem;
+  font-size: .92rem; font-weight: 600; color: var(--ink); }
+.verdict-mark .tiny { font-weight: 400; }
 
 /* The assessor's copy of the category list is read-only: an opinion about a question belongs in
    the audit, which is its own screen with its own reasons attached. */

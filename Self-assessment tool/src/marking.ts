@@ -1,41 +1,85 @@
-import { CLASSIFICATIONS, classRank, type Assessment } from './types';
+import { CLASSIFICATIONS, classRank, type Assessment, type Classification } from './types';
 
 /**
  * Everything in this tool is unclassified, settled with Dan on 1 September, so the assessment
- * itself is always an unclassified document. `initiative.classification` therefore no longer
- * describes this file. It records the highest marking among the artefacts the answers point
+ * itself is always an unclassified document. `initiative.classification` therefore does not
+ * describe this file. It records the highest marking among the artefacts the answers point
  * at, which is what an assessor needs to know to go and read them.
  *
- * The field keeps its name so files saved earlier still open. Every label the reader sees
- * asks about the evidence.
+ * THE FIELD IS DERIVED NOW, AND NOBODY IS ASKED FOR IT.
+ *
+ * It used to be a picker on the overview, one of three groups there, and every evidence row
+ * carried its own marking as well. Asked on 20 October: why do we need the original picker of
+ * how your evidence is ranked if we rank each evidence anyway, and it can automatically give
+ * the highest ranking from the ones that we give. The tool was asking the same fact twice and
+ * then carrying two guards for the two answers disagreeing, one blocking the save and one a
+ * dialog in the middle of typing. Both are gone with the question.
+ *
+ * The field keeps its name and keeps being written into the record, because every assessment
+ * already saved carries it and an assessor\u2019s screens read it. A string inside somebody
+ * else\u2019s saved record is a key.
  */
 
 export interface MarkingProblem {
-  kind: 'no-file-marking' | 'unmarked-evidence' | 'evidence-above-file' | 'classified-attachment';
+  kind: 'unmarked-evidence' | 'classified-attachment';
   message: string;
   questionId?: string;
 }
 
-/** Everything standing between the user and a saved file. Empty means good to go. */
+/** The highest marking among the evidence, which is what this assessment points at. */
+export function derivedMarking(a: Assessment): Classification {
+  let top: Classification = 'Unclassified';
+  for (const ans of Object.values(a.answers ?? {})) {
+    for (const e of ans.evidence ?? []) {
+      if (!e.classification) continue;
+      if (classRank(e.classification) > classRank(top)) top = e.classification;
+    }
+  }
+  return top;
+}
+
+/**
+ * Write the derived marking into the record.
+ *
+ * Called wherever an evidence marking can change and once when an assessment is opened, so a
+ * file saved under the old picker comes up carrying whatever its evidence actually says. A
+ * record whose picker was set higher than any of its evidence comes down, which is the honest
+ * answer: the picker was the guess and the rows are the fact.
+ */
+export function syncMarking(a: Assessment): Classification {
+  const c = derivedMarking(a);
+  // A record read off disk or out of the store may be missing whole fields. This runs on
+  // every one of them as they open, and throwing here made a draft with no initiative in it
+  // unreadable: loadDraft caught the error and returned null, so the browser's own record
+  // vanished from a list that is built by asking for it by id.
+  if (a.initiative) a.initiative.classification = c;
+  return c;
+}
+
+/** How many pieces of evidence this assessment points at, counting only rows with something in them. */
+export function evidenceCount(a: Assessment): number {
+  let n = 0;
+  for (const ans of Object.values(a.answers)) {
+    for (const e of ans.evidence ?? []) if (!isEmptyRow(e)) n++;
+  }
+  return n;
+}
+
+function isEmptyRow(e: { title?: string; location?: string; note?: string; attachment?: unknown }): boolean {
+  return !(e.title ?? '').trim() && !(e.location ?? '').trim()
+    && !(e.note ?? '').trim() && !e.attachment;
+}
+
+/**
+ * Everything standing between the user and a saved file. Empty means good to go.
+ *
+ * TWO OF THE FOUR WENT ON 20 OCTOBER. `no-file-marking` refused to save an assessment nobody
+ * had given a marking, and the answer to that was: thats okay, maybe it doesnt have evidence
+ * yet, its okay to save unmarked file. `evidence-above-file` cannot happen now, because the
+ * file marking is the highest of the evidence and nothing can be above it.
+ */
 export function markingProblems(a: Assessment): MarkingProblem[] {
   const out: MarkingProblem[] = [];
-  const fileMark = a.initiative.classification;
-
-  // "Content" is anything a person typed or attached. An initiative name can itself be
-  // sensitive, so it counts; a score on its own does not, but it means the file is in use.
-  const hasContent =
-    !!a.initiative.name.trim() ||
-    !!a.initiative.summary.trim() ||
-    Object.values(a.answers).some(
-      (ans) => (ans.justification ?? '').trim() || (ans.evidence ?? []).length || typeof ans.score === 'number',
-    );
-
-  if (hasContent && !fileMark) {
-    out.push({
-      kind: 'no-file-marking',
-      message: 'Say how your evidence is marked before saving. If every artefact you point at is unclassified, choose unclassified.',
-    });
-  }
 
   for (const [qid, ans] of Object.entries(a.answers)) {
     for (const e of ans.evidence ?? []) {
@@ -55,17 +99,9 @@ export function markingProblems(a: Assessment): MarkingProblem[] {
       // An empty row is the one Add evidence just created. Demanding a marking for it blocks
       // saving the moment somebody clicks Add, before they have typed anything. A file loaded
       // from disk may be missing fields entirely, and this runs on every keystroke.
-      const empty = !(e.title ?? '').trim() && !(e.location ?? '').trim()
-        && !(e.note ?? '').trim() && !e.attachment;
-      if (empty) continue;
+      if (isEmptyRow(e)) continue;
       if (!e.classification) {
         out.push({ kind: 'unmarked-evidence', questionId: qid, message: `${qid}: mark "${named}".` });
-      } else if (fileMark && classRank(e.classification) > classRank(fileMark)) {
-        out.push({
-          kind: 'evidence-above-file',
-          questionId: qid,
-          message: `${qid}: "${named}" is ${e.classification}, which is higher than the ${fileMark} you gave on the overview. Raise that answer to ${e.classification}.`,
-        });
       }
     }
   }
@@ -80,12 +116,13 @@ export function canSave(a: Assessment): boolean {
 /**
  * The banner at the top and bottom of the page, and on every printout.
  *
- * The assessment is unclassified, so that is what the banner says. It used to print the
- * evidence marking as though the file itself were Protected A, which is the wrong marking on
- * a document and would be a real problem on paper.
+ * The assessment is unclassified, so that is what the banner says, always. It used to print
+ * the evidence marking as though the file itself were Protected A, which is the wrong marking
+ * on a document and would be a real problem on paper. It also used to print "Unmarked", which
+ * no longer exists: a file with no evidence derives Unclassified.
  */
-export function bannerFor(a: Assessment): string {
-  return a.initiative.classification ? 'UNCLASSIFIED' : 'UNMARKED';
+export function bannerFor(_a: Assessment): string {
+  return 'UNCLASSIFIED';
 }
 
 /** The second line: what the evidence behind the answers is marked, when it is not plain. */

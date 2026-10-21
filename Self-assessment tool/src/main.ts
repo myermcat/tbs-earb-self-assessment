@@ -6,7 +6,7 @@ import { guardDraft } from './guard';
 import { validate } from './rubric';
 import { completion } from './scoring';
 import { goToFirstGap, goToQuestion, overviewFieldProgress, renderSubmit, resetOverviewToFirstGap, setRepaint,
-  setSaveOnline, setStopKey, showMarkingStep, takeSubmitTabs, currentStopKey } from './views-submit';
+  setSaveOnline, setStopKey, takeSubmitTabs, currentStopKey } from './views-submit';
 import { panePeople } from './views-people';
 import { takeAccessAway } from './danger-people';
 import { deleteSubmission } from './danger-submission';
@@ -36,7 +36,7 @@ import { addressOf, isAddressSegment, canSignIn, CODE_LENGTH, currentUser, forma
 import { t } from './i18n';
 import { answeredCount, APP_VERSION, autosave, blankAssessment, clearDraft, draftIsOursToWrite,
   download, ensureRef, hasWork, loadDraft, saveAnswersCsv, saveAssessmentFile, slug } from './storage';
-import { bannerFor, evidenceNote } from './marking';
+import { bannerFor, evidenceNote, syncMarking } from './marking';
 import BUILTIN from '../rubric/rubric.v1-dan.json';
 import { storeKey } from './keys';
 
@@ -565,6 +565,9 @@ function askForCode(): void {
       }
       close();
       assessment = ensureRef(found);
+      // What the store holds may carry a marking somebody picked by hand before the field was
+      // derived. The evidence in it is the fact.
+      syncMarking(assessment);
       autosave(assessment);
       go('submit');
     } catch (err) {
@@ -944,7 +947,6 @@ function header(bare = false): HTMLElement {
      * that needs doing, so it stays the size of a warning.
      */
     !bare && side === 'submit' && (mode === 'submit' || mode === 'results')
-      && bannerFor(assessment) !== 'UNMARKED'
       ? el('span', { class: 'mark-tag' }, [
           // The marking is written the way a marking is written, in capitals. What follows it
           // is a sentence about the evidence, so it is set as one.
@@ -1109,36 +1111,24 @@ function footer(): HTMLElement {
   ]);
 }
 
+/**
+ * The band, which is a printed thing now.
+ *
+ * It had a second state: a red bar reading "Say how your evidence is marked", which was a
+ * button, because an unmarked file could not be saved and telling somebody to go and find a
+ * control is the failure. There is no unmarked file any more. An assessment with no evidence
+ * derives Unclassified, and saving it is fine: thats okay, maybe it doesnt have evidence yet.
+ *
+ * A marked file says so beside File in the header, so the band is held back from the screen.
+ * It is still built and still in the page, because paper has no header and a printed
+ * assessment carries its marking at the head as well as the foot.
+ */
 function banner(extra = ''): HTMLElement {
-  const mark = bannerFor(assessment);
-  const unmarked = mark === 'UNMARKED';
-  if (!unmarked || extra) {
-    const note = evidenceNote(assessment);
-    /**
-     * A marked file says so beside File in the header now, so the band it used to draw is held
-     * back from the screen. It is still built and still in the page, because paper has no
-     * header and a printed assessment carries its marking at the head as well as the foot.
-     */
-    const held = !unmarked && !extra ? ' screen-off' : '';
-    return el('div', { class: `marking-banner ${unmarked ? 'unmarked' : ''}${held} ${extra}` }, [
-      unmarked ? 'Unmarked' : mark,
-      note ? el('span', { class: 'mark-note' }, [note]) : null,
-    ]);
-  }
-  // An unmarked banner is the one thing on the page that needs doing, so it is the control
-  // for doing it. Saying "go and find the setting" is the failure, not the wording of it.
-  return el('button', {
-    class: 'marking-banner unmarked',
-    onclick: () => {
-      // The marking question lives on the overview, so go there first. Without this the
-      // banner did nothing at all from any of the twenty question pages.
-      showMarkingStep();
-      go('submit');
-      const heading = document.getElementById('marking-control');
-      if (heading && typeof heading.scrollIntoView === 'function') heading.scrollIntoView({ block: 'center' });
-      heading?.focus?.();
-    },
-  }, ['Say how your evidence is marked']);
+  const note = evidenceNote(assessment);
+  return el('div', { class: `marking-banner ${extra ? '' : 'screen-off'} ${extra}` }, [
+    bannerFor(assessment),
+    note ? el('span', { class: 'mark-note' }, [note]) : null,
+  ]);
 }
 
 /* ------------------------------------------------------------------------------------------

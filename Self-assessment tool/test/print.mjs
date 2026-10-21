@@ -22,7 +22,8 @@ const g = (s) => [...document.querySelectorAll(s)];
 const fire = (n, t) => n.dispatchEvent(new window.Event(t, { bubbles: true }));
 await new Promise((r) => setTimeout(r, 60));
 
-// Walk the overview wizard: three groups, one screen each.
+// Walk the overview wizard: two groups, one screen each. It was three until the marking
+// question between them went, and the marking is the highest of the evidence now.
 g('.hero-actions button')[0].click();
 const next = () => g('.ov-nav button').find((b) => b.textContent.includes('Next') || b.textContent.includes('Done')).click();
 {
@@ -33,9 +34,6 @@ const next = () => g('.ov-nav button').find((b) => b.textContent.includes('Next'
   const ta = document.querySelector('.ov-block textarea');
   ta.value = 'A solution for checking what prints.'; fire(ta, 'input'); fire(ta, 'change');
 }
-next();
-const pb = g('.marking-chip input').find((r) => r.value === 'Protected B');
-pb.checked = true; fire(pb, 'change');
 next();
 const st = g('.stage-card input').find((r) => r.value === 'maturity'); st.checked = true; fire(st, 'change');
 g('.stepper .step').find((t) => t.textContent.includes('Technology')).click();
@@ -50,6 +48,12 @@ ta.value = 'Reviewed quarterly and owned by the platform team.'; fire(ta, 'input
 const evRow = g('.ev-row input[type=text]')[0];
 evRow.value = 'Current-state architecture pack'; fire(evRow, 'input');
 const evCls = [...g('.ev-row select')][1]; evCls.value = 'Protected B'; fire(evCls, 'change');
+// Marking a row above unclassified takes over the screen, so deal with it the way a reader
+// would. This is also what sets the file's own marking, which the banner prints.
+{
+  const box = document.querySelector('dialog.pledge .pledge-ack input[type=checkbox]');
+  if (box) { box.checked = true; fire(box, 'change'); document.querySelector('dialog.pledge .pledge-x').click(); }
+}
 
 // Second question left deliberately unanswered, third marked not applicable.
 const third = g('.question')[2];

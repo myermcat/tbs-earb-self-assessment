@@ -4,13 +4,13 @@ import { codeChip } from './code-chip';
 import { allQuestionScores, nextAnchor, score, strongest, weakest, type Result } from './scoring';
 import { flags } from './flags';
 import { autosave } from './storage';
-import { CLASSIFICATIONS, markingProblems } from './marking';
+import { evidenceCount, markingProblems } from './marking';
 import { t } from './i18n';
 import { isHosted, onlineIsCurrent, saveOnlineNow, savedOnline } from './store';
 import { currentUser, formatCode, pageAddress } from './firebase';
 import { openShareDialog, sharedPanel, showNewCode } from './views-share';
 import { rememberSigner, signerFields, signerProblem } from './signer';
-import { repaint, saveOnline, setFileMarking } from './views-submit';
+import { repaint, saveOnline } from './views-submit';
 import { confirmStep } from './confirm';
 
 /**
@@ -67,6 +67,29 @@ export function renderResults(
             codeChip(a.id),
           ])
         : null,
+      /**
+       * What the evidence is marked, in the block where the facts about this assessment are.
+       *
+       * It used to be a question on the overview, answered by hand and checked against the
+       * rows. Asked for on 20 October: it can automatically give the highest ranking from the
+       * ones that we give, and we move it to my results, somewhere in the first block, and
+       * say in a note kind of thing right near it that it is automatically ranked.
+       */
+      (() => {
+        const n = evidenceCount(a);
+        const top = a.initiative.classification || 'Unclassified';
+        return el('div', { class: 'verdict-code verdict-mark-row' }, [
+          el('span', { class: 'verdict-code-key' }, [t('Evidence marked up to', 'Cote des preuves')]),
+          el('span', { class: 'verdict-mark' }, [
+            top,
+            el('span', { class: 'tiny dim' }, [
+              n === 0
+                ? t('nothing pointed at yet', 'aucune preuve pour le moment')
+                : t(`the highest of ${n}`, `la plus élevée sur ${n}`),
+            ]),
+          ]),
+        ]);
+      })(),
       r.maturity
         ? el('div', { class: 'maturity' }, [
             el('strong', {}, [r.maturity.label]),
@@ -128,29 +151,14 @@ export function renderResults(
   const problems = markingProblems(a);
   if (problems.length) {
     /**
-     * The marking is settled here, where the block is.
-     *
-     * Reported as: when i clicked save my result without marking the evidence (it simply
-     * shouldnt allow me), it sent me here. See my results is the loud button at the foot of
-     * the questionnaire and nothing stops it, so somebody who has not marked the file arrives
-     * at a page carrying a block and one button that sends them back to look for a control.
-     * The gate in the questionnaire's own footer has the seven markings on it for this exact
-     * reason, written up there as: telling somebody to mark the file and making them go and
-     * find the control is how a gate turns into a notice people learn to read past.
-     *
-     * Going back stays, because the other three problems this box reports are about evidence
-     * on particular questions and those are answered where the question is.
+     * Going back, and nothing else. This box used to carry the seven markings, because the
+     * one problem it could not send you anywhere useful for was the file having none. That
+     * question is gone: both problems it can report now are about a row of evidence on a
+     * particular question, and those are answered where the question is.
      */
-    const needsFileMark = problems.some((p) => p.kind === 'no-file-marking');
     root.appendChild(el('section', { class: 'card warn alert', 'data-part': 'Fix first' }, [
       el('strong', {}, [t('You cannot save this yet', 'Vous ne pouvez pas encore enregistrer')]),
       el('ul', { class: 'small' }, problems.slice(0, 8).map((p) => el('li', {}, [p.message]))),
-      needsFileMark
-        ? el('div', { class: 'gate-marks' }, CLASSIFICATIONS.map((c) => el('button', {
-            class: 'mark-btn',
-            onclick: () => setFileMarking(a, c, repaint),
-          }, [c])))
-        : null,
       el('button', { class: 'ghost', onclick: onBack }, [t('Go back and fix it', 'Revenir et corriger')]),
     ]));
   }

@@ -54,6 +54,7 @@ text-transform:uppercase;border:1px solid;border-radius:999px;padding:.08rem .45
 .st-wait{color:var(--warn);border-color:var(--warn);background:var(--warn-bg)}
 .st-later{color:var(--ink-3);border-color:var(--line-2);background:var(--surface-2)}
 .st-stuck{color:var(--bad);border-color:var(--bad);background:var(--bad-bg)}
+.st-gone{color:var(--ink-3);border-color:var(--line-2);background:none;text-decoration:line-through}
 .callout{background:var(--good-bg);border-left:3px solid var(--good);border-radius:0 8px 8px 0;padding:.55rem .8rem;margin:.45rem 0 0}
 .callout .q{font-weight:650;font-size:.92rem;margin-bottom:.1rem}
 .callout .a{font-size:.85rem;color:var(--ink-2)}
@@ -145,7 +146,7 @@ background:var(--surface);border:1px solid var(--line);border-radius:10px;list-s
 .kpi a{color:inherit;text-decoration:none}
 </style>
 <div class="head"><div class="head-in"><h1>GC EA self-assessment: requirements specification</h1>
-<p class="sub">Living document, updated 2026-09-28. 145 requirements, baselined at each release. Following ISO/IEC/IEEE 29148:2018, tailored.</p></div></div>
+<p class="sub">Living document, updated 2026-09-28. 146 requirements, baselined at each release. Following ISO/IEC/IEEE 29148:2018, tailored.</p></div></div>
 <nav class="topnav"><div class="topnav-in">
 <span class="nav-kpi"><b>90</b><span>built</span></span>
 <span class="nav-kpi"><b>31</b><span>agreed, not built</span></span>
@@ -171,7 +172,7 @@ background:var(--surface);border:1px solid var(--line);border-radius:10px;list-s
 <p class="lead">Each requirement carries a number so it can be quoted, a state, and an owner where somebody owes an answer. Numbers are never reused and never renumbered. Nothing is deleted when a requirement changes: the state changes and the reason goes in the note.</p>
 <p class="lead">Owners are named people. Build team means Mariia Yermolenko, who is building this on a co-op term at the Treasury Board Secretariat. TBS means whoever holds the decision inside the department, which is Dan Cooper unless the entry says otherwise.</p>
 <div class="legend small">
-<span class="st st-done">Built</span> <span class="st st-next">Agreed</span> <span class="st st-wait">Proposed</span> <span class="st st-stuck">Blocked</span> <span class="st st-later">Open</span>
+<span class="st st-done">Built</span> <span class="st st-next">Agreed</span> <span class="st st-wait">Proposed</span> <span class="st st-stuck">Blocked</span> <span class="st st-later">Open</span> <span class="st st-gone">Dropped</span>
 <span class="muted">Built is in the tool today. Agreed is decided and not built. Blocked is written and unable to work until somebody publishes something. Proposed is our reading, waiting on somebody. Open is undecided.</span>
 </div>
 <h2 id="open">Open decisions <span class="muted small">21</span></h2>
@@ -779,7 +780,7 @@ Two departures worth naming. The audit saves itself a moment after typing stops,
 </div>
 <div class="req">
 <span class="req-id mono">E4</span>
-<span class="req-t">Choosing a marking above unclassified takes over the screen once, explains what to do instead, and cannot be dismissed until the person says they understand.</span>
+<span class="req-t">Marking a piece of evidence above unclassified takes over the screen once, says what to do instead, and cannot be dismissed until the person says they understand.</span>
 <span class="st st-done">Built</span>
 </div>
 <div class="req">
@@ -796,7 +797,14 @@ Two departures worth naming. The audit saves itself a moment after typing stops,
 <div class="req">
 <span class="req-id mono">E6</span>
 <span class="req-t">Evidence marked above the answer given on the overview asks which of the two is wrong.</span>
+<span class="st st-gone">Dropped</span>
+<span class="req-note">Dropped on 20 October with the question it reconciled. It existed because the marking was asked twice, once as a picker on the overview and once on every evidence row, and the two answers could disagree. A dialog opened in the middle of typing offering to raise the overview answer or lower the row, and a save block sat behind it. Superseded by E9: the file marking is the highest of the rows, so nothing can be above it.</span>
+</div>
+<div class="req">
+<span class="req-id mono">E9</span>
+<span class="req-t">The file’s marking is the highest marking of its evidence. Nobody is asked for it.</span>
 <span class="st st-done">Built</span>
+<span class="req-note">Added 20 October, asked in these words: why do we need the original picker of how your evidence is ranked if we rank each evidence anyway, and it can automatically give the highest ranking from the ones that we give, so maybe we remove it at all as well, and instead we move it to my results, somewhere in the first block, and say in a note kind of thing right near it that it is automatically ranked. The overview is two groups now instead of three. An assessment with no evidence derives Unclassified, which is why E8’s save block could go: thats okay, maybe it doesnt have evidence yet, its okay to save unmarked file. initiative.classification keeps its name and keeps being written into every record, because an assessor’s screens read it and a string inside somebody else’s saved record is a key. A record saved under the old picker is brought into line the moment it is opened, which can move it down: the picker was the guess and the rows are the fact.</span>
 </div>
 <div class="req">
 <span class="req-id mono">E7</span>

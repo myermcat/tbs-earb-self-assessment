@@ -121,12 +121,14 @@ console.log('\nThe submitter, with no account\n');
 
 /* --------------------------------------------------------------------------------------- */
 /**
- * The marking is settled on the page that is blocked by it.
+ * A file nobody has marked opens on the results page like any other.
  *
- * Reported as: when i clicked save my result without marking the evidence (it simply shouldnt
- * allow me), it sent me here. See my results is the loud button at the foot of the
- * questionnaire and nothing stops it, so an unmarked file arrives at a page carrying a block
- * and, until this, one button that sent somebody back to look for the control.
+ * It used to be blocked there, with the seven markings on the block itself, because the
+ * overview asked for the marking and the save was the gate on it. Reported as: when i clicked
+ * save my result without marking the evidence (it simply shouldnt allow me), it sent me here.
+ * Both the question and the block went on 20 October: thats okay, maybe it doesnt have
+ * evidence yet, its okay to save unmarked file. The marking is derived from the evidence, so
+ * a file with none derives Unclassified, and that is what the record says once it is opened.
  */
 {
   const unmarked = {
@@ -142,21 +144,16 @@ console.log('\nThe submitter, with no account\n');
   const dom = await open({ 'gc-arch-assessment:draft': JSON.stringify(unmarked) }, '#results');
   const { document } = dom.window;
   const blocker = () => document.querySelector('.card.warn.alert');
-  ok('an unmarked file is blocked from saving on the results page',
-     /cannot save this yet/i.test(blocker()?.textContent ?? ''),
-     blocker()?.textContent?.slice(0, 60) ?? 'no blocker');
-  const marks = [...(blocker()?.querySelectorAll('.mark-btn') ?? [])];
-  ok('and every marking is on the block itself', marks.length === 7,
-     marks.map((b) => b.textContent).join(' | ') || 'none');
-  ok('and going back is still offered for the problems that live on a question',
-     !!byTextIn(blocker(), 'button', 'Go back'));
-  marks.find((b) => b.textContent.trim() === 'Unclassified').click();
-  await settle();
-  ok('marking it there clears the block without leaving the page',
-     !blocker() && dom.window.location.hash === '#results',
-     `${blocker() ? 'still blocked' : 'clear'} at ${dom.window.location.hash}`);
-  ok('and the marking is in the draft this browser keeps',
-     JSON.parse(dom.window.localStorage.getItem('gc-arch-assessment:draft')).initiative.classification === 'Unclassified');
+  ok('a file with no marking is not blocked on the results page',
+     !blocker(), blocker()?.textContent?.slice(0, 60) ?? '');
+  /**
+   * Opening a file does not rewrite the copy on disk. The derived marking is in the record the
+   * page is holding, and it goes to disk and to the store on the next save, which is what
+   * every other edit does. An autosave on load is how a blank once overwrote somebody's work.
+   */
+  const tag = document.querySelector('.mark-tag, .marking-banner');
+  ok('and the page says what the file is, which is unclassified',
+     (tag?.textContent ?? '').includes('UNCLASSIFIED'), tag?.textContent ?? 'nothing said');
 }
 
 /* --------------------------------------------------------------------------------------- */

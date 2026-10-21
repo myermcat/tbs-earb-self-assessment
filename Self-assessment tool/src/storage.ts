@@ -1,5 +1,6 @@
 import type { Assessment, Rubric } from './types';
 import { answersCsv } from './csv-answers';
+import { syncMarking } from './marking';
 import { forgetBases, newDocId } from './firebase';
 import { DEMO_MARK, isDemoBuild, storeKey } from './keys';
 
@@ -52,7 +53,9 @@ export function blankAssessment(rubric: Rubric): Assessment {
     // cannot be named.
     id: newDocId(),
     rubric: { id: rubric.id, version: rubric.version, title: rubric.title },
-    initiative: { name: '', department: '', contact: '', lifecycleStage: '', summary: '', classification: '' },
+    // An assessment with no evidence points at nothing above unclassified, which is what the
+    // marking is derived from. It used to start empty and refuse to save until somebody picked.
+    initiative: { name: '', department: '', contact: '', lifecycleStage: '', summary: '', classification: 'Unclassified' },
     answers: {},
     /**
      * A file saved off the demonstration page used to be indistinguishable from a real
@@ -182,7 +185,14 @@ export function loadDraft(): Assessment | null {
     const raw = localStorage.getItem(KEY);
     if (!raw) return null;
     const a = JSON.parse(raw) as Assessment;
-    return a?.fileType === 'gc-arch-assessment' ? ensureRef(a) : null;
+    if (a?.fileType !== 'gc-arch-assessment') return null;
+    /**
+     * A file saved under the old picker carries whatever was chosen there, which may be above
+     * or below what its evidence says. The rows are the fact, so the record is brought into
+     * line the moment it is opened.
+     */
+    syncMarking(a);
+    return ensureRef(a);
   } catch {
     return null;
   }
@@ -242,7 +252,16 @@ export function answeredCount(a: Assessment): number {
  */
 export function hasWork(a: Assessment): boolean {
   if (answeredCount(a) > 0) return true;
-  if (Object.values(a.initiative).some((v) => typeof v === 'string' && v.trim() !== '')) return true;
+  /**
+   * The marking is not work. It is derived from the evidence and a blank assessment carries
+   * Unclassified from the moment it exists, so counting it here made an empty file look like
+   * one somebody had started: the home page offered Continue on it and the Danger zone offered
+   * to discard it.
+   */
+  const typed = Object.entries(a.initiative)
+    .filter(([k]) => k !== 'classification' && k !== 'markingAcknowledged')
+    .map(([, v]) => v);
+  if (typed.some((v) => typeof v === 'string' && v.trim() !== '')) return true;
   return Object.values(a.answers).some(
     (ans) => (ans.justification ?? '').trim() !== ''
       || (ans.evidence ?? []).length > 0

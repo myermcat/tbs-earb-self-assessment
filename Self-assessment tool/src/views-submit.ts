@@ -1,4 +1,4 @@
-import { CLASSIFICATIONS, classRank, type Assessment, type EvidenceRef, type Question,
+import { CLASSIFICATIONS, type Assessment, type EvidenceRef, type Question,
   type Rubric } from './types';
 import { el, clear, tone } from './dom';
 import { codeChip } from './code-chip';
@@ -9,7 +9,7 @@ import { demandPledge } from './pledge';
 import { confirmStep } from './confirm';
 import { t } from './i18n';
 import { isHosted } from './store';
-import { canSave, markingProblems } from './marking';
+import { canSave, markingProblems, syncMarking } from './marking';
 
 const KINDS: EvidenceRef['kind'][] = ['document', 'diagram', 'dashboard', 'system', 'report', 'other'];
 
@@ -653,21 +653,30 @@ export function evidenceSubject(a: Assessment, questionId: string): string {
 }
 
 /**
- * Setting the file's marking, from wherever it was set.
+ * Marking one piece of evidence, which is the only place a marking is set now.
+ *
+ * It was set in two places and they could disagree: a picker on the overview said what the
+ * evidence went up to, and every row said what that row was, and the tool carried a dialog
+ * and a save block for the two answers not matching. The overview question went on 20
+ * October, so the rows are the fact and the file marking is derived from them.
  *
  * Choosing anything above unclassified takes over the screen once, because a panel below the
- * fold is not a warning - it was scrolled past, which is how this bug was found. After the
- * pledge is given, switching between classified markings does not ask again: the advice panel
- * on the overview is the reference to come back to.
+ * fold is not a warning: it was scrolled past, which is how that bug was found. The pledge
+ * now fires here, at the moment somebody has the material in front of them, rather than on
+ * an overview page where no question is on screen. After it is given, switching between
+ * classified markings does not ask again.
  */
-export function setFileMarking(
+export function markEvidence(
   a: Assessment,
+  ev: { classification: Assessment['initiative']['classification'] },
   c: Assessment['initiative']['classification'],
+  questionId: string,
   after: () => void,
 ): void {
   const ack = a.initiative.markingAcknowledged;
-  a.initiative.classification = c;
-  if (c === 'Unclassified') a.initiative.markingAcknowledged = undefined;
+  ev.classification = c;
+  const now = syncMarking(a);
+  if (now === 'Unclassified') a.initiative.markingAcknowledged = undefined;
   autosave(a);
   after();
   if (!c || c === 'Unclassified') return;
@@ -676,12 +685,11 @@ export function setFileMarking(
   if (ack === true || ack === c) return;
   demandPledge({
     marking: c,
-    // No question is on screen here, so this is an example. The evidence box on each question
-    // writes the real one, with that question's number already in it.
-    subject: evidenceSubject(a, 'B-Q14'),
+    subject: evidenceSubject(a, questionId),
     onAcknowledge: () => { a.initiative.markingAcknowledged = c; autosave(a); after(); },
     onUnclassified: () => {
-      a.initiative.classification = 'Unclassified';
+      ev.classification = 'Unclassified';
+      syncMarking(a);
       a.initiative.markingAcknowledged = undefined;
       autosave(a);
       after();
@@ -697,7 +705,6 @@ export function overviewProgress(a: Assessment): [number, number] {
   const groups = [
     !!(a.initiative.name.trim() && a.initiative.department.trim()
       && a.initiative.contact.trim() && a.initiative.summary.trim()),
-    !!a.initiative.classification,
     !!a.initiative.lifecycleStage,
   ];
   return [groups.filter(Boolean).length, groups.length];
@@ -716,7 +723,6 @@ export function overviewFieldProgress(a: Assessment): [number, number] {
     a.initiative.department.trim(),
     a.initiative.contact.trim(),
     a.initiative.summary.trim(),
-    a.initiative.classification,
     a.initiative.lifecycleStage,
   ];
   return [fields.filter(Boolean).length, fields.length];
@@ -811,24 +817,20 @@ function footerBar(
     clear(gate);
     gate.className = '';
     if (problems.length) {
-      const needsFileMark = problems.some((x) => x.kind === 'no-file-marking');
-      // Short enough to take in at a glance. The reader is trying to save, not to read.
+      /**
+       * The seven marking buttons went with the question they answered. The gate used to say
+       * "Mark this file to save it" and carry the whole picker, because telling somebody to
+       * mark the file and making them go and find the control is how a gate turns into a
+       * notice people learn to read past. There is no file marking to set now: what is left
+       * is a row of evidence somebody started and has not marked, and that control is beside
+       * the question it belongs to.
+       */
       gate.className = 'gate-band';
       gate.appendChild(el('div', { class: 'gate small' }, [
         el('div', {}, [
-          el('strong', {}, [needsFileMark ? 'Mark this file to save it' : 'Fix this to save']),
-          needsFileMark ? '' : `: ${problems[0].message}`,
+          el('strong', {}, ['Fix this to save']),
+          `: ${problems[0].message}`,
         ]),
-        // Telling somebody to mark the file and making them go and find the control is how a
-        // gate turns into a notice people learn to read past. The control is here.
-        needsFileMark
-          ? el('div', { class: 'gate-marks' }, CLASSIFICATIONS.map((c) =>
-              el('button', {
-                class: 'mark-btn',
-                onclick: () => setFileMarking(a, c, repaintApp),
-              }, [c]),
-            ))
-          : null,
       ]));
     }
     pill.className = `pill ${tone(rr.overall)}`;
@@ -1003,24 +1005,11 @@ function overviewIsWizard(a: Assessment): boolean {
   return done < total;
 }
 
-/**
- * Take the reader to the marking question, wherever they are.
- *
- * The chrome banner said "Unmarked. Set the classification" and then scrolled to an element
- * that only exists on the overview: from any of the twenty question pages it was a dead end.
- * The banner and the gate strip both need this.
- */
-export function showMarkingStep(): void {
-  page = 'about';
-  overviewStep = 1;                      // the marking group, between the facts and the stage
-}
-
 /** Coming back should land on the first group still empty. */
 export function resetOverviewToFirstGap(_rubric: Rubric, a: Assessment): void {
   const filled = [
     !!(a.initiative.name.trim() && a.initiative.department.trim()
       && a.initiative.contact.trim() && a.initiative.summary.trim()),
-    !!a.initiative.classification,
     !!a.initiative.lifecycleStage,
   ];
   const gap = filled.findIndex((x) => !x);
@@ -1101,13 +1090,6 @@ function aboutSection(
       ]),
     },
     {
-      key: 'marking',
-      title: t('How is your evidence marked?', 'Quelle est la cote de vos preuves?'),
-      help: 'This assessment is an unclassified document, and everything you type into it has to stay unclassified. What can carry a marking is the evidence behind your answers: a cost model, a diagram, a report. Give the highest marking of anything you will point at, so your assessor knows what they need access to. If it is all unclassified, say so.',
-      filled: () => !!a.initiative.classification,
-      build: () => markingChoices(a, rebuild),
-    },
-    {
       key: 'stage',
       title: t('Where is it in the lifecycle?', 'Où en est-elle dans le cycle de vie?'),
       help: t('This changes what is expected of you. A discovery team has no current solution to document; a live service does.', 'Cela change ce qui est attendu de vous. Une équipe en découverte n\u2019a aucune solution actuelle à documenter; un service en production en a une.'),
@@ -1117,11 +1099,7 @@ function aboutSection(
   ];
 
   const block = (st: OverviewStep, heading: 'h2' | 'h3') =>
-    el('div', {
-      class: 'ov-block',
-      id: st.key === 'marking' ? 'marking-control' : undefined,
-      tabindex: st.key === 'marking' ? -1 : undefined,
-    }, [
+    el('div', { class: 'ov-block' }, [
       el(heading, {}, [st.title]),
       st.help ? el('p', { class: 'muted small' }, [st.help]) : null,
       st.build(),
@@ -1206,108 +1184,21 @@ function aboutSection(
   return card;
 }
 
-/**
- * Nothing protected or classified goes into this tool at all, settled with Dan on 2 September.
- * The picker stays, because somebody still has to state the marking of the evidence they are
- * pointing at, and picking anything above unclassified is the moment to say what to do instead.
+/*
+ * THE MARKING PICKER AND ITS ADVICE PANEL WERE HERE, AND BOTH WENT ON 20 OCTOBER.
  *
- * The advice appears here and nowhere else. It is a once-a-year situation, so it should not
- * follow anybody around, and this is where they will come looking for it again.
+ * markingChoices drew seven chips on the overview, asking for the highest marking of anything
+ * the answers would point at, and under them an advice panel that appeared once a marking
+ * above unclassified was chosen: what to do instead, a subject line to use, and a tick to say
+ * it had been read. Asked: why do we need the original picker of how your evidence is ranked
+ * if we rank each evidence anyway, and it can automatically give the highest ranking from the
+ * ones that we give.
+ *
+ * The chips are the evidence row's own select, which already existed. The advice is the
+ * pledge, which now fires from that select rather than from here, at the moment somebody has
+ * the material in front of them. The subject line is written for them on the row itself, with
+ * the real question number in it and a button that copies it.
  */
-function markingChoices(a: Assessment, rebuild: () => void): HTMLElement {
-  const wrap = el('div', {});
-  const panel = el('div', {});
-
-  const paintPanel = () => {
-    clear(panel);
-    const c = a.initiative.classification;
-    if (!c || c === 'Unclassified') return;
-
-    const subject = `EARB evidence - ${a.initiative.name || 'your initiative'} - [question]`;
-    panel.appendChild(el('div', { class: 'mark-advice' }, [
-      el('div', { class: 'mark-advice-head' }, [
-        el('strong', {}, [`${c} material does not go in this tool`]),
-        el('span', { class: 'badge badge-warn' }, ['Read this']),
-      ]),
-      el('p', { class: 'small' }, [
-        'Nothing above unclassified belongs in here, answers or evidence. Two ways through, and ',
-        'the first one is almost always available.',
-      ]),
-      el('ol', { class: 'steps small' }, [
-        el('li', {}, [
-          el('b', {}, ['Link to the artefact where it is kept, ']),
-          'and make sure your assessor can open it. The link is unclassified even when the ',
-          'document is not.',
-        ]),
-        el('li', {}, [
-          el('b', {}, ['If it cannot be linked, email it to your assessor ']),
-          'and record here that you did. Use this subject line so they can find it again:',
-          el('code', { class: 'mono mark-subject' }, [subject]),
-          ' and write in the evidence field: ',
-          el('code', { class: 'mono' }, [`${c}, sent by email, subject: ...`]),
-        ]),
-      ]),
-      el('p', { class: 'small muted' }, [
-        'Describing the shape of a system is usually unclassified. A high-level answer scores ',
-        'about 5, and 5 is a fine score.',
-      ]),
-      (() => {
-        const ack = el('label', { class: 'mark-ack' }, [
-          el('input', {
-            type: 'checkbox',
-            checked: a.initiative.markingAcknowledged === true
-              || a.initiative.markingAcknowledged === a.initiative.classification,
-            onchange: (e: Event) => {
-              a.initiative.markingAcknowledged = (e.target as HTMLInputElement).checked
-                ? (a.initiative.classification || undefined)
-                : undefined;
-              autosave(a);
-            },
-          }),
-          'I understand, and I will keep this tool unclassified.',
-        ]);
-        return ack;
-      })(),
-    ]));
-  };
-
-  const families: { name: string; note: string; of: readonly string[] }[] = [
-    { name: 'Protected', note: 'Injury to a person, a company or the government.', of: ['Protected A', 'Protected B', 'Protected C'] },
-    { name: 'Classified', note: 'Injury to the national interest.', of: ['Confidential', 'Secret', 'Top Secret'] },
-  ];
-
-  const chip = (c: string) =>
-    el('label', { class: `marking-chip ${a.initiative.classification === c ? 'on' : ''}` }, [
-      el('input', {
-        type: 'radio', name: 'filemark', value: c,
-        checked: a.initiative.classification === c,
-        onchange: () => {
-          setFileMarking(a, c as Assessment['initiative']['classification'], () => {
-            paintPanel();
-            rebuild();
-          });
-          if (!overviewIsWizard(a) && c === 'Unclassified') confetti('section');
-        },
-      }),
-      c,
-    ]);
-
-  // Unclassified is the answer, so it gets its own row and the weight of one.
-  wrap.appendChild(el('div', { class: 'mark-default' }, [chip('Unclassified')]));
-  const grid = el('div', { class: 'mark-families' });
-  for (const f of families) {
-    grid.appendChild(el('fieldset', { class: 'mark-family' }, [
-      el('legend', {}, [f.name]),
-      el('p', { class: 'tiny muted' }, [f.note]),
-      el('div', { class: 'marking-row' }, f.of.map(chip)),
-    ]));
-  }
-  wrap.appendChild(grid);
-  paintPanel();
-  wrap.appendChild(panel);
-  return wrap;
-}
-
 /** The stages, grouped by phase, each pointing at its own page in the guide. */
 function stagePicker(rubric: Rubric, a: Assessment, rebuild: () => void): HTMLElement {
   const base = (rubric.dlgBaseUrl ?? '').replace(/\/$/, '');
@@ -1717,45 +1608,24 @@ function evidenceEditor(a: Assessment, q: Question, list: EvidenceRef[], refresh
     ]));
 
     list.forEach((ev, i) => {
+      /**
+       * The row is where a marking is set, and the only place.
+       *
+       * There used to be a dialog here, opening in the middle of typing whenever a row was
+       * marked above the answer given on the overview: raise the overview answer, or say the
+       * evidence is not that high. It existed because the same fact was asked twice. It is
+       * gone with the second question, and so is the save block behind it.
+       */
       const upd = (k: 'title' | 'location' | 'note' | 'kind' | 'classification') => (e: Event) => {
-        const was = k === 'classification' ? ev.classification : '';
-        (ev as unknown as Record<string, string>)[k] = (e.target as HTMLInputElement).value;
-        autosave(a);
-        /**
-         * Evidence marked higher than the answer given on the overview used to sit there
-         * blocking the save with a message. It is a two-way question, and this is the moment
-         * to ask it: raise the overview answer, or say the evidence is not that high.
-         */
-        if (k === 'classification'
-            && ev.classification
-            && classRank(ev.classification) > classRank(a.initiative.classification)) {
-          const wanted = ev.classification;
-          const said = a.initiative.classification || 'nothing yet';
-          confirmStep({
-            tier: 'caution',
-            title: `On the overview you said your evidence goes up to ${said}`,
-            body: `This piece is marked ${wanted}, which is higher. One of the two answers has to change.`,
-            alt: {
-              label: `My evidence does go up to ${wanted}`,
-              run: () => {
-                // Raising the overview answer keeps the pledge already given: they have read
-                // what to do about classified material, and saying it again is noise.
-                a.initiative.classification = wanted;
-                a.initiative.markingAcknowledged = wanted;
-                autosave(a); paint(); refresh(); repaintApp();
-              },
-            },
-            // Back to the highest this row may be, which is the overview answer. Reverting to
-            // whatever the row held a moment ago put a Protected C row back to unmarked.
-            commitLabel: `No, my evidence goes up to ${a.initiative.classification || 'nothing higher'}`,
-            cancelLabel: 'Leave both as they are',
-            onCommit: () => {
-              ev.classification = a.initiative.classification || was;
-              autosave(a); paint(); refresh();
-            },
+        const value = (e.target as HTMLInputElement).value;
+        if (k === 'classification') {
+          markEvidence(a, ev, value as Assessment['initiative']['classification'], q.id, () => {
+            paint(); refresh(); repaintApp();
           });
+          return;
         }
-        if (k === 'classification') { paint(); refresh(); }
+        (ev as unknown as Record<string, string>)[k] = value;
+        autosave(a);
       };
 
       /**
